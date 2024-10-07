@@ -1,0 +1,4 @@
+columns:
+- start_date
+type: DATE_RANGE_PICKER
+width: 6

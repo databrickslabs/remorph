@@ -3,22 +3,99 @@ package com.databricks.labs.remorph.coverage.estimation
 import com.databricks.labs.remorph.coverage.EstimationReport
 import upickle.default._
 
-import java.time.Instant
-
 trait EstimationReporter {
   def report(): Unit
 }
 
-class ConsoleEstimationReporter(estimate: EstimationReport) extends EstimationReporter {
+class SummaryEstimationReporter(outputDir: os.Path, estimate: EstimationReport) extends EstimationReporter {
   override def report(): Unit = {
+    val output =
+      s"""
+         |# Conversion Complexity Estimation Report
+         |## Report explanation:
+         |
+         |### Sample size
+         |The number of records used to provide estimate. In other words the total
+         |number of records in the input dataset.
+         |### Output record count
+         |The number of records generated to track output. This includes
+         |both successful and failed transpilations, but the analysis tries
+         |to avoid duplicates in both successful and failed transpilations.
+         |### Unique successful transpiles
+         |The number of unique queries that were successfully transpiled
+         |from source dialect to Databricks SQL. This count does not include
+         |queries that were duplicates of previously seen queries with just
+         |simple parameter changes.
+         |### Unique Parse failures
+         |The number of unique queries that failed to parse and therefore
+         |could not produce IR or be transpiled.
+         |### Transpile failures
+         |The number of unique queries that were parsed, produced an IR Plan,
+         |but then failed to transpile to Databricks SQL. Note that this means
+         |that there is a bug in either the IR generation or the source generation.
+         |### Overall complexity
+         |The overall complexity of the queries in the dataset. This is a rough
+         |estimate of how difficult it will be to complete a port of system
+         |if the supplied queries are representative of the source system.
+         |
+         |This can be somewhat subjective in that a query that is very complex in terms
+         |of the number of statements or the number of joins may not be as complex as
+         |it appears to be. However, it is a good starting point for understanding the
+         |scope.
+         |
+         |### Statistics used to calculate overall complexity
+         |While complexity is presented as one of four categories, being, *LOW*, *MEDIUM*,
+         |*COMPLEX*, and *VERY_COMPLEX*, the actual judgement is based on a numeric score
+         |calculated from the presence of various elements in the query. A low score
+         |results in a complexity of *LOW* and a high score results in a complexity of *VERY_COMPLEX*.
+         |
+         |The individual scores for each query are then used to calculate the mean, median, and other
+         |statistics that may be used to determine the overall complexity. The raw values are
+         |contained in the report so that different interpretations can be made than the ones
+         |provided by the current version of the estimate command.
+         |
+         |## Metrics
+         | | Metric                      | Value                          |
+         | |:----------------------------|--------------------------------:|
+         | | Sample size                 | ${f"${estimate.sampleSize}%,d"}|
+         | | Output record count         | ${f"${estimate.records.size}%,d"}|
+         | | Unique successful transpiles| ${estimate.uniqueSuccesses}   |
+         | | Unique Parse failures       | ${estimate.parseFailures}      |
+         | | Transpile failures          | ${estimate.transpileFailures}  |
+         | | Overall complexity (ALL)    | ${estimate.overallComplexity.allStats.complexity} |
+         | | Overall complexity (SUCCESS)| ${estimate.overallComplexity.successStats.complexity} |
+         |
+         |## Statistics used to calculate overall complexity (ALL results)
+         |
+         | | Metric                      | Value                          |
+         | |:----------------------------|--------------------------------:|
+         | | Mean score | ${f"${estimate.overallComplexity.allStats.meanScore}%,.2f"}|
+         | | Standard deviation | ${f"${estimate.overallComplexity.allStats.stdDeviation}%,.2f"}|
+         | | Mode score | ${estimate.overallComplexity.allStats.modeScore}|
+         | | Median score | ${estimate.overallComplexity.allStats.medianScore}|
+         | | Percentile 25 | ${f"${estimate.overallComplexity.allStats.percentile25}%,.2f"}|
+         | | Percentile 50 | ${f"${estimate.overallComplexity.allStats.percentile50}%,.2f"}|
+         | | Percentile 75 | ${f"${estimate.overallComplexity.allStats.percentile75}%,.2f"}|
+         | | Geometric mean score | ${f"${estimate.overallComplexity.allStats.geometricMeanScore}%,.2f"}|
+         |
+         |## Statistics used to calculate overall complexity (Successful results only)
+         |
+         | | Metric                      | Value                          |
+         | |:----------------------------|--------------------------------:|
+         | | Mean score | ${f"${estimate.overallComplexity.successStats.meanScore}%,.2f"}|
+         | | Standard deviation | ${f"${estimate.overallComplexity.successStats.stdDeviation}%,.2f"}|
+         | | Mode score | ${estimate.overallComplexity.successStats.modeScore}|
+         | | Median score | ${estimate.overallComplexity.successStats.medianScore}|
+         | | Percentile 25 | ${f"${estimate.overallComplexity.successStats.percentile25}%,.2f"}|
+         | | Percentile 50 | ${f"${estimate.overallComplexity.successStats.percentile50}%,.2f"}|
+         | | Percentile 75 | ${f"${estimate.overallComplexity.successStats.percentile75}%,.2f"}|
+         | | Geometric mean score | ${f"${estimate.overallComplexity.successStats.geometricMeanScore}%,.2f"}|
+         |""".stripMargin
+
+    val summaryFilePath = outputDir / "summary.md"
+    os.write(summaryFilePath, output)
     // scalastyle:off println
-    println(s"Sample size              : ${estimate.sampleSize}")
-    println(s"Output record count      : ${estimate.records.size}")
-    println(s"Unique successful parses : ${estimate.uniqueSuccesses}")
-    println(s"Parse failures           : ${estimate.parseFailures}")
-    println(s"Transpile failures       : ${estimate.transpileFailures}")
-    println(s"Overall complexity       : ${estimate.overallComplexity.complexity}")
-    println()
+    println(s"Summary report written to ${summaryFilePath}")
     // scalastyle:on println
   }
 }
@@ -26,10 +103,9 @@ class ConsoleEstimationReporter(estimate: EstimationReport) extends EstimationRe
 class JsonEstimationReporter(outputDir: os.Path, preserveQueries: Boolean, estimate: EstimationReport)
     extends EstimationReporter {
   override def report(): Unit = {
-    val now = Instant.now
-    val queriesDir = outputDir / s"${now.getEpochSecond}" / "queries"
+    val queriesDir = outputDir / "queries"
     os.makeDir.all(queriesDir)
-    val resultPath = outputDir / s"${now.getEpochSecond}" / s"${estimate.dialect}.json"
+    val resultPath = outputDir / s"${estimate.dialect}.json"
 
     // Iterate over the records and modify the transpilationReport.query field
     var count = 0
