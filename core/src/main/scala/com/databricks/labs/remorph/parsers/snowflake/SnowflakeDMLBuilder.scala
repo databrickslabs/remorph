@@ -70,7 +70,10 @@ class SnowflakeDMLBuilder
   }
 
   private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
-    val condition = Option(ctx.predicate().accept(expressionBuilder))
+    val condition = ctx match {
+      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case _ => None
+    }
 
     ctx match {
       case d if d.mergeUpdateDelete().DELETE() != null =>
@@ -90,7 +93,11 @@ class SnowflakeDMLBuilder
   }
 
   private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
-    val condition = Option(ctx.predicate().accept(expressionBuilder))
+    val condition = ctx match {
+      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case _ => None
+    }
+
     val assignments = Option(
       ctx
         .mergeInsert()
@@ -111,5 +118,4 @@ class SnowflakeDMLBuilder
 
     ir.InsertAction(condition, assignments)
   }
-
 }

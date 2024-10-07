@@ -124,5 +124,41 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             None))
       }
     }
+
+    "translate MERGE statements" should {
+      "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN UPDATE SET c1 = 42" in {
+        example(
+          "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN UPDATE SET c1 = 42",
+          _.mergeStatement(),
+          MergeIntoTable(
+            namedTable("t1"),
+            namedTable("t2"),
+            Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
+            matchedActions = Seq(UpdateAction(None, Seq(Assign(Id("c1"), Literal(42)))))))
+      }
+
+      "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN DELETE" in {
+        example(
+          "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN DELETE",
+          _.mergeStatement(),
+          MergeIntoTable(
+            namedTable("t1"),
+            namedTable("t2"),
+            Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
+            matchedActions = Seq(DeleteAction(None))))
+      }
+
+      "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED AND t2.date = '01/01/2024' THEN DELETE" in {
+        example(
+          "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED AND t2.date = '01/01/2024' THEN DELETE",
+          _.mergeStatement(),
+          MergeIntoTable(
+            namedTable("t1"),
+            namedTable("t2"),
+            Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
+            matchedActions = Seq(DeleteAction(Some(Equals(Dot(Id("t2"), Id("date")), Literal("01/01/2024")))))))
+      }
+
+    }
   }
 }
