@@ -13,7 +13,23 @@ class SnowflakeDDLBuilder
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
+  override protected def wrapUnresolvedInput(unparsedInput: RuleNode): ir.Catalog =
+    ir.UnresolvedCatalog(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
+  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
+  // visitor
+  override protected def aggregateResult(aggregate: ir.Catalog, nextResult: ir.Catalog): ir.Catalog = {
+    // scalastyle:off
+    println(
+      "WARNING: Aggregating ir.Catalog results because of unimplemented visitor(s).")
+    // scalastyle:on
+    if (nextResult == null) {
+      aggregate
+    } else {
+      nextResult
+    }
+  }
 
   private def extractString(ctx: StrContext): String =
     ctx.accept(expressionBuilder) match {

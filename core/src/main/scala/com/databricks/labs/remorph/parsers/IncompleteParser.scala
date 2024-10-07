@@ -5,21 +5,21 @@ import org.antlr.v4.runtime.tree.{ParseTreeVisitor, RuleNode}
 
 trait IncompleteParser[T] extends ParseTreeVisitor[T] with LazyLogging {
 
+  // Note that this is neveer called from here, but may be useful in implementing visitors
+  // that recognize they are unable to handle some part of the input context they are given.
   protected def wrapUnresolvedInput(unparsedInput: RuleNode): T
 
   /**
-   * If a visitor returns null then we wrap the unparsed input in an UnresolvedInput
-   * @param unparsedInput the RuleNode that was not visited
+   * Overrides the default visitChildren to report that there is an unimplemented
+   * visitor def for the given RuleNode, then call the ANTLR default visitor
+   * @param node the RuleNode that was not visited
    * @return T an instance of the type returned by the implementing visitor
    */
   abstract override def visitChildren(node: RuleNode): T = {
     val stackTrace = Thread.currentThread().getStackTrace
-    val callingMethod = stackTrace(2).getMethodName // Adjust the index if necessary
-    logger.warn(s"Unimplemented visitor for method: $callingMethod")
-    super.visitChildren(node) match {
-      case null =>
-        wrapUnresolvedInput(node)
-      case x => x
-    }
+    val callingMethod = stackTrace(4).getMethodName
+    val implementingClass = this.getClass.getSimpleName
+    logger.warn(s"Unimplemented visitor for method: $callingMethod in class: $implementingClass")
+    super.visitChildren(node)
   }
 }

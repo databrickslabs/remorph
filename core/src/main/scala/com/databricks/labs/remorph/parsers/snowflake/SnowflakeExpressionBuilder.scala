@@ -20,30 +20,27 @@ class SnowflakeExpressionBuilder()
   private val functionBuilder = new SnowflakeFunctionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
+  // This can be used in visitor methods when they detect that they are unable to handle some
+  // part of the input, or they are placeholders for a real implementation that has not yet been
+  // implemented
   protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedExpression =
     ir.UnresolvedExpression(getTextFromParserRuleContext(unparsedInput.getRuleContext))
 
-  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
-  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
-  // visitor
-  override protected def aggregateResult(aggregate: ir.Expression, nextResult: ir.Expression): ir.Expression = {
-
-    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
-    // null. This not correct, but it is a placeholder until we implement the missing visitor, so that we get a warning.
-    if (nextResult == null) {
-      // scalastyle:off
-      println(
-        s"WARNING: Aggregating ir.Expression results because of unimplemented visitor(s).\naggregate:\n$aggregate")
-      // scalastyle:on
-      aggregate
-    } else {
-      // scalastyle:off
-      println(
-        s"WARNING: Aggregating ir.Expression results because of unimplemented visitor(s).\naggregate:\n$aggregate\nnextResult:\n$nextResult")
-      // scalastyle:on
-      nextResult
-    }
+  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
+  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
+  protected override def defaultResult(): ir.Expression = {
+    ir.UnresolvedExpression("Unimplemented visitor returns defaultResult!")
   }
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
+  // returns more than one result because there is more than one child, we need to aggregate the results here. In
+  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
+  // visitor.
+  override protected def aggregateResult(aggregate: ir.Expression, nextResult: ir.Expression): ir.Expression =
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
+    // so that we get a warning.
+    Option(nextResult).getOrElse(aggregate)
 
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.DOUBLE_QUOTE_ID() != null =>

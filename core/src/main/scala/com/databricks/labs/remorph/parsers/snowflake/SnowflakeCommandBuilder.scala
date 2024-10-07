@@ -12,8 +12,24 @@ class SnowflakeCommandBuilder
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedCommand =
-    ir.UnresolvedCommand(unparsedInput)
+  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedCommand =
+    ir.UnresolvedCommand(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
+  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
+  // visitor
+  override protected def aggregateResult(aggregate: ir.Command, nextResult: ir.Command): ir.Command = {
+    // scalastyle:off
+    println("WARNING: Aggregating ir.Command results because of unimplemented visitor(s).")
+    // scalastyle:on
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This not correct, but it is a placeholder until we implement the missing visitor, so that we get a warning.
+    if (nextResult == null) {
+      aggregate
+    } else {
+      nextResult
+    }
+  }
 
   // TODO: Implement Cursor and Exception for Declare Statements.
   // TODO: Implement Cursor for Let Statements.

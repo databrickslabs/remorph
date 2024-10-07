@@ -16,24 +16,28 @@ class SnowflakeRelationBuilder
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.LogicalPlan =
+  // This can be used in visitor methods when they detect that they are unable to handle some
+  // part of the input, or they are placeholders for a real implementation that has not yet been
+  // implemented
+  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedRelation =
     ir.UnresolvedRelation(getTextFromParserRuleContext(unparsedInput.getRuleContext))
 
-  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
-  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
-  // visitor
-  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
-    // scalastyle:off
-    println("WARNING: Aggregating ir.Command results because of unimplemented visitor(s).")
-    // scalastyle:on
-    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
-    // null. This not correct, but it is a placeholder until we implement the missing visitor, so that we get a warning.
-    if (nextResult == null) {
-      aggregate
-    } else {
-      nextResult
-    }
+  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
+  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
+  protected override def defaultResult(): ir.LogicalPlan = {
+    ir.UnresolvedRelation("Unimplemented visitor returns defaultResult!")
   }
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
+  // returns more than one result because there is more than one child, we need to aggregate the results here. In
+  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
+  // visitor.
+  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan =
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
+    // so that we get a warning.
+    Option(nextResult).getOrElse(aggregate)
+
   override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
     val select = ctx.selectOptionalClauses().accept(this)
     val relation = buildLimitOffset(ctx.limitClause(), select)

@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -18,8 +17,18 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   private val dmlBuilder = new SnowflakeDMLBuilder
   private val commandBuilder = new SnowflakeCommandBuilder
 
-  // TODO investigate why this is needed
+  override protected def wrapUnresolvedInput(unparsedInput: RuleNode): LogicalPlan = {
+    ir.UnresolvedRelation(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+  }
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
+  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
+  // visitor
   override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
+    // scalastyle:off
+    println(
+      "WARNING: Aggregating ir.Logical plan results because of unimplemented visitor(s).")
+    // scalastyle:on
     if (nextResult == null) {
       aggregate
     } else {
