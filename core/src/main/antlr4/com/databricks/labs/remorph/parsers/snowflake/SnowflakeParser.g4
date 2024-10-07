@@ -110,7 +110,7 @@ updateStatement
     )?
     ;
 
-setColumnValue: id EQ expr
+setColumnValue: columnName EQ expr
     ;
 
 tableRef: objectName asAlias?

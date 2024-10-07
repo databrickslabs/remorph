@@ -215,7 +215,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |USING source_table AS s
         |ON t.id = s.id
         |WHEN MATCHED AND s.status = 'active' THEN
-        |  UPDATE SET value = s.value
+        |  UPDATE SET t.value = s.value AND status = 'active'
         |WHEN MATCHED AND s.status = 'inactive' THEN
         |  DELETE
         |WHEN NOT MATCHED THEN
@@ -224,7 +224,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |USING source_table AS s
            |ON t.id = s.id
            |WHEN MATCHED AND s.status = 'active' THEN
-           |  UPDATE SET value = s.value
+           |  UPDATE SET t.value = s.value AND status = 'active'
            |WHEN MATCHED AND s.status = 'inactive' THEN
            |  DELETE
            |WHEN NOT MATCHED THEN
