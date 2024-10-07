@@ -345,7 +345,7 @@ class Transformation:
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
 ```
-> **Note:** `NULL` values are defaulted to `_null_recon` in the transformation expression.If User is looking for specific behaviour, they should tweak the rules in the transformation expression accordingly in these files: 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py) 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py#L83)
+> **Note:** `NULL` values are defaulted to `_null_recon` in the transformation expression.If User is looking for specific behaviour, they should tweak the rules in the transformation expression accordingly in these files: 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py#L235) 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py#L83)
 
 ```transform(coalesce, default="_null_recon_", is_string=True)```
 
