@@ -4,6 +4,7 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.RuleNode
 
 import scala.collection.JavaConverters._
 
@@ -15,8 +16,24 @@ class SnowflakeRelationBuilder
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.LogicalPlan =
-    ir.UnresolvedRelation(unparsedInput)
+  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.LogicalPlan =
+    ir.UnresolvedRelation(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
+  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
+  // visitor
+  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
+    // scalastyle:off
+    println("WARNING: Aggregating ir.Command results because of unimplemented visitor(s).")
+    // scalastyle:on
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This not correct, but it is a placeholder until we implement the missing visitor, so that we get a warning.
+    if (nextResult == null) {
+      aggregate
+    } else {
+      nextResult
+    }
+  }
   override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
     val select = ctx.selectOptionalClauses().accept(this)
     val relation = buildLimitOffset(ctx.limitClause(), select)

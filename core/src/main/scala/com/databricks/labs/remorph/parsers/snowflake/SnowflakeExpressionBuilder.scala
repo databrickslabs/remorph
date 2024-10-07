@@ -4,6 +4,7 @@ import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
 import org.antlr.v4.runtime.Token
+import org.antlr.v4.runtime.tree.RuleNode
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -19,8 +20,30 @@ class SnowflakeExpressionBuilder()
   private val functionBuilder = new SnowflakeFunctionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
-    ir.UnresolvedExpression(unparsedInput)
+  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedExpression =
+    ir.UnresolvedExpression(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
+  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
+  // visitor
+  override protected def aggregateResult(aggregate: ir.Expression, nextResult: ir.Expression): ir.Expression = {
+
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This not correct, but it is a placeholder until we implement the missing visitor, so that we get a warning.
+    if (nextResult == null) {
+      // scalastyle:off
+      println(
+        s"WARNING: Aggregating ir.Expression results because of unimplemented visitor(s).\naggregate:\n$aggregate")
+      // scalastyle:on
+      aggregate
+    } else {
+      // scalastyle:off
+      println(
+        s"WARNING: Aggregating ir.Expression results because of unimplemented visitor(s).\naggregate:\n$aggregate\nnextResult:\n$nextResult")
+      // scalastyle:on
+      nextResult
+    }
+  }
 
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.DOUBLE_QUOTE_ID() != null =>
