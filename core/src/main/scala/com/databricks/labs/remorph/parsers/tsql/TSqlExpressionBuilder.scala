@@ -245,6 +245,10 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     vc.functionBuilder.buildFunction(ctx.getText, Seq.empty)
   }
 
+  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression = {
+    ctx.primitiveExpression().accept(this)
+  }
+
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
@@ -548,7 +552,6 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     }
     aliasOption.getOrElse(expression)
   }
-
 
   // format: off
   /**
