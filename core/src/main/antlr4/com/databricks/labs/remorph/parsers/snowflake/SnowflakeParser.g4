@@ -1533,7 +1533,7 @@ argDecl: argName argDataType argDefaultValueClause?
 argDefaultValueClause: DEFAULT expr
     ;
 
-colDecl: columnName dataType virtualColumnDecl?
+colDecl: columnName dataType? virtualColumnDecl?
     ;
 
 virtualColumnDecl: AS L_PAREN functionCall R_PAREN
@@ -2991,6 +2991,8 @@ nonReservedWords
     | ARRAY
     | ARRAY_AGG
     | AT_KEYWORD
+    | BODY
+    | CHARACTER
     | CHECKSUM
     | CLUSTER
     | COLLATE
@@ -2999,6 +3001,7 @@ nonReservedWords
     | CONDITION
     | CONFIGURATION
     | COPY_OPTIONS_
+    | CURRENT_TIME
     | DATA
     | DATE
     | DATE_FORMAT
@@ -3006,6 +3009,7 @@ nonReservedWords
     | DELTA
     | DENSE_RANK
     | DIRECTION
+    | DISABLE_AUTO_CONVERT
     | DOWNSTREAM
     | DUMMY
     | DYNAMIC
@@ -3015,11 +3019,14 @@ nonReservedWords
     | EVENT
     | EXCHANGE
     | EXPIRY_DATE
+    | FILE_FORMAT
     | FIRST
     | FIRST_NAME
     | FLATTEN
     | FLOOR
+    | FREQUENCY
     | FUNCTION
+    | GET
     | GET
     | GLOBAL
     | IDENTIFIER
@@ -3027,6 +3034,7 @@ nonReservedWords
     | IF
     | INDEX
     | INPUT
+    | INSERT
     | INTERVAL
     | JAVASCRIPT
     | KEY
@@ -3038,6 +3046,8 @@ nonReservedWords
     | LENGTH
     | LISTAGG
     | LOCAL
+    | LOCATION
+    | MATCHES
     | MAX_CONCURRENCY_LEVEL
     | MODE
     | NAME
@@ -3076,6 +3086,7 @@ nonReservedWords
     | START
     | STATE
     | STATS
+    | SUBSTRING
     | SYSADMIN
     | TABLE
     | TAG
@@ -3138,13 +3149,13 @@ expr
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
     | expr predicatePartial                     # exprPredicate
+    | expr COLON_COLON dataType                 # exprAscribe
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
-    | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
@@ -3209,11 +3220,13 @@ dataType
     ) dataTypeSize?
     | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
     | VARIANT
-    | OBJECT
+    | OBJECT (L_PAREN objectField (COMMA objectField)* R_PAREN)?
     | ARRAY (L_PAREN dataType R_PAREN)?
     | GEOGRAPHY
     | GEOMETRY
     ;
+
+objectField: id dataType;
 
 primitiveExpression
     : DEFAULT           # primExprDefault //?
@@ -3246,8 +3259,8 @@ builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtrac
     ;
 
 standardFunction
-    : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
-    | functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
+    : functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
+    | functionName L_PAREN (exprList | paramAssocList)? R_PAREN
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3287,8 +3300,8 @@ aggregateFunction
     ;
 
 literal
-    : DATE_LIT
-    | TIMESTAMP_LIT
+    : DATE string
+    | TIMESTAMP string
     | string
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
@@ -3321,17 +3334,17 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN ((selectStatement setOperators*) | expr) R_PAREN
     ;
 
 selectStatement
     : selectClause selectOptionalClauses limitClause?
     | selectTopClause selectOptionalClauses //TOP and LIMIT are not allowed together
+    | L_PAREN selectStatement R_PAREN
     ;
 
 setOperators
-    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
-    | L_PAREN selectStatement R_PAREN
+    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement  //EXCEPT and MINUS have same SQL meaning
     ;
 
 selectOptionalClauses
@@ -3354,10 +3367,11 @@ selectList: selectListElem (COMMA selectListElem)*
     ;
 
 selectListElem
-    : columnElem asAlias?
+    : expressionElem asAlias?
+    | columnElem asAlias?
     | columnElemStar
     //    | udtElem
-    | expressionElem asAlias?
+
     ;
 
 columnElemStar: (objectName DOT)? STAR
@@ -3407,11 +3421,11 @@ objectRef
     : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
     | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
     | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
-    | valuesTable                                                                    # objRefValues
+    | valuesTable tableAlias?                                                        # objRefValues
     | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
-tableAlias: AS? alias (L_PAREN id (COMMA id)*)?
+tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
     ;
 
 priorList: priorItem (COMMA priorItem)*
@@ -3503,8 +3517,8 @@ exprListInParentheses: L_PAREN exprList R_PAREN
     ;
 
 valuesTable
-    : L_PAREN valuesTableBody R_PAREN (asAlias columnAliasListInBrackets?)?
-    | valuesTableBody (asAlias columnAliasListInBrackets?)?
+    : L_PAREN valuesTableBody R_PAREN
+    | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*
