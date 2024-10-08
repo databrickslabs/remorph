@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 

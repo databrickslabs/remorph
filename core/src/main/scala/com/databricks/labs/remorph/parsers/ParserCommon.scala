@@ -16,7 +16,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
 
   /**
    * <p>
-   *   An implementation sof this should return some type of ir.UnresolvedXYZ object that represents the
+   *   An implementation of this should return some type of ir.UnresolvedXYZ object that represents the
    *   unresolved input that we have no visitor for. This is used in the default visitor to wrap the
    *   unresolved input.
    * </p>
@@ -64,7 +64,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * <p>
    *   Note that while we have unimplemented visitors, some parts of the IR building will 'work by accident' as
    *   this method will just produce the first and only result in agg. But we should implement the missing visitor that
-   *   explicitly returns the required result as it is flakey to rely on the default here
+   *   explicitly returns the required result as it is flaky to rely on the default here
    * </p>
    * <p>
    *   We do not try and resolve what the input should actually be as that is the job of a concrete

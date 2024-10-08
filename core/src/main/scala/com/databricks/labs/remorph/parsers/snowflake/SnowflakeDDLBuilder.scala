@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {

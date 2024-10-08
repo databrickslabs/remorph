@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
@@ -60,6 +61,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = projectExpressions.collect {
+      case ir.Id(i, _) => i
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
     }
