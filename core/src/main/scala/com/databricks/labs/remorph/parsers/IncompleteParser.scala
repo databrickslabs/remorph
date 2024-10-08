@@ -5,7 +5,7 @@ import org.antlr.v4.runtime.tree.{ParseTreeVisitor, RuleNode}
 
 trait IncompleteParser[T] extends ParseTreeVisitor[T] with LazyLogging {
 
-  // Note that this is neveer called from here, but may be useful in implementing visitors
+  // Note that this is never called from here, but may be useful in implementing visitors
   // that recognize they are unable to handle some part of the input context they are given.
   protected def wrapUnresolvedInput(unparsedInput: RuleNode): T
 
