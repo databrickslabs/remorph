@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType, StructField}
+import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType}
 import com.databricks.labs.remorph.parsers.tsql.{DataTypeBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 

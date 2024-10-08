@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, StructField}
+import com.databricks.labs.remorph.parsers.intermediate.ColumnDetail
 
 import java.sql.Timestamp
 import java.time.Duration
