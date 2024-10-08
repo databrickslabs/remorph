@@ -54,6 +54,13 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     }
   }
 
+  override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = {
+    ctx match {
+      case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
+      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx)) // TODO: Implement this style of UNION
+    }
+  }
+
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = {
 
     // TODO: Check the logic here for all the elements of a query specification
