@@ -25,6 +25,13 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
     }
 
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog = ctx match {
+    case a if a.alterCommand() != null => a.alterCommand().accept(this)
+    case c if c.createCommand() != null => c.createCommand().accept(this)
+    case d if d.dropCommand() != null => d.dropCommand().accept(this)
+    case u if u.undropCommand() != null => u.undropCommand().accept(this)
+  }
+
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
