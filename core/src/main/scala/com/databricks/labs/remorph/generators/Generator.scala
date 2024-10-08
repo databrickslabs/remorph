@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.parsers.intermediate.TreeNode
+import com.databricks.labs.remorph.intermediate.TreeNode
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 trait Generator[In <: TreeNode[In], Out] {

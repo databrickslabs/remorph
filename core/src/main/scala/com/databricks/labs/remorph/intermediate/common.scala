@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 case class StorageLevel(
     use_disk: Boolean,

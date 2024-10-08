@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
-import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 class SnowflakeFunctionBuilder extends FunctionBuilder {
 

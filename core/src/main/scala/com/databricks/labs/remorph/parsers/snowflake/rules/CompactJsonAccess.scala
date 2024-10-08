@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 class CompactJsonAccess extends Rule[LogicalPlan] with IRHelpers {
   override def apply(plan: LogicalPlan): LogicalPlan = plan transformAllExpressions { case expression: Expression =>
