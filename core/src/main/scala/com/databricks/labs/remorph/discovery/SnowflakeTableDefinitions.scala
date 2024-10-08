@@ -1,9 +1,8 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType, StructField}
-import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser}
+import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType}
+import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser, SnowflakeTypeBuilder}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 
 import java.sql.Connection
 import scala.collection.mutable
