@@ -25,6 +25,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
         // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
         ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral))
+      case ir.CallFunction("ARRAY_SORT", args) => arraySort(args)
       case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
       case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
@@ -426,6 +427,53 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.Literal.Null => ir.WhenBranch(ir.IsNull(expr), out)
       case any => ir.WhenBranch(ir.Equals(expr, any), out)
     }
+  }
+
+  private def arraySort(args: Seq[ir.Expression]): ir.Expression = {
+    makeArraySort(args.head, args.lift(1), args.lift(2))
+  }
+
+  private def makeArraySort(
+      arr: ir.Expression,
+      sortAscending: Option[ir.Expression],
+      nullsFirst: Option[ir.Expression]): ir.Expression = {
+
+    val paramSortAsc = sortAscending.getOrElse(ir.Literal.True)
+    val paramNullsFirst = nullsFirst.getOrElse {
+      paramSortAsc match {
+        case ir.Literal.True => ir.Literal.False
+        case ir.Literal.False => ir.Literal.True
+        case _ => ir.If(ir.Equals(paramSortAsc, ir.Literal.True), ir.Literal.False, ir.Literal.True)
+      }
+    }
+
+    def handleComparison(isNullOrSmallFirst: ir.Expression, nullOrSmallAtLeft: Boolean): ir.Expression = {
+      isNullOrSmallFirst match {
+        case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
+        case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
+        case _ =>
+          if (nullOrSmallAtLeft) ir.If(ir.Equals(isNullOrSmallFirst, ir.Literal.True), ir.Literal(-1), oneLiteral)
+          else ir.If(ir.Equals(isNullOrSmallFirst, ir.Literal.True), oneLiteral, ir.Literal(-1))
+      }
+    }
+
+    val comparator = ir.LambdaFunction(
+      ir.Case(
+        None,
+        Seq(
+          ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), zeroLiteral),
+          ir.WhenBranch(ir.IsNull(ir.Id("left")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(ir.IsNull(ir.Id("right")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = false)),
+          ir.WhenBranch(
+            ir.LessThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(
+            ir.GreaterThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = false))),
+        Some(zeroLiteral)),
+      Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
+
+    ir.ArraySort(arr, comparator)
   }
 
 }
