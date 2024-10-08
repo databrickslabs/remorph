@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
 
 // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
