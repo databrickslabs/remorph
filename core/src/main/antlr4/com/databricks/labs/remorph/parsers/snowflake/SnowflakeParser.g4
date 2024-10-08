@@ -2086,7 +2086,7 @@ createTableClause
 createTableAsSelect
     : CREATE orReplace? tableType? TABLE (ifNotExists? objectName | objectName ifNotExists?) (
         L_PAREN columnDeclItemList R_PAREN
-    )? clusterBy? copyGrants? withRowAccessPolicy? withTags? commentClause? AS queryStatement
+    )? clusterBy? copyGrants? withRowAccessPolicy? withTags? commentClause? AS L_PAREN? queryStatement R_PAREN?
     ;
 
 createTableLike

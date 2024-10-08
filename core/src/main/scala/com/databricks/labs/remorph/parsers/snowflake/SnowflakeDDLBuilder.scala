@@ -11,6 +11,7 @@ class SnowflakeDDLBuilder
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
+  private val relationBuilder = new SnowflakeRelationBuilder
 
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
@@ -90,6 +91,17 @@ class SnowflakeDDLBuilder
         .asScala)
 
     ir.CreateTableCommand(tableName, columns)
+  }
+
+  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = {
+
+    val tableName = ctx.objectName().getText
+    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
+    // val tableType = ctx.tableType().getText
+    // TODO Capture other Table Properties once IR is extended
+    ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
