@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.Trees
 

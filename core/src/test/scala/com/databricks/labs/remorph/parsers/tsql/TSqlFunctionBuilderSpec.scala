@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{FunctionDefinition, intermediate => ir}
+import com.databricks.labs.remorph.parsers.FunctionDefinition
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
