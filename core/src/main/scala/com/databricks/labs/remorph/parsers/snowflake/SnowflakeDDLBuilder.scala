@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
+import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
@@ -30,6 +31,59 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
     case c if c.createCommand() != null => c.createCommand().accept(this)
     case d if d.dropCommand() != null => d.dropCommand().accept(this)
     case u if u.undropCommand() != null => u.undropCommand().accept(this)
+  }
+
+  override def visitCreateCommand(ctx: CreateCommandContext): ir.Catalog = {
+    val methods: Seq[() => ParserRuleContext] = Seq(
+      ctx.createAccount _,
+      ctx.createAlert _,
+      ctx.createApiIntegration _,
+      ctx.createObjectClone _,
+      ctx.createConnection _,
+      ctx.createDatabase _,
+      ctx.createDynamicTable _,
+      ctx.createEventTable _,
+      ctx.createExternalFunction _,
+      ctx.createExternalTable _,
+      ctx.createFailoverGroup _,
+      ctx.createFileFormat _,
+      ctx.createFunction _,
+      ctx.createManagedAccount _,
+      ctx.createMaskingPolicy _,
+      ctx.createMaterializedView _,
+      ctx.createNetworkPolicy _,
+      ctx.createNotificationIntegration _,
+      ctx.createPipe _,
+      ctx.createProcedure _,
+      ctx.createReplicationGroup _,
+      ctx.createResourceMonitor _,
+      ctx.createRole _,
+      ctx.createRowAccessPolicy _,
+      ctx.createSchema _,
+      ctx.createSecurityIntegrationExternalOauth _,
+      ctx.createSecurityIntegrationSnowflakeOauth _,
+      ctx.createSecurityIntegrationSaml2 _,
+      ctx.createSecurityIntegrationScim _,
+      ctx.createSequence _,
+      ctx.createSessionPolicy _,
+      ctx.createShare _,
+      ctx.createStage _,
+      ctx.createStorageIntegration _,
+      ctx.createStream _,
+      ctx.createTable _,
+      ctx.createTableAsSelect _,
+      ctx.createTableLike _,
+      ctx.createTag _,
+      ctx.createTask _,
+      ctx.createUser _,
+      ctx.createView _,
+      ctx.createWarehouse _)
+
+    methods
+      .collectFirst {
+        case method if method() != null => method().accept(this)
+      }
+      .getOrElse(throw new IllegalArgumentException("No matching create command found"))
   }
 
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
