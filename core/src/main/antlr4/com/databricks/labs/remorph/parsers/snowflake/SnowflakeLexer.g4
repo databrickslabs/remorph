@@ -666,8 +666,6 @@ SNOWFLAKE_SSE                            : 'SNOWFLAKE_SSE';
 SOME                                     : 'SOME';
 SOURCE                                   : 'SOURCE';
 SOURCE_COMPRESSION                       : 'SOURCE_COMPRESSION';
-SPLIT                                    : 'SPLIT';
-SPLIT_TO_TABLE                           : 'SPLIT_TO_TABLE';
 SQL                                      : 'SQL';
 SSO_LOGIN_PAGE                           : 'SSO_LOGIN_PAGE';
 STAGE                                    : 'STAGE';
@@ -697,7 +695,6 @@ STRICT_JSON_OUTPUT                       : 'STRICT_JSON_OUTPUT';
 STRIP_NULL_VALUES                        : 'STRIP_NULL_VALUES';
 STRIP_OUTER_ARRAY                        : 'STRIP_OUTER_ARRAY';
 STRIP_OUTER_ELEMENT                      : 'STRIP_OUTER_ELEMENT';
-SUBSTR                                   : 'SUBSTR';
 SUBSTRING                                : 'SUBSTRING';
 SUSPEND                                  : 'SUSPEND';
 SUSPENDED                                : 'SUSPENDED';
@@ -869,11 +866,6 @@ ID  : [A-Z_] [A-Z0-9_@$]*;
 ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
 DOLLAR_STRING: '$$' ('\\$' | '$' ~'$' | ~'$')*? '$$';
-
-DATE_LIT: 'DATE\'' [0-9][0-9][0-9][0-9] '-' [0-9][0-9] '-' [0-9][0-9] '\'';
-TIMESTAMP_LIT:
-    'TIMESTAMP\'' [0-9][0-9][0-9][0-9]'-' [0-9][0-9]'-' [0-9][0-9]' ' [0-9][0-9]':' [0-9][0-9]':' [0-9][0-9]'\''
-;
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
