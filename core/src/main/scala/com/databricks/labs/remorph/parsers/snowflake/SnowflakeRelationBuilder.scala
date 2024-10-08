@@ -155,6 +155,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       .getOrElse(input)
   }
 
+  override def visitValuesTable(ctx: ValuesTableContext): ir.LogicalPlan = ctx.valuesTableBody().accept(this)
+
   override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.LogicalPlan = {
     val expressions =
       ctx
