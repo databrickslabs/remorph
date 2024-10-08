@@ -1,42 +1,23 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.tree.RuleNode
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder
-    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
-    with IncompleteParser[ir.LogicalPlan]
-    with ParserCommon[ir.LogicalPlan] {
+class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
 
-  // This can be used in visitor methods when they detect that they are unable to handle some
-  // part of the input, or they are placeholders for a real implementation that has not yet been
-  // implemented
-  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedRelation =
-    ir.UnresolvedRelation(getTextFromParserRuleContext(unparsedInput.getRuleContext))
-
-  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
-  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
-  protected override def defaultResult(): ir.LogicalPlan = {
-    ir.UnresolvedRelation("Unimplemented visitor returns defaultResult!")
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
   }
 
-  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
-  // returns more than one result because there is more than one child, we need to aggregate the results here. In
-  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
-  // visitor.
-  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan =
-    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
-    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
-    // so that we get a warning.
-    Option(nextResult).getOrElse(aggregate)
+  // Concrete visitors
 
   override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
     val select = ctx.selectOptionalClauses().accept(this)
@@ -79,7 +60,6 @@ class SnowflakeRelationBuilder
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = projectExpressions.collect {
-      case ir.Id(i, _) => i
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
     }

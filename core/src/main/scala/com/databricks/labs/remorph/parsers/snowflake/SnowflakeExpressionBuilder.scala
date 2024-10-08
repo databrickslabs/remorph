@@ -1,10 +1,9 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.intermediate.UnresolvedType
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.RuleNode
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -14,33 +13,16 @@ import scala.util.Try
 class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
-    with IncompleteParser[ir.Expression]
     with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  // This can be used in visitor methods when they detect that they are unable to handle some
-  // part of the input, or they are placeholders for a real implementation that has not yet been
-  // implemented
-  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedExpression =
-    ir.UnresolvedExpression(getTextFromParserRuleContext(unparsedInput.getRuleContext))
-
-  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
-  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
-  protected override def defaultResult(): ir.Expression = {
-    ir.UnresolvedExpression("Unimplemented visitor returns defaultResult!")
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Expression = {
+    ir.UnresolvedExpression(msg)
   }
-
-  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
-  // returns more than one result because there is more than one child, we need to aggregate the results here. In
-  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
-  // visitor.
-  override protected def aggregateResult(aggregate: ir.Expression, nextResult: ir.Expression): ir.Expression =
-    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
-    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
-    // so that we get a warning.
-    Option(nextResult).getOrElse(aggregate)
 
   // Concrete visitors..
 
@@ -156,13 +138,13 @@ class SnowflakeExpressionBuilder()
   override def visitLiteral(ctx: LiteralContext): ir.Expression = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
-      case c if c.DATE() != null =>
-        val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
+      case c if c.DATE_LIT() != null =>
+        val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
         Try(java.time.LocalDate.parse(dateStr))
           .map(ir.Literal(_))
           .getOrElse(ir.Literal.Null)
-      case c if c.TIMESTAMP() != null =>
-        val timestampStr = c.string.getText.stripPrefix("'").stripSuffix("'")
+      case c if c.TIMESTAMP_LIT() != null =>
+        val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
         val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         Try(LocalDateTime.parse(timestampStr, format))
           .map(ir.Literal(_))
@@ -346,7 +328,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
     val elements = ctx.literal().asScala.map(visitLiteral).toList.toSeq
-    val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
+    val dataType = elements.headOption.map(_.dataType).getOrElse(UnresolvedType)
     ir.ArrayExpr(elements, dataType)
   }
 

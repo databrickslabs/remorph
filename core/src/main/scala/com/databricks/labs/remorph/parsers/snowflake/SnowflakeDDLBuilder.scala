@@ -1,35 +1,21 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters._
-class SnowflakeDDLBuilder
-    extends SnowflakeParserBaseVisitor[ir.Catalog]
-    with ParserCommon[ir.Catalog]
-    with IncompleteParser[ir.Catalog] {
+class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  override protected def wrapUnresolvedInput(unparsedInput: RuleNode): ir.Catalog =
-    ir.UnresolvedCatalog(getTextFromParserRuleContext(unparsedInput.getRuleContext))
-
-  // This gets called when a visitor is not implemented so the default visitChildren is called, and it returns more
-  // than one result. This is a sign that the visitor is not implemented and we need to at least implement a placeholder
-  // visitor
-  override protected def aggregateResult(aggregate: ir.Catalog, nextResult: ir.Catalog): ir.Catalog = {
-    // scalastyle:off
-    println(
-      "WARNING: Aggregating ir.Catalog results because of unimplemented visitor(s).")
-    // scalastyle:on
-    if (nextResult == null) {
-      aggregate
-    } else {
-      nextResult
-    }
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Catalog = {
+    ir.UnresolvedCatalog(msg)
   }
+
+  // Concrete visitors
 
   private def extractString(ctx: StrContext): String =
     ctx.accept(expressionBuilder) match {

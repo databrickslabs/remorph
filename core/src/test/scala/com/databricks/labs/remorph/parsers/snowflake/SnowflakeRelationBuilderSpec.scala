@@ -346,7 +346,8 @@ class SnowflakeRelationBuilderSpec
       example(
         "MATCH_RECOGNIZE()",
         _.matchRecognize(),
-        UnresolvedRelation("Unimplemented visitor returns defaultResult!"))
+        UnresolvedRelation(
+          "Unimplemented visitor visitMatchRecognize in class SnowflakeRelationBuilder for MATCH_RECOGNIZE()"))
     }
   }
 

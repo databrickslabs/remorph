@@ -1,40 +1,23 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, XmlFunction, tsql, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.{RuleNode, Trees}
+import org.antlr.v4.runtime.tree.Trees
 
 import scala.collection.JavaConverters._
 
 class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Expression]
-    with IncompleteParser[ir.Expression]
     with ParserCommon[ir.Expression] {
 
-  // This can be used in visitor methods when they detect that they are unable to handle some
-  // part of the input, or they are placeholders for a real implementation that has not yet been
-  // implemented
-  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedExpression =
-    ir.UnresolvedExpression(getTextFromParserRuleContext(unparsedInput.getRuleContext))
-
-  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
-  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
-  protected override def defaultResult(): ir.Expression = {
-    ir.UnresolvedExpression("Unimplemented visitor returns defaultResult!")
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Expression = {
+    ir.UnresolvedExpression(msg)
   }
 
-  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
-  // returns more than one result because there is more than one child, we need to aggregate the results here. In
-  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
-  // visitor.
-  override protected def aggregateResult(aggregate: ir.Expression, nextResult: ir.Expression): ir.Expression =
-    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
-    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
-    // so that we get a warning.
-    Option(nextResult).getOrElse(aggregate)
-
-  // Concrete visitors
+  // Concrete visitors..
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
