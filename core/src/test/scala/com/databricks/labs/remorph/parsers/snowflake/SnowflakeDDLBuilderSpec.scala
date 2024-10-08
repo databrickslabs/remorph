@@ -11,7 +11,8 @@ class SnowflakeDDLBuilderSpec
     extends AnyWordSpec
     with SnowflakeParserTestCommon
     with should.Matchers
-    with MockitoSugar {
+    with MockitoSugar
+    with IRHelpers {
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
@@ -207,6 +208,19 @@ class SnowflakeDDLBuilderSpec
                 DecimalType(Some(38), Some(0)),
                 None,
                 Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
+      }
+
+      "CREATE TABLE t1 AS SELECT c1, c2 FROM t2;" in {
+        example(
+          "CREATE TABLE t1 AS (SELECT * FROM t2);",
+          CreateTableParams(
+            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None))), None, None, None),
+            Map.empty[String, Seq[Constraint]],
+            Map.empty[String, Seq[GenericOption]],
+            Seq.empty[Constraint],
+            Seq.empty[Constraint],
+            None,
+            None))
       }
     }
     "translate ALTER TABLE commands" should {
