@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
+import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType, StructField}
 import com.databricks.labs.remorph.parsers.tsql.{DataTypeBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
@@ -144,7 +144,7 @@ class TSqlTableDefinitions(conn: Connection) {
               val dataType = getDataType(data(1))
               val nullable = data(2).toBoolean
               val comment = Option(data(3))
-              StructField(name, dataType, nullable, comment)
+              ColumnDetail(name, dataType, nullable, comment)
             })
           tableDefinitionList.append(
             TableDefinition(

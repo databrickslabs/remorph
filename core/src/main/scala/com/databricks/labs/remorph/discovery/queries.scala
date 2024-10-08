@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.StructField
+import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, StructField}
 
 import java.sql.Timestamp
 import java.time.Duration
@@ -18,7 +18,7 @@ case class TableDefinition(
     location: Option[String] = None,
     tableFormat: Option[String] = None,
     viewText: Option[String] = None,
-    columns: Seq[StructField] = Seq.empty,
+    columns: Seq[ColumnDetail] = Seq.empty,
     sizeGb: Int = 0,
     comments: Option[String] = None)
 
