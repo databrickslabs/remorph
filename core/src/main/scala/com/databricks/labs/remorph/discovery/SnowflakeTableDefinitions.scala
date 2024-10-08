@@ -1,9 +1,8 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
-import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser}
+import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType}
+import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser, SnowflakeTypeBuilder}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 
 import java.sql.Connection
 import scala.collection.mutable
@@ -32,7 +31,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |    TABLE_CATALOG,
        |    TABLE_SCHEMA,
        |    TABLE_NAME,
-       |    LISTAGG(column_name || ':' ||
+       |    LISTAGG(column_name || '§' ||
        |        CASE
        |            WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
        |            THEN
@@ -41,8 +40,10 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |            THEN
        |                CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
        |            ELSE data_type
-       |         END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
-       |    '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
+       |         END|| '§' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END)
+       |         || '§' || COALESCE(COMMENT, '')
+       |         ,
+       |    '‡') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
        |  FROM
        |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS
        |  GROUP BY
@@ -93,12 +94,14 @@ class SnowflakeTableDefinitions(conn: Connection) {
           val tableName = rs.getString("TABLE_NAME")
           val columns = rs
             .getString("DERIVED_SCHEMA")
-            .split("~")
+            .split("‡")
             .map(x => {
-              val data = x.split(":")
+              val data = x.split("§")
               val name = data(0)
               val dataType = getDataType(data(1))
-              StructField(name, dataType, data(2).toBoolean)
+              val nullable = data(2).toBoolean
+              val comment = if (data.length > 3) Option(data(3)) else None
+              ColumnDetail(name, dataType, nullable, comment)
             })
           tableDefinitionList.append(
             TableDefinition(
