@@ -120,8 +120,6 @@ object SnowflakeErrorStrategy {
     VAR_COMPLEX -> "&{Variable} reference",
     STRING_CONTENT -> "'String'",
     STRING_END -> "'String'",
-    DATE_LIT -> "Date literal",
-    TIMESTAMP_LIT -> "Timestamp literal",
     DECIMAL -> "Decimal integer",
     FLOAT -> "Floating point number",
     REAL -> "Real number",
