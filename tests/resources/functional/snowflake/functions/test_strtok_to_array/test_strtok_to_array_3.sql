@@ -1,6 +1,6 @@
 
 -- snowflake sql:
-select STRTOK_TO_ARRAY('a@b.i', '.@');
+select STRTOK_TO_ARRAY('a@b.c', '.@');
 
 -- databricks sql:
-SELECT SPLIT('a@b.i','[.@]');
+SELECT SPLIT('a@b.c','[.@]');

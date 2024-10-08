@@ -2,7 +2,7 @@
 Snowflake Database grammar.
 The MIT License (MIT).
 
-Copyright (i) 2022, Michał Lorek.
+Copyright (c) 2022, Michał Lorek.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,5 +1,7 @@
 --------------------------------------------------------------------------------
-CREATE TABLE lineitem (
+
+DROP TABLE if EXISTS lineitem;
+CREATE TABLE if NOT EXISTS lineitem (
   l_orderkey BIGINT,
   l_partkey BIGINT,
   l_suppkey BIGINT,
@@ -8,15 +10,14 @@ CREATE TABLE lineitem (
   l_extendedprice DECIMAL(18,2),
   l_discount DECIMAL(18,2),
   l_tax DECIMAL(18,2),
-  l_returnflag VARCHAR(500),
-  l_linestatus VARCHAR(500),
+  l_returnflag STRING,
+  l_linestatus STRING,
   l_shipdate DATE,
   l_commitdate DATE,
   l_receiptdate DATE,
-  l_shipinstruct VARCHAR(500),
-  l_shipmode VARCHAR(500),
-  l_comment VARCHAR(500)
-  );
+  l_shipinstruct STRING,
+  l_shipmode STRING,
+  l_comment STRING);
 
 --------------------------------------------------------------------------------
 
@@ -103,7 +104,7 @@ INSERT INTO lineitem (l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity
  (69, 18503830, 1003832, 6, 23.00, 42156.93, 0.05, 0.00, 'A', 'F', '1994-10-03', '1994-08-06', '1994-10-24', 'NONE', 'SHIP', 'nding accounts ca'),
  (70, 64127814, 9127827, 1, 8.00, 14708.88, 0.03, 0.08, 'R', 'F', '1994-01-12', '1994-02-27', '1994-01-14', 'TAKE BACK RETURN', 'FOB', 'ggle. carefully pending dependenc'),
  (70, 196155163, 1155202, 2, 13.00, 15708.68, 0.06, 0.06, 'A', 'F', '1994-03-03', '1994-02-13', '1994-03-26', 'COLLECT COD', 'AIR', 'lyly special packag'),
- (70, 179808755, 7308807, 3, 1.00, 1854.77, 0.03, 0.05, 'R', 'F', '1994-01-26', '1994-03-05', '1994-01-28', 'TAKE BACK RETURN', 'RAIL', 'quickly. fluffily unusual theodolites i'),
+ (70, 179808755, 7308807, 3, 1.00, 1854.77, 0.03, 0.05, 'R', 'F', '1994-01-26', '1994-03-05', '1994-01-28', 'TAKE BACK RETURN', 'RAIL', 'quickly. fluffily unusual theodolites c'),
  (70, 45733155, 733164, 4, 11.00, 13044.57, 0.01, 0.05, 'A', 'F', '1994-03-17', '1994-03-17', '1994-03-27', 'NONE', 'MAIL', 'alongside of the deposits. fur'),
  (70, 37130699, 2130706, 5, 37.00, 63930.08, 0.09, 0.04, 'R', 'F', '1994-02-13', '1994-03-16', '1994-02-21', 'COLLECT COD', 'MAIL', 'n accounts are. q'),
  (70, 55654148, 3154164, 6, 19.00, 20887.84, 0.06, 0.03, 'A', 'F', '1994-01-26', '1994-02-17', '1994-02-06', 'TAKE BACK RETURN', 'SHIP', ' packages wake pending accounts.'),

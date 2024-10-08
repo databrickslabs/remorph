@@ -1,14 +1,15 @@
 ----------------------------------------------------------------
-CREATE TABLE customer (
+
+DROP TABLE if EXISTS supplier;
+CREATE TABLE if NOT EXISTS customer (
   c_custkey BIGINT,
-  c_name VARCHAR(500),
-  c_address VARCHAR(500),
+  c_name STRING,
+  c_address STRING,
   c_nationkey BIGINT,
-  c_phone VARCHAR(500),
+  c_phone STRING,
   c_acctbal DECIMAL(18,2),
-  c_mktsegment VARCHAR(500),
-  c_comment VARCHAR(500)
-  );
+  c_mktsegment STRING,
+  c_comment STRING);
 
 ----------------------------------------------------------------
 
@@ -27,7 +28,7 @@ INSERT INTO customer (c_custkey, c_name, c_address, c_nationkey, c_phone, c_acct
  (26393408, 'Customer#026393408', 'pLOZA XA9hxJ,bJASfcgbL8r0Ziunm', 1, '11-769-490-3598', 8699.31, 'FURNITURE', ' the quickly even accounts. blithely bold deposits among'),
  (92748641, 'Customer#092748641', '7E7Ua1YT5uL8sKsCEV', 19, '29-532-424-6629', 6717.57, 'AUTOMOBILE', 'e of the regular decoys. daring reques'),
  (43999894, 'Customer#043999894', ',6yCYx5oJof9dSVjPMsS3osuBb4HI4MCS', 12, '22-785-570-2761', 4739.59, 'FURNITURE', 'express foxes. blithe, final accounts haggle silently close deposits. blithely regula'),
- (44077571, 'Customer#044077571', 'VYLBAUge5CDQP i', 21, '31-143-742-6463', 3112.61, 'AUTOMOBILE', 'ideas are beyond the pending deposits. bold ideas nag after the'),
+ (44077571, 'Customer#044077571', 'VYLBAUge5CDQP c', 21, '31-143-742-6463', 3112.61, 'AUTOMOBILE', 'ideas are beyond the pending deposits. bold ideas nag after the'),
  (44484776, 'Customer#044484776', '8kT0a8iG4IL8y2CLZ', 7, '17-181-177-6657', 8679.17, 'BUILDING', 'he furiously final instructions! accounts nag. furiously final instruct'),
  (44667518, 'Customer#044667518', 'YmjjqysI03BCtuKha8PDw3Y', 8, '18-241-558-3799', 8709.51, 'AUTOMOBILE', 'ndencies. blithely regular excuses among the blithely stealthy accounts shal'),
  (41860129, 'Customer#041860129', 'jncIr8PT9UyfZBjFevzvKMZtwFEOgxfiY', 15, '25-943-885-3681', -862.01, 'HOUSEHOLD', ' deposits nod slowly alongside of the furiously special pinto beans. quickly fina'),
@@ -110,6 +111,6 @@ INSERT INTO customer (c_custkey, c_name, c_address, c_nationkey, c_phone, c_acct
  (122692442, 'Customer#122692442', 'xoPRicyeRUILOyfIiS6ZzzgyXWM E8q', 16, '26-256-231-3820', 8416.29, 'MACHINERY', 'deas wake blithely above the regular reque'),
  (105154997, 'Customer#105154997', 'WTOHyzeBJA8gOTKQ3frIUEOfbxbX5  aM', 13, '23-113-745-6522', 9272.38, 'MACHINERY', ' final requests thrash slyly. blithely pending foxes snoo'),
  (146808497, 'Customer#146808497', '4m6gQ6r9NmOHB8bDoX', 22, '32-456-538-3620', 7759.23, 'HOUSEHOLD', 'efully carefully bold foxes. pending courts'),
- (147002917, 'Customer#147002917', '8DdRwZczPXZzw8c512veavAaSZDoVXtGJs8Iq', 20, '30-329-176-9254', 5200.75, 'BUILDING', 'y furious foxes believe fluffily carefully regular dependencies. asymptotes sleep slyly i'),
+ (147002917, 'Customer#147002917', '8DdRwZczPXZzw8c512veavAaSZDoVXtGJs8Iq', 20, '30-329-176-9254', 5200.75, 'BUILDING', 'y furious foxes believe fluffily carefully regular dependencies. asymptotes sleep slyly c'),
  (119401594, 'Customer#119401594', 'rm0DquXXO,VEG9 V17CFuV', 5, '15-145-487-9477', 960.66, 'MACHINERY', 'layers. closely special dependencies sleep carefully'),
  (123313904, 'Customer#123313904', 'cG3sxDt19f', 13, '23-862-755-7543', 7240.55, 'HOUSEHOLD', 'p slyly blithely final packages? bold deposits integrate. doggedly even foxes above the accounts n');
