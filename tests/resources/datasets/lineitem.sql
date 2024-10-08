@@ -1,7 +1,5 @@
 --------------------------------------------------------------------------------
-
-DROP TABLE if EXISTS lineitem;
-CREATE TABLE if NOT EXISTS lineitem (
+CREATE TABLE lineitem (
   l_orderkey BIGINT,
   l_partkey BIGINT,
   l_suppkey BIGINT,
@@ -10,14 +8,15 @@ CREATE TABLE if NOT EXISTS lineitem (
   l_extendedprice DECIMAL(18,2),
   l_discount DECIMAL(18,2),
   l_tax DECIMAL(18,2),
-  l_returnflag STRING,
-  l_linestatus STRING,
+  l_returnflag VARCHAR(500),
+  l_linestatus VARCHAR(500),
   l_shipdate DATE,
   l_commitdate DATE,
   l_receiptdate DATE,
-  l_shipinstruct STRING,
-  l_shipmode STRING,
-  l_comment STRING);
+  l_shipinstruct VARCHAR(500),
+  l_shipmode VARCHAR(500),
+  l_comment VARCHAR(500)
+  );
 
 --------------------------------------------------------------------------------
 
