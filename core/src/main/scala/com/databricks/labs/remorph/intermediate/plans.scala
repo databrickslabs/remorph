@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 /**
  * A [[Plan]] is the structure that carries the runtime information for the execution from the client to the server. A

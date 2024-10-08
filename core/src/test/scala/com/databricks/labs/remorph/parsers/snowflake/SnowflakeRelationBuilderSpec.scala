@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
@@ -227,16 +227,13 @@ class SnowflakeRelationBuilderSpec
         example(
           "WITH a AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))), Id("a"), Seq()))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq()))
       }
       "WITH a (b, c) AS (SELECT x, y FROM d)" in {
         example(
           "WITH a (b, c) AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(
-            Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))),
-            Id("a"),
-            Seq(Id("b"), Id("c"))))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq(Id("b"), Id("c"))))
       }
     }
 
@@ -261,7 +258,7 @@ class SnowflakeRelationBuilderSpec
         _.selectStatement(),
         Deduplicate(
           namedTable("t"),
-          column_names = Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb"))),
+          column_names = Seq(Id("a"), Alias(Id("b"), Id("bb"))),
           all_columns_as_keys = false,
           within_watermark = false))
     }
@@ -271,18 +268,14 @@ class SnowflakeRelationBuilderSpec
         example(
           "SELECT TOP 42 a FROM t",
           _.selectStatement(),
-          Project(Limit(namedTable("t"), Literal(42)), Seq(simplyNamedColumn("a"))))
+          Project(Limit(namedTable("t"), Literal(42)), Seq(Id("a"))))
       }
       "SELECT DISTINCT TOP 42 a FROM t" in {
         example(
           "SELECT DISTINCT TOP 42 a FROM t",
           _.selectStatement(),
           Limit(
-            Deduplicate(
-              namedTable("t"),
-              Seq(simplyNamedColumn("a")),
-              all_columns_as_keys = false,
-              within_watermark = false),
+            Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
             Literal(42)))
       }
     }

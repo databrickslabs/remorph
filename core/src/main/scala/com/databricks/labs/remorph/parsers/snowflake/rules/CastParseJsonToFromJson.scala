@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.generators.sql.DataTypeGenerator
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 class CastParseJsonToFromJson(logical: Generator[LogicalPlan, String]) extends Rule[LogicalPlan] {
   private val ctx = GeneratorContext(logical)
