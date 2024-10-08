@@ -113,7 +113,7 @@ class TSqlTableDefinitions(conn: Connection) {
        |                    AND column_info.TABLE_NAME = tfi.TABLE_NAME
        |      LEFT JOIN table_comment_info tci
        |                  ON column_info.TABLE_SCHEMA = tci.TABLE_SCHEMA
-       |                      AND column_info.TABLE_NAME = tci.table_name
+       |                      AND column_info.TABLE_NAME = tci.TABLE_NAME
        |
        |ORDER BY
        |    sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;
