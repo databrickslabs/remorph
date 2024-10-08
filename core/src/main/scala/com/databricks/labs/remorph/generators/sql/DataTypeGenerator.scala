@@ -34,10 +34,9 @@ object DataTypeGenerator {
     case ir.ArrayType(elementType) => s"ARRAY<${generateDataType(ctx, elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
-        .map { case ir.StructField(name, dataType, nullable, comment) =>
+        .map { case ir.StructField(name, dataType, nullable) =>
           val isNullable = if (nullable) "" else " NOT NULL"
-          val fieldComment = comment.getOrElse("")
-          s"$name:${generateDataType(ctx, dataType)}$isNullable$fieldComment"
+          s"$name:${generateDataType(ctx, dataType)}$isNullable"
         }
         .mkString(",")
       s"STRUCT<$fieldTypes>"
