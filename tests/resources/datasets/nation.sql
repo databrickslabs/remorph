@@ -27,7 +27,7 @@ INSERT INTO nation (n_nationkey, n_name, n_regionkey, n_comment) VALUES
  (15, 'MOROCCO', 0, 'rns. blithely bold courts among the closely regular packages use furiously bold platelets?'),
  (16, 'MOZAMBIQUE', 0, 's. ironic, unusual asymptotes wake blithely r'),
  (17, 'PERU', 1, 'platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun'),
- (18, 'CHINA', 2, 'c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos'),
+ (18, 'CHINA', 2, 'i dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos'),
  (19, 'ROMANIA', 3, 'ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account'),
  (20, 'SAUDI ARABIA', 4, 'ts. silent requests haggle. closely express packages sleep across the blithely'),
  (21, 'VIETNAM', 2, 'hely enticingly express accounts. even, final '),

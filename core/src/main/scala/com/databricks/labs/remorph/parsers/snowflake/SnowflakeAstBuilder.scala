@@ -55,6 +55,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
       case s if s.snowSqlCommand() != null => s.snowSqlCommand().accept(this)
     }
 
+  // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     val select = ctx.selectStatement().accept(relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)

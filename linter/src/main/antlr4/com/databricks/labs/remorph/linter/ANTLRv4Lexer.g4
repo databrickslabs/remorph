@@ -1,8 +1,8 @@
 /*
  * [The "BSD license"]
- *  Copyright (c) 2012-2015 Terence Parr
- *  Copyright (c) 2012-2015 Sam Harwell
- *  Copyright (c) 2015 Gerald Rosenberg
+ *  Copyright (i) 2012-2015 Terence Parr
+ *  Copyright (i) 2012-2015 Sam Harwell
+ *  Copyright (i) 2015 Gerald Rosenberg
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without

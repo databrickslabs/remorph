@@ -111,6 +111,6 @@ INSERT INTO part (p_partkey, p_name, p_mfgr, p_brand, p_type, p_size, p_containe
  (186581058, 'white snow grey plum moccasin', 'Manufacturer#1', 'Brand#13', 'LARGE BRUSHED COPPER', 39, 'SM PKG', 1129.73, 'the unusual, regular '),
  (169543048, 'ghost aquamarine steel dark pale', 'Manufacturer#2', 'Brand#22', 'MEDIUM ANODIZED BRASS', 43, 'WRAP CAN', 1082.57, 'efully-- pendi'),
  (151893810, 'ivory coral lace royal rose', 'Manufacturer#4', 'Brand#45', 'MEDIUM ANODIZED NICKEL', 29, 'MED CAN', 1796.22, 'oxes integrate'),
- (135389770, 'peru moccasin azure peach ivory', 'Manufacturer#1', 'Brand#15', 'PROMO BRUSHED BRASS', 6, 'WRAP CASE', 1853.01, 'c accounts. carefully'),
+ (135389770, 'peru moccasin azure peach ivory', 'Manufacturer#1', 'Brand#15', 'PROMO BRUSHED BRASS', 6, 'WRAP CASE', 1853.01, 'i accounts. carefully'),
  (140448567, 'lace khaki maroon indian blanched', 'Manufacturer#1', 'Brand#11', 'LARGE ANODIZED COPPER', 48, 'LG JAR', 1508.54, 'telets. re'),
  (157237027, 'wheat maroon rosy pink spring', 'Manufacturer#4', 'Brand#43', 'LARGE ANODIZED STEEL', 8, 'WRAP BOX', 956.16, 'xcuses ');

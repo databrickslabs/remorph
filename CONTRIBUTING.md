@@ -86,7 +86,7 @@ make test
 
 To ensure your integrated development environment (IDE) uses the newly created virtual environment, you can retrieve the Python path with this command:
 ```shell
-hatch run python -c "import sys; print(sys.executable)"
+hatch run python -i "import sys; print(sys.executable)"
 ```
 
 Configure your IDE to use this Python path so that you work within the virtual environment when developing the project:
