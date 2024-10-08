@@ -43,7 +43,7 @@ class TSqlTableDefinitions(conn: Connection) {
        |                          END,
        |                      '§',
        |                      CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END,
-       |                      '§',ISNULL(CONVERT(NVARCHAR(MAX), ep.value), ' ')
+       |                      '§',ISNULL(CONVERT(NVARCHAR(MAX), ep.value), '')
        |              ),
        |              '‡'
        |      ) WITHIN GROUP (ORDER BY ordinal_position) AS DERIVED_SCHEMA
@@ -143,7 +143,7 @@ class TSqlTableDefinitions(conn: Connection) {
               val name = data(0)
               val dataType = getDataType(data(1))
               val nullable = data(2).toBoolean
-              val comment = Option(data(3))
+              val comment = if (data.length > 3) Option(data(3)) else None
               ColumnDetail(name, dataType, nullable, comment)
             })
           tableDefinitionList.append(
