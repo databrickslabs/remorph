@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.parsers.{PlanParser, intermediate => ir}
+import com.databricks.labs.remorph.parsers.PlanParser
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect

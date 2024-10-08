@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 // Specialized function calls, such as XML functions that usually apply to columns
 case class TsqlXmlFunction(function: CallFunction, column: Expression) extends Binary(function, column) {
