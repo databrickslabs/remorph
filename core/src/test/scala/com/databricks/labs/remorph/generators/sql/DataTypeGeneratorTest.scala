@@ -36,10 +36,9 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
         Seq(
           ir.Alias(ir.Literal(1), ir.Id("a")),
           ir.Alias(ir.Literal("two"), ir.Id("b")),
-          ir.Alias(ir.Literal(Seq(1, 2, 3)), ir.Id("c")),
-          ir.Alias(ir.Literal("four"), ir.Id("d"))))
+          ir.Alias(ir.Literal(Seq(1, 2, 3)), ir.Id("c"))))
         .dataType,
-      "STRUCT<a:INT,b:STRING,c:ARRAY<INT>,d:STRING>"))
+      "STRUCT<a:INT,b:STRING,c:ARRAY<INT>>"))
 
   "DataTypeGenerator" should {
     "generate proper SQL data types" in {
