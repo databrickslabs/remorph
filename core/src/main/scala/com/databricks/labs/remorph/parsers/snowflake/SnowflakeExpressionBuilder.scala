@@ -110,13 +110,13 @@ class SnowflakeExpressionBuilder()
   override def visitLiteral(ctx: LiteralContext): ir.Expression = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
-      case c if c.DATE_LIT() != null =>
-        val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
+      case c if c.DATE() != null =>
+        val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
         Try(java.time.LocalDate.parse(dateStr))
           .map(ir.Literal(_))
           .getOrElse(ir.Literal.Null)
-      case c if c.TIMESTAMP_LIT() != null =>
-        val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
+      case c if c.TIMESTAMP() != null =>
+        val timestampStr = c.string.getText.stripPrefix("'").stripSuffix("'")
         val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         Try(LocalDateTime.parse(timestampStr, format))
           .map(ir.Literal(_))
@@ -519,7 +519,7 @@ class SnowflakeExpressionBuilder()
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
-        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+        ir.Between(expression, lowerBound, upperBound)
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)

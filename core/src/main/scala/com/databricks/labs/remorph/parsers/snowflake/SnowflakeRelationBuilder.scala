@@ -57,6 +57,7 @@ class SnowflakeRelationBuilder
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = projectExpressions.collect {
+      case ir.Id(i, _) => i
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
     }
@@ -175,6 +176,11 @@ class SnowflakeRelationBuilder
   override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = {
     val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  }
+
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = {
+    val values = ctx.valuesTable().accept(this)
+    buildTableAlias(ctx.tableAlias(), values)
   }
 
   private def buildTableAlias(ctx: TableAliasContext, relation: ir.LogicalPlan): ir.LogicalPlan = {

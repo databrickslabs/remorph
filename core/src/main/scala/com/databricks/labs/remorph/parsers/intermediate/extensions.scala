@@ -107,7 +107,7 @@ case class ArrayAccess(array: Expression, index: Expression) extends Binary(arra
 }
 
 case class JsonAccess(json: Expression, path: Expression) extends Binary(json, path) {
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = VariantType
 }
 
 case class Collate(string: Expression, specification: String) extends Unary(string) {
@@ -167,7 +167,7 @@ case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Lateral(expr: LogicalPlan, outer: Boolean = false) extends UnaryNode {
+case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }
