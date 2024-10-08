@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -44,11 +44,21 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
     }
   }
 
+  override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan =
+    ctx match {
+      case d if d.ddlCommand() != null => d.ddlCommand().accept(this)
+      case d if d.dmlCommand() != null => d.dmlCommand().accept(this)
+      case s if s.showCommand() != null => s.showCommand().accept(this)
+      case u if u.useCommand() != null => u.useCommand().accept(this)
+      case d if d.describeCommand() != null => d.describeCommand().accept(this)
+      case c if c.otherCommand() != null => c.otherCommand().accept(this)
+      case s if s.snowSqlCommand() != null => s.snowSqlCommand().accept(this)
+    }
+
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     val select = ctx.selectStatement().accept(relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)
     ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
-
   }
 
   override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
