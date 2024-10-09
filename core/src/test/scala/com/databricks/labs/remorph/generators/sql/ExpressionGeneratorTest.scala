@@ -286,12 +286,7 @@ class ExpressionGeneratorTest
         "ARRAY_REMOVE",
         Seq(
           ir.ArrayExpr(
-            Seq(
-              ir.Literal(2),
-              ir.Literal(3),
-              ir.Cast(ir.Literal(4), ir.DoubleType),
-              ir.Literal(4),
-              ir.Literal(null)),
+            Seq(ir.Literal(2), ir.Literal(3), ir.Cast(ir.Literal(4), ir.DoubleType), ir.Literal(4), ir.Literal(null)),
             ir.IntegerType),
           ir.Literal(4))) generates "ARRAY_REMOVE(ARRAY(2, 3, CAST(4 AS DOUBLE), 4, NULL), 4)"
     }
