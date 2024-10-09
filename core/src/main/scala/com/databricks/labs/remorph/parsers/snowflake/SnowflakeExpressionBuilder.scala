@@ -287,7 +287,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
-    val elements = ctx.literal().asScala.map(visitLiteral).toList.toSeq
+    val elements = ctx.expr().asScala.map(_.accept(this)).toList.toSeq
     val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
     ir.ArrayExpr(elements, dataType)
   }
