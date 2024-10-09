@@ -463,7 +463,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).FLOAT()
       verify(literal).REAL()
       verify(literal).trueFalse()
-      verify(literal).NULL_()
+      verify(literal).NULL()
       verify(literal).jsonLiteral()
       verify(literal).arrayLiteral()
       verifyNoMoreInteractions(literal)

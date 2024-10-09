@@ -3167,12 +3167,6 @@ expr
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
     ;
 
-likeExpression
-    : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
-    | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
-    | RLIKE expr                                                           # likeExprRLike
-    ;
-
 iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
     ;
 
@@ -3550,13 +3544,16 @@ searchCondition
     ;
 
 predicate
-    : EXISTS L_PAREN subquery R_PAREN                                     # predExists
-    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN # predBinop
-    | IS NOT? NULL                                                        # predIsNull
-    | IN L_PAREN (subquery | exprList) R_PAREN                            # predIn
-    | likeExpression                                                      # predLike
-    | BETWEEN expr AND expr                                               # predBetween
-    | expr                                                                # predExpr
+    : EXISTS L_PAREN subquery R_PAREN                                                # predExists
+    | expr comparisonOperator expr                                                   # predBinop
+    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN            # predASA
+    | expr IS NOT? NULL                                                              # predIsNull
+    | expr NOT? IN L_PAREN (subquery | exprList) R_PAREN                             # predIn
+    | expr NOT? BETWEEN expr AND expr                                                # predBetween
+    | expr NOT? op = (LIKE | ILIKE) expr (ESCAPE expr)?                              # predLikeSinglePattern
+    | expr NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # predLikeMultiplePatterns
+    | expr NOT? RLIKE expr                                                           # predRLike
+    | expr                                                                           # predExpr
     ;
 
 whereClause: WHERE searchCondition

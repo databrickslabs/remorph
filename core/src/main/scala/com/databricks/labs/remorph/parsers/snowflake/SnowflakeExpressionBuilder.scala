@@ -555,65 +555,118 @@ class SnowflakeExpressionBuilder()
     }
   }
 
-  //
-//  private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
-//    val predicate = ctx match {
-//      case c if c.IN() != null && c.subquery() != null =>
-//        ir.In(expression, Seq(ir.ScalarSubquery(c.subquery().accept(new SnowflakeRelationBuilder))))
-//      case c if c.IN() != null && c.exprList() != null =>
-//        val collection = visitMany(c.exprList().expr())
-//        ir.In(expression, collection)
-//      case c if c.BETWEEN() != null =>
-//        val lowerBound = c.expr(0).accept(this)
-//        val upperBound = c.expr(1).accept(this)
-//        ir.Between(expression, lowerBound, upperBound)
-//      case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
-//      case c if c.IS() != null =>
-//        val isNull: ir.Expression = ir.IsNull(expression)
-//        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.IsNotNull(expression))
-//    }
-//    Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
-//  }
+  // Search conditions and predicates
 
-//  private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
-//    case single: LikeExprSinglePatternContext =>
-//      val pattern = single.pat.accept(this)
-//      // NB: The escape character is a complete expression that evaluates to a single char at runtime
-//      // and not a single char at parse time.
-//      val escape = Option(single.escapeChar)
-//        .map(_.accept(this))
-//
-//      single.op.getType match {
-//        case LIKE => ir.Like(child, pattern, escape)
-//        case ILIKE => ir.ILike(child, pattern, escape)
-//      }
-//    case multi: LikeExprMultiplePatternsContext =>
-//      val patterns = visitMany(multi.exprListInParentheses().exprList().expr())
-//      val normalizedPatterns = normalizePatterns(patterns, multi.expr())
-//      multi.op.getType match {
-//        case LIKE if multi.ALL() != null => ir.LikeAll(child, normalizedPatterns)
-//        case LIKE => ir.LikeAny(child, normalizedPatterns)
-//        case ILIKE if multi.ALL() != null => ir.ILikeAll(child, normalizedPatterns)
-//        case ILIKE => ir.ILikeAny(child, normalizedPatterns)
-//      }
-//
-//    case rlike: LikeExprRLikeContext => ir.RLike(child, rlike.expr().accept(this))
-//
-//  }
+  override def visitScNot(ctx: ScNotContext): ir.Expression =
+    ir.Not(ctx.searchCondition().accept(this))
 
-//  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
-//    Option(escape)
-//      .map(_.accept(this))
-//      .collect { case ir.StringLiteral(esc) =>
-//        patterns.map {
-//          case ir.StringLiteral(pat) =>
-//            val escapedPattern = pat.replace(esc, s"\\$esc")
-//            ir.StringLiteral(escapedPattern)
-//          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
-//        }
-//      }
-//      .getOrElse(patterns)
-//  }
+  override def visitScAnd(ctx: ScAndContext): ir.Expression =
+    ir.And(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+
+  override def visitScOr(ctx: ScOrContext): ir.Expression =
+    ir.Or(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+
+  override def visitScPred(ctx: ScPredContext): ir.Expression = ctx.predicate().accept(this)
+
+  override def visitScPrec(ctx: ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
+
+  override def visitPredExists(ctx: PredExistsContext): ir.Expression = {
+    ir.Exists(ctx.subquery().accept(new SnowflakeRelationBuilder))
+  }
+
+  override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    ctx.comparisonOperator match {
+      case op if op.LE != null => ir.LessThanOrEqual(left, right)
+      case op if op.GE != null => ir.GreaterThanOrEqual(left, right)
+      case op if op.LTGT != null => ir.NotEquals(left, right)
+      case op if op.NE != null => ir.NotEquals(left, right)
+      case op if op.EQ != null => ir.Equals(left, right)
+      case op if op.GT != null => ir.GreaterThan(left, right)
+      case op if op.LT != null => ir.LessThan(left, right)
+    }
+  }
+
+  override def visitPredASA(ctx: PredASAContext): ir.Expression = {
+    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build ASA
+  }
+
+  override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
+    val lowerBound = ctx.expr(1).accept(this)
+    val upperBound = ctx.expr(2).accept(this)
+    val expression = ctx.expr(0).accept(this)
+    val between = ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+    Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
+  }
+
+  override def visitPredIn(ctx: PredInContext): ir.Expression = {
+    val in = if (ctx.subquery() != null) {
+      // In the result of a sub query
+      ir.In(ctx.expr().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))))
+    } else {
+      // In a list of expressions
+      ir.In(ctx.expr().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+    }
+    Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+  }
+
+  override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    // NB: The escape character is a complete expression that evaluates to a single char at runtime
+    // and not a single char at parse time.
+    val escape = Option(ctx.expr(2))
+      .map(_.accept(this))
+    val like = ctx.op.getType match {
+      case LIKE => ir.Like(left, right, escape)
+      case ILIKE => ir.ILike(left, right, escape)
+    }
+    Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+  }
+
+  override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val patterns = visitMany(ctx.exprListInParentheses().exprList().expr())
+    val normalizedPatterns = normalizePatterns(patterns, ctx.expr(1))
+    val like = ctx.op.getType match {
+      case LIKE if ctx.ALL() != null => ir.LikeAll(left, normalizedPatterns)
+      case LIKE => ir.LikeAny(left, normalizedPatterns)
+      case ILIKE if ctx.ALL() != null => ir.ILikeAll(left, normalizedPatterns)
+      case ILIKE => ir.ILikeAny(left, normalizedPatterns)
+    }
+    Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+  }
+
+  override def visitPredRLike(ctx: PredRLikeContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    val rLike = ir.RLike(left, right)
+    Option(ctx.NOT()).fold[ir.Expression](rLike)(_ => ir.Not(rLike))
+  }
+
+  override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = {
+    val expression = ctx.expr().accept(this)
+    if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
+  }
+
+  override def visitPredExpr(ctx: PredExprContext): ir.Expression = {
+    ctx.expr().accept(this)
+  }
+
+  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
+    Option(escape)
+      .map(_.accept(this))
+      .collect { case ir.StringLiteral(esc) =>
+        patterns.map {
+          case ir.StringLiteral(pat) =>
+            val escapedPattern = pat.replace(esc, s"\\$esc")
+            ir.StringLiteral(escapedPattern)
+          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
+        }
+      }
+      .getOrElse(patterns)
+  }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
     NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))

@@ -397,7 +397,7 @@ class SnowflakeDDLBuilderSpec
       verify(alterColumnClause).columnName()
       verify(alterColumnClause).dataType()
       verify(alterColumnClause).DROP()
-      verify(alterColumnClause).NULL_()
+      verify(alterColumnClause).NULL()
       verify(alterColumnClause).getText
       verifyNoMoreInteractions(alterColumnClause)
     }
