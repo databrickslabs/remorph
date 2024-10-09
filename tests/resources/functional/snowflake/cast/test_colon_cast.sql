@@ -1,6 +1,6 @@
 -- snowflake sql:
 SELECT
-    ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)
+    ARRAY_REMOVE([2, 3, 4::DOUBLE, 4, NULL], 4)
 
 -- databricks sql:
 SELECT

@@ -281,7 +281,7 @@ class ExpressionGeneratorTest
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ARRAY_REMOVE(a, b)"
     }
 
-    "ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)" in {
+    "ARRAY_REMOVE([2, 3, 4::DOUBLE, 4, NULL], 4)" in {
       ir.CallFunction(
         "ARRAY_REMOVE",
         Seq(
@@ -289,7 +289,7 @@ class ExpressionGeneratorTest
             Seq(
               ir.Literal(2),
               ir.Literal(3),
-              ir.Cast(ir.Literal(4.00), ir.DoubleType),
+              ir.Cast(ir.Literal(4), ir.DoubleType),
               ir.Literal(4),
               ir.Literal(null)),
             ir.IntegerType),
