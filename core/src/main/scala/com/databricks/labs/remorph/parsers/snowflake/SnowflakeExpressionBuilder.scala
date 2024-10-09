@@ -596,7 +596,7 @@ class SnowflakeExpressionBuilder()
     val lowerBound = ctx.expr(1).accept(this)
     val upperBound = ctx.expr(2).accept(this)
     val expression = ctx.expr(0).accept(this)
-    val between = ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+    val between = ir.Between(expression, lowerBound, upperBound)
     Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
   }
 

@@ -3148,13 +3148,13 @@ expr
     | caseExpression                            # exprCase
     | iffExpr                                   # exprIff
     | sign expr                                 # exprSign
+    | op = NOT+ expr                            # exprNot
+    | expr AND expr                             # exprAnd
+    | expr OR expr                              # exprOr
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
     | expr COLON_COLON dataType                 # exprAscribe
-    | op = NOT+ expr                            # exprNot
-    | expr AND expr                             # exprAnd
-    | expr OR expr                              # exprOr
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
