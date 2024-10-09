@@ -443,7 +443,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       paramSortAsc match {
         case ir.Literal.True => ir.Literal.False
         case ir.Literal.False => ir.Literal.True
-        case _ => ir.If(ir.Equals(paramSortAsc, ir.Literal.True), ir.Literal.False, ir.Literal.True)
+        case _ => ir.If(paramSortAsc, ir.Literal.False, ir.Literal.True)
       }
     }
 
@@ -452,8 +452,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
         case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
         case _ =>
-          if (nullOrSmallAtLeft) ir.If(ir.Equals(isNullOrSmallFirst, ir.Literal.True), ir.Literal(-1), oneLiteral)
-          else ir.If(ir.Equals(isNullOrSmallFirst, ir.Literal.True), oneLiteral, ir.Literal(-1))
+          if (nullOrSmallAtLeft) ir.If(isNullOrSmallFirst, ir.Literal(-1), oneLiteral)
+          else ir.If(isNullOrSmallFirst, oneLiteral, ir.Literal(-1))
       }
     }
 
