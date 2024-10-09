@@ -345,9 +345,43 @@ class Transformation:
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
 ```
-> **Note:** `NULL` values are defaulted to `_null_recon` in the transformation expression.If User is looking for specific behaviour, they should tweak the rules in the transformation expression accordingly in these files: 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py#L235) 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py#L83)
+> **Note:** `NULL` values are defaulted to `_null_recon` in the transformation expression.If User is looking for specific behaviour, they should tweak the rules in the transformation expression accordingly in these files: 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py) 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py)
 
-```transform(coalesce, default="_null_recon_", is_string=True)```
+<table>
+    <tr>
+        <th colspan="4">Transformation Rules</th>
+    </tr>
+    <tr>
+        <th>filename</th>
+        <th>function / variable</th>
+        <th>transformation_rule</th>
+        <th>description</th>
+    </tr>
+    <tr>
+        <td>sampling_query.py</td>
+        <td>_get_join_clause</td>
+        <td>transform(coalesce, default="_null_recon_", is_string=True)</td>
+        <td>Applies the coalesce transformation function for String column and defaults to `_null_recon_` if column is NULL</td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>"universal": {"default": [partial(coalesce, default='_null_recon_', is_string=True)</td>
+        <td>Default String column Transformation rule for all dialects. Applies the coalesce transformation function and defaults to `_null_recon_` if column is NULL</td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>"oracle": {exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")]</td>
+        <td>Transformation rule for oracle dialect 'NCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>"oracle": {exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")]</td>
+        <td>Transformation rule for oracle dialect 'NVARCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
+    </tr>
+</table>  
 
 ## column_thresholds
 
