@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 abstract class Rule[T <: TreeNode[_]] {
   val ruleName: String = {

@@ -1,3 +1,5 @@
 package com.databricks.labs.remorph.transpilers
 
-case class TranspileException(msg: String) extends RuntimeException(msg)
+import com.databricks.labs.remorph.intermediate.RemorphError
+
+case class TranspileException(err: RemorphError) extends RuntimeException(err.msg)

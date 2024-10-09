@@ -1,5 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 /**
  * Flattens nested invocations of CONCAT into a single one. For example, `CONCAT(CONCAT(a, b), CONCAT(c, d))` becomes
