@@ -100,7 +100,7 @@ class LogicalPlanGenerator(
         }
 
         s"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
-      // Removed Unnecessary Braces
+
       case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
     }
   }

@@ -155,7 +155,6 @@ case class CreateTable(
     extends Catalog {}
 
 // As per Spark v2Commands
-// TODO - This IR needs to be extended to Support Table Properties, Partitioning, Clustering etc.
 case class CreateTableAsSelect(
     table_name: String,
     query: LogicalPlan,

@@ -97,10 +97,9 @@ class SnowflakeDDLBuilder
     val tableName = ctx.objectName().getText
     val selectStatement = ctx.queryStatement().accept(relationBuilder)
     // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
-    // val tableType = ctx.tableType().getText
-    // TODO Capture other Table Properties once IR is extended
     val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
     // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
+    // TODO Capture other Table Properties
     val colConstraints = Map.empty[String, Seq[ir.Constraint]]
     val colOptions = Map.empty[String, Seq[ir.GenericOption]]
     val constraints = Seq.empty[ir.Constraint]
