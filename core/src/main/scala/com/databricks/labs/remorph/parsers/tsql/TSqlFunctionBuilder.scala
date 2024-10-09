@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, FunctionDefinition, StringConverter, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, FunctionDefinition, StringConverter}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
 
