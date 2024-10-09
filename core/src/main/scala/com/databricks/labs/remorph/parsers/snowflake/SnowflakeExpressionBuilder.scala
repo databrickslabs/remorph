@@ -153,7 +153,7 @@ class SnowflakeExpressionBuilder()
       case c if c.DECIMAL() != null => ir.NumericLiteral(sign + c.DECIMAL().getText)
       case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
       case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
-      case c if c.NULL_() != null => ir.Literal.Null
+      case c if c.NULL() != null => ir.Literal.Null
       case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
       case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
       case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
@@ -272,10 +272,6 @@ class SnowflakeExpressionBuilder()
     ir.Or(left, right)
   }
 
-  override def visitExprPredicate(ctx: ExprPredicateContext): ir.Expression = {
-    buildPredicatePartial(ctx.predicatePartial(), ctx.expr().accept(this))
-  }
-
   override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = {
     val left = ctx.expr(0).accept(this)
     val right = ctx.expr(1).accept(this)
@@ -390,7 +386,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitIffExpr(ctx: IffExprContext): ir.Expression = {
-    val condition = ctx.predicate().accept(this)
+    val condition = ctx.searchCondition().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
     ir.If(condition, thenBranch, elseBranch)
@@ -553,82 +549,71 @@ class SnowflakeExpressionBuilder()
         ir.Case(expression, branches, otherwise)
       case c if c.switchSearchConditionSection().size() > 0 =>
         val branches = c.switchSearchConditionSection().asScala.map { branch =>
-          ir.WhenBranch(branch.predicate().accept(this), branch.expr().accept(this))
+          ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
         }
         ir.Case(None, branches, otherwise)
     }
   }
 
-  override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
-    case c if c.EXISTS() != null =>
-      ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
-    case c if c.predicatePartial() != null =>
-      val expr = c.expr().accept(this)
-      buildPredicatePartial(c.predicatePartial(), expr)
+  //
+//  private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
+//    val predicate = ctx match {
+//      case c if c.IN() != null && c.subquery() != null =>
+//        ir.In(expression, Seq(ir.ScalarSubquery(c.subquery().accept(new SnowflakeRelationBuilder))))
+//      case c if c.IN() != null && c.exprList() != null =>
+//        val collection = visitMany(c.exprList().expr())
+//        ir.In(expression, collection)
+//      case c if c.BETWEEN() != null =>
+//        val lowerBound = c.expr(0).accept(this)
+//        val upperBound = c.expr(1).accept(this)
+//        ir.Between(expression, lowerBound, upperBound)
+//      case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
+//      case c if c.IS() != null =>
+//        val isNull: ir.Expression = ir.IsNull(expression)
+//        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.IsNotNull(expression))
+//    }
+//    Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
+//  }
 
-    // TODO: We should not call visit children directly but call accept on the other elements of the predicate
-    //       This makes me think that we have not implemented expr comparisonOperator ... yet
-    case c => visitChildren(c)
-  }
+//  private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
+//    case single: LikeExprSinglePatternContext =>
+//      val pattern = single.pat.accept(this)
+//      // NB: The escape character is a complete expression that evaluates to a single char at runtime
+//      // and not a single char at parse time.
+//      val escape = Option(single.escapeChar)
+//        .map(_.accept(this))
+//
+//      single.op.getType match {
+//        case LIKE => ir.Like(child, pattern, escape)
+//        case ILIKE => ir.ILike(child, pattern, escape)
+//      }
+//    case multi: LikeExprMultiplePatternsContext =>
+//      val patterns = visitMany(multi.exprListInParentheses().exprList().expr())
+//      val normalizedPatterns = normalizePatterns(patterns, multi.expr())
+//      multi.op.getType match {
+//        case LIKE if multi.ALL() != null => ir.LikeAll(child, normalizedPatterns)
+//        case LIKE => ir.LikeAny(child, normalizedPatterns)
+//        case ILIKE if multi.ALL() != null => ir.ILikeAll(child, normalizedPatterns)
+//        case ILIKE => ir.ILikeAny(child, normalizedPatterns)
+//      }
+//
+//    case rlike: LikeExprRLikeContext => ir.RLike(child, rlike.expr().accept(this))
+//
+//  }
 
-  private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
-    val predicate = ctx match {
-      case c if c.IN() != null && c.subquery() != null =>
-        ir.In(expression, Seq(ir.ScalarSubquery(c.subquery().accept(new SnowflakeRelationBuilder))))
-      case c if c.IN() != null && c.exprList() != null =>
-        val collection = visitMany(c.exprList().expr())
-        ir.In(expression, collection)
-      case c if c.BETWEEN() != null =>
-        val lowerBound = c.expr(0).accept(this)
-        val upperBound = c.expr(1).accept(this)
-        ir.Between(expression, lowerBound, upperBound)
-      case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
-      case c if c.IS() != null =>
-        val isNull: ir.Expression = ir.IsNull(expression)
-        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.IsNotNull(expression))
-    }
-    Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
-  }
-
-  private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
-    case single: LikeExprSinglePatternContext =>
-      val pattern = single.pat.accept(this)
-      // NB: The escape character is a complete expression that evaluates to a single char at runtime
-      // and not a single char at parse time.
-      val escape = Option(single.escapeChar)
-        .map(_.accept(this))
-
-      single.op.getType match {
-        case LIKE => ir.Like(child, pattern, escape)
-        case ILIKE => ir.ILike(child, pattern, escape)
-      }
-    case multi: LikeExprMultiplePatternsContext =>
-      val patterns = visitMany(multi.exprListInParentheses().exprList().expr())
-      val normalizedPatterns = normalizePatterns(patterns, multi.expr())
-      multi.op.getType match {
-        case LIKE if multi.ALL() != null => ir.LikeAll(child, normalizedPatterns)
-        case LIKE => ir.LikeAny(child, normalizedPatterns)
-        case ILIKE if multi.ALL() != null => ir.ILikeAll(child, normalizedPatterns)
-        case ILIKE => ir.ILikeAny(child, normalizedPatterns)
-      }
-
-    case rlike: LikeExprRLikeContext => ir.RLike(child, rlike.expr().accept(this))
-
-  }
-
-  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
-    Option(escape)
-      .map(_.accept(this))
-      .collect { case ir.StringLiteral(esc) =>
-        patterns.map {
-          case ir.StringLiteral(pat) =>
-            val escapedPattern = pat.replace(esc, s"\\$esc")
-            ir.StringLiteral(escapedPattern)
-          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
-        }
-      }
-      .getOrElse(patterns)
-  }
+//  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
+//    Option(escape)
+//      .map(_.accept(this))
+//      .collect { case ir.StringLiteral(esc) =>
+//        patterns.map {
+//          case ir.StringLiteral(pat) =>
+//            val escapedPattern = pat.replace(esc, s"\\$esc")
+//            ir.StringLiteral(escapedPattern)
+//          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
+//        }
+//      }
+//      .getOrElse(patterns)
+//  }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
     NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))

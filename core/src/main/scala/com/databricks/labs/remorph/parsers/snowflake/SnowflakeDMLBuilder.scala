@@ -45,7 +45,7 @@ class SnowflakeDMLBuilder
 
   override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
     val target = ctx.tableRef().accept(relationBuilder)
-    val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
+    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     Option(ctx.tablesOrQueries()) match {
       case Some(value) =>
         val relation = relationBuilder.visit(value)
@@ -59,7 +59,7 @@ class SnowflakeDMLBuilder
     val set = expressionBuilder.visitMany(ctx.setColumnValue())
     val sources =
       Option(ctx.tableSources()).map(t => relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
-    val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
+    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     ir.UpdateTable(target, sources, set, where, None, None)
   }
 

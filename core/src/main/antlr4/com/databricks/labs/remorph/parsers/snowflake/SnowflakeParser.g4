@@ -72,7 +72,7 @@ insertStatement
 
 insertMultiTableStatement
     : INSERT OVERWRITE? ALL intoClause2
-    | INSERT OVERWRITE? (FIRST | ALL) (WHEN predicate THEN intoClause2+)+ (ELSE intoClause2)? subquery
+    | INSERT OVERWRITE? (FIRST | ALL) (WHEN searchCondition THEN intoClause2+)+ (ELSE intoClause2)? subquery
     ;
 
 intoClause2: INTO objectName (L_PAREN columnList R_PAREN)? valuesList?
@@ -81,19 +81,19 @@ intoClause2: INTO objectName (L_PAREN columnList R_PAREN)? valuesList?
 valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
     ;
 
-valueItem: columnName | DEFAULT | NULL_
+valueItem: columnName | DEFAULT | NULL
     ;
 
-mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeCond
+mergeStatement: MERGE INTO tableRef USING tableSource ON searchCondition mergeCond
     ;
 
 mergeCond: (mergeCondMatch | mergeCondNotMatch)+
     ;
 
-mergeCondMatch: (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)
+mergeCondMatch: (WHEN MATCHED (AND searchCondition)? THEN mergeUpdateDelete)
     ;
 
-mergeCondNotMatch: WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
+mergeCondNotMatch: WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
     ;
 
 mergeUpdateDelete
@@ -106,7 +106,7 @@ mergeInsert: INSERT ((L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAR
 
 updateStatement
     : UPDATE tableRef SET setColumnValue (COMMA setColumnValue)* (FROM tableSources)? (
-        WHERE predicate
+        WHERE searchCondition
     )?
     ;
 
@@ -122,7 +122,7 @@ tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
 tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
     ;
 
-deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
+deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE searchCondition)?
     ;
 
 otherCommand
@@ -1108,7 +1108,7 @@ alterColumnClause
     : COLUMN? columnName (
         DROP DEFAULT
         | SET DEFAULT objectName DOT NEXTVAL
-        | ( SET? NOT NULL_ | DROP NOT NULL_)
+        | ( SET? NOT NULL | DROP NOT NULL)
         | ( (SET DATA)? TYPE)? dataType
         | COMMENT string
         | UNSET COMMENT
@@ -1151,7 +1151,7 @@ onDelete: ON DELETE onAction
 foreignKeyMatch: MATCH matchType = (FULL | PARTIAL | SIMPLE)
     ;
 
-onAction: CASCADE | SET ( NULL_ | DEFAULT) | RESTRICT | NO ACTION
+onAction: CASCADE | SET ( NULL | DEFAULT) | RESTRICT | NO ACTION
     ;
 
 constraintProperties
@@ -1207,7 +1207,7 @@ alterColumnDecl: COLUMN? columnName alterColumnOpts
 alterColumnOpts
     : DROP DEFAULT
     | SET DEFAULT objectName DOT NEXTVAL
-    | ( SET? NOT NULL_ | DROP NOT NULL_)
+    | ( SET? NOT NULL | DROP NOT NULL)
     | ( (SET DATA)? TYPE)? dataType
     | commentClause
     | UNSET COMMENT
@@ -1475,8 +1475,8 @@ createExternalFunction
     : CREATE orReplace? SECURE? EXTERNAL FUNCTION objectName L_PAREN (
         argName argDataType (COMMA argName argDataType)*
     )? R_PAREN RETURNS dataType nullNotNull? (
-        ( CALLED ON NULL_ INPUT)
-        | ((RETURNS NULL_ ON NULL_ INPUT) | STRICT)
+        ( CALLED ON NULL INPUT)
+        | ((RETURNS NULL ON NULL INPUT) | STRICT)
     )? (VOLATILE | IMMUTABLE)? commentClause? API_INTEGRATION EQ id (
         HEADERS EQ L_PAREN headerDecl (COMMA headerDecl)* R_PAREN
     )? (CONTEXT_HEADERS EQ L_PAREN id (COMMA id)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
@@ -1550,8 +1550,8 @@ createFunction
         dataType
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
     ) (LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL))? (
-        CALLED ON NULL_ INPUT
-        | RETURNS NULL_ ON NULL_ INPUT
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
         | STRICT
     )? (VOLATILE | IMMUTABLE)? (PACKAGES EQ L_PAREN stringList R_PAREN)? (
         RUNTIME_VERSION EQ (string | FLOAT)
@@ -1561,7 +1561,7 @@ createFunction
     | CREATE orReplace? SECURE? FUNCTION objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) nullNotNull? (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
+    ) nullNotNull? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? MEMOIZABLE? commentClause? AS functionDefinition
@@ -1635,7 +1635,7 @@ executaAs: EXECUTE AS callerOwner
 procedureDefinition: DOLLAR_STRING | declareCommand? BEGIN procStatement+ END SEMI
     ;
 
-notNull: NOT NULL_
+notNull: NOT NULL
     ;
 
 table_: TABLE (L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN) | (functionCall)
@@ -1645,14 +1645,14 @@ createProcedure
     : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
         | table_
-    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
+    ) notNull? LANGUAGE SQL (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
     | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
-        CALLED ON NULL_ INPUT
-        | RETURNS NULL_ ON NULL_ INPUT
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
         | STRICT
     )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
@@ -1660,7 +1660,7 @@ createProcedure
         dataType notNull?
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
     ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
-    //            ( CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT )?
+    //            ( CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT )?
     //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
     ;
@@ -2058,7 +2058,7 @@ outOfLineConstraint
     ;
 
 fullColDecl
-    : colDecl (collate | inlineConstraint | nullNotNull | (defaultValue | NULL_))* withMaskingPolicy? withTags? (
+    : colDecl (collate | inlineConstraint | nullNotNull | (defaultValue | NULL))* withMaskingPolicy? withTags? (
         COMMENT string
     )?
     ;
@@ -2192,7 +2192,7 @@ sessionParamsList: sessionParams (COMMA sessionParams)*
 createTask
     : CREATE orReplace? TASK ifNotExists? objectName taskParameters* commentClause? copyGrants? (
         AFTER objectName (COMMA objectName)*
-    )? (WHEN predicate)? AS sql
+    )? (WHEN searchCondition)? AS sql
     ;
 
 taskParameters
@@ -2262,7 +2262,7 @@ whProperties
     | MAX_CLUSTER_COUNT EQ num
     | MIN_CLUSTER_COUNT EQ num
     | SCALING_POLICY EQ (STANDARD | ECONOMY)
-    | AUTO_SUSPEND (EQ num | NULL_)
+    | AUTO_SUSPEND (EQ num | NULL)
     | AUTO_RESUME EQ trueFalse
     | INITIALLY_SUSPENDED EQ trueFalse
     | RESOURCE_MONITOR EQ id
@@ -3151,7 +3151,6 @@ expr
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
-    | expr predicatePartial                     # exprPredicate
     | expr COLON_COLON dataType                 # exprAscribe
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
@@ -3168,20 +3167,13 @@ expr
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
     ;
 
-predicatePartial
-    : IS nullNotNull
-    | NOT? IN L_PAREN (subquery | exprList) R_PAREN
-    | NOT? likeExpression
-    | NOT? BETWEEN expr AND expr
-    ;
-
 likeExpression
     : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
     | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
     | RLIKE expr                                                           # likeExprRLike
     ;
 
-iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
+iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
     ;
 
 castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
@@ -3229,7 +3221,8 @@ dataType
     | GEOMETRY
     ;
 
-objectField: id dataType;
+objectField: id dataType
+    ;
 
 primitiveExpression
     : DEFAULT           # primExprDefault //?
@@ -3311,7 +3304,7 @@ literal
     | trueFalse
     | jsonLiteral
     | arrayLiteral
-    | NULL_
+    | NULL
     | PARAM // A question mark can be used as a placeholder for a prepared statement that will use binding.
     ;
 
@@ -3323,7 +3316,7 @@ caseExpression
     | CASE switchSearchConditionSection+ (ELSE expr)? END
     ;
 
-switchSearchConditionSection: WHEN predicate THEN expr
+switchSearchConditionSection: WHEN searchCondition THEN expr
     ;
 
 switchSection: WHEN expr THEN expr
@@ -3337,7 +3330,10 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN ((selectStatement setOperators*) | expr) R_PAREN
+    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN (
+        (selectStatement setOperators*)
+        | expr
+    ) R_PAREN
     ;
 
 selectStatement
@@ -3347,7 +3343,7 @@ selectStatement
     ;
 
 setOperators
-    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement  //EXCEPT and MINUS have same SQL meaning
+    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
     ;
 
 selectOptionalClauses
@@ -3374,7 +3370,6 @@ selectListElem
     | columnElem asAlias?
     | columnElemStar
     //    | udtElem
-
     ;
 
 columnElemStar: (objectName DOT)? STAR
@@ -3386,7 +3381,7 @@ columnElem: (objectName DOT)? columnName | (objectName DOT)? DOLLAR columnPositi
 asAlias: AS? alias
     ;
 
-expressionElem: expr | predicate
+expressionElem: expr | searchCondition
     ;
 
 columnPosition: num
@@ -3425,7 +3420,7 @@ objectRef
     | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
     | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
     | valuesTable tableAlias?                                                        # objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
+    | objectName START WITH searchCondition CONNECT BY priorList?                    # objRefStartWith
     ;
 
 tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
@@ -3444,7 +3439,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON predicate) | (USING L_PAREN columnList R_PAREN))?
+    : joinType? JOIN objectRef ((ON searchCondition) | (USING L_PAREN columnList R_PAREN))?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
     ;
@@ -3519,9 +3514,7 @@ columnAliasListInBrackets: L_PAREN id (COMMA id)* R_PAREN
 exprListInParentheses: L_PAREN exprList R_PAREN
     ;
 
-valuesTable
-    : L_PAREN valuesTableBody R_PAREN
-    | valuesTableBody
+valuesTable: L_PAREN valuesTableBody R_PAREN | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*
@@ -3542,20 +3535,31 @@ sampleSeed: (REPEATABLE | SEED) L_PAREN num R_PAREN
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
     ;
 
-nullNotNull: NOT? NULL_
+nullNotNull: NOT? NULL
     ;
 
 subquery: queryStatement
     ;
 
-predicate
-    : EXISTS L_PAREN subquery R_PAREN
-    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN
-    | expr predicatePartial
-    | expr
+searchCondition
+    : L_PAREN searchCondition R_PAREN     # scPrec
+    | NOT searchCondition                 # scNot
+    | searchCondition AND searchCondition # scAnd
+    | searchCondition OR searchCondition  # scOr
+    | predicate                           # scPred
     ;
 
-whereClause: WHERE predicate
+predicate
+    : EXISTS L_PAREN subquery R_PAREN                                     # predExists
+    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN # predBinop
+    | IS NOT? NULL                                                        # predIsNull
+    | IN L_PAREN (subquery | exprList) R_PAREN                            # predIn
+    | likeExpression                                                      # predLike
+    | BETWEEN expr AND expr                                               # predBetween
+    | expr                                                                # predExpr
+    ;
+
+whereClause: WHERE searchCondition
     ;
 
 groupByElem: columnElem | num | expressionElem
@@ -3570,7 +3574,7 @@ groupByClause
     | GROUP BY ALL
     ;
 
-havingClause: HAVING predicate
+havingClause: HAVING searchCondition
     ;
 
 qualifyClause: QUALIFY expr
