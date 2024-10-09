@@ -1,0 +1,2 @@
+--Query type: DQL
+WITH temp_result AS ( SELECT o_orderkey, l_partkey, l_quantity FROM lineitem WHERE l_orderkey IN (1001, 1002) AND l_partkey LIKE '71%' ) SELECT o_orderkey AS OrderNumber, l_partkey AS ProductID, l_quantity AS Qty, SUM(l_quantity) OVER win AS Total, AVG(l_quantity) OVER (win PARTITION BY o_orderkey) AS Avg, COUNT(l_quantity) OVER (win ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) AS Count FROM temp_result WINDOW win AS (ORDER BY o_orderkey, l_partkey);

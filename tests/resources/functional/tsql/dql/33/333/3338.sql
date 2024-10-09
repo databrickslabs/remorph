@@ -1,0 +1,2 @@
+--Query type: DQL
+WITH objects AS ( SELECT 1 AS object_id UNION ALL SELECT 2 UNION ALL SELECT 3 ) SELECT DISTINCT OBJECT_NAME(object_id) FROM objects

@@ -1,0 +1,2 @@
+--Query type: DCL
+SELECT ORIGINAL_LOGIN(), SUSER_SNAME() FROM (VALUES (1)) AS temp(id);

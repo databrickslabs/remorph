@@ -1,0 +1,10 @@
+--Query type: DDL
+ALTER DATABASE TestDB
+SET ANSI_NULL_DEFAULT OFF;
+
+WITH cte
+AS (
+    SELECT 1 AS dummy
+)
+SELECT *
+FROM cte;
