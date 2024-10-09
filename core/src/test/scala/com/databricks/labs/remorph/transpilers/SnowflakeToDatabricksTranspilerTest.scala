@@ -148,6 +148,20 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1;""".stripMargin
     }
 
+    "transpile ARRAY_REMOVE function" ignore {
+      // TODO: enable the test once the parsing issue is fixed
+      // https://github.com/databrickslabs/remorph/issues/978
+      "SELECT ARRAY_REMOVE([1, 2, 3], 1);" transpilesTo
+        "SELECT ARRAY_REMOVE(ARRAY(1, 2, 3), 1);"
+
+      "SELECT ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4);" transpilesTo
+        "SELECT ARRAY_REMOVE(ARRAY(2, 3, 4.00::DOUBLE, 4, NULL), 4);"
+
+      // In Snow, if the value to remove is a VARCHAR,
+      // it is required to cast the value to VARIANT.
+      "SELECT ARRAY_REMOVE(['a', 'b', 'c'], 'a'::VARIANT);" transpilesTo
+        "SELECT ARRAY_REMOVE(ARRAY('a', 'b', 'c'), 'a');"
+    }
   }
 
   "Snowflake transpile function with optional brackets" should {
