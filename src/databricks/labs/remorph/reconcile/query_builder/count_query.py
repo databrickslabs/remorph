@@ -5,6 +5,7 @@ from sqlglot import expressions as exp
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import build_column, build_literal
 from databricks.labs.remorph.reconcile.recon_config import Table
+from databricks.labs.remorph.config import get_key_from_dialect
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,11 @@ class CountQueryBuilder:
         self._engine = engine
 
     def build_query(self):
-        select_clause = build_column(this=exp.Count(this=build_literal(this="1", is_string=False)), alias="total_count")
+        if get_key_from_dialect(self._engine) == "teradata":
+            alias = "total_count"
+        else:
+            alias = "count"
+        select_clause = build_column(this=exp.Count(this=build_literal(this="1", is_string=False)), alias=alias)
         count_query = (
             exp.select(select_clause)
             .from_(":tbl")
@@ -31,3 +36,5 @@ class CountQueryBuilder:
         )
         logger.info(f"Record Count Query for {self._layer}: {count_query}")
         return count_query
+
+

@@ -8,6 +8,8 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
+from databricks.labs.remorph.config import get_key_from_dialect
+
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
@@ -821,14 +823,14 @@ class Reconciliation:
                 table=table_conf.source_name,
                 query=source_count_query,
                 options=None,
-            ).collect()[0]["total_count"]
+            ).collect()[0][0]
             target_count = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
                 query=target_count_query,
                 options=None,
-            ).collect()[0]["total_count"]
+            ).collect()[0][0]
 
             return ReconcileRecordCount(source=int(source_count), target=int(target_count))
         return ReconcileRecordCount()

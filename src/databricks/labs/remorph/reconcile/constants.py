@@ -18,6 +18,7 @@ class ReconSourceType(AutoName):
     SNOWFLAKE = auto()
     ORACLE = auto()
     DATABRICKS = auto()
+    TERADATA = auto()
 
 
 class ReconReportType(AutoName):

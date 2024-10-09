@@ -143,6 +143,24 @@ class ReconConfigPrompts:
         oracle_conn_dict = (ReconSourceType.ORACLE.value, oracle_conn_details)
         return oracle_conn_dict
 
+    def _prompt_teradata_connection_details(self) -> tuple[str, dict[str, str]]:
+        """
+        Prompt for Teradata connection details
+        :return: tuple[str, dict[str, str]]
+        """
+        logger.info(
+            f"Please answer a couple of questions to configure `{ReconSourceType.TERADATA.value}` Connection profile"
+        )
+        user = self._prompts.question("Enter User")
+        password = self._prompts.question("Enter Password")
+        host = self._prompts.question("Enter host")
+        port = self._prompts.question("Enter port")
+
+        teradata_conn_details = {"user": user, "password": password, "host": host, "port": port}
+
+        teradata_conn_details = (ReconSourceType.TERADATA.value, teradata_conn_details)
+        return teradata_conn_details
+
     def _connection_details(self):
         """
         Prompt for connection details based on the source
@@ -154,6 +172,8 @@ class ReconConfigPrompts:
                 return self._prompt_snowflake_connection_details()
             case ReconSourceType.ORACLE.value:
                 return self._prompt_oracle_connection_details()
+            case ReconSourceType.TERADATA.value:
+                return self._prompt_teradata_connection_details()
 
     def prompt_and_save_connection_details(self):
         """

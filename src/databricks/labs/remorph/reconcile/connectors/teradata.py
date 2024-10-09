@@ -38,13 +38,13 @@ _SCHEMA_QUERY = """SELECT
                                 THEN 'boolean'
                         WHEN ColumnType IN ('V')
                                 THEN 'varchar'
-                        ELSE 'string'
+                        ELSE 'source_unknown'
                     END DATA_TYPE
                     FROM 
                         DBC.ColumnsV
                     WHERE 
                     LOWER(TableName) = LOWER('{table}')
-                    AND LOWER(DatabaseName) = LOWER('{schema}')
+                    AND LOWER(DatabaseName) = LOWER('{schema}_tb')
               """
 
 
@@ -63,31 +63,31 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         self._ws = ws
         self._secret_scope = secret_scope
 
-    # @property
-    # def get_jdbc_url(self) -> str:
-    #     # Fetch secrets once and store them in variables
-    #     secrets = {key: self._get_secret(key) for key in ['CDE-BNSTLK-AZ-APPL-PWD']}
-    #     # Construct the JDBC URL
-    #     return (
-    #         f"jdbc:{self._DRIVER}://edwp.corp.erac.com/DBS_PORT=1025,"
-    #         #f"databaseName={secrets['database']},"
-    #         f"user=CDE_BNSTLK_AZ_APPL,"
-    #         f"password={secrets['CDE-BNSTLK-AZ-APPL-PWD']},"
-    #     )
-
     @property
     def get_jdbc_url(self) -> str:
         # Fetch secrets once and store them in variables
+        secrets = {key: self._get_secret(key) for key in ['CDE-BNSTLK-AZ-APPL-PWD']}
         # Construct the JDBC URL
-        host = "ec2-54-241-85-177.us-west-1.compute.amazonaws.com"
-        port = "1025"
-        user = "reconcile_test_app_user"
-        password = "dbc"
-        database = "reconcile_test"
-        url = f"jdbc:teradata://{host}/DBS_PORT={port},DATABASE={database},USER={user},PASSWORD={password}"
         return (
-            url
+            f"jdbc:{self._DRIVER}://edwp.corp.erac.com/DBS_PORT=1025,"
+            #f"databaseName={secrets['database']},"
+            f"user=CDE_BNSTLK_AZ_APPL,"
+            f"password={secrets['CDE-BNSTLK-AZ-APPL-PWD']},"
         )
+
+    # @property
+    # def get_jdbc_url(self) -> str:
+    #     # Fetch secrets once and store them in variables
+    #     # Construct the JDBC URL
+    #     host = "ec2-54-241-85-177.us-west-1.compute.amazonaws.com"
+    #     port = "1025"
+    #     user = "reconcile_test_app_user"
+    #     password = "dbc"
+    #     database = "reconcile_test"
+    #     url = f"jdbc:teradata://{host}/DBS_PORT={port},DATABASE={database},USER={user},PASSWORD={password}"
+    #     return (
+    #         url
+    #     )
 
     def read_data(
         self,

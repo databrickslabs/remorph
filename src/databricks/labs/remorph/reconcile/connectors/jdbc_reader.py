@@ -17,6 +17,7 @@ class JDBCReaderMixin:
             self._spark.read.format("jdbc")
             .option("url", jdbc_url)
             .option("driver", driver_class.get(driver, driver))
+            .option("charset", "UTF16")
             .option("query", f"{query}")
         )
 
