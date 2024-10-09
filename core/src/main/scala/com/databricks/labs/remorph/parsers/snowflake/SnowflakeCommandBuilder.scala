@@ -49,7 +49,6 @@ class SnowflakeCommandBuilder
       case s: ir.ScalarSubquery => Some(s.dataType)
       case _ => Option(ctx.dataType()).flatMap(dt => Some(typeBuilder.buildDataType(dt)))
     }
-
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
 

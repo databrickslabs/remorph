@@ -260,6 +260,10 @@ class SnowflakeExpressionBuilder()
     buildWindow(ctx.overClause(), ctx.expr().accept(this))
   }
 
+  override def visitExprCast(ctx: ExprCastContext): ir.Expression = {
+    ctx.castExpr().accept(this)
+  }
+
   override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
     ir.Cast(ctx.expr().accept(this), typeBuilder.buildDataType(ctx.dataType()))
   }
