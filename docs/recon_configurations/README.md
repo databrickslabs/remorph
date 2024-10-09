@@ -366,19 +366,19 @@ transformations=[Transformation(column_name)="array_col",source=sort_array_input
     <tr>
         <td>expression_generator.py</td>
         <td>DataType_transform_mapping</td>
-        <td>"universal": {"default": [partial(coalesce, default='_null_recon_', is_string=True)</td>
+        <td>(coalesce, default='_null_recon_', is_string=True)</td>
         <td>Default String column Transformation rule for all dialects. Applies the coalesce transformation function and defaults to `_null_recon_` if column is NULL</td>
     </tr>
     <tr>
         <td>expression_generator.py</td>
         <td>DataType_transform_mapping</td>
-        <td>"oracle": {exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")]</td>
+        <td>"oracle": DataType...NCHAR: ..."NVL(TRIM(TO_CHAR..,'_null_recon_')"</td>
         <td>Transformation rule for oracle dialect 'NCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
     </tr>
     <tr>
         <td>expression_generator.py</td>
         <td>DataType_transform_mapping</td>
-        <td>"oracle": {exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")]</td>
+        <td>"oracle": DataType...NVARCHAR: ..."NVL(TRIM(TO_CHAR..,'_null_recon_')"</td>
         <td>Transformation rule for oracle dialect 'NVARCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
     </tr>
 </table>  
