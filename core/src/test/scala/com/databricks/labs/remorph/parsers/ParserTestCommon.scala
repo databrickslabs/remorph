@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.{Assertion, Assertions}
