@@ -12,6 +12,14 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = vc.expressionBuilder.visitId(ctx.id())
     // Column list can be empty if the select specifies distinct column names

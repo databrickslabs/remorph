@@ -9,6 +9,14 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Catalog = {
+    ir.UnresolvedCatalog(msg)
+  }
+
+  // Concrete visitors
+
   override def visitCreateTable(ctx: TSqlParser.CreateTableContext): ir.Catalog =
     ctx match {
       case ci if ci.createInternal() != null => ci.createInternal().accept(this)

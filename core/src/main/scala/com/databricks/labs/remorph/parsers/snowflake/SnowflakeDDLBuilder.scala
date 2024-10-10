@@ -1,19 +1,22 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
-class SnowflakeDDLBuilder
-    extends SnowflakeParserBaseVisitor[ir.Catalog]
-    with ParserCommon[ir.Catalog]
-    with IncompleteParser[ir.Catalog] {
+class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Catalog = {
+    ir.UnresolvedCatalog(msg)
+  }
+
+  // Concrete visitors
 
   private def extractString(ctx: StrContext): String =
     ctx.accept(expressionBuilder) match {

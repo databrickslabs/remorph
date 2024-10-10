@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import SnowflakeParser._
 import com.databricks.labs.remorph.intermediate.IRHelpers
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
@@ -14,6 +14,14 @@ class SnowflakeDMLBuilder
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val relationBuilder = new SnowflakeRelationBuilder
+
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Modification = {
+    ir.UnresolvedModification(msg)
+  }
+
+  // Concrete visitors
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = {
     val table = ctx.objectName().accept(relationBuilder)

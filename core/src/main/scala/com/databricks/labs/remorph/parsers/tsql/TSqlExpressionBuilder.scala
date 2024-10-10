@@ -12,6 +12,14 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Expression = {
+    ir.UnresolvedExpression(msg)
+  }
+
+  // Concrete visitors..
+
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
       case c if c.asterisk() != null => c.asterisk().accept(this)
@@ -221,6 +229,10 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     vc.functionBuilder.buildFunction(ctx.getText, Seq.empty)
   }
 
+  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression = {
+    ctx.primitiveExpression().accept(this)
+  }
+
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
@@ -320,6 +332,14 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
 
   override def visitPredExpression(ctx: PredExpressionContext): ir.Expression = {
     ctx.expression().accept(this)
+  }
+
+  override def visitFunctionCall(ctx: FunctionCallContext): ir.Expression = ctx match {
+    case b if b.builtInFunctions() != null => b.builtInFunctions().accept(this)
+    case s if s.standardFunction() != null => s.standardFunction().accept(this)
+    case f if f.freetextFunction() != null => f.freetextFunction().accept(this)
+    case p if p.partitionFunction() != null => p.partitionFunction().accept(this)
+    case h if h.hierarchyidStaticMethod() != null => h.hierarchyidStaticMethod().accept(this)
   }
 
   override def visitId(ctx: IdContext): ir.Id = ctx match {
@@ -524,7 +544,6 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     }
     aliasOption.getOrElse(expression)
   }
-
 
   // format: off
   /**

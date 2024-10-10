@@ -1,22 +1,25 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder
-    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
-    with IncompleteParser[ir.LogicalPlan]
-    with ParserCommon[ir.LogicalPlan] {
+class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.LogicalPlan =
-    ir.UnresolvedRelation(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
   override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
     val select = ctx.selectOptionalClauses().accept(this)
     val relation = buildLimitOffset(ctx.limitClause(), select)

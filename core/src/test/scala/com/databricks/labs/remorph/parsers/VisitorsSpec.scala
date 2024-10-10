@@ -4,7 +4,9 @@ import com.databricks.labs.remorph.parsers.tsql.{TSqlLexer, TSqlParser, TSqlPars
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.wordspec.AnyWordSpec
 
-class FakeVisitor extends TSqlParserBaseVisitor[String] with ParserCommon[String] {}
+class FakeVisitor extends TSqlParserBaseVisitor[String] with ParserCommon[String] {
+  override protected def unresolved(msg: String): String = msg
+}
 
 class VistorsSpec extends AnyWordSpec {
 

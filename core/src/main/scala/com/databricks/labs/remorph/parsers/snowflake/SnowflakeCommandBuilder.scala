@@ -1,19 +1,21 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
-class SnowflakeCommandBuilder
-    extends SnowflakeParserBaseVisitor[ir.Command]
-    with ParserCommon[ir.Command]
-    with IncompleteParser[ir.Command] {
+class SnowflakeCommandBuilder extends SnowflakeParserBaseVisitor[ir.Command] with ParserCommon[ir.Command] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedCommand =
-    ir.UnresolvedCommand(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Command = {
+    ir.UnresolvedCommand(msg)
+  }
+
+  // Concrete visitors
 
   // TODO: Implement Cursor and Exception for Declare Statements.
   // TODO: Implement Cursor for Let Statements.

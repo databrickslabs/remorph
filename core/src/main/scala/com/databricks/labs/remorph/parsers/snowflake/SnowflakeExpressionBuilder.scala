@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.Token
 
 import java.time.LocalDateTime
@@ -13,14 +13,37 @@ import scala.util.Try
 class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
-    with IncompleteParser[ir.Expression]
     with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
-    ir.UnresolvedExpression(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Expression = {
+    ir.UnresolvedExpression(msg)
+  }
+
+  // Concrete visitors..
+
+  override def visitFunctionCall(ctx: FunctionCallContext): ir.Expression = ctx match {
+    case b if b.builtinFunction() != null => b.builtinFunction().accept(this)
+    case s if s.standardFunction() != null => s.standardFunction().accept(this)
+    case a if a.aggregateFunction() != null => a.aggregateFunction().accept(this)
+    case r if r.rankingWindowedFunction() != null => r.rankingWindowedFunction().accept(this)
+  }
+
+  override def visitValuesTable(ctx: ValuesTableContext): ir.Expression = {
+    ctx.valuesTableBody().accept(this)
+  }
+
+  override def visitGroupByElem(ctx: GroupByElemContext): ir.Expression = {
+    ctx match {
+      case c if c.columnElem() != null => c.columnElem().accept(this)
+      case n if n.num() != null => n.num().accept(this)
+      case e if e.expressionElem() != null => e.expressionElem().accept(this)
+    }
+  }
 
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.DOUBLE_QUOTE_ID() != null =>
@@ -49,6 +72,11 @@ class SnowflakeExpressionBuilder()
       case c if c.columnElemStar() != null => c.columnElemStar().accept(this)
     }
     buildAlias(ctx.asAlias(), rawExpression)
+  }
+
+  override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = ctx match {
+    case e if e.expr() != null => e.expr().accept(this)
+    case p if p.predicate() != null => p.predicate().accept(this)
   }
 
   override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = {
@@ -220,6 +248,14 @@ class SnowflakeExpressionBuilder()
     ir.Collate(ctx.expr().accept(this), removeQuotes(ctx.string().getText))
   }
 
+  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = {
+    ctx.caseExpression().accept(this)
+  }
+
+  override def visitExprIff(ctx: ExprIffContext): ir.Expression = {
+    ctx.iffExpr().accept(this)
+  }
+
   override def visitExprNot(ctx: ExprNotContext): ir.Expression = {
     ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => ir.Not(e) }
   }
@@ -269,13 +305,17 @@ class SnowflakeExpressionBuilder()
     case c if c.MINUS() != null => ir.UMinus(ctx.expr().accept(this))
   }
 
-  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression = {
+  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression =
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
-  }
 
-  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression = {
+  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression =
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
-  }
+
+  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression =
+    ctx.primitiveExpression().accept(this)
+
+  override def visitExprFuncCall(ctx: ExprFuncCallContext): ir.Expression =
+    ctx.functionCall().accept(this)
 
   override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = {
     val fields = ctx.kvPair().asScala.map { kv =>
@@ -296,8 +336,16 @@ class SnowflakeExpressionBuilder()
     ir.ArrayAccess(ctx.id().accept(this), ctx.num().accept(this))
   }
 
+  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = {
+    ctx.id().accept(this)
+  }
+
   override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.Expression = {
     ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
+  }
+
+  override def visitPrimExprLiteral(ctx: PrimExprLiteralContext): ir.Expression = {
+    ctx.literal().accept(this)
   }
 
   private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
@@ -500,12 +548,16 @@ class SnowflakeExpressionBuilder()
         ir.Case(None, branches, otherwise)
     }
   }
+
   override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
     case c if c.EXISTS() != null =>
       ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
     case c if c.predicatePartial() != null =>
       val expr = c.expr().accept(this)
       buildPredicatePartial(c.predicatePartial(), expr)
+
+    // TODO: We should not call visit children directly but call accept on the other elements of the predicate
+    //       This makes me think that we have not implemented expr comparisonOperator ... yet
     case c => visitChildren(c)
   }
 
