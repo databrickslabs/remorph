@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -11,7 +10,7 @@ class ExpressionGeneratorTest
     extends AnyWordSpec
     with GeneratorTestCommon[ir.Expression]
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
 
@@ -1686,4 +1685,36 @@ class ExpressionGeneratorTest
     }
   }
 
+  "JSON_ACCESS" should {
+
+    "handle valid identifier" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal("a")) generates "c1['a']"
+    }
+
+    "handle invalid identifier" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Id("1", caseSensitive = true)) generates "c1[\"1\"]"
+    }
+
+    "handle integer literal" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal(123)) generates "c1[123]"
+    }
+
+    "handle string literal" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal("abc")) generates "c1['abc']"
+    }
+
+    "handle dot expression" in {
+      ir.JsonAccess(ir.Dot(ir.Id("c1"), ir.Id("c2")), ir.Literal("a")) generates "c1.c2['a']"
+    }
+
+    "be generated" in {
+      ir.JsonAccess(ir.JsonAccess(ir.Id("c1"), ir.Literal("a")), ir.Literal("b")) generates "c1['a']['b']"
+
+      ir.JsonAccess(
+        ir.JsonAccess(
+          ir.JsonAccess(ir.Dot(ir.Id("demo"), ir.Id("level_key")), ir.Literal("level_1_key")),
+          ir.Literal("level_2_key")),
+        ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
+    }
+  }
 }

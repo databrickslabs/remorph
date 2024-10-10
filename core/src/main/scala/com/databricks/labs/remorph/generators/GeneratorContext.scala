@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 case class GeneratorContext(
     logical: Generator[ir.LogicalPlan, String],

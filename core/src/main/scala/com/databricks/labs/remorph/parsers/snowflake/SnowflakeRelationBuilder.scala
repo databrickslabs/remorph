@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
@@ -57,6 +58,7 @@ class SnowflakeRelationBuilder
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = projectExpressions.collect {
+      case ir.Id(i, _) => i
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
     }
@@ -175,6 +177,11 @@ class SnowflakeRelationBuilder
   override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = {
     val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  }
+
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = {
+    val values = ctx.valuesTable().accept(this)
+    buildTableAlias(ctx.tableAlias(), values)
   }
 
   private def buildTableAlias(ctx: TableAliasContext, relation: ir.LogicalPlan): ir.LogicalPlan = {

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -149,14 +149,10 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
     "translate BETWEEN expressions" should {
       "col1 BETWEEN 3.14 AND 42" in {
-        exprAndPredicateExample(
-          "col1 BETWEEN 3.14 AND 42",
-          And(GreaterThanOrEqual(Id("col1"), Literal(3.14)), LessThanOrEqual(Id("col1"), Literal(42))))
+        exprAndPredicateExample("col1 BETWEEN 3.14 AND 42", Between(Id("col1"), Literal(3.14), Literal(42)))
       }
       "col1 NOT BETWEEN 3.14 AND 42" in {
-        exprAndPredicateExample(
-          "col1 NOT BETWEEN 3.14 AND 42",
-          Not(And(GreaterThanOrEqual(Id("col1"), Literal(3.14)), LessThanOrEqual(Id("col1"), Literal(42)))))
+        exprAndPredicateExample("col1 NOT BETWEEN 3.14 AND 42", Not(Between(Id("col1"), Literal(3.14), Literal(42))))
       }
     }
 

@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
-      case x => throw TranspileException(s"Unsupported table alteration ${x}")
+      case x => throw TranspileException(ir.UnexpectedTableAlteration(x))
     } mkString ", "
   }
 
@@ -153,9 +153,10 @@ class LogicalPlanGenerator(
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
   private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
-    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+    case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
       val outer = if (isOuter) " OUTER" else ""
-      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+      val view = if (isView) " VIEW" else ""
+      s"LATERAL$view$outer ${expr.generate(ctx, fn)}"
     case _ => throw unknown(lateral)
   }
 
@@ -247,11 +248,18 @@ class LogicalPlanGenerator(
     s"${generate(ctx, sort.child)} ORDER BY $orderStr"
   }
 
+  private def isLateralView(lp: ir.LogicalPlan): Boolean = {
+    lp.find {
+      case ir.Lateral(_, _, isView) => isView
+      case _ => false
+    }.isDefined
+  }
+
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
-      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+      if (isLateralView(join.right)) {
         s"$left $right"
       } else {
         s"$left, $right"
@@ -364,7 +372,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkString(" IN(", ", ", ")")
         s"$child PIVOT($expressions FOR $col$values)"
-      case a => throw TranspileException(s"Unsupported aggregate $a")
+      case a => throw TranspileException(ir.UnsupportedGroupType(a))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): String = {
@@ -396,12 +404,24 @@ class LogicalPlanGenerator(
       case _ => s"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)
-    val table = if (subQAlias.columnNames.isEmpty) {
-      tableName
-    } else {
-      tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
-    }
-    s"$subquery AS $table"
+    val table =
+      if (subQAlias.columnNames.isEmpty) {
+        s"AS $tableName"
+      } else {
+        // Added this to handle the case for POS Explode
+        // We have added two columns index and value as an alias for pos explode default columns (pos, col)
+        // these column will be added to the databricks query
+        subQAlias.columnNames match {
+          case Seq(ir.Id("value", _), ir.Id("index", _)) =>
+            val columnNamesStr =
+              subQAlias.columnNames.sortBy(_.nodeName).reverse.map(expr.generate(ctx, _)).mkString(",")
+            s"$tableName AS $columnNamesStr"
+          case _ =>
+            val columnNamesStr = tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+            s"AS $columnNamesStr"
+        }
+      }
+    s"$subquery $table"
   }
 
   private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {

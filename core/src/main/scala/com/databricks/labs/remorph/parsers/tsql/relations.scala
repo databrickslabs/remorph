@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))

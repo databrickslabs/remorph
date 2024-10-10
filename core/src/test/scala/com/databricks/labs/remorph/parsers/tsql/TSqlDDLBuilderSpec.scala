@@ -1,16 +1,15 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.{Batch, IRHelpers, LogicalPlan}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
+class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with ir.IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.astBuilder
 
-  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
-    example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
+  private def singleQueryExample(query: String, expectedAst: ir.LogicalPlan): Unit =
+    example(query, _.tSqlFile(), ir.Batch(Seq(expectedAst)))
 
   "tsql DDL visitor" should {
 

@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -22,7 +22,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
         convert(fn)
       } catch {
         case e: IndexOutOfBoundsException =>
-          throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
+          throw TranspileException(WrongNumberOfArguments(fn.prettyName, fn.children.size, e.getMessage))
 
       }
     }
@@ -659,6 +659,27 @@ case class Exp(left: Expression) extends Unary(left) with Fn {
  */
 case class Explode(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "EXPLODE"
+  override def dataType: DataType = UnresolvedType
+}
+
+/**
+ * variant_explode(expr) - Separates the elements of a variant type `expr` into multiple rows. This function is used
+ * specifically for handling variant data types, ensuring that each element is processed and outputted as a separate row.
+ * The default column name for the elements is `col`.
+ */
+case class VariantExplode(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "VARIANT_EXPLODE"
+  override def dataType: DataType = UnresolvedType
+}
+
+/**
+ *  variant_explode_outer(expr) - Separates the elements of a variant type `expr` into multiple rows,
+ *  including null values. This function is used specifically for handling variant data types, ensuring that
+ *  each element, including nulls, is processed and outputted as a separate row. The default column name for the
+ *  elements is `col`.
+ */
+case class VariantExplodeOuter(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "VARIANT_EXPLODE_OUTER"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2500,4 +2521,12 @@ case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expressio
  */
 case class TryCast(expr: Expression, override val dataType: DataType) extends Expression {
   override def children: Seq[Expression] = Seq(expr)
+}
+
+/**
+ * parse_json(expr) - Parses the JSON string `expr` and returns the resulting structure.
+ */
+case class ParseJson(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "PARSE_JSON"
+  override def dataType: DataType = VariantType
 }

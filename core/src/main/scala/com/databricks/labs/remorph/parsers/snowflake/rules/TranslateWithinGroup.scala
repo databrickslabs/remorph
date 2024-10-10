@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.UnresolvedNamedLambdaVariable
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.intermediate.UnresolvedNamedLambdaVariable
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.annotation.tailrec
 

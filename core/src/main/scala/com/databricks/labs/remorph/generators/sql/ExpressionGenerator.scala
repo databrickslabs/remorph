@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.intermediate.UnexpectedNode
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 import java.time._
@@ -25,6 +26,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
       case _: ir.Arithmetic => arithmetic(ctx, expr)
+      case b: ir.Between => between(ctx, b)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case a: ir.ArrayExpr => arrayExpr(ctx, a)
@@ -69,7 +71,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
       case null => "" // don't fail transpilation if the expression is null
-      case x => throw TranspileException(s"Unsupported expression: $x")
+      case x => throw unknown(x)
     }
   }
 
@@ -83,15 +85,20 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
   }
 
   private def jsonAccess(ctx: GeneratorContext, j: ir.JsonAccess): String = {
-    val path = j.path.map {
-      case ir.Id(name, false) => s".$name"
-      case ir.Id(name, true) if isAlphanum(name) => s".$name"
-      case ir.Id(name, true) => s"['$name']"
-      case ir.IntLiteral(value) => s"[$value]"
-      case ir.StringLiteral(value) => s"['$value']"
-      case i: ir.Expression => throw TranspileException(s"Unsupported path: $i")
-    }.mkString
-    s"${expression(ctx, j.json)}$path"
+    val path = jsonPath(j.path).mkString
+    val anchorPath = if (path.head == '.') ':' +: path.tail else path
+    s"${expression(ctx, j.json)}$anchorPath"
+  }
+
+  private def jsonPath(j: ir.Expression): Seq[String] = {
+    j match {
+      case ir.Id(name, _) if isValidIdentifier(name) => Seq(s".$name")
+      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\""))
+      case ir.IntLiteral(value) => Seq(s"[$value]")
+      case ir.StringLiteral(value) => Seq(s"['$value']")
+      case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
+      case i: ir.Expression => throw TranspileException(UnexpectedNode(i))
+    }
   }
 
   private def isNull(ctx: GeneratorContext, i: ir.IsNull) = s"${expression(ctx, i.left)} IS NULL"
@@ -462,5 +469,10 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
     s"{${ref.toUpperCase(Locale.getDefault())}_SCHEMA}"
   }
   private def singleQuote(s: String): String = s"'$s'"
-  private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
+  private def isValidIdentifier(s: String): Boolean =
+    (s.head.isLetter || s.head == '_') && s.forall(x => x.isLetterOrDigit || x == '_')
+
+  private def between(ctx: GeneratorContext, b: ir.Between): String = {
+    s"${expression(ctx, b.exp)} BETWEEN ${expression(ctx, b.lower)} AND ${expression(ctx, b.upper)}"
+  }
 }

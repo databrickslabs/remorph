@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.UnresolvedType
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
 import org.antlr.v4.runtime.Token
 
 import java.time.LocalDateTime
@@ -110,13 +110,13 @@ class SnowflakeExpressionBuilder()
   override def visitLiteral(ctx: LiteralContext): ir.Expression = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
-      case c if c.DATE_LIT() != null =>
-        val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
+      case c if c.DATE() != null =>
+        val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
         Try(java.time.LocalDate.parse(dateStr))
           .map(ir.Literal(_))
           .getOrElse(ir.Literal.Null)
-      case c if c.TIMESTAMP_LIT() != null =>
-        val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
+      case c if c.TIMESTAMP() != null =>
+        val timestampStr = c.string.getText.stripPrefix("'").stripSuffix("'")
         val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         Try(LocalDateTime.parse(timestampStr, format))
           .map(ir.Literal(_))
@@ -288,7 +288,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
     val elements = ctx.literal().asScala.map(visitLiteral).toList.toSeq
-    val dataType = elements.headOption.map(_.dataType).getOrElse(UnresolvedType)
+    val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
     ir.ArrayExpr(elements, dataType)
   }
 
@@ -519,7 +519,7 @@ class SnowflakeExpressionBuilder()
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
-        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+        ir.Between(expression, lowerBound, upperBound)
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)

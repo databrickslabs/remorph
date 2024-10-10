@@ -1,15 +1,15 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, UnresolvedFunction}
 import com.databricks.labs.remorph.parsers.snowflake.{NamedArgumentExpression, SnowflakeFunctionBuilder}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
-import com.databricks.labs.remorph.parsers.{snowflake, intermediate => ir, _}
+import com.databricks.labs.remorph.parsers._
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with IRHelpers {
+class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with ir.IRHelpers {
 
   "TSqlFunctionBuilder" should "return correct arity for each function" in {
     val functions = Table(
@@ -518,14 +518,14 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val functionBuilder = new SnowflakeFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(0)))
-    result1 shouldBe a[UnresolvedFunction]
+    result1 shouldBe a[ir.UnresolvedFunction]
   }
 
   "buildFunction" should "not resolve IFNULL when child dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(0)))
-    result1 shouldBe a[UnresolvedFunction]
+    result1 shouldBe a[ir.UnresolvedFunction]
   }
 
   "buildFunction" should "Should preserve case if it can" in {
