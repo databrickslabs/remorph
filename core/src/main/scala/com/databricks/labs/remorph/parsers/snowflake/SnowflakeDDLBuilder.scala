@@ -279,9 +279,9 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
     ctx match {
       case c if c.dataType() != null =>
         ir.ChangeColumnDataType(columnName, typeBuilder.buildDataType(c.dataType()))
-      case c if c.DROP() != null && c.NULL_() != null =>
+      case c if c.DROP() != null && c.NULL() != null =>
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
-      case c if c.NULL_() != null =>
+      case c if c.NULL() != null =>
         ir.AddConstraint(columnName, ir.Nullability(c.NOT() == null))
       case c => ir.UnresolvedTableAlteration(c.getText)
     }

@@ -98,12 +98,12 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
-    buildFilter[HavingClauseContext](ctx, _.predicate(), input)
+    buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
 
   private def buildQualify(ctx: QualifyClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
   private def buildWhere(ctx: WhereClauseContext, from: ir.LogicalPlan): ir.LogicalPlan =
-    buildFilter[WhereClauseContext](ctx, _.predicate(), from)
+    buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
 
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
@@ -263,7 +263,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
     ir.Join(
       left,
       right.objectRef().accept(this),
-      Option(right.predicate()).map(_.accept(expressionBuilder)),
+      Option(right.searchCondition()).map(_.accept(expressionBuilder)),
       joinType,
       usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
