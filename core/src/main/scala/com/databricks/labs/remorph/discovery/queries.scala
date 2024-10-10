@@ -5,7 +5,13 @@ import com.databricks.labs.remorph.intermediate.StructField
 import java.sql.Timestamp
 import java.time.Duration
 
-case class ExecutedQuery(id: String, timestamp: Timestamp, source: String, duration: Duration, user: String)
+case class QuerySpec(
+    timestamp: Option[Timestamp],
+    duration: Option[Duration],
+    user: Option[String],
+    filename: Option[String])
+
+case class ExecutedQuery(id: String, source: String, querySpec: Option[QuerySpec])
 
 case class QueryHistory(queries: Seq[ExecutedQuery])
 
@@ -32,3 +38,7 @@ case class ComputeCapacity(
     usedCPUs: Int,
     usedMemoryGb: Int,
     listPrice: Double)
+
+trait QueryHistoryProvider {
+  def history(): QueryHistory
+}
