@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.intermediate.IRHelpers
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 object SnowflakeTimeUnits extends IRHelpers {
@@ -38,7 +38,7 @@ object SnowflakeTimeUnits extends IRHelpers {
       SnowflakeTimeUnits.findDateOrTimePart(part).get
     case ir.StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
       SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case x => throw TranspileException(s"unknown date/time part $x")
+    case x => throw TranspileException(ir.UnsupportedDateTimePart(x))
   }
 
 }

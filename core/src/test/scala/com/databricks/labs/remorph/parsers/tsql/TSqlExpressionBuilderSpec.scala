@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
 import org.mockito.ArgumentMatchers.{any, anyInt}
@@ -9,7 +8,7 @@ import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
+class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with ir.IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 

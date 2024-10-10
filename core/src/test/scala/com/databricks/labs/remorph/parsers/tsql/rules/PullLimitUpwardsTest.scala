@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
 import com.databricks.labs.remorph.parsers.PlanComparison
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
