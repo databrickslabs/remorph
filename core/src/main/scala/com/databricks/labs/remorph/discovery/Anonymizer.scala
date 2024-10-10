@@ -76,29 +76,29 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
         logger.warn(s"Failed to parse query: ${query.source} $errorJson")
         Fingerprint(
           query.id,
-          query.timestamp,
+          query.querySpec.timestamp,
           fingerprint(query.source),
-          query.duration,
-          query.user,
+          query.querySpec.duration,
+          query.querySpec.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
       case Result.Failure(_, errorJson) =>
         logger.warn(s"Failed to produce plan from query: ${query.source} $errorJson")
         Fingerprint(
           query.id,
-          query.timestamp,
+          query.querySpec.timestamp,
           fingerprint(query.source),
-          query.duration,
-          query.user,
+          query.querySpec.duration,
+          query.querySpec.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
       case Result.Success(plan) =>
         Fingerprint(
           query.id,
-          query.timestamp,
+          query.querySpec.timestamp,
           fingerprint(plan),
-          query.duration,
-          query.user,
+          query.querySpec.duration,
+          query.querySpec.user.getOrElse("unknown"),
           workloadType(plan),
           queryType(plan))
     }
@@ -113,10 +113,10 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
     Fingerprint(
       query.id,
-      query.timestamp,
+      query.querySpec.timestamp,
       fingerprint(plan),
-      query.duration,
-      query.user,
+      query.querySpec.duration,
+      query.querySpec.user.getOrElse("unknown"),
       workloadType(plan),
       queryType(plan))
   }
