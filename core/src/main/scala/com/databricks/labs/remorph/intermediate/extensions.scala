@@ -233,4 +233,3 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
-case class ColumnDetail(name: String, dataType: DataType, nullable: Boolean = true, comment: Option[String] = None)

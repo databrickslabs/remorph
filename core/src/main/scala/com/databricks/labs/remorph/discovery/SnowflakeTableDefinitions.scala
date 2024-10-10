@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.intermediate.{ColumnDetail, DataType}
+import com.databricks.labs.remorph.intermediate.{ DataType, StructField}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser, SnowflakeTypeBuilder}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
@@ -96,7 +96,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               val data = x.split(":")
               val name = data(0)
               val dataType = getDataType(data(1))
-              ColumnDetail(name, dataType, data(2).toBoolean)
+              StructField(name, dataType, data(2).toBoolean,null)
             })
           tableDefinitionList.append(
             TableDefinition(

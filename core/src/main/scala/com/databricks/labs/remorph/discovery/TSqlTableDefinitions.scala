@@ -1,8 +1,9 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.intermediate.{ColumnDetail, DataType}
+import com.databricks.labs.remorph.intermediate.{DataType, StructField}
 import com.databricks.labs.remorph.parsers.tsql.{DataTypeBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.apache.spark.sql.types.MetadataBuilder
 
 import java.sql.Connection
 import scala.collection.mutable
@@ -143,7 +144,8 @@ class TSqlTableDefinitions(conn: Connection) {
               val dataType = getDataType(data(1))
               val nullable = data(2).toBoolean
               val comment = if (data.length > 3) Option(data(3)) else None
-              ColumnDetail(name, dataType, nullable, comment)
+              val metaData = new MetadataBuilder().putString("comment", comment.getOrElse(""))
+              StructField(name, dataType, nullable, Option(metaData.build()))
             })
           tableDefinitionList.append(
             TableDefinition(
