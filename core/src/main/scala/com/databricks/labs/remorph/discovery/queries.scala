@@ -12,15 +12,15 @@ case class QueryHistory(queries: Seq[ExecutedQuery])
 case class UnparsedQuery(timestamp: Timestamp, source: String)
 
 case class TableDefinition(
-                            catalog: String,
-                            schema: String,
-                            table: String,
-                            location: Option[String] = None,
-                            tableFormat: Option[String] = None,
-                            viewText: Option[String] = None,
-                            columns: Seq[StructField] = Seq.empty,
-                            sizeGb: Int = 0,
-                            comments: Option[String] = None)
+    catalog: String,
+    schema: String,
+    table: String,
+    location: Option[String] = None,
+    tableFormat: Option[String] = None,
+    viewText: Option[String] = None,
+    columns: Seq[StructField] = Seq.empty,
+    sizeGb: Int = 0,
+    comments: Option[String] = None)
 
 case class Grant(objectType: String, objectKey: String, principal: String, action: String)
 
