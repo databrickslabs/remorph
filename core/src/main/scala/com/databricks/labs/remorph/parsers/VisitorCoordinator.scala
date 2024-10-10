@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 import com.databricks.labs.remorph.parsers.tsql.DataTypeBuilder
+import org.antlr.v4.runtime.{RuleContext, Vocabulary}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 
 /**
@@ -13,7 +14,7 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor
  *   Implementations can also supply other shared resources, builders, etc. via the same mechanism
  * </p>
  */
-abstract class VisitorCoordinator {
+abstract class VisitorCoordinator(val lexerVocab: Vocabulary, val parserVocab: Vocabulary) {
 
   // Parse tree visitors
   val astBuilder: ParseTreeVisitor[_]
@@ -27,4 +28,7 @@ abstract class VisitorCoordinator {
 
   // Common builders that are used across all parsers, but can still be overridden
   val dataTypeBuilder = new DataTypeBuilder
+
+  def ruleName(ctx: RuleContext): String = parserVocab.getSymbolicName(ctx.getRuleIndex)
+  def tokenName(tokenType: Int): String = lexerVocab.getSymbolicName(tokenType)
 }

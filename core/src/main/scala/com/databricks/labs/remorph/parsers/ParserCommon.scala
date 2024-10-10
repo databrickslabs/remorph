@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ParseTree, ParseTreeVisitor, RuleNode}
@@ -8,6 +9,9 @@ import org.antlr.v4.runtime.{ParserRuleContext, RuleContext}
 import scala.collection.JavaConverters._
 
 trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: AbstractParseTreeVisitor[A] =>
+
+  val vc: VisitorCoordinator
+
   protected def occursBefore(a: ParseTree, b: ParseTree): Boolean = {
     a != null && b != null && a.getSourceInterval.startsBeforeDisjoint(b.getSourceInterval)
   }
@@ -20,15 +24,14 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    *   unresolved input that we have no visitor for. This is used in the default visitor to wrap the
    *   unresolved input.
    * </p>
-   * @param msg What message the unresolved object should contain
+   * @param ruleText Which piece of source code the unresolved object represents
+   * @param message What message the unresolved object should contain, such as missing visitor
    * @return An instance of the type returned by the implementing visitor
    */
-  protected def unresolved(msg: String): A
+  protected def unresolved(ruleText: String, message: String): A
 
   protected override def defaultResult(): A = {
-    unresolved(
-      s"Unimplemented visitor $caller in class $implementor" +
-        s" for ${contextText(currentNode.getRuleContext)}")
+    unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
   }
 
   /**
@@ -47,14 +50,17 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
   }
 
   /**
-   * Used in visitor methods when they detect that they are unable to handle some
-   * part of the input, or they are placeholders for a real implementation that has not yet been
-   * implemented
-   * @param unparsedInput The RuleNode that we wish to indicate is unsupported right now
-   * @return An  instance of the Unresolved representation of the type returned by the implementing visitor
+   * <p>
+   *   Returns the rule name that a particular context represents.
+   * </p>
+   * <p>
+   *   We can do this by referencing the vocab stored in the visitor coordinator
+   * </p>
+   * @param ctx The context for which we want the rule name
+   * @return the rule name for the context
    */
-  protected def wrapUnresolvedInput(unparsedInput: RuleNode): A =
-    unresolved(contextText(unparsedInput.getRuleContext))
+  def contextRuleName(ctx: RuleContext): String =
+    vc.parserVocab.getSymbolicName(ctx.getRuleIndex)
 
   /**
    * <p>
@@ -95,6 +101,12 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
       s"Unimplemented visitor for method: $caller in class: $implementor" +
         s" for: ${contextText(node.getRuleContext)}")
     currentNode = node
-    super.visitChildren(node)
+    val result = super.visitChildren(node)
+    result match {
+      case c: ir.Unresolved[A] =>
+        c.annotate("some rule", Some("sometoken"))
+      case _ =>
+        result
+    }
   }
 }

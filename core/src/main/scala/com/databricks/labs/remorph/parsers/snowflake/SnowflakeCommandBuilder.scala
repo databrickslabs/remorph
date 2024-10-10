@@ -1,20 +1,18 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate.Command
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 
-class SnowflakeCommandBuilder extends SnowflakeParserBaseVisitor[ir.Command] with ParserCommon[ir.Command] {
-
-  private val expressionBuilder = new SnowflakeExpressionBuilder
-  private val typeBuilder = new SnowflakeTypeBuilder
+class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
+    extends SnowflakeParserBaseVisitor[ir.Command]
+    with ParserCommon[ir.Command] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Command = {
-    ir.UnresolvedCommand(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Command =
+    ir.UnresolvedCommand(ruleText, message)
 
   // Concrete visitors
 
@@ -22,41 +20,45 @@ class SnowflakeCommandBuilder extends SnowflakeParserBaseVisitor[ir.Command] wit
   // TODO: Implement Cursor for Let Statements.
 
   override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ir.Command = {
-    val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val dataType = typeBuilder.buildDataType(ctx.dataType())
-    val variableValue = ctx.expr().accept(expressionBuilder)
+    val variableName = ctx.id().accept(vc.expressionBuilder).asInstanceOf[ir.Id]
+    val dataType = vc.typeBuilder.buildDataType(ctx.dataType())
+    val variableValue = ctx.expr().accept(vc.expressionBuilder)
     ir.CreateVariable(variableName, dataType, Some(variableValue), replace = false)
   }
 
   override def visitDeclareSimple(ctx: DeclareSimpleContext): ir.Command = {
-    val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val dataType = typeBuilder.buildDataType(ctx.dataType())
+    val variableName = ctx.id().accept(vc.expressionBuilder).asInstanceOf[ir.Id]
+    val dataType = vc.typeBuilder.buildDataType(ctx.dataType())
     ir.CreateVariable(variableName, dataType, None, replace = false)
   }
 
   override def visitDeclareResultSet(ctx: DeclareResultSetContext): ir.Command = {
-    val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
+    val variableName = ctx.id().accept(vc.expressionBuilder).asInstanceOf[ir.Id]
     val variableValue = ctx.expr() match {
       case null => None
-      case stmt => Some(stmt.accept(expressionBuilder))
+      case stmt => Some(stmt.accept(vc.expressionBuilder))
     }
     val dataType = ir.StructType(Seq())
     ir.CreateVariable(variableName, dataType, variableValue, replace = false)
   }
 
   override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ir.Command = {
-    val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val variableValue = ctx.expr().accept(expressionBuilder)
+    val variableName = ctx.id().accept(vc.expressionBuilder).asInstanceOf[ir.Id]
+    val variableValue = ctx.expr().accept(vc.expressionBuilder)
 
     val variableDataType = variableValue match {
       case s: ir.ScalarSubquery => Some(s.dataType)
-      case _ => Option(ctx.dataType()).flatMap(dt => Some(typeBuilder.buildDataType(dt)))
+      case _ => Option(ctx.dataType()).flatMap(dt => Some(vc.typeBuilder.buildDataType(dt)))
     }
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
 
   override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
-    ir.UnresolvedCommand(contextText(ctx))
+    ir.UnresolvedCommand(
+      ruleText = contextText(ctx),
+      message = "Execute Task is not yet supported",
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): Command = ctx match {

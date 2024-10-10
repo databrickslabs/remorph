@@ -1,22 +1,21 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
-import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
+class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.LogicalPlan = {
-    ir.UnresolvedRelation(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -57,7 +56,13 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
   override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = {
     ctx match {
       case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
-      case _ => ir.UnresolvedRelation(contextText(ctx)) // TODO: Implement this style of UNION
+      case _ =>
+        // TODO: Implement this style of UNION
+        ir.UnresolvedRelation(
+          ruleText = contextText(ctx),
+          message = s"This style of UNION specification is as yet supported",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
     }
   }
 
@@ -440,7 +445,12 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
       case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
       case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
       // TODO: OPENROWSET and OPENQUERY
-      case _ => ir.UnresolvedRelation(contextText(ctx))
+      case _ =>
+        ir.UnresolvedRelation(
+          ruleText = contextText(ctx),
+          message = s"Unknown DDL object type ${ctx.getStart.getText} in TSqlRelationBuilder.visitDdlObject",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
     }
   }
 

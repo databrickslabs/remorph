@@ -8,14 +8,14 @@ import org.antlr.v4.runtime.tree.Trees
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
+class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Expression = {
-    ir.UnresolvedExpression(msg)
+  protected override def unresolved(ruleText: String, message: String): ir.Expression = {
+    ir.UnresolvedExpression(ruleText = ruleText, message = message)
   }
 
   // Concrete visitors..
@@ -25,9 +25,12 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
       case c if c.asterisk() != null => c.asterisk().accept(this)
       case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
-      // $COVERAGE-OFF$ all three possible alts in the grammar are covered
-      case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
-      // $COVERAGE-ON$
+      case _ =>
+        ir.UnresolvedExpression(
+          ruleText = contextText(ctx),
+          message = s"Unsupported select list element",
+          ruleName = "expression",
+          tokenName = Some(vc.tokenName(ctx.getStart.getType)))
     }
   }
 
@@ -88,7 +91,13 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
       case OR_ASSIGN => ir.Assign(target, ir.BitwiseOr(target, value))
       case XOR_ASSIGN => ir.Assign(target, ir.BitwiseXor(target, value))
       // We can only reach here if the grammar is changed to add more operators and this function is not updated
-      case _ => ir.UnresolvedExpression(op.getText) // Handle unexpected operation types
+      case _ =>
+        ir.UnresolvedExpression(
+          ruleText = op.getText,
+          message = s"Unexpected operator ${op.getText} in assignment",
+          ruleName = "expression",
+          tokenName = Some(vc.tokenName(op.getType))
+        ) // Handle unexpected operation types
     }
   }
 
@@ -272,7 +281,12 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
   }
 
   override def visitPredFreetext(ctx: PredFreetextContext): ir.Expression = {
-    ir.UnresolvedExpression(contextText(ctx)) // TODO: build FREETEXT
+    // TODO: build FREETEXT ?
+    ir.UnresolvedExpression(
+      ruleText = contextText(ctx),
+      message = s"Freetext predicates are unsupported",
+      ruleName = "expression",
+      tokenName = Some(vc.tokenName(ctx.getStart.getType)))
   }
 
   override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
@@ -292,7 +306,12 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
   }
 
   override def visitPredASA(ctx: PredASAContext): ir.Expression = {
-    ir.UnresolvedExpression(contextText(ctx)) // TODO: build ASA
+    // TODO: build ASA
+    ir.UnresolvedExpression(
+      ruleText = contextText(ctx),
+      message = s"ALL | SOME | ANY predicate not yet supported",
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(vc.tokenName(ctx.getStart.getType)))
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
@@ -394,7 +413,7 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
 
     // The OVER clause is used to accept the IGNORE nulls clause that can be specified after certain
     // windowing functions such as LAG or LEAD, so that the clause is manifest here. The syntax allows
-    // IGNORE NULLS and RESPECT NULLS, but RESPECT NULLS is the default behavior.
+    // 'IGNORE NULLS' and 'RESPECT NULLS', but 'RESPECT NULLS' is the default behavior.
     val windowFunction =
       buildWindowingFunction(ctx.expression().accept(this))
     val partitionByExpressions =

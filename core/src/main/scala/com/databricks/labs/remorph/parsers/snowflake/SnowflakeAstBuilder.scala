@@ -10,18 +10,14 @@ import scala.collection.JavaConverters._
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
-
-  private val relationBuilder = new SnowflakeRelationBuilder
-  private val ddlBuilder = new SnowflakeDDLBuilder
-  private val dmlBuilder = new SnowflakeDMLBuilder
-  private val commandBuilder = new SnowflakeCommandBuilder
+class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
+    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
+    with ParserCommon[ir.LogicalPlan] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.LogicalPlan = {
-    ir.UnresolvedRelation(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -40,30 +36,35 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
       case c if c.describeCommand() != null => c.describeCommand().accept(this)
       case c if c.otherCommand() != null => c.otherCommand().accept(this)
       case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
-      case _ => ir.UnresolvedCommand(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCommand(
+          ruleText = contextText(ctx),
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
+          message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")
     }
   }
 
   // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
-    val select = ctx.selectStatement().accept(relationBuilder)
+    val select = ctx.selectStatement().accept(vc.relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)
     ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
   }
 
   override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
-    ctx.accept(ddlBuilder)
+    ctx.accept(vc.ddlBuilder)
 
   private def buildCTE(ctx: WithExpressionContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     if (ctx == null) {
       return relation
     }
-    val ctes = relationBuilder.visitMany(ctx.commonTableExpression())
+    val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
     ir.WithCTE(ctes, relation)
   }
 
   private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
-    val right = ctx.selectStatement().accept(relationBuilder)
+    val right = ctx.selectStatement().accept(vc.relationBuilder)
     val (isAll, setOp) = ctx match {
       case c if c.UNION() != null =>
         (c.ALL() != null, ir.UnionSetOp)
@@ -77,14 +78,18 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
 
   override def visitDmlCommand(ctx: DmlCommandContext): ir.LogicalPlan = ctx match {
     case c if c.queryStatement() != null => c.queryStatement().accept(this)
-    case c => c.accept(dmlBuilder)
+    case c => c.accept(vc.dmlBuilder)
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): ir.LogicalPlan = {
-    ctx.accept(commandBuilder)
+    ctx.accept(vc.commandBuilder)
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
-    ir.UnresolvedCommand(contextText(ctx))
+    ir.UnresolvedCommand(
+      ruleText = contextText(ctx),
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
+      message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")
   }
 }
