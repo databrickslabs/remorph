@@ -1,4 +1,13 @@
-package com.databricks.labs.remorph.transpilers
+package com.databricks.labs.remorph
+
+sealed trait WorkflowStage
+object WorkflowStage {
+  case object PARSE extends WorkflowStage
+  case object PLAN extends WorkflowStage
+  case object OPTIMIZE extends WorkflowStage
+  case object GENERATE extends WorkflowStage
+}
+
 
 sealed trait Result[+A] {
   def map[B](f: A => B): Result[B]

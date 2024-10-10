@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
+import com.databricks.labs.remorph.Result
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 

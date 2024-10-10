@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
+import com.databricks.labs.remorph.{Result, WorkflowStage}
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
 import com.databricks.labs.remorph.{intermediate => ir}

@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.queries.ExampleQuery
-import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
+import com.databricks.labs.remorph.Result
+import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.transpilers._
 import com.databricks.labs.remorph.utils.Strings
 
