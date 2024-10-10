@@ -1,10 +1,12 @@
 package com.databricks.labs.remorph.intermediate
 
-case class UnresolvedRelation(inputText: String) extends LeafNode {
+trait UnwantedInGeneratorInput
+
+case class UnresolvedRelation(inputText: String) extends LeafNode with UnwantedInGeneratorInput {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class UnresolvedExpression(inputText: String) extends LeafExpression {
+case class UnresolvedExpression(inputText: String) extends LeafExpression with UnwantedInGeneratorInput {
   override def dataType: DataType = UnresolvedType
 }
 
@@ -37,22 +39,22 @@ case class UnresolvedExtractValue(child: Expression, extraction: Expression) ext
   override def dataType: DataType = UnresolvedType
 }
 
-case class UnresolvedCommand(inputText: String) extends Catalog with Command {
+case class UnresolvedCommand(inputText: String) extends Catalog with Command with UnwantedInGeneratorInput {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
 
-case class UnresolvedCatalog(inputText: String) extends Catalog {
+case class UnresolvedCatalog(inputText: String) extends Catalog with UnwantedInGeneratorInput {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
 
-case class UnresolvedCTAS(inputText: String) extends Catalog with Command {
+case class UnresolvedCTAS(inputText: String) extends Catalog with Command with UnwantedInGeneratorInput {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
 
-case class UnresolvedModification(inputText: String) extends Modification {
+case class UnresolvedModification(inputText: String) extends Modification with UnwantedInGeneratorInput {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }

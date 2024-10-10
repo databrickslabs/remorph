@@ -38,7 +38,7 @@ object SnowflakeTimeUnits extends IRHelpers {
       SnowflakeTimeUnits.findDateOrTimePart(part).get
     case ir.StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
       SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case x => throw TranspileException(s"unknown date/time part $x")
+    case x => throw TranspileException(ir.UnsupportedDateTimePart(x))
   }
 
 }
