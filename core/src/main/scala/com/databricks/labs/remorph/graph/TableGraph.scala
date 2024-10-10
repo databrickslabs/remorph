@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, Table
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table

@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import java.sql.Timestamp
 import java.time.Duration
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
-import com.databricks.labs.remorph.parsers.intermediate.{IntegerType, StringType, StructField}
+import com.databricks.labs.remorph.intermediate.{IntegerType, StringType, StructField}
 
 class TableGraphTest extends AnyFlatSpec with Matchers {
   private val parser = new SnowflakePlanParser()
