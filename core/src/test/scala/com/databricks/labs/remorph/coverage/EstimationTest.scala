@@ -58,7 +58,9 @@ class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
     // Mock query history
     val mockHistory = QueryHistory(
       Seq(
-        ExecutedQuery("id1", "SOME GARBAGE STATEMENT",
+        ExecutedQuery(
+          "id1",
+          "SOME GARBAGE STATEMENT",
           QuerySpec(new Timestamp(1725032011000L), Duration.ofMillis(300), Some("user1"), None))))
     when(mockQueryHistoryProvider.history()).thenReturn(mockHistory)
 
