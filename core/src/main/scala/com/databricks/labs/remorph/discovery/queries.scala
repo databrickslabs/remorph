@@ -6,12 +6,12 @@ import java.sql.Timestamp
 import java.time.Duration
 
 case class QuerySpec(
-    timestamp: Option[Timestamp],
-    duration: Option[Duration],
+    timestamp: Timestamp = new Timestamp(System.currentTimeMillis()),
+    duration: Duration = Duration.ofMillis(0),
     user: Option[String],
     filename: Option[String])
 
-case class ExecutedQuery(id: String, source: String, querySpec: Option[QuerySpec])
+case class ExecutedQuery(id: String, source: String, querySpec: QuerySpec)
 
 case class QueryHistory(queries: Seq[ExecutedQuery])
 

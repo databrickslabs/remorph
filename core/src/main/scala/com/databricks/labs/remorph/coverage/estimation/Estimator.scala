@@ -42,7 +42,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
     val fingerprint = anonymizer(query.source)
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
-      planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
+      planParser.parse(SourceCode(query.source, query.querySpec.user.getOrElse("unknown") + "_" + query.id))
+        .flatMap(planParser.visit) match {
         case Failure(PARSE, errorJson) =>
           Some(
             EstimationReportRecord(

@@ -35,11 +35,11 @@ class SnowflakeQueryHistory(conn: Connection) extends QueryHistoryProvider {
             ExecutedQuery(
               id = rs.getString("QUERY_HASH"),
               source = rs.getString("QUERY_TEXT"),
-              querySpec = Some(QuerySpec(
-                timestamp = Some(rs.getTimestamp("START_TIME")),
-                duration = Some(Duration.ofMillis(rs.getLong("TOTAL_ELAPSED_TIME"))),
+              querySpec = QuerySpec(
+                timestamp = rs.getTimestamp("START_TIME"),
+                duration = Duration.ofMillis(rs.getLong("TOTAL_ELAPSED_TIME")),
                 user = Some(rs.getString("USER_NAME")),
-                filename = None))))
+                filename = None)))
         }
         QueryHistory(queries)
       } finally {
