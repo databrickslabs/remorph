@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
 import com.typesafe.scalalogging.LazyLogging

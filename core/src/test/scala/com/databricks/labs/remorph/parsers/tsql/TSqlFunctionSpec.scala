@@ -1,11 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
+class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with ir.IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 

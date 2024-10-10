@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import org.mockito.Mockito.{mock, when}

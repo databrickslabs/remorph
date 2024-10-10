@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 // Used for DML other than SELECT
 abstract class Modification extends LogicalPlan

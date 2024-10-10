@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.parsers.intermediate
+package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -22,7 +22,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
         convert(fn)
       } catch {
         case e: IndexOutOfBoundsException =>
-          throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
+          throw TranspileException(WrongNumberOfArguments(fn.prettyName, fn.children.size, e.getMessage))
 
       }
     }
