@@ -347,6 +347,10 @@ def _not_sql(self, expression: exp.Not) -> str:
     return f"NOT {self.sql(expression, 'this')}"
 
 
+def to_array(self, expression: exp.ToArray) -> str:
+    return f"IF({self.sql(expression.this)} IS NULL, NULL, {self.func('ARRAY', expression.this)})"
+
+
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
@@ -411,6 +415,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.Command: _to_command,
             exp.CurrentDate: _current_date,
             exp.Not: _not_sql,
+            local_expression.ToArray: to_array,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
