@@ -280,13 +280,13 @@ class SnowflakeDDLBuilderSpec
 
     "translate Unresolved COMMAND" should {
       "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
-        example("ALTER SESSION SET QUERY_TAG = 'TAG';",
+        example(
+          "ALTER SESSION SET QUERY_TAG = 'TAG';",
           UnresolvedCommand(
             ruleText = "ALTER SESSION SET QUERY_TAG = 'TAG'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER"))
-          )
+            tokenName = Some("ALTER")))
       }
 
       "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
@@ -296,19 +296,17 @@ class SnowflakeDDLBuilderSpec
             ruleText = "ALTER STREAM mystream SET COMMENT = 'New comment for stream'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER")
-          )
-        )
+            tokenName = Some("ALTER")))
       }
 
       "CREATE STREAM mystream ON TABLE mytable" in {
         example(
           "CREATE STREAM mystream ON TABLE mytable;",
-          UnresolvedCommand(ruleText = "CREATE STREAM mystream ON TABLE mytable",
+          UnresolvedCommand(
+            ruleText = "CREATE STREAM mystream ON TABLE mytable",
             message = "CREATE STREAM UNSUPPORTED",
             ruleName = "createStream",
-            tokenName = Some("STREAM"))
-          )
+            tokenName = Some("STREAM")))
       }
 
       "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
@@ -318,9 +316,7 @@ class SnowflakeDDLBuilderSpec
             ruleText = "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)",
             message = "CREATE TASK UNSUPPORTED",
             ruleName = "createTask",
-            tokenName = Some("TASK")
-          )
-        )
+            tokenName = Some("TASK")))
       }
     }
 
@@ -382,8 +378,7 @@ class SnowflakeDDLBuilderSpec
         ruleText = dummyTextForAlterTable,
         message = "Unknown ALTER TABLE variant",
         ruleName = "alterTable",
-        tokenName = Some("Id")
-      )
+        tokenName = Some("Id"))
       verify(alterTable).objectName(0)
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
@@ -404,11 +399,9 @@ class SnowflakeDDLBuilderSpec
       result shouldBe Seq(
         UnresolvedTableAlteration(
           ruleText = dummyTextForTableColumnAction,
-            message = "Unknown COLUMN action variant",
-            ruleName = "tableColumnAction",
-            tokenName = Some("Id")
-        )
-      )
+          message = "Unknown COLUMN action variant",
+          ruleName = "tableColumnAction",
+          tokenName = Some("Id")))
       verify(tableColumnAction).alterColumnClause()
       verify(tableColumnAction).ADD()
       verify(tableColumnAction).alterColumnClause()
@@ -431,8 +424,7 @@ class SnowflakeDDLBuilderSpec
         ruleText = dummyTextForAlterColumnClause,
         message = "Unknown ALTER column variant",
         ruleName = "alterColumnClause",
-        tokenName = Some("Id")
-      )
+        tokenName = Some("Id"))
       verify(alterColumnClause).columnName()
       verify(alterColumnClause).dataType()
       verify(alterColumnClause).DROP()
@@ -451,11 +443,9 @@ class SnowflakeDDLBuilderSpec
       result shouldBe Seq(
         UnresolvedTableAlteration(
           ruleText = dummyTextForConstraintAction,
-            message = "Unknown CONSTRAINT variant",
-            ruleName = "constraintActions",
-            tokenName = Some("Id")
-        )
-      )
+          message = "Unknown CONSTRAINT variant",
+          ruleName = "constraintActions",
+          tokenName = Some("Id")))
       verify(constraintAction).ADD()
       verify(constraintAction).DROP()
       verify(constraintAction).RENAME()
@@ -472,11 +462,11 @@ class SnowflakeDDLBuilderSpec
       when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
       val result = vc.ddlBuilder.buildDropConstraints(constraintAction)
       result shouldBe Seq(
-        UnresolvedTableAlteration(ruleText = dummyTextForConstraintAction,
+        UnresolvedTableAlteration(
+          ruleText = dummyTextForConstraintAction,
           message = "Unknown DROP constraint variant",
-            ruleName = "dropConstraints",
-            tokenName = Some("Id")
-        ))
+          ruleName = "dropConstraints",
+          tokenName = Some("Id")))
       verify(constraintAction).columnListInParentheses()
       verify(constraintAction).primaryKey()
       verify(constraintAction).UNIQUE()

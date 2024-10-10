@@ -301,8 +301,7 @@ class SnowflakeRelationBuilderSpec
               ruleText = "some_func(...)",
               ruleName = "N/A",
               tokenName = Some("N/A"),
-              message = "Function some_func is not convertible to Databricks SQL")
-            ))
+              message = "Function some_func is not convertible to Databricks SQL")))
       }
       "TABLE(some_func(some_arg)) t(c1, c2, c3)" in {
         example(
@@ -318,8 +317,7 @@ class SnowflakeRelationBuilderSpec
                 ruleText = "some_func(...)",
                 ruleName = "N/A",
                 tokenName = Some("N/A"),
-                message = "Function some_func is not convertible to Databricks SQL")
-              ),
+                message = "Function some_func is not convertible to Databricks SQL")),
             Id("t"),
             Seq(Id("c1"), Id("c2"), Id("c3"))))
       }

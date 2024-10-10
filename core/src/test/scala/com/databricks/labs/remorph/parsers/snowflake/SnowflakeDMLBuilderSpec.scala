@@ -7,7 +7,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
   override protected def astBuilder: SnowflakeDMLBuilder = vc.dmlBuilder
 
-    "SnowflakeDMLBuilder" should {
+  "SnowflakeDMLBuilder" should {
     "translate INSERT statements" should {
       "INSERT INTO foo SELECT * FROM bar LIMIT 100" in {
         example(

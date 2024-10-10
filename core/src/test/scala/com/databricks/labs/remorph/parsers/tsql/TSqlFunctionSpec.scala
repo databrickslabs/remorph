@@ -56,12 +56,15 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     exampleExpr(
       "UNKNOWN_FUNCTION()",
       _.expression(),
-      ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false,
+      ir.UnresolvedFunction(
+        "UNKNOWN_FUNCTION",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
         ruleText = "UNKNOWN_FUNCTION(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Function UNKNOWN_FUNCTION is not convertible to Databricks SQL")
-      )
+        message = "Function UNKNOWN_FUNCTION is not convertible to Databricks SQL"))
   }
 
   "translate functions with invalid function argument counts" in {
@@ -77,8 +80,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ruleText = "USER_NAME(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Invocation of USER_NAME has incorrect argument count\"")
-      )
+        message = "Invocation of USER_NAME has incorrect argument count\""))
 
     exampleExpr(
       "FLOOR()", // FLOOR requires 1 argument
@@ -92,8 +94,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ruleText = "FLOOR(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Invocation of FLOOR has incorrect argument count\"")
-      )
+        message = "Invocation of FLOOR has incorrect argument count\""))
   }
 
   "translate functions that we know cannot be converted" in {
@@ -109,8 +110,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ruleText = "CONNECTIONPROPERTY(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Function CONNECTIONPROPERTY is not convertible to Databricks SQL")
-      )
+        message = "Function CONNECTIONPROPERTY is not convertible to Databricks SQL"))
   }
 
   "translate windowing functions in all forms" in {

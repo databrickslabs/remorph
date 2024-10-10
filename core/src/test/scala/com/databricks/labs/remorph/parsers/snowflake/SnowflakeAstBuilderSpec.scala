@@ -204,36 +204,28 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsLast))),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsLast))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC" in {
         singleQueryExample(
           "SELECT a FROM b ORDER BY a DESC",
           Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsFirst))),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a NULLS FIRST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a NULLS FIRST",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsFirst))),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC NULLS LAST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsLast))),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsLast))),
             Seq(Id("a"))))
       }
     }
