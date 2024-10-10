@@ -40,20 +40,9 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
       case c if c.describeCommand() != null => c.describeCommand().accept(this)
       case c if c.otherCommand() != null => c.otherCommand().accept(this)
       case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
-      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedCommand(contextText(ctx))
     }
   }
-
-  override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan =
-    ctx match {
-      case d if d.ddlCommand() != null => d.ddlCommand().accept(this)
-      case d if d.dmlCommand() != null => d.dmlCommand().accept(this)
-      case s if s.showCommand() != null => s.showCommand().accept(this)
-      case u if u.useCommand() != null => u.useCommand().accept(this)
-      case d if d.describeCommand() != null => d.describeCommand().accept(this)
-      case c if c.otherCommand() != null => c.otherCommand().accept(this)
-      case s if s.snowSqlCommand() != null => s.snowSqlCommand().accept(this)
-    }
 
   // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
@@ -96,6 +85,6 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
   }
 }

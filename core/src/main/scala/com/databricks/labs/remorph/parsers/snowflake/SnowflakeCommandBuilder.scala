@@ -56,7 +56,7 @@ class SnowflakeCommandBuilder extends SnowflakeParserBaseVisitor[ir.Command] wit
   }
 
   override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): Command = ctx match {

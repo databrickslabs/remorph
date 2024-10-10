@@ -28,7 +28,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
   protected override def defaultResult(): A = {
     unresolved(
       s"Unimplemented visitor $caller in class $implementor" +
-        s" for ${getTextFromParserRuleContext(currentNode.getRuleContext)}")
+        s" for ${contextText(currentNode.getRuleContext)}")
   }
 
   /**
@@ -40,7 +40,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    *   recorded by the parser.
    * </p>
    */
-  def getTextFromParserRuleContext(ctx: RuleContext): String = ctx match {
+  def contextText(ctx: RuleContext): String = ctx match {
     case ctx: ParserRuleContext =>
       ctx.start.getInputStream.getText(new Interval(ctx.start.getStartIndex, ctx.stop.getStopIndex))
     case _ => "Unsupported RuleContext type - cannot generate source string"
@@ -54,7 +54,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @return An  instance of the Unresolved representation of the type returned by the implementing visitor
    */
   protected def wrapUnresolvedInput(unparsedInput: RuleNode): A =
-    unresolved(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+    unresolved(contextText(unparsedInput.getRuleContext))
 
   /**
    * <p>
@@ -93,7 +93,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
     implementor = this.getClass.getSimpleName
     logger.warn(
       s"Unimplemented visitor for method: $caller in class: $implementor" +
-        s" for: ${getTextFromParserRuleContext(node.getRuleContext)}")
+        s" for: ${contextText(node.getRuleContext)}")
     currentNode = node
     super.visitChildren(node)
   }

@@ -57,7 +57,7 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
   override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = {
     ctx match {
       case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx)) // TODO: Implement this style of UNION
+      case _ => ir.UnresolvedRelation(contextText(ctx)) // TODO: Implement this style of UNION
     }
   }
 
@@ -440,7 +440,7 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
       case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
       case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
       // TODO: OPENROWSET and OPENQUERY
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedRelation(contextText(ctx))
     }
   }
 
