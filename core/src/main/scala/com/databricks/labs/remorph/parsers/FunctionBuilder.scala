@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 sealed trait FunctionType
 case object StandardFunction extends FunctionType

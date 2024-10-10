@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -101,112 +100,92 @@ class SnowflakeExpressionBuilderSpec
 
     "translate simple numeric binary expressions" should {
       "1 + 2" in {
-        exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 + 2", _.expr(), Add(Literal(1), Literal(2)))
       }
       "1 +2" in {
-        exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 +2", _.expr(), Add(Literal(1), Literal(2)))
       }
       "1 - 2" in {
-        exampleExpr("1 - 2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 - 2", _.expr(), Subtract(Literal(1), Literal(2)))
       }
       "1 -2" in {
-        exampleExpr("1 -2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 -2", _.expr(), Subtract(Literal(1), Literal(2)))
       }
       "1 * 2" in {
-        exampleExpr("1 * 2", _.expr(), ir.Multiply(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 * 2", _.expr(), Multiply(Literal(1), Literal(2)))
       }
       "1 / 2" in {
-        exampleExpr("1 / 2", _.expr(), ir.Divide(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 / 2", _.expr(), Divide(Literal(1), Literal(2)))
       }
       "1 % 2" in {
-        exampleExpr("1 % 2", _.expr(), ir.Mod(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 % 2", _.expr(), Mod(Literal(1), Literal(2)))
       }
       "'A' || 'B'" in {
-        exampleExpr("'A' || 'B'", _.expr(), ir.Concat(Seq(ir.Literal("A"), ir.Literal("B"))))
+        exampleExpr("'A' || 'B'", _.expr(), Concat(Seq(Literal("A"), Literal("B"))))
       }
     }
 
     "translate complex binary expressions" should {
       "a + b * 2" in {
-        exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(2))))
+        exampleExpr("a + b * 2", _.expr(), Add(Id("a"), Multiply(Id("b"), Literal(2))))
       }
       "(a + b) * 2" in {
-        exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(2)))
+        exampleExpr("(a + b) * 2", _.expr(), Multiply(Add(Id("a"), Id("b")), Literal(2)))
       }
       "a % 3 + b * 2 - c / 5" in {
         exampleExpr(
           "a % 3 + b * 2 - c / 5",
           _.expr(),
-          ir.Subtract(
-            ir.Add(ir.Mod(Id("a"), ir.Literal(3)), ir.Multiply(Id("b"), ir.Literal(2))),
-            ir.Divide(Id("c"), ir.Literal(5))))
+          Subtract(Add(Mod(Id("a"), Literal(3)), Multiply(Id("b"), Literal(2))), Divide(Id("c"), Literal(5))))
       }
       "a || b || c" in {
-        exampleExpr("a || b || c", _.expr(), ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
+        exampleExpr("a || b || c", _.expr(), Concat(Seq(Concat(Seq(Id("a"), Id("b"))), Id("c"))))
       }
     }
 
     "correctly apply operator precedence and associativity" should {
       "1 + -++-2" in {
-        exampleExpr(
-          "1 + -++-2",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(2)))))))
+        exampleExpr("1 + -++-2", _.expr(), Add(Literal(1), UMinus(UPlus(UPlus(UMinus(Literal(2)))))))
       }
       "1 + -2 * 3" in {
-        exampleExpr("1 + -2 * 3", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))))
+        exampleExpr("1 + -2 * 3", _.expr(), Add(Literal(1), Multiply(UMinus(Literal(2)), Literal(3))))
       }
       "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'" in {
         exampleExpr(
           "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'",
           _.expr(),
-          ir.Concat(
+          Concat(
             Seq(
-              ir.Concat(Seq(
-                ir.Concat(Seq(
-                  ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
-                  ir.Literal("leeds1"))),
-                ir.Literal("leeds2"))),
-              ir.Literal("leeds3"))))
+              Concat(
+                Seq(
+                  Concat(
+                    Seq(Add(Add(Literal(1), Multiply(UMinus(Literal(2)), Literal(3))), Literal(7)), Literal("leeds1"))),
+                  Literal("leeds2"))),
+              Literal("leeds3"))))
       }
     }
 
     "correctly respect explicit precedence with parentheses" should {
       "(1 + 2) * 3" in {
-        exampleExpr("(1 + 2) * 3", _.expr(), ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Literal(3)))
+        exampleExpr("(1 + 2) * 3", _.expr(), Multiply(Add(Literal(1), Literal(2)), Literal(3)))
       }
       "1 + (2 * 3)" in {
-        exampleExpr("1 + (2 * 3)", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))))
+        exampleExpr("1 + (2 * 3)", _.expr(), Add(Literal(1), Multiply(Literal(2), Literal(3))))
       }
       "(1 + 2) * (3 + 4)" in {
-        exampleExpr(
-          "(1 + 2) * (3 + 4)",
-          _.expr(),
-          ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Add(ir.Literal(3), ir.Literal(4))))
+        exampleExpr("(1 + 2) * (3 + 4)", _.expr(), Multiply(Add(Literal(1), Literal(2)), Add(Literal(3), Literal(4))))
       }
       "1 + (2 * 3) + 4" in {
-        exampleExpr(
-          "1 + (2 * 3) + 4",
-          _.expr(),
-          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))), ir.Literal(4)))
+        exampleExpr("1 + (2 * 3) + 4", _.expr(), Add(Add(Literal(1), Multiply(Literal(2), Literal(3))), Literal(4)))
       }
       "1 + (2 * 3 + 4)" in {
-        exampleExpr(
-          "1 + (2 * 3 + 4)",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4))))
+        exampleExpr("1 + (2 * 3 + 4)", _.expr(), Add(Literal(1), Add(Multiply(Literal(2), Literal(3)), Literal(4))))
       }
       "1 + (2 * (3 + 4))" in {
-        exampleExpr(
-          "1 + (2 * (3 + 4))",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
+        exampleExpr("1 + (2 * (3 + 4))", _.expr(), Add(Literal(1), Multiply(Literal(2), Add(Literal(3), Literal(4)))))
       }
       "(1 + (2 * (3 + 4)))" in {
-        exampleExpr(
-          "(1 + (2 * (3 + 4)))",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
+        exampleExpr("(1 + (2 * (3 + 4)))", _.expr(), Add(Literal(1), Multiply(Literal(2), Add(Literal(3), Literal(4)))))
       }
     }
 
@@ -370,7 +349,7 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr(
         query = "(SELECT col1 from table_expr)",
         rule = _.expr(),
-        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Column(None, Id("col1"))))))
+        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Id("col1")))))
     }
   }
 
@@ -477,8 +456,8 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
-      verify(literal).DATE_LIT()
-      verify(literal).TIMESTAMP_LIT()
+      verify(literal).DATE()
+      verify(literal).TIMESTAMP()
       verify(literal).string()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()
@@ -509,7 +488,7 @@ class SnowflakeExpressionBuilderSpec
     }
   }
 
-  // Note that when we truly handle &vars, we will get ir.Variable here and not Id
+  // Note that when we truly handle &vars, we will get Variable here and not Id
   // and the & parts will not be changed to ${} until we get to the final SQL generation
   // but we are in a half way house transition state
   "variable substitution" should {
