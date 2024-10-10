@@ -223,4 +223,28 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Snowflake MERGE commands" should {
+
+    "MERGE;" in {
+      """MERGE INTO target_table AS t
+        |USING source_table AS s
+        |ON t.id = s.id
+        |WHEN MATCHED AND s.status = 'active' THEN
+        |  UPDATE SET t.value = s.value AND status = 'active'
+        |WHEN MATCHED AND s.status = 'inactive' THEN
+        |  DELETE
+        |WHEN NOT MATCHED THEN
+        |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin transpilesTo
+        s"""MERGE INTO target_table AS t
+           |USING source_table AS s
+           |ON t.id = s.id
+           |WHEN MATCHED AND s.status = 'active' THEN
+           |  UPDATE SET t.value = s.value AND status = 'active'
+           |WHEN MATCHED AND s.status = 'inactive' THEN
+           |  DELETE
+           |WHEN NOT MATCHED THEN
+           |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
+    }
+  }
+
 }

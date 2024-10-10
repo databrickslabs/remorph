@@ -456,7 +456,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate UPDATE commands" in {
       singleQueryExample(
         "UPDATE t1 SET c1 = 42;",
-        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Column(None, Id("c1")), Literal(42))), None, None, None))
     }
 
     "translate BANG to Unresolved Expression" in {

@@ -53,4 +53,81 @@ class SnowflakeDMLBuilder
     val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
     ir.UpdateTable(target, sources, set, where, None, None)
   }
+
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
+    val target = ctx.tableRef().accept(relationBuilder)
+    val relation = ctx.tableSource().accept(relationBuilder)
+    val predicate = ctx.predicate().accept(expressionBuilder)
+    val matchedActions = ctx
+      .mergeCond()
+      .mergeCondMatch()
+      .asScala
+      .map(buildMatchAction)
+
+    val notMatchedActions = ctx
+      .mergeCond()
+      .mergeCondNotMatch()
+      .asScala
+      .map(buildNotMatchAction)
+
+    ir.MergeIntoTable(
+      target,
+      relation,
+      predicate,
+      matchedActions = matchedActions,
+      notMatchedActions = notMatchedActions)
+  }
+
+  private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
+    val condition = ctx match {
+      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case _ => None
+    }
+
+    ctx match {
+      case d if d.mergeUpdateDelete().DELETE() != null =>
+        ir.DeleteAction(condition)
+      case u if u.mergeUpdateDelete().UPDATE() != null =>
+        val assign = u
+          .mergeUpdateDelete()
+          .setColumnValue()
+          .asScala
+          .map(expressionBuilder.visitSetColumnValue)
+          .map { case a: ir.Assign =>
+            a
+          }
+        ir.UpdateAction(condition, assign)
+    }
+
+  }
+
+  private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
+    val condition = ctx match {
+      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case _ => None
+    }
+    ctx match {
+      case c if c.mergeInsert().columnList() != null =>
+        val assignment = (c
+          .mergeInsert()
+          .columnList()
+          .columnName()
+          .asScala
+          .map(_.accept(expressionBuilder))
+          .zip(
+            c
+              .mergeInsert()
+              .exprList()
+              .expr()
+              .asScala
+              .map(_.accept(expressionBuilder)))
+          .map { case (col, value) =>
+            ir.Assign(col, value)
+          })
+
+        ir.InsertAction(condition, assignment)
+
+      case _ => ir.InsertAction(condition, Seq.empty[ir.Assign])
+    }
+  }
 }
