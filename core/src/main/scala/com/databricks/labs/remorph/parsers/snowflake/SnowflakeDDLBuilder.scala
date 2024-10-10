@@ -9,6 +9,7 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
+  private val relationBuilder = new SnowflakeRelationBuilder
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
@@ -94,6 +95,22 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
         .asScala)
 
     ir.CreateTableCommand(tableName, columns)
+  }
+
+  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = {
+    val tableName = ctx.objectName().getText
+    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
+    val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+    // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
+    // TODO Capture other Table Properties
+    val colConstraints = Map.empty[String, Seq[ir.Constraint]]
+    val colOptions = Map.empty[String, Seq[ir.GenericOption]]
+    val constraints = Seq.empty[ir.Constraint]
+    val indices = Seq.empty[ir.Constraint]
+    val partition = None
+    val options = None
+    ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
