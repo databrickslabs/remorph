@@ -42,6 +42,14 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
     ir.CreateInlineUDF(name, returnType, parameters, runtimeInfo, acceptsNullParameters, comment, body)
   }
 
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog =
+    ctx match {
+      case c if c.createCommand() != null => c.createCommand().accept(this)
+      case a if a.alterCommand() != null => a.alterCommand().accept(this)
+      case d if d.dropCommand() != null => d.dropCommand().accept(this)
+      case u if u.undropCommand() != null => u.undropCommand().accept(this)
+    }
+
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
