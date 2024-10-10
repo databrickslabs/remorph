@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -22,6 +22,15 @@ class SnowflakeDMLBuilder
   }
 
   // Concrete visitors
+
+  override def visitDmlCommand(ctx: DmlCommandContext): ir.Modification = ctx match {
+    case q if q.queryStatement() != null => q.queryStatement().accept(this)
+    case i if i.insertStatement() != null => i.insertStatement().accept(this)
+    case i if i.insertMultiTableStatement() != null => i.insertMultiTableStatement().accept(this)
+    case u if u.updateStatement() != null => u.updateStatement().accept(this)
+    case d if d.deleteStatement() != null => d.deleteStatement().accept(this)
+    case m if m.mergeStatement() != null => m.mergeStatement().accept(this)
+  }
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = {
     val table = ctx.objectName().accept(relationBuilder)

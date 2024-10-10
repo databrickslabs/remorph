@@ -37,7 +37,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
 
   // TODO: Stored procedure calls etc as batch start
   override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
-    ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedRelation(contextText(ctx))
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
@@ -54,7 +54,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
       case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
       case cv if cv.createView() != null => cv.createView().accept(this)
       case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedRelation(contextText(ctx))
     }
   }
 

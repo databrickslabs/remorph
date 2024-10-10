@@ -26,7 +26,7 @@ class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
       case dml if dml.merge() != null => dml.merge().accept(this)
       case dml if dml.update() != null => dml.update().accept(this)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(this)
-      case _ => ir.UnresolvedModification(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedModification(contextText(ctx))
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {

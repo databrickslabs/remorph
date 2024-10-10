@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -40,15 +40,15 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
       case c if c.describeCommand() != null => c.describeCommand().accept(this)
       case c if c.otherCommand() != null => c.otherCommand().accept(this)
       case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
-      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedCommand(contextText(ctx))
     }
   }
 
+  // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     val select = ctx.selectStatement().accept(relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)
     ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
-
   }
 
   override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
@@ -85,6 +85,6 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
   }
 }
