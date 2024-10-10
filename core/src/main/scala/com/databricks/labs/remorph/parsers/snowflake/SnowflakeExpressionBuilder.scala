@@ -76,7 +76,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = ctx match {
     case e if e.expr() != null => e.expr().accept(this)
-    case p if p.predicate() != null => p.predicate().accept(this)
+    case p if p.searchCondition() != null => p.searchCondition().accept(this)
   }
 
   override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = {
@@ -224,38 +224,6 @@ class SnowflakeExpressionBuilder()
     case _ => ir.Literal.True
   }
 
-  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
-    ctx.expr().accept(this)
-  }
-
-  override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
-    NextValue(ctx.objectName().getText)
-  }
-
-  override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
-    val lhs = ctx.expr(0).accept(this)
-    val rhs = ctx.expr(1).accept(this)
-    ir.Dot(lhs, rhs)
-  }
-
-  override def visitExprColon(ctx: ExprColonContext): ir.Expression = {
-    val lhs = ctx.expr(0).accept(this)
-    val rhs = ctx.expr(1).accept(this)
-    ir.JsonAccess(lhs, rhs)
-  }
-
-  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = {
-    ir.Collate(ctx.expr().accept(this), removeQuotes(ctx.string().getText))
-  }
-
-  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = {
-    ctx.caseExpression().accept(this)
-  }
-
-  override def visitExprIff(ctx: ExprIffContext): ir.Expression = {
-    ctx.iffExpr().accept(this)
-  }
-
   override def visitExprNot(ctx: ExprNotContext): ir.Expression = {
     ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => ir.Not(e) }
   }
@@ -272,24 +240,60 @@ class SnowflakeExpressionBuilder()
     ir.Or(left, right)
   }
 
+  override def visitNonLogicalExpression(ctx: NonLogicalExpressionContext): ir.Expression = {
+    ctx.expression().accept(this)
+  }
+
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
+    ctx.expression().accept(this)
+  }
+
+  override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
+    NextValue(ctx.objectName().getText)
+  }
+
+  override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
+    val lhs = ctx.expression(0).accept(this)
+    val rhs = ctx.expression(1).accept(this)
+    ir.Dot(lhs, rhs)
+  }
+
+  override def visitExprColon(ctx: ExprColonContext): ir.Expression = {
+    val lhs = ctx.expression(0).accept(this)
+    val rhs = ctx.expression(1).accept(this)
+    ir.JsonAccess(lhs, rhs)
+  }
+
+  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = {
+    ir.Collate(ctx.expression().accept(this), removeQuotes(ctx.string().getText))
+  }
+
+  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = {
+    ctx.caseExpression().accept(this)
+  }
+
+  override def visitExprIff(ctx: ExprIffContext): ir.Expression = {
+    ctx.iffExpr().accept(this)
+  }
+
   override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = {
-    val left = ctx.expr(0).accept(this)
-    val right = ctx.expr(1).accept(this)
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
     buildComparisonExpression(ctx.comparisonOperator(), left, right)
   }
 
   override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
-    ir.Distinct(ctx.expr().accept(this))
+    ir.Distinct(ctx.expression().accept(this))
   }
 
   override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
-    val expr = ctx.expr().accept(this)
+    val expr = ctx.expression().accept(this)
     val sortOrders = buildSortOrder(ctx.withinGroup().orderByClause())
     ir.WithinGroup(expr, sortOrders)
   }
 
   override def visitExprOver(ctx: ExprOverContext): ir.Expression = {
-    buildWindow(ctx.overClause(), ctx.expr().accept(this))
+    buildWindow(ctx.overClause(), ctx.expression().accept(this))
   }
 
   override def visitExprCast(ctx: ExprCastContext): ir.Expression = {
@@ -297,19 +301,19 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
-    ir.Cast(ctx.expr().accept(this), typeBuilder.buildDataType(ctx.dataType()))
+    ir.Cast(ctx.expression().accept(this), typeBuilder.buildDataType(ctx.dataType()))
   }
 
   override def visitExprSign(ctx: ExprSignContext): ir.Expression = ctx.sign() match {
-    case c if c.PLUS() != null => ir.UPlus(ctx.expr().accept(this))
-    case c if c.MINUS() != null => ir.UMinus(ctx.expr().accept(this))
+    case c if c.PLUS() != null => ir.UPlus(ctx.expression().accept(this))
+    case c if c.MINUS() != null => ir.UMinus(ctx.expression().accept(this))
   }
 
   override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression =
-    buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+    buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
 
   override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression =
-    buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+    buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
 
   override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression =
     ctx.primitiveExpression().accept(this)
@@ -575,8 +579,8 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
-    val left = ctx.expr(0).accept(this)
-    val right = ctx.expr(1).accept(this)
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
     ctx.comparisonOperator match {
       case op if op.LE != null => ir.LessThanOrEqual(left, right)
       case op if op.GE != null => ir.GreaterThanOrEqual(left, right)
@@ -593,9 +597,9 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
-    val lowerBound = ctx.expr(1).accept(this)
-    val upperBound = ctx.expr(2).accept(this)
-    val expression = ctx.expr(0).accept(this)
+    val lowerBound = ctx.expression(1).accept(this)
+    val upperBound = ctx.expression(2).accept(this)
+    val expression = ctx.expression(0).accept(this)
     val between = ir.Between(expression, lowerBound, upperBound)
     Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
   }
@@ -603,20 +607,20 @@ class SnowflakeExpressionBuilder()
   override def visitPredIn(ctx: PredInContext): ir.Expression = {
     val in = if (ctx.subquery() != null) {
       // In the result of a sub query
-      ir.In(ctx.expr().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))))
+      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))))
     } else {
       // In a list of expressions
-      ir.In(ctx.expr().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+      ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
     }
     Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
   }
 
   override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = {
-    val left = ctx.expr(0).accept(this)
-    val right = ctx.expr(1).accept(this)
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
     // NB: The escape character is a complete expression that evaluates to a single char at runtime
     // and not a single char at parse time.
-    val escape = Option(ctx.expr(2))
+    val escape = Option(ctx.expression(2))
       .map(_.accept(this))
     val like = ctx.op.getType match {
       case LIKE => ir.Like(left, right, escape)
@@ -626,9 +630,9 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.Expression = {
-    val left = ctx.expr(0).accept(this)
+    val left = ctx.expression(0).accept(this)
     val patterns = visitMany(ctx.exprListInParentheses().exprList().expr())
-    val normalizedPatterns = normalizePatterns(patterns, ctx.expr(1))
+    val normalizedPatterns = normalizePatterns(patterns, ctx.expression(1))
     val like = ctx.op.getType match {
       case LIKE if ctx.ALL() != null => ir.LikeAll(left, normalizedPatterns)
       case LIKE => ir.LikeAny(left, normalizedPatterns)
@@ -639,22 +643,22 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredRLike(ctx: PredRLikeContext): ir.Expression = {
-    val left = ctx.expr(0).accept(this)
-    val right = ctx.expr(1).accept(this)
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
     val rLike = ir.RLike(left, right)
     Option(ctx.NOT()).fold[ir.Expression](rLike)(_ => ir.Not(rLike))
   }
 
   override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = {
-    val expression = ctx.expr().accept(this)
+    val expression = ctx.expression().accept(this)
     if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
   }
 
   override def visitPredExpr(ctx: PredExprContext): ir.Expression = {
-    ctx.expr().accept(this)
+    ctx.expression().accept(this)
   }
 
-  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
+  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExpressionContext): Seq[ir.Expression] = {
     Option(escape)
       .map(_.accept(this))
       .collect { case ir.StringLiteral(esc) =>

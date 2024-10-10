@@ -66,7 +66,7 @@ class SnowflakeDMLBuilder
   override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
     val target = ctx.tableRef().accept(relationBuilder)
     val relation = ctx.tableSource().accept(relationBuilder)
-    val predicate = ctx.predicate().accept(expressionBuilder)
+    val predicate = ctx.searchCondition().accept(expressionBuilder)
     val matchedActions = ctx
       .mergeCond()
       .mergeCondMatch()
@@ -89,7 +89,7 @@ class SnowflakeDMLBuilder
 
   private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
       case _ => None
     }
 
@@ -112,7 +112,7 @@ class SnowflakeDMLBuilder
 
   private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
       case _ => None
     }
     ctx match {

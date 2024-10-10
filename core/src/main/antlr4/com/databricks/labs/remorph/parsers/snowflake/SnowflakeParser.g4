@@ -96,9 +96,7 @@ mergeCondMatch: (WHEN MATCHED (AND searchCondition)? THEN mergeUpdateDelete)
 mergeCondNotMatch: WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
     ;
 
-mergeUpdateDelete
-    : UPDATE SET setColumnValue (COMMA setColumnValue)*
-    | DELETE
+mergeUpdateDelete: UPDATE SET setColumnValue (COMMA setColumnValue)* | DELETE
     ;
 
 mergeInsert: INSERT ((L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN)?
@@ -3139,29 +3137,40 @@ num: DECIMAL
 exprList: expr (COMMA expr)*
     ;
 
+// Snowflake stupidly allows AND and OR in any expression that results in a purely logical
+// TRUE/FALSE result and is not involved in, say, a predicate. So we must also allow that,
+// even though it messes with precedence somewhat. However,  as we only see queries that
+// parse/work in Snowflake, there is no practical effect on correct parsing. It is a PITA
+// that we have had to rename rules to make it make sense though.
 expr
-    : L_PAREN expr R_PAREN                      # exprPrecedence
-    | objectName DOT NEXTVAL                    # exprNextval
-    | expr DOT expr                             # exprDot
-    | expr COLON expr                           # exprColon
-    | expr COLLATE string                       # exprCollate
-    | caseExpression                            # exprCase
-    | iffExpr                                   # exprIff
-    | sign expr                                 # exprSign
-    | op = NOT+ expr                            # exprNot
-    | expr AND expr                             # exprAnd
-    | expr OR expr                              # exprOr
-    | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
-    | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
-    | expr comparisonOperator expr              # exprComparison
-    | expr COLON_COLON dataType                 # exprAscribe
-    | expr withinGroup                          # exprWithinGroup
-    | expr overClause                           # exprOver
-    | castExpr                                  # exprCast
-    | functionCall                              # exprFuncCall
-    | DISTINCT expr                             # exprDistinct
-    | L_PAREN subquery R_PAREN                  # exprSubquery
-    | primitiveExpression                       # exprPrimitive
+    : op = NOT+ expr # exprNot
+    | expr AND expr  # exprAnd
+    | expr OR expr   # exprOr
+    | expression     # nonLogicalExpression
+    ;
+
+// Use this entry point into epxression when allowing AND and OR would be ambiguous, such as in
+// searchConditions.
+expression
+    : L_PAREN expression R_PAREN                            # exprPrecedence
+    | objectName DOT NEXTVAL                                # exprNextval
+    | expression DOT expression                             # exprDot
+    | expression COLON expression                           # exprColon
+    | expression COLLATE string                             # exprCollate
+    | caseExpression                                        # exprCase
+    | iffExpr                                               # exprIff
+    | sign expression                                       # exprSign
+    | expression op = (STAR | DIVIDE | MODULE) expression   # exprPrecedence0
+    | expression op = (PLUS | MINUS | PIPE_PIPE) expression # exprPrecedence1
+    | expression comparisonOperator expression              # exprComparison
+    | expression COLON_COLON dataType                       # exprAscribe
+    | expression withinGroup                                # exprWithinGroup
+    | expression overClause                                 # exprOver
+    | castExpr                                              # exprCast
+    | functionCall                                          # exprFuncCall
+    | DISTINCT expression                                   # exprDistinct
+    | L_PAREN subquery R_PAREN                              # exprSubquery
+    | primitiveExpression                                   # exprPrimitive
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3375,7 +3384,7 @@ columnElem: (objectName DOT)? columnName | (objectName DOT)? DOLLAR columnPositi
 asAlias: AS? alias
     ;
 
-expressionElem: expr | searchCondition
+expressionElem: searchCondition | expr
     ;
 
 columnPosition: num
@@ -3448,7 +3457,7 @@ atBefore
     | BEFORE L_PAREN STATEMENT ASSOC string R_PAREN
     ;
 
-end: END L_PAREN (TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
+end: END L_PAREN ( TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
     ;
 
 changes: CHANGES L_PAREN INFORMATION ASSOC defaultAppendOnly R_PAREN atBefore end?
@@ -3544,16 +3553,16 @@ searchCondition
     ;
 
 predicate
-    : EXISTS L_PAREN subquery R_PAREN                                                # predExists
-    | expr comparisonOperator expr                                                   # predBinop
-    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN            # predASA
-    | expr IS NOT? NULL                                                              # predIsNull
-    | expr NOT? IN L_PAREN (subquery | exprList) R_PAREN                             # predIn
-    | expr NOT? BETWEEN expr AND expr                                                # predBetween
-    | expr NOT? op = (LIKE | ILIKE) expr (ESCAPE expr)?                              # predLikeSinglePattern
-    | expr NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # predLikeMultiplePatterns
-    | expr NOT? RLIKE expr                                                           # predRLike
-    | expr                                                                           # predExpr
+    : EXISTS L_PAREN subquery R_PAREN                                                            # predExists
+    | expression comparisonOperator expression                                                   # predBinop
+    | expression comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN                  # predASA
+    | expression IS NOT? NULL                                                                    # predIsNull
+    | expression NOT? IN L_PAREN (subquery | exprList) R_PAREN                                   # predIn
+    | expression NOT? BETWEEN expression AND expression                                          # predBetween
+    | expression NOT? op = (LIKE | ILIKE) expression (ESCAPE expression)?                        # predLikeSinglePattern
+    | expression NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expression)? # predLikeMultiplePatterns
+    | expression NOT? RLIKE expression                                                           # predRLike
+    | expression                                                                                 # predExpr
     ;
 
 whereClause: WHERE searchCondition
