@@ -31,7 +31,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |    TABLE_CATALOG,
        |    TABLE_SCHEMA,
        |    TABLE_NAME,
-       |    LISTAGG(column_name || '§' ||
+       |    LISTAGG(column_name || ':' ||
        |        CASE
        |            WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
        |            THEN
@@ -40,10 +40,8 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |            THEN
        |                CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
        |            ELSE data_type
-       |         END|| '§' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END)
-       |         || '§' || COALESCE(COMMENT, '')
-       |         ,
-       |    '‡') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
+       |         END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
+       |    '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
        |  FROM
        |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS
        |  GROUP BY
@@ -53,7 +51,6 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |  sft.TABLE_CATALOG,
        |  sft.TABLE_SCHEMA,
        |  sft.TABLE_NAME,
-       |  sft.comment,
        |  sfe.location,
        |  sfe.file_format_name,
        |  sfv.view_definition,
@@ -94,14 +91,12 @@ class SnowflakeTableDefinitions(conn: Connection) {
           val tableName = rs.getString("TABLE_NAME")
           val columns = rs
             .getString("DERIVED_SCHEMA")
-            .split("‡")
+            .split("~")
             .map(x => {
-              val data = x.split("§")
+              val data = x.split(":")
               val name = data(0)
               val dataType = getDataType(data(1))
-              val nullable = data(2).toBoolean
-              val comment = if (data.length > 3) Option(data(3)) else None
-              ColumnDetail(name, dataType, nullable, comment)
+              ColumnDetail(name, dataType, data(2).toBoolean)
             })
           tableDefinitionList.append(
             TableDefinition(
@@ -112,8 +107,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               Option(rs.getString("FILE_FORMAT_NAME")),
               Option(rs.getString("VIEW_DEFINITION")),
               columns,
-              rs.getInt("SIZE_GB"),
-              Option(rs.getString("COMMENT"))))
+              rs.getInt("SIZE_GB")))
         }
         tableDefinitionList
       } finally {
