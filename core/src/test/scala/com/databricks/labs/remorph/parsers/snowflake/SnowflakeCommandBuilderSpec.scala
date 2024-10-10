@@ -12,8 +12,7 @@ class SnowflakeCommandBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeCommandBuilder =
-    new SnowflakeCommandBuilder
+  override protected def astBuilder: SnowflakeCommandBuilder = vc.commandBuilder
 
   "translate Declare to CreateVariable Expression" should {
     "X NUMBER DEFAULT 0;" in {

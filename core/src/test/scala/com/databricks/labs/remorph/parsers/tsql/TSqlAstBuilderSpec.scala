@@ -815,10 +815,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Assign(Column(None, Id("a")), Literal(1)),
             UnresolvedFunction(
-              "udf.Transform",
+              "Transform",
               Seq(Column(None, Id("b"))),
               is_distinct = false,
-              is_user_defined_function = true)),
+              is_user_defined_function = true,
+              ruleText = "Transform(...)",
+              ruleName = "N/A",
+              tokenName = Some("N/A"),
+              message = "Function Transform is not convertible to Databricks SQL")),
           Some(
             Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
           None,

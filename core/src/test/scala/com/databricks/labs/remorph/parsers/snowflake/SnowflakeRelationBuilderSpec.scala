@@ -18,7 +18,7 @@ class SnowflakeRelationBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeRelationBuilder = new SnowflakeRelationBuilder
+  override protected def astBuilder: SnowflakeRelationBuilder = vc.relationBuilder
 
   private def examples[R <: RuleContext](
       queries: Seq[String],
@@ -297,7 +297,12 @@ class SnowflakeRelationBuilderSpec
               "some_func",
               Seq(Id("some_arg")),
               is_distinct = false,
-              is_user_defined_function = false)))
+              is_user_defined_function = false,
+              ruleText = "some_func(...)",
+              ruleName = "N/A",
+              tokenName = Some("N/A"),
+              message = "Function some_func is not convertible to Databricks SQL")
+            ))
       }
       "TABLE(some_func(some_arg)) t(c1, c2, c3)" in {
         example(
@@ -309,7 +314,12 @@ class SnowflakeRelationBuilderSpec
                 "some_func",
                 Seq(Id("some_arg")),
                 is_distinct = false,
-                is_user_defined_function = false)),
+                is_user_defined_function = false,
+                ruleText = "some_func(...)",
+                ruleName = "N/A",
+                tokenName = Some("N/A"),
+                message = "Function some_func is not convertible to Databricks SQL")
+              ),
             Id("t"),
             Seq(Id("c1"), Id("c2"), Id("c3"))))
       }
@@ -356,7 +366,7 @@ class SnowflakeRelationBuilderSpec
       val outerJoin = mock[OuterJoinContext]
       val joinType = mock[JoinTypeContext]
       when(joinType.outerJoin()).thenReturn(outerJoin)
-      astBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
+      vc.relationBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
       verify(outerJoin).LEFT()
       verify(outerJoin).RIGHT()
       verify(outerJoin).FULL()

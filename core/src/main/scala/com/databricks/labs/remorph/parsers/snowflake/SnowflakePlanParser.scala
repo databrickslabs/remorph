@@ -12,13 +12,12 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   private val optionGenerator = new OptionGenerator(exprGenerator)
   private val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
 
+  private val vc = new SnowflakeVisitorCoordinator(SnowflakeLexer.VOCABULARY, SnowflakeParser.VOCABULARY)
+
   override protected def createLexer(input: CharStream): Lexer = new SnowflakeLexer(input)
   override protected def createParser(stream: TokenStream): SnowflakeParser = new SnowflakeParser(stream)
   override protected def createTree(parser: SnowflakeParser): ParserRuleContext = parser.snowflakeFile()
-  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = {
-    val vc = new SnowflakeVisitorCoordinator(lexer.getVocabulary, parser.getVocabulary)
-    vc.astBuilder.visit(tree)
-  }
+  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = vc.astBuilder.visit(tree)
   override protected def addErrorStrategy(parser: SnowflakeParser): Unit =
     parser.setErrorHandler(new SnowflakeErrorStrategy)
   def dialect: String = "snowflake"

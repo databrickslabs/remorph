@@ -6,6 +6,8 @@ import org.scalatest.Assertions
 
 trait SnowflakeParserTestCommon extends ParserTestCommon[SnowflakeParser] { self: Assertions =>
 
+  protected val vc: SnowflakeVisitorCoordinator =
+    new SnowflakeVisitorCoordinator(SnowflakeLexer.VOCABULARY, SnowflakeParser.VOCABULARY)
   override final protected def makeLexer(chars: CharStream): TokenSource = new SnowflakeLexer(chars)
 
   override final protected def makeErrStrategy(): SnowflakeErrorStrategy = new SnowflakeErrorStrategy

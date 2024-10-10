@@ -6,9 +6,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder = new SnowflakeAstBuilder
+  override protected def astBuilder: SnowflakeAstBuilder = vc.astBuilder
 
-  private def singleQueryExample(query: String, expectedAst: LogicalPlan) =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeAstBuilder" should {
@@ -181,8 +181,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-            is_global = false),
+            Seq(SortOrder(Id("a"), Ascending, NullsLast))),
           Seq(Id("a"), CallFunction("COUNT", Seq(Id("b"))))))
     }
 
@@ -207,8 +206,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           expectedAst = Project(
             Sort(
               NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-              is_global = false),
+              Seq(SortOrder(Id("a"), Ascending, NullsLast))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC" in {
@@ -217,8 +215,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Project(
             Sort(
               NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsFirst)),
-              is_global = false),
+              Seq(SortOrder(Id("a"), Descending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a NULLS FIRST" in {
@@ -227,8 +224,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           expectedAst = Project(
             Sort(
               NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsFirst)),
-              is_global = false),
+              Seq(SortOrder(Id("a"), Ascending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC NULLS LAST" in {
@@ -237,8 +233,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           expectedAst = Project(
             Sort(
               NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsLast)),
-              is_global = false),
+              Seq(SortOrder(Id("a"), Descending, NullsLast))),
             Seq(Id("a"))))
       }
     }
@@ -443,8 +438,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
           Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
-          None,
-          overwrite = false))
+          None))
     }
 
     "translate DELETE commands" in {
@@ -460,13 +454,43 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate BANG to Unresolved Expression" in {
-      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true;"))
-      example("!set dfsdfds", _.snowSqlCommand(), UnresolvedCommand("!set dfsdfds"))
+
+      example(
+        "!set error_flag = true;",
+        _.snowSqlCommand(),
+        UnresolvedCommand(
+          ruleText = "!set error_flag = true;",
+          ruleName = "snowSqlCommand",
+          tokenName = Some("BANG"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
+
+      example(
+        "!set dfsdfds",
+        _.snowSqlCommand(),
+        UnresolvedCommand(
+          ruleText = "!set dfsdfds",
+          ruleName = "snowSqlCommand",
+          tokenName = Some("BANG"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
       assertThrows[Exception] {
-        example("!", _.snowSqlCommand(), UnresolvedCommand("!"))
+        example(
+          "!",
+          _.snowSqlCommand(),
+          UnresolvedCommand(
+            ruleText = "!",
+            ruleName = "snowSqlCommand",
+            tokenName = Some("BANG"),
+            message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
       }
       assertThrows[Exception] {
-        example("!badcommand", _.snowSqlCommand(), UnresolvedCommand("!badcommand"))
+        example(
+          "!badcommand",
+          _.snowSqlCommand(),
+          UnresolvedCommand(
+            ruleText = "!badcommand",
+            ruleName = "snowSqlCommand",
+            tokenName = Some("BANG"),
+            message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
       }
     }
 

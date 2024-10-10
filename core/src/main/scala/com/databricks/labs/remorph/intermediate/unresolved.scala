@@ -12,7 +12,7 @@ trait Unresolved[T] {
 }
 case class UnresolvedRelation(
     ruleText: String,
-    message: String,
+    message: String = "",
     ruleName: String = "rule name undetermined",
     tokenName: Option[String] = None)
     extends LeafNode
@@ -42,8 +42,8 @@ case class UnresolvedAttribute(
     unparsed_identifier: String,
     plan_id: Long = 0,
     is_metadata_column: Boolean = false,
-    ruleText: String,
-    message: String,
+    ruleText: String = "",
+    message: String = "",
     ruleName: String = "rule name undetermined",
     tokenName: Option[String] = None)
     extends LeafExpression

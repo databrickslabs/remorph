@@ -180,9 +180,9 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
-      "CREATE STREAM UNSUPPORTED",
+      "CREATE TASK UNSUPPORTED",
       ruleName = "createTask",
-      tokenName = Some("STREAM"))
+      tokenName = Some("TASK"))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -261,7 +261,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           ruleText = contextText(ctx),
           ruleName = vc.ruleName(ctx),
           tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
-          message = s"Unknown ALTER command ${ctx.getStart.getText}")
+          message = s"Unknown ALTER command variant")
     }
   }
 

@@ -5,9 +5,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with IRHelpers {
 
-  override protected def astBuilder = new SnowflakeDMLBuilder
+  override protected def astBuilder: SnowflakeDMLBuilder = vc.dmlBuilder
 
-  "SnowflakeDMLBuilder" should {
+    "SnowflakeDMLBuilder" should {
     "translate INSERT statements" should {
       "INSERT INTO foo SELECT * FROM bar LIMIT 100" in {
         example(
@@ -185,4 +185,5 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
     }
   }
+
 }

@@ -7,13 +7,12 @@ import org.antlr.v4.runtime._
 
 class TSqlPlanParser extends PlanParser[TSqlParser] {
 
+  val vc = new TSqlVisitorCoordinator(TSqlLexer.VOCABULARY, TSqlParser.VOCABULARY)
+
   override protected def createLexer(input: CharStream): Lexer = new TSqlLexer(input)
   override protected def createParser(stream: TokenStream): TSqlParser = new TSqlParser(stream)
   override protected def createTree(parser: TSqlParser): ParserRuleContext = parser.tSqlFile()
-  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = {
-    val vc = new TSqlVisitorCoordinator(lexer.getVocabulary, parser.getVocabulary)
-    vc.astBuilder.visit(tree)
-  }
+  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = vc.astBuilder.visit(tree)
   override protected def addErrorStrategy(parser: TSqlParser): Unit = parser.setErrorHandler(new TSqlErrorStrategy)
   def dialect: String = "tsql"
 
