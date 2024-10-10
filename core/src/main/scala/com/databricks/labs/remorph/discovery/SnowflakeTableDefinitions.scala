@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.parsers.intermediate.{ColumnDetail, DataType}
+import com.databricks.labs.remorph.intermediate.{ColumnDetail, DataType}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser, SnowflakeTypeBuilder}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 

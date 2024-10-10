@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 // TSQL has "SELECT TOP N * FROM .." vs "SELECT * FROM .. LIMIT N", so we fix it here
 object PullLimitUpwards extends Rule[LogicalPlan] {

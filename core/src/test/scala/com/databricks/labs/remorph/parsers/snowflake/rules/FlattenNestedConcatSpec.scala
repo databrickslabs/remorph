@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalactic.source.Position
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers

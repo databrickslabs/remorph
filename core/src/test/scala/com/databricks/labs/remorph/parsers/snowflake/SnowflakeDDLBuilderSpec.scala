@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should
