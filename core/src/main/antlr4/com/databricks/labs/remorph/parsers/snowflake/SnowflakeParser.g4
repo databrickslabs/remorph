@@ -3193,7 +3193,7 @@ jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
 kvPair: key = string COLON literal
     ;
 
-arrayLiteral: LSB literal (COMMA literal)* RSB | LSB RSB
+arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
     ;
 
 dataTypeSize: L_PAREN num R_PAREN

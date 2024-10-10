@@ -327,7 +327,13 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
-    val elements = ctx.literal().asScala.map(visitLiteral).toList.toSeq
+    val elements = ctx.expr().asScala.map(_.accept(this)).toList.toSeq
+    // TODO: The current type determination may be too naive
+    // but this does not affect code generation as the generator does not use it.
+    // Here we determine the type of the array by inspecting the first expression in the array literal,
+    // but when an array literal contains a double or a cast and the first value appears to be an integer,
+    // then the array literal type should probably be typed as DoubleType and not IntegerType, which means
+    // we need a function that types all the expressions and types it as the most general type.
     val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
     ir.ArrayExpr(elements, dataType)
   }

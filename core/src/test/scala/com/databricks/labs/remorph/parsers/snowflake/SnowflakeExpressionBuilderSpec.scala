@@ -502,4 +502,19 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr("&{ab_c}.&bc_d", _.expr(), Dot(Id("$ab_c"), Id("$bc_d")))
     }
   }
+
+  "translate :: casts" should {
+    "ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)" in {
+      exampleExpr(
+        "ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)",
+        _.expr(),
+        CallFunction(
+          "ARRAY_REMOVE",
+          Seq(
+            ArrayExpr(
+              Seq(Literal(2), Literal(3), Cast(Literal(4.00), DoubleType), Literal(4), Literal(null)),
+              IntegerType),
+            Literal(4))))
+    }
+  }
 }
