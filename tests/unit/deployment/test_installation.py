@@ -3,7 +3,7 @@ from unittest.mock import create_autospec
 import pytest
 from databricks.labs.blueprint.installation import MockInstallation, Installation
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.blueprint.wheels import WheelsV2
+from databricks.labs.blueprint.wheels import WheelsV2, ProductInfo
 from databricks.labs.blueprint.upgrades import Upgrades
 
 from databricks.sdk import WorkspaceClient
@@ -38,7 +38,7 @@ def test_install_all(ws):
     )
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
-    wheels = create_autospec(WheelsV2)
+    product_info = create_autospec(ProductInfo)
     upgrades = create_autospec(Upgrades)
 
     transpile_config = MorphConfig(
@@ -66,7 +66,7 @@ def test_install_all(ws):
         ),
     )
     config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
     installation.install(config)
 
 
@@ -74,7 +74,7 @@ def test_no_recon_component_installation(ws):
     prompts = MockPrompts({})
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
-    wheels = create_autospec(WheelsV2)
+    product_info = create_autospec(ProductInfo)
     upgrades = create_autospec(Upgrades)
 
     transpile_config = MorphConfig(
@@ -87,7 +87,7 @@ def test_no_recon_component_installation(ws):
         mode="current",
     )
     config = RemorphConfigs(morph=transpile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
     installation.install(config)
     recon_deployment.install.assert_not_called()
 
@@ -96,7 +96,7 @@ def test_recon_component_installation(ws):
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
     prompts = MockPrompts({})
-    wheels = create_autospec(WheelsV2)
+    product_info = create_autospec(ProductInfo)
     upgrades = create_autospec(Upgrades)
 
     reconcile_config = ReconcileConfig(
@@ -115,7 +115,7 @@ def test_recon_component_installation(ws):
         ),
     )
     config = RemorphConfigs(reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
     installation.install(config)
     recon_deployment.install.assert_called()
 

@@ -148,6 +148,21 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1;""".stripMargin
     }
 
+    "transpile MONTHS_BETWEEN function" in {
+      "SELECT MONTHS_BETWEEN('2021-02-01'::DATE, '2021-01-01'::DATE);" transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2021-02-01' AS DATE), CAST('2021-01-01' AS DATE), TRUE)
+           |  ;""".stripMargin
+
+      """SELECT
+        | MONTHS_BETWEEN('2019-03-01 02:00:00'::TIMESTAMP, '2019-02-15 01:00:00'::TIMESTAMP)
+        | AS mb;""".stripMargin transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2019-03-01 02:00:00' AS TIMESTAMP), CAST('2019-02-15 01:00:00'
+           |  AS TIMESTAMP), TRUE) AS mb
+           |  ;""".stripMargin
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
