@@ -302,8 +302,8 @@ class SnowflakeDDLBuilderSpec
       }
     }
 
-    "wrap unknown AST in UnresolvedCatalog" in {
-      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCatalog]
+    "wrap unknown AST in UnresolvedCommand" in {
+      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCommand]
     }
   }
 

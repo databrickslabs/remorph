@@ -190,6 +190,10 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
+  override def visitCreateUser(ctx: CreateUserContext): ir.Catalog = {
+    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+  }
+
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
     ctx match {
       case c if c.alterTable() != null => c.alterTable().accept(this)
