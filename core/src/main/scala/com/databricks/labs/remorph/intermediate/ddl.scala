@@ -59,7 +59,6 @@ case class StructField(name: String, dataType: DataType, nullable: Boolean = tru
 case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 case object VariantType extends DataType
-case class ColumnDetail(name: String, dataType: DataType, nullable: Boolean = true, comment: Option[String] = None)
 
 // While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
 // Id BIGINT GENERATED ALWAYS AS IDENTITY
