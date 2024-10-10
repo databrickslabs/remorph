@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.intermediate
 
+import org.apache.spark.sql.types.Metadata
+
 abstract class DataType {
   def isPrimitive: Boolean = this match {
     case BooleanType => true
@@ -55,11 +57,10 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true, metadata: Option[Metadata] = None)
 case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 case object VariantType extends DataType
-case class ColumnDetail(name: String, dataType: DataType, nullable: Boolean = true, comment: Option[String] = None)
 
 // While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
 // Id BIGINT GENERATED ALWAYS AS IDENTITY
