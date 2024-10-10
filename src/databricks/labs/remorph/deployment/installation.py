@@ -8,6 +8,7 @@ from databricks.labs.blueprint.upgrades import Upgrades
 from databricks.labs.blueprint.wheels import ProductInfo, Version
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.mixins.compute import SemVer
 from databricks.sdk.errors.platform import InvalidParameterValue, ResourceDoesNotExist
 
 from databricks.labs.remorph.config import RemorphConfigs
@@ -43,6 +44,11 @@ class WorkspaceInstallation:
             data = literal_eval(f.read())
         assert data, "Unable to read local version file."
         local_installed_version = data["version"]
+        try:
+            SemVer.parse(local_installed_version)
+        except ValueError:
+            logger.warning(f"{local_installed_version} is not a valid version.")
+            local_installed_version = "v0.3.0"
         local_installed_date = data["date"]
         logger.debug(f"Found local installation version: {local_installed_version} {local_installed_date}")
         return Version(
