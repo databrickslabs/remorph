@@ -8,8 +8,8 @@ import java.time.Duration
 case class QuerySpec(
     timestamp: Timestamp = new Timestamp(System.currentTimeMillis()),
     duration: Duration = Duration.ofMillis(0),
-    user: Option[String],
-    filename: Option[String])
+    user: Option[String] = None,
+    filename: Option[String] = None)
 
 case class ExecutedQuery(id: String, source: String, querySpec: QuerySpec)
 

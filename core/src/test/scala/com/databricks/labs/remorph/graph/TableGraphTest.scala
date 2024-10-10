@@ -1,13 +1,12 @@
 package com.databricks.labs.remorph.graph
 
-import com.databricks.labs.remorph.discovery.TableDefinition
+import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, QuerySpec, TableDefinition}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.sql.Timestamp
 import java.time.Duration
-import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
 import com.databricks.labs.remorph.intermediate.{IntegerType, StringType, StructField}
 
 class TableGraphTest extends AnyFlatSpec with Matchers {
@@ -16,65 +15,45 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
     Seq(
       ExecutedQuery(
         "query1",
-        new Timestamp(System.currentTimeMillis()),
         "INSERT INTO table1 SELECT col1, col2 FROM table2 INNER JOIN table3 on table2.id = table3.id",
-        Duration.ofSeconds(30),
-        "user1"),
+        QuerySpec()),
       ExecutedQuery(
         "query2",
-        new Timestamp(System.currentTimeMillis()),
         "INSERT INTO table2 (col1, col2) VALUES (1, 'value1')",
-        Duration.ofSeconds(45),
-        "user2"),
+        QuerySpec()),
       ExecutedQuery(
         "query3",
-        new Timestamp(System.currentTimeMillis()),
         "SELECT * FROM table3 JOIN table4 ON table3.id = table4.id",
-        Duration.ofSeconds(60),
-        "user3"),
+        QuerySpec()),
       ExecutedQuery(
         "query4",
-        new Timestamp(System.currentTimeMillis()),
         "SELECT col1, (SELECT MAX(col2) FROM table5) AS max_col2 FROM table5",
-        Duration.ofSeconds(25),
-        "user4"),
+        QuerySpec()),
       ExecutedQuery(
         "query5",
-        new Timestamp(System.currentTimeMillis()),
         "WITH cte AS (SELECT col1 FROM table5) SELECT * FROM cte",
-        Duration.ofSeconds(35),
-        "user5"),
+        QuerySpec()),
       ExecutedQuery(
         "query6",
-        new Timestamp(System.currentTimeMillis()),
         "INSERT INTO table1 (col1, col2) VALUES (2, 'value2')",
-        Duration.ofSeconds(40),
-        "user1"),
+        QuerySpec()),
       ExecutedQuery(
         "query7",
-        new Timestamp(System.currentTimeMillis()),
         """MERGE INTO table2 USING table3 source_table ON table2.id = source_table.id
           |WHEN MATCHED THEN UPDATE SET table2.col1 = source_table.col1""".stripMargin,
-        Duration.ofSeconds(50),
-        "user2"),
+        QuerySpec()),
       ExecutedQuery(
         "query8",
-        new Timestamp(System.currentTimeMillis()),
         "UPDATE table3 SET col1 = 'new_value' WHERE col2 = 'condition'",
-        Duration.ofSeconds(55),
-        "user3"),
+        QuerySpec()),
       ExecutedQuery(
         "query9",
-        new Timestamp(System.currentTimeMillis()),
         "DELETE FROM table4 WHERE col1 = 'value_to_delete'",
-        Duration.ofSeconds(20),
-        "user4"),
+        QuerySpec()),
       ExecutedQuery(
         "query10",
-        new Timestamp(System.currentTimeMillis()),
         "INSERT INTO table2 SELECT * FROM table5 WHERE col1 = 'some_value'",
-        Duration.ofSeconds(65),
-        "user5")))
+        QuerySpec())))
 
   private val tableDefinitions = Set(
     TableDefinition(
