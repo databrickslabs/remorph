@@ -41,8 +41,20 @@ if [ "$result" -ne 0 ]; then
             echo "Failed to start the server"
         exit 1
     fi
-    #sleep time to start the server
-    sleep 120
-    echo "Server Already Running"
+    # Wait for the server to start by pinging localhost:4040
+    echo "Waiting for the server to start..."
+    for i in {1..30}; do
+        if nc -z localhost 4040; then
+            echo "Server is up and running"
+            break
+        fi
+        echo "Server not yet available, retrying in 5 seconds..."
+        sleep 5
+    done
+
+    if ! nc -z localhost 4040; then
+        echo "Failed to start the server within the expected time"
+        exit 1
+    fi
 fi
 echo "Started the Server"

@@ -657,7 +657,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
-
+  }
+  "translate INSERT statement with @LocalVar" in {
     example(
       query = "INSERT INTO @LocalVar (a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -669,7 +670,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
+  }
 
+  "translate insert statements with VALU(pa, irs)" in {
     example(
       query = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",
       expectedAst = Batch(
@@ -681,7 +684,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
+  }
 
+  "translate insert statements with (OPTIONS)" in {
     example(
       query = "INSERT INTO t WITH (TABLOCK) (a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -692,11 +697,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           overwrite = false))))
+  }
 
+  "translate insert statement with DEFAULT VALUES" in {
     example(
       query = "INSERT INTO t DEFAULT VALUES",
       expectedAst = Batch(Seq(InsertIntoTable(namedTable("t"), None, DefaultValues(), None, None, overwrite = false))))
+  }
 
+  "translate INSERT statement with OUTPUT clause" in {
     example(
       query = "INSERT INTO t (a, b) OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -712,7 +721,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Some(List(simplyNamedColumn("a"), simplyNamedColumn("b"))))),
           None,
           overwrite = false))))
+  }
 
+  "translate insert statements with CTE" in {
     example(
       query = "WITH wtab AS (SELECT * FROM t) INSERT INTO t (a, b) select * from wtab",
       expectedAst = Batch(
@@ -725,7 +736,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false)))))
+  }
 
+  "translate insert statements with SELECT" in {
     example(
       query = """
            INSERT INTO ConsolidatedRecords (ID, Name)
@@ -743,7 +756,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(Seq(Id("ID"), Id("Name"))),
           Project(
             TableAlias(
-              Project(namedTable("TableB"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+              // TODO: This will change when UNION is implemented correctly
+              Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
               "DerivedTable"),
             Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
           None,

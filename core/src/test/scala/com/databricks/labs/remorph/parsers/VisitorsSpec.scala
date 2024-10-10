@@ -14,7 +14,7 @@ class VistorsSpec extends AnyWordSpec {
     "correctly collect text from contexts" in {
       val stream = CharStreams.fromString("SELECT * FROM table;")
       val result = new TSqlParser(new CommonTokenStream(new TSqlLexer(stream))).tSqlFile()
-      val text = new FakeVisitor().getTextFromParserRuleContext(result)
+      val text = new FakeVisitor().contextText(result)
       assert(text == "SELECT * FROM table;")
     }
   }

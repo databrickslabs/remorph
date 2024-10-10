@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.intermediate.Command
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -55,6 +56,36 @@ class SnowflakeCommandBuilder extends SnowflakeParserBaseVisitor[ir.Command] wit
   }
 
   override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
+  }
+
+  override def visitOtherCommand(ctx: OtherCommandContext): Command = ctx match {
+    case c if c.copyIntoTable != null => c.copyIntoTable.accept(this)
+    case c if c.copyIntoLocation != null => c.copyIntoLocation.accept(this)
+    case c if c.comment != null => c.comment.accept(this)
+    case c if c.commit != null => c.commit.accept(this)
+    case e if e.executeImmediate != null => e.executeImmediate.accept(this)
+    case e if e.executeTask != null => e.executeTask.accept(this)
+    case e if e.explain != null => e.explain.accept(this)
+    case g if g.getDml != null => g.getDml.accept(this)
+    case g if g.grantOwnership != null => g.grantOwnership.accept(this)
+    case g if g.grantToRole != null => g.grantToRole.accept(this)
+    case g if g.grantToShare != null => g.grantToShare.accept(this)
+    case g if g.grantRole != null => g.grantRole.accept(this)
+    case l if l.list != null => l.list.accept(this)
+    case p if p.put != null => p.put.accept(this)
+    case r if r.remove != null => r.remove.accept(this)
+    case r if r.revokeFromRole != null => r.revokeFromRole.accept(this)
+    case r if r.revokeFromShare != null => r.revokeFromShare.accept(this)
+    case r if r.revokeRole != null => r.revokeRole.accept(this)
+    case r if r.rollback != null => r.rollback.accept(this)
+    case s if s.set != null => s.set.accept(this)
+    case t if t.truncateMaterializedView != null => t.truncateMaterializedView.accept(this)
+    case t if t.truncateTable != null => t.truncateTable.accept(this)
+    case u if u.unset != null => u.unset.accept(this)
+    case c if c.call != null => c.call.accept(this)
+    case b if b.beginTxn != null => b.beginTxn.accept(this)
+    case d if d.declareCommand != null => d.declareCommand.accept(this)
+    case l if l.let != null => l.let.accept(this)
   }
 }
