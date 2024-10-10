@@ -179,9 +179,15 @@ def dialect_context():
     yield validate_source_transpile, validate_target_transpile
 
 
+_ANTLR_CORE_FOLDER = 'core_engine'
+
+
 def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
     suite: list[FunctionalTestFile | FunctionalTestFileWithExpectedException] = []
     for filenames in input_dir.rglob("*.sql"):
+        # Skip files in the core directory
+        if _ANTLR_CORE_FOLDER in filenames.parts:
+            continue
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()
         if content:

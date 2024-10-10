@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.intermediate.UnexpectedNode
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -70,7 +71,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
       case null => "" // don't fail transpilation if the expression is null
-      case x => throw TranspileException(s"Unsupported expression: $x")
+      case x => throw unknown(x)
     }
   }
 
@@ -96,7 +97,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case ir.IntLiteral(value) => Seq(s"[$value]")
       case ir.StringLiteral(value) => Seq(s"['$value']")
       case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
-      case i: ir.Expression => throw TranspileException(s"Unsupported path: $i")
+      case i: ir.Expression => throw TranspileException(UnexpectedNode(i))
     }
   }
 
