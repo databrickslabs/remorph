@@ -593,7 +593,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredASA(ctx: PredASAContext): ir.Expression = {
-    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build ASA
+    ir.UnresolvedExpression(contextText(ctx)) // TODO: build ASA
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
