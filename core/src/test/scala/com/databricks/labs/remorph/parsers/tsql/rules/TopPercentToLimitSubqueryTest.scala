@@ -15,13 +15,25 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
         Seq(
           SubqueryAlias(Project(namedTable("Employees"), Seq(Star())), Id("_limited1")),
           SubqueryAlias(
-            Project(UnresolvedRelation("_limited1"), Seq(Alias(Count(Seq(Star())), Id("count")))),
+            Project(
+              UnresolvedRelation(ruleText = "_limited1", message = "Unresolved relation _limited1"),
+              Seq(Alias(Count(Seq(Star())), Id("count")))),
             Id("_counted1"))),
         Limit(
-          Project(UnresolvedRelation("_limited1"), Seq(Star())),
+          Project(
+            UnresolvedRelation(
+              ruleText = "_limited1",
+              message = "Unresolved relation _limited1",
+              ruleName = "rule name undetermined",
+              tokenName = None),
+            Seq(Star())),
           ScalarSubquery(
             Project(
-              UnresolvedRelation("_counted1"),
+              UnresolvedRelation(
+                ruleText = "_counted1",
+                message = "Unresolved relation _counted1",
+                ruleName = "N/A",
+                tokenName = Some("N/A")),
               Seq(Cast(Multiply(Divide(Id("count"), Literal(10)), Literal(100)), LongType)))))))
   }
 
@@ -38,7 +50,7 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
           SubqueryAlias(Project(namedTable("Employees"), Seq(Star())), Id("_limited1")),
           SubqueryAlias(
             Project(
-              UnresolvedRelation("_limited1"),
+              UnresolvedRelation(ruleText = "_limited1", message = "Unresolved _limited1"),
               Seq(
                 Star(),
                 Alias(
@@ -46,7 +58,14 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
                   Id("_percentile1")))),
             Id("_with_percentile1"))),
         Filter(
-          Project(UnresolvedRelation("_with_percentile1"), Seq(Star())),
-          LessThanOrEqual(UnresolvedAttribute("_percentile1"), Divide(Literal(10), Literal(100))))))
+          Project(
+            UnresolvedRelation(ruleText = "_with_percentile1", message = "Unresolved _with_percentile1"),
+            Seq(Star())),
+          LessThanOrEqual(
+            UnresolvedAttribute(
+              unparsed_identifier = "_percentile1",
+              ruleText = "_percentile1",
+              message = "Unresolved _percentile1"),
+            Divide(Literal(10), Literal(100))))))
   }
 }

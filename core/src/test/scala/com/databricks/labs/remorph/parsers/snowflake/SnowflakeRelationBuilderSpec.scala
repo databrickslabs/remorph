@@ -355,7 +355,10 @@ class SnowflakeRelationBuilderSpec
         "MATCH_RECOGNIZE()",
         _.matchRecognize(),
         UnresolvedRelation(
-          "Unimplemented visitor visitMatchRecognize in class SnowflakeRelationBuilder for MATCH_RECOGNIZE()"))
+          ruleText = "MATCH_RECOGNIZE()",
+          message = "Unimplemented visitor visitMatchRecognize in class SnowflakeRelationBuilder",
+          ruleName = "some rule",
+          tokenName = Some("sometoken")))
     }
   }
 

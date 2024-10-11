@@ -385,8 +385,9 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.LessThanOrEqual(left, right)
     } else {
       ir.UnresolvedExpression(
-        ruleText = op.getText,
-        message = s"Unknown comparison operator ${op.getText} in SnowflakeExpressionBuilder.buildComparisonExpression",
+        ruleText = contextText(op),
+        message =
+          s"Unknown comparison operator ${contextText(op)} in SnowflakeExpressionBuilder.buildComparisonExpression",
         ruleName = vc.ruleName(op),
         tokenName = Some(tokenName(op.getStart)))
     }

@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, ID, LiteralContext}
+import org.antlr.v4.runtime.CommonToken
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -472,13 +473,15 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
     "handle unresolved child" in {
       val operator = mock[ComparisonOperatorContext]
-      val dummyTextForOperator = "dummy"
-      when(operator.getText).thenReturn(dummyTextForOperator)
+      val startTok = new CommonToken(ID, "%%%")
+      when(operator.getStart).thenReturn(startTok)
+      when(operator.getStop).thenReturn(startTok)
+      when(operator.getRuleIndex).thenReturn(SnowflakeParser.RULE_comparisonOperator)
       vc.expressionBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(
-        ruleText = dummyTextForOperator,
-        message = "Unknown comparison operator dummy in SnowflakeExpressionBuilder.buildComparisonExpression",
+        ruleText = "Mocked string",
+        message = "Unknown comparison operator Mocked string in SnowflakeExpressionBuilder.buildComparisonExpression",
         ruleName = "comparisonOperator",
-        tokenName = Some("Id"))
+        tokenName = Some("ID"))
 
       verify(operator).EQ()
       verify(operator).NE()
@@ -487,7 +490,9 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LT()
       verify(operator).GE()
       verify(operator).LE()
-      verify(operator).getText
+      verify(operator).getRuleIndex
+      verify(operator, times(5)).getStart
+      verify(operator, times(2)).getStop
       verifyNoMoreInteractions(operator)
     }
   }

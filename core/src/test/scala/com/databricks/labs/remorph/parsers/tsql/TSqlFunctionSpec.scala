@@ -80,7 +80,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ruleText = "USER_NAME(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Invocation of USER_NAME has incorrect argument count\""))
+        message = "Invocation of USER_NAME has incorrect argument count"))
 
     exampleExpr(
       "FLOOR()", // FLOOR requires 1 argument
@@ -94,7 +94,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ruleText = "FLOOR(...)",
         ruleName = "N/A",
         tokenName = Some("N/A"),
-        message = "Invocation of FLOOR has incorrect argument count\""))
+        message = "Invocation of FLOOR has incorrect argument count"))
   }
 
   "translate functions that we know cannot be converted" in {

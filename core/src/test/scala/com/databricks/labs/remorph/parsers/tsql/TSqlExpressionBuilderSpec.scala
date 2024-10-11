@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.ID
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
@@ -416,6 +418,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       // Ensure that both asterisk() and expressionElem() methods return null
       when(mockCtx.asterisk()).thenReturn(null)
       when(mockCtx.expressionElem()).thenReturn(null)
+      val startTok = new CommonToken(ID, "s")
+      when(mockCtx.getStart).thenReturn(startTok)
+      when(mockCtx.getStop).thenReturn(startTok)
+      when(mockCtx.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
 
       // Call the method with the mock instance
       val result = vc.expressionBuilder.visitSelectListElem(mockCtx)
