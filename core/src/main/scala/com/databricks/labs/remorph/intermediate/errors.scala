@@ -18,7 +18,7 @@ object ParsingError {
   implicit val errorDetailRW: ReadWriter[ParsingError] = macroRW
 }
 
-case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError {
+case class UnexpectedNode[BaseType <: TreeNode[BaseType]](offendingNode: TreeNode[BaseType]) extends RemorphError {
   override def msg: String = s"Unexpected node of class ${offendingNode.getClass.getSimpleName}"
 }
 
