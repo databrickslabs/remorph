@@ -388,7 +388,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
         ruleText = op.getText,
         message = s"Unknown comparison operator ${op.getText} in SnowflakeExpressionBuilder.buildComparisonExpression",
         ruleName = vc.ruleName(op),
-        tokenName = Some(vc.tokenName(op.getStart.getTokenIndex)))
+        tokenName = Some(tokenName(op.getStart)))
     }
   }
 
@@ -601,7 +601,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "ALL | SOME | ANY is not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+      tokenName =Some(tokenName(ctx.getStart)))
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {

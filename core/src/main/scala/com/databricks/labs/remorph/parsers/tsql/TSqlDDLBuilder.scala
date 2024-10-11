@@ -26,7 +26,7 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = "Unknown CREATE TABLE variant",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
 
   override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
@@ -75,7 +75,7 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = "Unknown variant of CREATE TABLE is not yet supported",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
 
     // But because TSQL is so much more complicated than Databricks SQL, we need to build the table alterations
@@ -129,7 +129,7 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "CREATE EXTERNAL TABLE is not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+      tokenName =Some(tokenName(ctx.getStart)))
   }
 
   /**
@@ -620,7 +620,7 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = "Unknown DDL clause",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
   }
 }

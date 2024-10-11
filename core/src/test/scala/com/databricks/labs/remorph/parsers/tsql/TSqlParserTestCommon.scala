@@ -6,7 +6,7 @@ import org.scalatest.Assertions
 
 trait TSqlParserTestCommon extends ParserTestCommon[TSqlParser] { self: Assertions =>
 
-  protected val vc: TSqlVisitorCoordinator = new TSqlVisitorCoordinator(TSqlLexer.VOCABULARY, TSqlParser.VOCABULARY)
+  protected val vc: TSqlVisitorCoordinator = new TSqlVisitorCoordinator(TSqlParser.VOCABULARY, TSqlParser.ruleNames)
   override final protected def makeLexer(chars: CharStream): Lexer = new TSqlLexer(chars)
 
   override final protected def makeErrStrategy(): TSqlErrorStrategy = new TSqlErrorStrategy

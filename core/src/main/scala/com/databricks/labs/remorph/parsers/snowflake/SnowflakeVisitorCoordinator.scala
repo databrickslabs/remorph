@@ -3,8 +3,8 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.VisitorCoordinator
 import org.antlr.v4.runtime.Vocabulary
 
-class SnowflakeVisitorCoordinator(lexerVocab: Vocabulary, parserVocab: Vocabulary)
-    extends VisitorCoordinator(lexerVocab, parserVocab) {
+class SnowflakeVisitorCoordinator(parserVocab: Vocabulary, ruleNames: Array[String])
+    extends VisitorCoordinator(parserVocab, ruleNames) {
 
   val astBuilder = new SnowflakeAstBuilder(this)
   val relationBuilder = new SnowflakeRelationBuilder(this)

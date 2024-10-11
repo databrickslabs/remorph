@@ -7,7 +7,7 @@ import org.antlr.v4.runtime._
 
 class TSqlPlanParser extends PlanParser[TSqlParser] {
 
-  val vc = new TSqlVisitorCoordinator(TSqlLexer.VOCABULARY, TSqlParser.VOCABULARY)
+  val vc = new TSqlVisitorCoordinator(TSqlParser.VOCABULARY, TSqlParser.ruleNames)
 
   override protected def createLexer(input: CharStream): Lexer = new TSqlLexer(input)
   override protected def createParser(stream: TokenStream): TSqlParser = new TSqlParser(stream)

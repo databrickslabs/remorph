@@ -40,7 +40,7 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "Execute body batch is not supported yet",
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+      tokenName =Some(tokenName(ctx.getStart)))
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
@@ -62,7 +62,7 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = s"Unknown SQL clause ${ctx.getStart.getText} in TSqlAstBuilder.visitSqlClauses",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
   }
 

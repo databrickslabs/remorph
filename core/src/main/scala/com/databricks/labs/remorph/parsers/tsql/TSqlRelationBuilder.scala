@@ -62,7 +62,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = s"This style of UNION specification is as yet supported",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -450,7 +450,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = s"Unknown DDL object type ${ctx.getStart.getText} in TSqlRelationBuilder.visitDdlObject",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
   }
 

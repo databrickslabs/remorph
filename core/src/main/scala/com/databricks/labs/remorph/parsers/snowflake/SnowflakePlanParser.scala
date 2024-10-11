@@ -12,7 +12,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   private val optionGenerator = new OptionGenerator(exprGenerator)
   private val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
 
-  private val vc = new SnowflakeVisitorCoordinator(SnowflakeLexer.VOCABULARY, SnowflakeParser.VOCABULARY)
+  private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 
   override protected def createLexer(input: CharStream): Lexer = new SnowflakeLexer(input)
   override protected def createParser(stream: TokenStream): SnowflakeParser = new SnowflakeParser(stream)

@@ -260,7 +260,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.UnresolvedCommand(
           ruleText = contextText(ctx),
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
+          tokenName =Some(tokenName(ctx.getStart)),
           message = s"Unknown ALTER command variant")
     }
   }
@@ -272,12 +272,12 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.AlterTableCommand(tableName, buildColumnActions(c.tableColumnAction()))
       case c if c.constraintAction() != null =>
         ir.AlterTableCommand(tableName, buildConstraintActions(c.constraintAction()))
-      case c =>
+      case _ =>
         ir.UnresolvedCatalog(
-          ruleText = contextText(c),
+          ruleText = contextText(ctx),
           message = "Unknown ALTER TABLE variant",
-          ruleName = vc.ruleName(c),
-          tokenName = Some(vc.tokenName(c.getStart.getTokenIndex)))
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -290,13 +290,13 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       Seq(ir.DropColumns(c.columnList().columnName().asScala.map(_.getText)))
     case c if c.RENAME() != null =>
       Seq(ir.RenameColumn(c.columnName(0).getText, c.columnName(1).getText))
-    case c =>
+    case _ =>
       Seq(
         ir.UnresolvedTableAlteration(
-          ruleText = contextText(c),
+          ruleText = contextText(ctx),
           message = "Unknown COLUMN action variant",
-          ruleName = vc.ruleName(c),
-          tokenName = Some(vc.tokenName(c.getStart.getTokenIndex))))
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart))))
   }
 
   private[snowflake] def buildColumnAlterations(ctx: AlterColumnClauseContext): ir.TableAlteration = {
@@ -308,12 +308,12 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
       case c if c.NULL() != null =>
         ir.AddConstraint(columnName, ir.Nullability(c.NOT() == null))
-      case c =>
+      case _ =>
         ir.UnresolvedTableAlteration(
-          ruleText = contextText(c),
+          ruleText = contextText(ctx),
           message = "Unknown ALTER COLUMN variant",
-          ruleName = vc.ruleName(c),
-          tokenName = Some(vc.tokenName(c.getStart.getTokenIndex)))
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -330,7 +330,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           ruleText = contextText(c),
           message = "Unknown CONSTRAINT variant",
           ruleName = vc.ruleName(c),
-          tokenName = Some(vc.tokenName(c.getStart.getTokenIndex))))
+          tokenName = Some(tokenName(ctx.getStart))))
   }
 
   private[snowflake] def buildDropConstraints(ctx: ConstraintActionContext): Seq[ir.TableAlteration] = {
@@ -346,7 +346,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             message = "Unknown DROP constraint variant",
             ruleName = vc.ruleName(ctx),
-            tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex))))
+            tokenName =Some(tokenName(ctx.getStart))))
     }
   }
 

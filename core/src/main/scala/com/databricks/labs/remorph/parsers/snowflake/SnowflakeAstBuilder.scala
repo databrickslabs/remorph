@@ -40,7 +40,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.UnresolvedCommand(
           ruleText = contextText(ctx),
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
+          tokenName =Some(tokenName(ctx.getStart)),
           message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")
     }
   }
@@ -89,7 +89,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)),
+      tokenName =Some(tokenName(ctx.getStart)),
       message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")
   }
 }

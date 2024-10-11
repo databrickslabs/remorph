@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ParseTree, ParseTreeVisitor, RuleNode}
-import org.antlr.v4.runtime.{ParserRuleContext, RuleContext}
+import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
 
@@ -59,8 +59,14 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @param ctx The context for which we want the rule name
    * @return the rule name for the context
    */
-  def contextRuleName(ctx: RuleContext): String =
-    vc.parserVocab.getSymbolicName(ctx.getRuleIndex)
+  def contextRuleName(ctx: ParserRuleContext): String =
+    vc.ruleName(ctx)
+
+  /**
+   * Given a token, return its symbolic name (what it is called in the lexer)
+   */
+  def tokenName(tok: Token): String =
+    vc.tokenName(tok)
 
   /**
    * <p>

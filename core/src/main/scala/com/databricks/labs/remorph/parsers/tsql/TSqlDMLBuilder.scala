@@ -30,7 +30,7 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = s"Unknown DML clause ${ctx.getStart.getText} in TSqlDMLBuilder.visitDmlClause",
           ruleName = vc.ruleName(ctx),
-          tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+          tokenName =Some(tokenName(ctx.getStart)))
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {

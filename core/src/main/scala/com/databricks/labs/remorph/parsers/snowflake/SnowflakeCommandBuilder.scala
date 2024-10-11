@@ -58,7 +58,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "Execute Task is not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(vc.tokenName(ctx.getStart.getTokenIndex)))
+      tokenName =Some(tokenName(ctx.getStart)))
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): Command = ctx match {

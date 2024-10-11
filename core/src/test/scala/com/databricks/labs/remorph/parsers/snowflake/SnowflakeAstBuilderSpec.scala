@@ -453,8 +453,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UnresolvedCommand(
           ruleText = "!set error_flag = true;",
           ruleName = "snowSqlCommand",
-          tokenName = Some("BANG"),
-          message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
+          tokenName = Some("SQLCOMMAND"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
 
       example(
         "!set dfsdfds",
@@ -462,8 +462,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UnresolvedCommand(
           ruleText = "!set dfsdfds",
           ruleName = "snowSqlCommand",
-          tokenName = Some("BANG"),
-          message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
+          tokenName = Some("SQLCOMMAND"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
       assertThrows[Exception] {
         example(
           "!",
@@ -471,8 +471,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           UnresolvedCommand(
             ruleText = "!",
             ruleName = "snowSqlCommand",
-            tokenName = Some("BANG"),
-            message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
+            tokenName = Some("SQLCOMMAND"),
+            message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
       }
       assertThrows[Exception] {
         example(
@@ -481,7 +481,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           UnresolvedCommand(
             ruleText = "!badcommand",
             ruleName = "snowSqlCommand",
-            tokenName = Some("BANG"),
+            tokenName = Some("SQLCOMMAND"),
             message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
       }
     }
