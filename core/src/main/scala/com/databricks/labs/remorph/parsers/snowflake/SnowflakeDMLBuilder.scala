@@ -45,7 +45,7 @@ class SnowflakeDMLBuilder
 
   override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
     val target = ctx.tableRef().accept(relationBuilder)
-    val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
+    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     Option(ctx.tablesOrQueries()) match {
       case Some(value) =>
         val relation = relationBuilder.visit(value)
@@ -59,14 +59,14 @@ class SnowflakeDMLBuilder
     val set = expressionBuilder.visitMany(ctx.setColumnValue())
     val sources =
       Option(ctx.tableSources()).map(t => relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
-    val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
+    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     ir.UpdateTable(target, sources, set, where, None, None)
   }
 
   override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
     val target = ctx.tableRef().accept(relationBuilder)
     val relation = ctx.tableSource().accept(relationBuilder)
-    val predicate = ctx.predicate().accept(expressionBuilder)
+    val predicate = ctx.searchCondition().accept(expressionBuilder)
     val matchedActions = ctx
       .mergeCond()
       .mergeCondMatch()
@@ -89,7 +89,7 @@ class SnowflakeDMLBuilder
 
   private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
       case _ => None
     }
 
@@ -112,7 +112,7 @@ class SnowflakeDMLBuilder
 
   private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
       case _ => None
     }
     ctx match {
