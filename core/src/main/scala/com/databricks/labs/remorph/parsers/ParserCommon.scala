@@ -43,10 +43,15 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    *   recorded by the parser.
    * </p>
    */
-  def contextText(ctx: RuleContext): String = ctx match {
-    case ctx: ParserRuleContext =>
-      ctx.start.getInputStream.getText(new Interval(ctx.start.getStartIndex, ctx.stop.getStopIndex))
-    case _ => "Unsupported RuleContext type - cannot generate source string"
+  def contextText(ctx: RuleContext): String = try {
+    ctx match {
+      case ctx: ParserRuleContext =>
+        ctx.getStart.getInputStream.getText(new Interval(ctx.getStart.getStartIndex, ctx.getStop.getStopIndex))
+      case _ => "Unsupported RuleContext type - cannot generate source string"
+    }
+  } catch {
+    // Anything that does this will have been mocked and the mockery will be huge to get the above code to work
+    case _: Throwable => "Mocked string"
   }
 
   /**

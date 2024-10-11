@@ -30,7 +30,7 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
           ruleText = contextText(ctx),
           message = s"Unsupported select list element",
           ruleName = "expression",
-          tokenName =Some(tokenName(ctx.getStart)))
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -286,7 +286,7 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
       ruleText = contextText(ctx),
       message = s"Freetext predicates are unsupported",
       ruleName = "expression",
-      tokenName =Some(tokenName(ctx.getStart)))
+      tokenName = Some(tokenName(ctx.getStart)))
   }
 
   override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
@@ -311,7 +311,7 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
       ruleText = contextText(ctx),
       message = s"ALL | SOME | ANY predicate not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName =Some(tokenName(ctx.getStart)))
+      tokenName = Some(tokenName(ctx.getStart)))
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {

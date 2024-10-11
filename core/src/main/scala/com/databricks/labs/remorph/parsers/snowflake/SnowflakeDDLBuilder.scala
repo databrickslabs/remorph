@@ -260,7 +260,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.UnresolvedCommand(
           ruleText = contextText(ctx),
           ruleName = vc.ruleName(ctx),
-          tokenName =Some(tokenName(ctx.getStart)),
+          tokenName = Some(tokenName(ctx.getStart)),
           message = s"Unknown ALTER command variant")
     }
   }
@@ -346,7 +346,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             message = "Unknown DROP constraint variant",
             ruleName = vc.ruleName(ctx),
-            tokenName =Some(tokenName(ctx.getStart))))
+            tokenName = Some(tokenName(ctx.getStart))))
     }
   }
 

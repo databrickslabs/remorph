@@ -601,7 +601,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "ALL | SOME | ANY is not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName =Some(tokenName(ctx.getStart)))
+      tokenName = Some(tokenName(ctx.getStart)))
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
