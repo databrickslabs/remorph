@@ -148,6 +148,21 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1;""".stripMargin
     }
 
+    "transpile MONTHS_BETWEEN function" in {
+      "SELECT MONTHS_BETWEEN('2021-02-01'::DATE, '2021-01-01'::DATE);" transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2021-02-01' AS DATE), CAST('2021-01-01' AS DATE), TRUE)
+           |  ;""".stripMargin
+
+      """SELECT
+        | MONTHS_BETWEEN('2019-03-01 02:00:00'::TIMESTAMP, '2019-02-15 01:00:00'::TIMESTAMP)
+        | AS mb;""".stripMargin transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2019-03-01 02:00:00' AS TIMESTAMP), CAST('2019-02-15 01:00:00'
+           |  AS TIMESTAMP), TRUE) AS mb
+           |  ;""".stripMargin
+    }
+
     "transpile ARRAY_REMOVE function" ignore {
       // TODO: enable the test once the parsing issue is fixed
       // https://github.com/databrickslabs/remorph/issues/978
@@ -219,6 +234,30 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "EXECUTE TASK task1;" in {
       "EXECUTE TASK task1;" transpilesTo
         s"""-- EXECUTE TASK task1;""".stripMargin
+    }
+  }
+
+  "Snowflake MERGE commands" should {
+
+    "MERGE;" in {
+      """MERGE INTO target_table AS t
+        |USING source_table AS s
+        |ON t.id = s.id
+        |WHEN MATCHED AND s.status = 'active' THEN
+        |  UPDATE SET t.value = s.value AND status = 'active'
+        |WHEN MATCHED AND s.status = 'inactive' THEN
+        |  DELETE
+        |WHEN NOT MATCHED THEN
+        |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin transpilesTo
+        s"""MERGE INTO target_table AS t
+           |USING source_table AS s
+           |ON t.id = s.id
+           |WHEN MATCHED AND s.status = 'active' THEN
+           |  UPDATE SET t.value = s.value AND status = 'active'
+           |WHEN MATCHED AND s.status = 'inactive' THEN
+           |  DELETE
+           |WHEN NOT MATCHED THEN
+           |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
 

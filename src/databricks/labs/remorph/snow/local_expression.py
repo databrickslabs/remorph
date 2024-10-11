@@ -156,6 +156,10 @@ class Ntile(Func):
     arg_types = {"this": True, "is_string": False}
 
 
+class ToArray(Func):
+    arg_types = {"this": True, "expression": False}
+
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
