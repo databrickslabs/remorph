@@ -115,7 +115,10 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
     val result = super.visitChildren(node)
     result match {
       case c: ir.Unresolved[A] =>
-        c.annotate("some rule", Some("sometoken"))
+        node match {
+          case ctx: ParserRuleContext =>
+            c.annotate(contextRuleName(ctx), Some(tokenName(ctx.getStart)))
+        }
       case _ =>
         result
     }
