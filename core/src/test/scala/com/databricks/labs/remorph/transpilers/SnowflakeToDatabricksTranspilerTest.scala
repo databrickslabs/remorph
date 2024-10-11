@@ -163,6 +163,53 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  ;""".stripMargin
     }
 
+    "transpile ARRAY_SORT function" in {
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, True);" transpilesTo
+        """SELECT
+          |  SORT_ARRAY(ARRAY(0, 2, 4, NULL, 5, NULL))
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], FALSE, False);" transpilesTo
+        """SELECT
+          |  SORT_ARRAY(ARRAY(0, 2, 4, NULL, 5, NULL), false)
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, FALSE);" transpilesTo
+        """SELECT
+          |  ARRAY_SORT(
+          |    ARRAY(0, 2, 4, NULL, 5, NULL),
+          |    (left, right) -> CASE
+          |      WHEN left IS NULL
+          |      AND right IS NULL THEN 0
+          |      WHEN left IS NULL THEN 1
+          |      WHEN right IS NULL THEN -1
+          |      WHEN left < right THEN -1
+          |      WHEN left > right THEN 1
+          |      ELSE 0
+          |    END
+          |  )
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], False, true);" transpilesTo
+        """SELECT
+          |  ARRAY_SORT(
+          |    ARRAY(0, 2, 4, NULL, 5, NULL),
+          |    (left, right) -> CASE
+          |      WHEN left IS NULL
+          |      AND right IS NULL THEN 0
+          |      WHEN left IS NULL THEN -1
+          |      WHEN right IS NULL THEN 1
+          |      WHEN left < right THEN 1
+          |      WHEN left > right THEN -1
+          |      ELSE 0
+          |    END
+          |  )
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, 1 = 1);".failsTranspilation
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
