@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.discovery
 
 import java.io.File
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import scala.collection.JavaConverters._
 import scala.io.Source
 
