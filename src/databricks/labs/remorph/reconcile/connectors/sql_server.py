@@ -64,20 +64,14 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     @property
     def get_jdbc_url(self) -> str:
-        # Fetch secrets once and store them in variables
-        secrets = {
-            key: self._get_secret(key)
-            for key in ['host', 'port', 'database', 'user', 'password', 'encrypt', 'trustServerCertificate']
-        }
-
         # Construct the JDBC URL
         return (
-            f"jdbc:{self._DRIVER}://{secrets['host']}:{secrets['port']};"
-            f"databaseName={secrets['database']};"
-            f"user={secrets['user']};"
-            f"password={secrets['password']};"
-            f"encrypt={secrets['encrypt']};"
-            f"trustServerCertificate={secrets['trustServerCertificate']};"
+            f"jdbc:{self._DRIVER}://{self._get_secret('host')}:{self._get_secret('port')};"
+            f"databaseName={self._get_secret('database')};"
+            f"user={self._get_secret('user')};"
+            f"password={self._get_secret('password')};"
+            f"encrypt={self._get_secret('encrypt')};"
+            f"trustServerCertificate={self._get_secret('trustServerCertificate')};"
         )
 
     def read_data(
