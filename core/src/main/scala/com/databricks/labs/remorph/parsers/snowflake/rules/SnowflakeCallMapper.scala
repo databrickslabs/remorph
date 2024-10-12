@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 import java.time.format.DateTimeFormatter
@@ -25,6 +25,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
         // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
         ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral))
+      case ir.CallFunction("ARRAY_SORT", args) => arraySort(args)
       case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
       case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
@@ -51,6 +52,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("LISTAGG", args) =>
         ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None)
       case ir.CallFunction("MONTHNAME", args) => ir.DateFormatClass(args.head, ir.Literal("MMM"))
+      case ir.CallFunction("MONTHS_BETWEEN", args) => ir.MonthsBetween(args.head, args(1), ir.Literal.True)
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
@@ -95,8 +97,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
           .sliding(2, 2)
           .collect {
             case Seq(ir.StringLiteral(key), v) => ir.Alias(v, ir.Id(key))
-            case Seq(a, b) => throw TranspileException(s"Unsupported arguments to OBJECT_CONSTRUCT: $a, $b")
-            case Seq(a) => throw TranspileException(s"Unsupported argument to OBJECT_CONSTRUCT: $a")
+            case args => throw TranspileException(ir.UnsupportedArguments("OBJECT_CONSTRUCT", args))
           }
           .toList)
   }
@@ -129,7 +130,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       // and don't need to be converted
       case x: ir.Fn => x
 
-      case a => throw TranspileException(s"Unsupported arguments to GET_JSON_OBJECT: ${a.mkString("(", ", ", ")")}")
+      case a => throw TranspileException(ir.UnsupportedArguments("GET_JSON_OBJECT", a))
     }
     ir.GetJsonObject(args.head, translatedFmt)
   }
@@ -146,7 +147,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   private def toNumber(args: Seq[ir.Expression]): ir.Expression = {
     val getArg: Int => Option[ir.Expression] = args.lift
     if (args.size < 2) {
-      throw TranspileException("not enough arguments to TO_NUMBER")
+      throw TranspileException(ir.WrongNumberOfArguments("TO_NUMBER", args.size, "at least 2"))
     } else if (args.size == 2) {
       ir.ToNumber(args.head, args(1))
     } else {
@@ -207,8 +208,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     case Seq(str, delim, expr) =>
       ir.StringSplitPart(str, delim, ir.If(ir.Equals(expr, zeroLiteral), oneLiteral, expr))
     case other =>
-      throw TranspileException(
-        s"Wrong number of arguments to SPLIT_PART, expected 3, got ${other.size}: ${other.mkString(", ")}")
+      throw TranspileException(ir.WrongNumberOfArguments("SPLIT_PART", other.size, "3"))
   }
 
   private def regexpExtract(args: Seq[ir.Expression]): ir.Expression = {
@@ -217,7 +217,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else if (args.size == 3) {
       ir.RegExpExtract(args.head, args(1), args(2))
     } else {
-      throw TranspileException(s"WRONG number of arguments to REGEXP_EXTRACT, expected 2 or 3, got ${args.size}")
+      throw TranspileException(ir.WrongNumberOfArguments("REGEXP_EXTRACT", args.size, "2 or 3"))
     }
   }
 
@@ -241,7 +241,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else if (args.size == 3) {
       timestampAdd(args)
     } else {
-      throw TranspileException(s"wrong number of arguments to DATEADD, expected 2 or 3, got ${args.size}")
+      throw TranspileException(ir.WrongNumberOfArguments("DATEADD", args.size, "2 or 3"))
+
     }
   }
 
@@ -288,21 +289,20 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
           ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None)
         case timezone @ ir.StringLiteral(_) =>
           ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(timezone))
-        case _ => throw TranspileException("could not interpret the last argument to TIMESTAMP_FROM_PARTS")
+        case _ => throw TranspileException(ir.UnsupportedArguments("TIMESTAMP_FROM_PART", Seq(args(6))))
       }
     } else if (args.size == 8) {
       // Here the situation is simpler, we just ignore the 7th argument (nanoseconds)
       ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(args(7)))
     } else {
-      throw TranspileException(
-        s"wrong number of arguments to TIMESTAMP_FROM_PART, expected either 2, 6, 7 or 8, got ${args.size} ")
+      throw TranspileException(ir.WrongNumberOfArguments("TIMESTAMP_FROM_PART", args.size, "either 2, 6, 7 or 8"))
     }
   }
 
   private def toTime(args: Seq[ir.Expression]): ir.Expression = args match {
     case Seq(a) => ir.ParseToTimestamp(a, inferTimeFormat(a))
     case Seq(a, b) => ir.ParseToTimestamp(a, b)
-    case _ => throw TranspileException(s"wrong number of arguments to TO_TIMESTAMP, expected 1 or 2, got ${args.size}")
+    case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
   }
 
   private val timestampFormats = Seq("yyyy-MM-dd HH:mm:ss")
@@ -318,7 +318,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else if (args.size == 2) {
       ir.ParseToTimestamp(args.head, args(1))
     } else {
-      throw TranspileException(s"wrong number of arguments to TO_TIMESTAMP, expected 1 or 2, got ${args.size}")
+      throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
     }
   }
 
@@ -332,7 +332,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else if (args.size == 2) {
       ir.ParseToDate(args.head, Some(args(1)))
     } else {
-      throw TranspileException(s"wrong number of arguments to TO_DATE, expected 1 or 2, got ${args.size}")
+      throw TranspileException(ir.WrongNumberOfArguments("TO_DATE", args.size, "1 or 2"))
     }
   }
 
@@ -417,7 +417,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         groupedArgs.takeWhile(_.size == 2).map(l => makeWhenBranch(expr, l.head, l.last)),
         groupedArgs.find(_.size == 1).map(_.head))
     } else {
-      throw TranspileException(s"wrong number of arguments to DECODE, expected at least 3, got ${args.size}")
+      throw TranspileException(ir.WrongNumberOfArguments("DECODE", args.size, "at least 3"))
     }
   }
 
@@ -426,6 +426,59 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.Literal.Null => ir.WhenBranch(ir.IsNull(expr), out)
       case any => ir.WhenBranch(ir.Equals(expr, any), out)
     }
+  }
+
+  private def arraySort(args: Seq[ir.Expression]): ir.Expression = {
+    makeArraySort(args.head, args.lift(1), args.lift(2))
+  }
+
+  private def makeArraySort(
+      arr: ir.Expression,
+      sortAscending: Option[ir.Expression],
+      nullsFirst: Option[ir.Expression]): ir.Expression = {
+    // Currently, only TRUE/FALSE Boolean literals are supported for Boolean parameters.
+    val paramSortAsc = sortAscending.getOrElse(ir.Literal.True)
+    val paramNullsFirst = nullsFirst.getOrElse {
+      paramSortAsc match {
+        case ir.Literal.True => ir.Literal.False
+        case ir.Literal.False => ir.Literal.True
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(paramSortAsc)))
+      }
+    }
+
+    def handleComparison(isNullOrSmallFirst: ir.Expression, nullOrSmallAtLeft: Boolean): ir.Expression = {
+      isNullOrSmallFirst match {
+        case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
+        case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(isNullOrSmallFirst)))
+      }
+    }
+
+    val comparator = ir.LambdaFunction(
+      ir.Case(
+        None,
+        Seq(
+          ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), zeroLiteral),
+          ir.WhenBranch(ir.IsNull(ir.Id("left")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(ir.IsNull(ir.Id("right")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = false)),
+          ir.WhenBranch(
+            ir.LessThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(
+            ir.GreaterThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = false))),
+        Some(zeroLiteral)),
+      Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
+
+    val irSortArray = (paramSortAsc, paramNullsFirst) match {
+      // We can make the IR much simpler for some cases
+      // by using DBSQL SORT_ARRAY function without needing a custom comparator
+      case (ir.Literal.True, ir.Literal.True) => ir.SortArray(arr, None)
+      case (ir.Literal.False, ir.Literal.False) => ir.SortArray(arr, Some(ir.Literal.False))
+      case _ => ir.ArraySort(arr, comparator)
+    }
+
+    irSortArray
   }
 
 }

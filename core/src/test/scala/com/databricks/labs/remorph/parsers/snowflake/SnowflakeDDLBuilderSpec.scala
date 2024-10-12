@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should
@@ -11,7 +11,8 @@ class SnowflakeDDLBuilderSpec
     extends AnyWordSpec
     with SnowflakeParserTestCommon
     with should.Matchers
-    with MockitoSugar {
+    with MockitoSugar
+    with IRHelpers {
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
@@ -208,6 +209,19 @@ class SnowflakeDDLBuilderSpec
                 None,
                 Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
       }
+
+      "CREATE TABLE t1 AS SELECT c1, c2 FROM t2;" in {
+        example(
+          "CREATE TABLE t1 AS (SELECT * FROM t2);",
+          CreateTableParams(
+            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None))), None, None, None),
+            Map.empty[String, Seq[Constraint]],
+            Map.empty[String, Seq[GenericOption]],
+            Seq.empty[Constraint],
+            Seq.empty[Constraint],
+            None,
+            None))
+      }
     }
     "translate ALTER TABLE commands" should {
       "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
@@ -288,8 +302,8 @@ class SnowflakeDDLBuilderSpec
       }
     }
 
-    "wrap unknown AST in UnresolvedCatalog" in {
-      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCatalog]
+    "wrap unknown AST in UnresolvedCommand" in {
+      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCommand]
     }
   }
 
@@ -383,7 +397,7 @@ class SnowflakeDDLBuilderSpec
       verify(alterColumnClause).columnName()
       verify(alterColumnClause).dataType()
       verify(alterColumnClause).DROP()
-      verify(alterColumnClause).NULL_()
+      verify(alterColumnClause).NULL()
       verify(alterColumnClause).getText
       verifyNoMoreInteractions(alterColumnClause)
     }

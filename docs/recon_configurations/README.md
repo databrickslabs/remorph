@@ -345,6 +345,45 @@ class Transformation:
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
 ```
+> **Note:** `NULL` values are defaulted to `_null_recon_` using the transformation expressions in these files: 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py) 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py). If User is looking for any specific behaviour, they can override these rules using  [transformations](#transformations) accordingly.
+
+<table>
+    <tr>
+        <th colspan="4">Transformation Expressions</th>
+    </tr>
+    <tr>
+        <th>filename</th>
+        <th>function / variable</th>
+        <th>transformation_rule</th>
+        <th>description</th>
+    </tr>
+    <tr>
+        <td>sampling_query.py</td>
+        <td>_get_join_clause</td>
+        <td>transform(coalesce, default="_null_recon_", is_string=True)</td>
+        <td>Applies the coalesce transformation function for String column and defaults to `_null_recon_` if column is NULL</td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>(coalesce, default='_null_recon_', is_string=True)</td>
+        <td>Default String column Transformation rule for all dialects. Applies the coalesce transformation function and defaults to `_null_recon_` if column is NULL</td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>"oracle": DataType...NCHAR: ..."NVL(TRIM(TO_CHAR..,'_null_recon_')"</td>
+        <td>Transformation rule for oracle dialect 'NCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
+    </tr>
+    <tr>
+        <td>expression_generator.py</td>
+        <td>DataType_transform_mapping</td>
+        <td>"oracle": DataType...NVARCHAR: ..."NVL(TRIM(TO_CHAR..,'_null_recon_')"</td>
+        <td>Transformation rule for oracle dialect 'NVARCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
+    </tr>
+</table>  
+
+
 ## column_thresholds
 
 <table>

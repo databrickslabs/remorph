@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -11,7 +10,7 @@ class TSqlRelationBuilderSpec
     with TSqlParserTestCommon
     with Matchers
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
   override protected def astBuilder: TSqlRelationBuilder = vc.relationBuilder
 

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.{Assign, Expression, Join, LogicalPlan, MergeAction, MergeIntoTable, Noop, NoopNode, Rule, UpdateAction, UpdateTable}
+import com.databricks.labs.remorph.intermediate.{Assign, Expression, Join, LogicalPlan, MergeAction, MergeIntoTable, Noop, NoopNode, Rule, UpdateAction, UpdateTable}
 
 class UpdateToMerge extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan transform {

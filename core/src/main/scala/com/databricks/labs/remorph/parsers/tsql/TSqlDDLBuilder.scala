@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.intermediate.Catalog
+import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -8,11 +10,19 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Catalog = {
+    ir.UnresolvedCatalog(msg)
+  }
+
+  // Concrete visitors
+
   override def visitCreateTable(ctx: TSqlParser.CreateTableContext): ir.Catalog =
     ctx match {
       case ci if ci.createInternal() != null => ci.createInternal().accept(this)
       case ct if ct.createExternal() != null => ct.createExternal().accept(this)
-      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedCatalog(contextText(ctx))
     }
 
   override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
@@ -56,7 +66,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
         ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(vc.relationBuilder), None, None, None)
-      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedCatalog(contextText(ctx))
     }
 
     // But because TSQL is so much more complicated than Databricks SQL, we need to build the table alterations
@@ -106,7 +116,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
   }
 
   override def visitCreateExternal(ctx: TSqlParser.CreateExternalContext): ir.Catalog = {
-    ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCatalog(contextText(ctx))
   }
 
   /**
@@ -117,7 +127,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
    * @return the option we have parsed
    */
   private def buildOption(ctx: TSqlParser.TableOptionContext): ir.GenericOption = {
-    ir.OptionUnresolved(getTextFromParserRuleContext(ctx))
+    ir.OptionUnresolved(contextText(ctx))
   }
 
   private case class TSqlColDef(
@@ -190,14 +200,14 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
         // Unsupported stuff
         case m if m.MASKED() != null =>
           // MASKED WITH FUNCTION = 'functionName' is not supported in Databricks SQL
-          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(m)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${contextText(m)}")
 
         case f if f.ENCRYPTED() != null =>
           // ENCRYPTED WITH ... is not supported in Databricks SQL
-          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(f)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${contextText(f)}")
 
         case o if o.genericOption() != null =>
-          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(o)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${contextText(o)}")
       }
     }
     val dataType = vc.dataTypeBuilder.build(ctx.dataType())
@@ -220,7 +230,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         if (pu.clustered() != null) {
           if (pu.clustered().CLUSTERED() != null) {
-            options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
+            options += ir.OptionUnresolved(contextText(pu.clustered()))
           }
         }
         val colNames = ctx.columnNameListWithOrder().columnNameWithOrder().asScala.map { cnwo =>
@@ -253,11 +263,11 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
 
       case cc if cc.CONNECTION() != null =>
         // CONNECTION is not supported in Databricks SQL
-        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
+        ir.UnresolvedConstraint(contextText(ctx))
 
       case defVal if defVal.DEFAULT() != null =>
         // DEFAULT is not supported in Databricks SQL at TABLE constraint level
-        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
+        ir.UnresolvedConstraint(contextText(ctx))
 
       case cc if cc.checkConstraint() != null =>
         // Check constraint construction
@@ -267,7 +277,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedConstraint(contextText(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -302,7 +312,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         // Primary or unique key construction.
         if (pu.clustered() != null) {
-          options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
+          options += ir.OptionUnresolved(contextText(pu.clustered()))
         }
 
         if (pu.primaryKeyOptions() != null) {
@@ -337,7 +347,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedConstraint(contextText(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -392,7 +402,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
    * @return An unresolved constraint representing the index syntax
    */
   private def buildIndex(ctx: TSqlParser.TableIndicesContext): ir.UnresolvedConstraint = {
-    ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedConstraint(contextText(ctx))
   }
 
   /**
@@ -426,4 +436,173 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     BackupDatabase(database, disks, boolFlags, autoFlags, values)
   }
 
+  override def visitDdlClause(ctx: TSqlParser.DdlClauseContext): Catalog = {
+    ctx match {
+      case c if c.alterApplicationRole() != null => c.alterApplicationRole().accept(this)
+      case c if c.alterAssembly() != null => c.alterAssembly().accept(this)
+      case c if c.alterAsymmetricKey() != null => c.alterAsymmetricKey().accept(this)
+      case c if c.alterAuthorization() != null => c.alterAuthorization().accept(this)
+      case c if c.alterAvailabilityGroup() != null => c.alterAvailabilityGroup().accept(this)
+      case c if c.alterCertificate() != null => c.alterCertificate().accept(this)
+      case c if c.alterColumnEncryptionKey() != null => c.alterColumnEncryptionKey().accept(this)
+      case c if c.alterCredential() != null => c.alterCredential().accept(this)
+      case c if c.alterCryptographicProvider() != null => c.alterCryptographicProvider().accept(this)
+      case c if c.alterDatabase() != null => c.alterDatabase().accept(this)
+      case c if c.alterDatabaseAuditSpecification() != null => c.alterDatabaseAuditSpecification().accept(this)
+      case c if c.alterDbRole() != null => c.alterDbRole().accept(this)
+      case c if c.alterEndpoint() != null => c.alterEndpoint().accept(this)
+      case c if c.alterExternalDataSource() != null => c.alterExternalDataSource().accept(this)
+      case c if c.alterExternalLibrary() != null => c.alterExternalLibrary().accept(this)
+      case c if c.alterExternalResourcePool() != null => c.alterExternalResourcePool().accept(this)
+      case c if c.alterFulltextCatalog() != null => c.alterFulltextCatalog().accept(this)
+      case c if c.alterFulltextStoplist() != null => c.alterFulltextStoplist().accept(this)
+      case c if c.alterIndex() != null => c.alterIndex().accept(this)
+      case c if c.alterLoginAzureSql() != null => c.alterLoginAzureSql().accept(this)
+      case c if c.alterLoginAzureSqlDwAndPdw() != null => c.alterLoginAzureSqlDwAndPdw().accept(this)
+      case c if c.alterLoginSqlServer() != null => c.alterLoginSqlServer().accept(this)
+      case c if c.alterMasterKeyAzureSql() != null => c.alterMasterKeyAzureSql().accept(this)
+      case c if c.alterMasterKeySqlServer() != null => c.alterMasterKeySqlServer().accept(this)
+      case c if c.alterMessageType() != null => c.alterMessageType().accept(this)
+      case c if c.alterPartitionFunction() != null => c.alterPartitionFunction().accept(this)
+      case c if c.alterPartitionScheme() != null => c.alterPartitionScheme().accept(this)
+      case c if c.alterRemoteServiceBinding() != null => c.alterRemoteServiceBinding().accept(this)
+      case c if c.alterResourceGovernor() != null => c.alterResourceGovernor().accept(this)
+      case c if c.alterSchemaAzureSqlDwAndPdw() != null => c.alterSchemaAzureSqlDwAndPdw().accept(this)
+      case c if c.alterSchemaSql() != null => c.alterSchemaSql().accept(this)
+      case c if c.alterSequence() != null => c.alterSequence().accept(this)
+      case c if c.alterServerAudit() != null => c.alterServerAudit().accept(this)
+      case c if c.alterServerAuditSpecification() != null => c.alterServerAuditSpecification().accept(this)
+      case c if c.alterServerConfiguration() != null => c.alterServerConfiguration().accept(this)
+      case c if c.alterServerRole() != null => c.alterServerRole().accept(this)
+      case c if c.alterServerRolePdw() != null => c.alterServerRolePdw().accept(this)
+      case c if c.alterService() != null => c.alterService().accept(this)
+      case c if c.alterServiceMasterKey() != null => c.alterServiceMasterKey().accept(this)
+      case c if c.alterSymmetricKey() != null => c.alterSymmetricKey().accept(this)
+      case c if c.alterTable() != null => c.alterTable().accept(this)
+      case c if c.alterUser() != null => c.alterUser().accept(this)
+      case c if c.alterUserAzureSql() != null => c.alterUserAzureSql().accept(this)
+      case c if c.alterWorkloadGroup() != null => c.alterWorkloadGroup().accept(this)
+      case c if c.alterXmlSchemaCollection() != null => c.alterXmlSchemaCollection().accept(this)
+      case c if c.createApplicationRole() != null => c.createApplicationRole().accept(this)
+      case c if c.createAssembly() != null => c.createAssembly().accept(this)
+      case c if c.createAsymmetricKey() != null => c.createAsymmetricKey().accept(this)
+      case c if c.createColumnEncryptionKey() != null => c.createColumnEncryptionKey().accept(this)
+      case c if c.createColumnMasterKey() != null => c.createColumnMasterKey().accept(this)
+      case c if c.createColumnstoreIndex() != null => c.createColumnstoreIndex().accept(this)
+      case c if c.createCredential() != null => c.createCredential().accept(this)
+      case c if c.createCryptographicProvider() != null => c.createCryptographicProvider().accept(this)
+      case c if c.createDatabaseScopedCredential() != null => c.createDatabaseScopedCredential().accept(this)
+      case c if c.createDatabase() != null => c.createDatabase().accept(this)
+      case c if c.createDatabaseAuditSpecification() != null => c.createDatabaseAuditSpecification().accept(this)
+      case c if c.createDbRole() != null => c.createDbRole().accept(this)
+      case c if c.createEndpoint() != null => c.createEndpoint().accept(this)
+      case c if c.createEventNotification() != null => c.createEventNotification().accept(this)
+      case c if c.createExternalLibrary() != null => c.createExternalLibrary().accept(this)
+      case c if c.createExternalResourcePool() != null => c.createExternalResourcePool().accept(this)
+      case c if c.createExternalDataSource() != null => c.createExternalDataSource().accept(this)
+      case c if c.createFulltextCatalog() != null => c.createFulltextCatalog().accept(this)
+      case c if c.createFulltextStoplist() != null => c.createFulltextStoplist().accept(this)
+      case c if c.createIndex() != null => c.createIndex().accept(this)
+      case c if c.createLoginAzureSql() != null => c.createLoginAzureSql().accept(this)
+      case c if c.createLoginPdw() != null => c.createLoginPdw().accept(this)
+      case c if c.createLoginSqlServer() != null => c.createLoginSqlServer().accept(this)
+      case c if c.createMasterKeyAzureSql() != null => c.createMasterKeyAzureSql().accept(this)
+      case c if c.createMasterKeySqlServer() != null => c.createMasterKeySqlServer().accept(this)
+      case c if c.createNonclusteredColumnstoreIndex() != null => c.createNonclusteredColumnstoreIndex().accept(this)
+      case c if c.createOrAlterBrokerPriority() != null => c.createOrAlterBrokerPriority().accept(this)
+      case c if c.createOrAlterEventSession() != null => c.createOrAlterEventSession().accept(this)
+      case c if c.createPartitionFunction() != null => c.createPartitionFunction().accept(this)
+      case c if c.createPartitionScheme() != null => c.createPartitionScheme().accept(this)
+      case c if c.createRemoteServiceBinding() != null => c.createRemoteServiceBinding().accept(this)
+      case c if c.createResourcePool() != null => c.createResourcePool().accept(this)
+      case c if c.createRoute() != null => c.createRoute().accept(this)
+      case c if c.createRule() != null => c.createRule().accept(this)
+      case c if c.createSchema() != null => c.createSchema().accept(this)
+      case c if c.createSchemaAzureSqlDwAndPdw() != null => c.createSchemaAzureSqlDwAndPdw().accept(this)
+      case c if c.createSearchPropertyList() != null => c.createSearchPropertyList().accept(this)
+      case c if c.createSecurityPolicy() != null => c.createSecurityPolicy().accept(this)
+      case c if c.createSequence() != null => c.createSequence().accept(this)
+      case c if c.createServerAudit() != null => c.createServerAudit().accept(this)
+      case c if c.createServerAuditSpecification() != null => c.createServerAuditSpecification().accept(this)
+      case c if c.createServerRole() != null => c.createServerRole().accept(this)
+      case c if c.createService() != null => c.createService().accept(this)
+      case c if c.createStatistics() != null => c.createStatistics().accept(this)
+      case c if c.createSynonym() != null => c.createSynonym().accept(this)
+      case c if c.createTable() != null => c.createTable().accept(this)
+      case c if c.createType() != null => c.createType().accept(this)
+      case c if c.createUser() != null => c.createUser().accept(this)
+      case c if c.createUserAzureSqlDw() != null => c.createUserAzureSqlDw().accept(this)
+      case c if c.createWorkloadGroup() != null => c.createWorkloadGroup().accept(this)
+      case c if c.createXmlIndex() != null => c.createXmlIndex().accept(this)
+      case c if c.createXmlSchemaCollection() != null => c.createXmlSchemaCollection().accept(this)
+      case c if c.triggerDisEn() != null => c.triggerDisEn().accept(this)
+      case c if c.dropAggregate() != null => c.dropAggregate().accept(this)
+      case c if c.dropApplicationRole() != null => c.dropApplicationRole().accept(this)
+      case c if c.dropAssembly() != null => c.dropAssembly().accept(this)
+      case c if c.dropAsymmetricKey() != null => c.dropAsymmetricKey().accept(this)
+      case c if c.dropAvailabilityGroup() != null => c.dropAvailabilityGroup().accept(this)
+      case c if c.dropBrokerPriority() != null => c.dropBrokerPriority().accept(this)
+      case c if c.dropCertificate() != null => c.dropCertificate().accept(this)
+      case c if c.dropColumnEncryptionKey() != null => c.dropColumnEncryptionKey().accept(this)
+      case c if c.dropColumnMasterKey() != null => c.dropColumnMasterKey().accept(this)
+      case c if c.dropContract() != null => c.dropContract().accept(this)
+      case c if c.dropCredential() != null => c.dropCredential().accept(this)
+      case c if c.dropCryptograhicProvider() != null => c.dropCryptograhicProvider().accept(this)
+      case c if c.dropDatabase() != null => c.dropDatabase().accept(this)
+      case c if c.dropDatabaseAuditSpecification() != null => c.dropDatabaseAuditSpecification().accept(this)
+      case c if c.dropDatabaseEncryptionKey() != null => c.dropDatabaseEncryptionKey().accept(this)
+      case c if c.dropDatabaseScopedCredential() != null => c.dropDatabaseScopedCredential().accept(this)
+      case c if c.dropDbRole() != null => c.dropDbRole().accept(this)
+      case c if c.dropDefault() != null => c.dropDefault().accept(this)
+      case c if c.dropEndpoint() != null => c.dropEndpoint().accept(this)
+      case c if c.dropEventNotifications() != null => c.dropEventNotifications().accept(this)
+      case c if c.dropEventSession() != null => c.dropEventSession().accept(this)
+      case c if c.dropExternalDataSource() != null => c.dropExternalDataSource().accept(this)
+      case c if c.dropExternalFileFormat() != null => c.dropExternalFileFormat().accept(this)
+      case c if c.dropExternalLibrary() != null => c.dropExternalLibrary().accept(this)
+      case c if c.dropExternalResourcePool() != null => c.dropExternalResourcePool().accept(this)
+      case c if c.dropExternalTable() != null => c.dropExternalTable().accept(this)
+      case c if c.dropFulltextCatalog() != null => c.dropFulltextCatalog().accept(this)
+      case c if c.dropFulltextIndex() != null => c.dropFulltextIndex().accept(this)
+      case c if c.dropFulltextStoplist() != null => c.dropFulltextStoplist().accept(this)
+      case c if c.dropFunction() != null => c.dropFunction().accept(this)
+      case c if c.dropIndex() != null => c.dropIndex().accept(this)
+      case c if c.dropLogin() != null => c.dropLogin().accept(this)
+      case c if c.dropMasterKey() != null => c.dropMasterKey().accept(this)
+      case c if c.dropMessageType() != null => c.dropMessageType().accept(this)
+      case c if c.dropPartitionFunction() != null => c.dropPartitionFunction().accept(this)
+      case c if c.dropPartitionScheme() != null => c.dropPartitionScheme().accept(this)
+      case c if c.dropProcedure() != null => c.dropProcedure().accept(this)
+      case c if c.dropQueue() != null => c.dropQueue().accept(this)
+      case c if c.dropRemoteServiceBinding() != null => c.dropRemoteServiceBinding().accept(this)
+      case c if c.dropResourcePool() != null => c.dropResourcePool().accept(this)
+      case c if c.dropRoute() != null => c.dropRoute().accept(this)
+      case c if c.dropRule() != null => c.dropRule().accept(this)
+      case c if c.dropSchema() != null => c.dropSchema().accept(this)
+      case c if c.dropSearchPropertyList() != null => c.dropSearchPropertyList().accept(this)
+      case c if c.dropSecurityPolicy() != null => c.dropSecurityPolicy().accept(this)
+      case c if c.dropSequence() != null => c.dropSequence().accept(this)
+      case c if c.dropServerAudit() != null => c.dropServerAudit().accept(this)
+      case c if c.dropServerAuditSpecification() != null => c.dropServerAuditSpecification().accept(this)
+      case c if c.dropServerRole() != null => c.dropServerRole().accept(this)
+      case c if c.dropService() != null => c.dropService().accept(this)
+      case c if c.dropSignature() != null => c.dropSignature().accept(this)
+      case c if c.dropStatistics() != null => c.dropStatistics().accept(this)
+      case c if c.dropStatisticsNameAzureDwAndPdw() != null => c.dropStatisticsNameAzureDwAndPdw().accept(this)
+      case c if c.dropSymmetricKey() != null => c.dropSymmetricKey().accept(this)
+      case c if c.dropSynonym() != null => c.dropSynonym().accept(this)
+      case c if c.dropTable() != null => c.dropTable().accept(this)
+      case c if c.dropTrigger() != null => c.dropTrigger().accept(this)
+      case c if c.dropType() != null => c.dropType().accept(this)
+      case c if c.dropUser() != null => c.dropUser().accept(this)
+      case c if c.dropView() != null => c.dropView().accept(this)
+      case c if c.dropWorkloadGroup() != null => c.dropWorkloadGroup().accept(this)
+      case c if c.dropXmlSchemaCollection() != null => c.dropXmlSchemaCollection().accept(this)
+      case c if c.triggerDisEn() != null => c.triggerDisEn().accept(this)
+      case c if c.lockTable() != null => c.lockTable().accept(this)
+      case c if c.truncateTable() != null => c.truncateTable().accept(this)
+      case c if c.updateStatistics() != null => c.updateStatistics().accept(this)
+      case _ => ir.UnresolvedCatalog(contextText(ctx))
+    }
+  }
 }

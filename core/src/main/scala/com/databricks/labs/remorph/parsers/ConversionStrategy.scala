@@ -1,5 +1,5 @@
 package com.databricks.labs.remorph.parsers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import java.util.Locale
 

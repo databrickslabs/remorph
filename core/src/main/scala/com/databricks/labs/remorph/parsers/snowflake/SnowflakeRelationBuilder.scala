@@ -1,21 +1,25 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder
-    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
-    with IncompleteParser[ir.LogicalPlan]
-    with ParserCommon[ir.LogicalPlan] {
+class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
 
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.LogicalPlan =
-    ir.UnresolvedRelation(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
   override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
     val select = ctx.selectOptionalClauses().accept(this)
     val relation = buildLimitOffset(ctx.limitClause(), select)
@@ -57,6 +61,7 @@ class SnowflakeRelationBuilder
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = projectExpressions.collect {
+      case ir.Id(i, _) => i
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
     }
@@ -93,12 +98,12 @@ class SnowflakeRelationBuilder
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
-    buildFilter[HavingClauseContext](ctx, _.predicate(), input)
+    buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
 
   private def buildQualify(ctx: QualifyClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
   private def buildWhere(ctx: WhereClauseContext, from: ir.LogicalPlan): ir.LogicalPlan =
-    buildFilter[WhereClauseContext](ctx, _.predicate(), from)
+    buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
 
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
@@ -149,6 +154,8 @@ class SnowflakeRelationBuilder
           a.id().asScala.map(expressionBuilder.visitId)))
       .getOrElse(input)
   }
+
+  override def visitValuesTable(ctx: ValuesTableContext): ir.LogicalPlan = ctx.valuesTableBody().accept(this)
 
   override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.LogicalPlan = {
     val expressions =
@@ -256,7 +263,7 @@ class SnowflakeRelationBuilder
     ir.Join(
       left,
       right.objectRef().accept(this),
-      Option(right.predicate()).map(_.accept(expressionBuilder)),
+      Option(right.searchCondition()).map(_.accept(expressionBuilder)),
       joinType,
       usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
