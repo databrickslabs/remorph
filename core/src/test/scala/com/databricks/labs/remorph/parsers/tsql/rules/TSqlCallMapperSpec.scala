@@ -1,12 +1,11 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, ShiftLeft}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlCallMapperSpec extends AnyWordSpec with Matchers with IRHelpers {
+class TSqlCallMapperSpec extends AnyWordSpec with Matchers with ir.IRHelpers {
 
   private val tsqlCallMapper = new TSqlCallMapper
 
@@ -29,7 +28,7 @@ class TSqlCallMapperSpec extends AnyWordSpec with Matchers with IRHelpers {
         ir.BitwiseOr(
           ir.BitwiseAnd(
             ir.Literal(42.toShort),
-            ir.BitwiseXor(ir.Literal(-1), ShiftLeft(ir.Literal(1), ir.Literal(7.toShort)))),
+            ir.BitwiseXor(ir.Literal(-1), ir.ShiftLeft(ir.Literal(1), ir.Literal(7.toShort)))),
           ir.ShiftRight(ir.Literal(0.toShort), ir.Literal(7.toShort)))
 
       ir.CallFunction("SET_BIT", Seq(ir.Literal(42.toShort), ir.Literal(7.toShort))) becomes

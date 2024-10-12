@@ -72,7 +72,7 @@ insertStatement
 
 insertMultiTableStatement
     : INSERT OVERWRITE? ALL intoClause2
-    | INSERT OVERWRITE? (FIRST | ALL) (WHEN predicate THEN intoClause2+)+ (ELSE intoClause2)? subquery
+    | INSERT OVERWRITE? (FIRST | ALL) (WHEN searchCondition THEN intoClause2+)+ (ELSE intoClause2)? subquery
     ;
 
 intoClause2: INTO objectName (L_PAREN columnList R_PAREN)? valuesList?
@@ -81,33 +81,34 @@ intoClause2: INTO objectName (L_PAREN columnList R_PAREN)? valuesList?
 valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
     ;
 
-valueItem: columnName | DEFAULT | NULL_
+valueItem: columnName | DEFAULT | NULL
     ;
 
-mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeMatches
+mergeStatement: MERGE INTO tableRef USING tableSource ON searchCondition mergeCond
     ;
 
-mergeMatches: mergeCond+
+mergeCond: (mergeCondMatch | mergeCondNotMatch)+
     ;
 
-mergeCond
-    : (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
-    | WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
+mergeCondMatch: (WHEN MATCHED (AND searchCondition)? THEN mergeUpdateDelete)
     ;
 
-mergeUpdateDelete: UPDATE SET columnName EQ expr (COLON columnName EQ expr)* | DELETE
+mergeCondNotMatch: WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
     ;
 
-mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN
+mergeUpdateDelete: UPDATE SET setColumnValue (COMMA setColumnValue)* | DELETE
+    ;
+
+mergeInsert: INSERT ((L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN)?
     ;
 
 updateStatement
     : UPDATE tableRef SET setColumnValue (COMMA setColumnValue)* (FROM tableSources)? (
-        WHERE predicate
+        WHERE searchCondition
     )?
     ;
 
-setColumnValue: id EQ expr
+setColumnValue: columnName EQ expr
     ;
 
 tableRef: objectName asAlias?
@@ -119,7 +120,7 @@ tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
 tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
     ;
 
-deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
+deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE searchCondition)?
     ;
 
 otherCommand
@@ -1105,7 +1106,7 @@ alterColumnClause
     : COLUMN? columnName (
         DROP DEFAULT
         | SET DEFAULT objectName DOT NEXTVAL
-        | ( SET? NOT NULL_ | DROP NOT NULL_)
+        | ( SET? NOT NULL | DROP NOT NULL)
         | ( (SET DATA)? TYPE)? dataType
         | COMMENT string
         | UNSET COMMENT
@@ -1148,7 +1149,7 @@ onDelete: ON DELETE onAction
 foreignKeyMatch: MATCH matchType = (FULL | PARTIAL | SIMPLE)
     ;
 
-onAction: CASCADE | SET ( NULL_ | DEFAULT) | RESTRICT | NO ACTION
+onAction: CASCADE | SET ( NULL | DEFAULT) | RESTRICT | NO ACTION
     ;
 
 constraintProperties
@@ -1204,7 +1205,7 @@ alterColumnDecl: COLUMN? columnName alterColumnOpts
 alterColumnOpts
     : DROP DEFAULT
     | SET DEFAULT objectName DOT NEXTVAL
-    | ( SET? NOT NULL_ | DROP NOT NULL_)
+    | ( SET? NOT NULL | DROP NOT NULL)
     | ( (SET DATA)? TYPE)? dataType
     | commentClause
     | UNSET COMMENT
@@ -1472,8 +1473,8 @@ createExternalFunction
     : CREATE orReplace? SECURE? EXTERNAL FUNCTION objectName L_PAREN (
         argName argDataType (COMMA argName argDataType)*
     )? R_PAREN RETURNS dataType nullNotNull? (
-        ( CALLED ON NULL_ INPUT)
-        | ((RETURNS NULL_ ON NULL_ INPUT) | STRICT)
+        ( CALLED ON NULL INPUT)
+        | ((RETURNS NULL ON NULL INPUT) | STRICT)
     )? (VOLATILE | IMMUTABLE)? commentClause? API_INTEGRATION EQ id (
         HEADERS EQ L_PAREN headerDecl (COMMA headerDecl)* R_PAREN
     )? (CONTEXT_HEADERS EQ L_PAREN id (COMMA id)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
@@ -1533,7 +1534,7 @@ argDecl: argName argDataType argDefaultValueClause?
 argDefaultValueClause: DEFAULT expr
     ;
 
-colDecl: columnName dataType virtualColumnDecl?
+colDecl: columnName dataType? virtualColumnDecl?
     ;
 
 virtualColumnDecl: AS L_PAREN functionCall R_PAREN
@@ -1547,8 +1548,8 @@ createFunction
         dataType
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
     ) (LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL))? (
-        CALLED ON NULL_ INPUT
-        | RETURNS NULL_ ON NULL_ INPUT
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
         | STRICT
     )? (VOLATILE | IMMUTABLE)? (PACKAGES EQ L_PAREN stringList R_PAREN)? (
         RUNTIME_VERSION EQ (string | FLOAT)
@@ -1558,7 +1559,7 @@ createFunction
     | CREATE orReplace? SECURE? FUNCTION objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) nullNotNull? (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
+    ) nullNotNull? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? MEMOIZABLE? commentClause? AS functionDefinition
@@ -1632,7 +1633,7 @@ executaAs: EXECUTE AS callerOwner
 procedureDefinition: DOLLAR_STRING | declareCommand? BEGIN procStatement+ END SEMI
     ;
 
-notNull: NOT NULL_
+notNull: NOT NULL
     ;
 
 table_: TABLE (L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN) | (functionCall)
@@ -1642,14 +1643,14 @@ createProcedure
     : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
         | table_
-    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
+    ) notNull? LANGUAGE SQL (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
     | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
-        CALLED ON NULL_ INPUT
-        | RETURNS NULL_ ON NULL_ INPUT
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
         | STRICT
     )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
@@ -1657,7 +1658,7 @@ createProcedure
         dataType notNull?
         | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
     ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
-    //            ( CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT )?
+    //            ( CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT )?
     //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
     commentClause? executaAs? AS procedureDefinition
     ;
@@ -2055,7 +2056,7 @@ outOfLineConstraint
     ;
 
 fullColDecl
-    : colDecl (collate | inlineConstraint | nullNotNull | (defaultValue | NULL_))* withMaskingPolicy? withTags? (
+    : colDecl (collate | inlineConstraint | nullNotNull | (defaultValue | NULL))* withMaskingPolicy? withTags? (
         COMMENT string
     )?
     ;
@@ -2086,7 +2087,7 @@ createTableClause
 createTableAsSelect
     : CREATE orReplace? tableType? TABLE (ifNotExists? objectName | objectName ifNotExists?) (
         L_PAREN columnDeclItemList R_PAREN
-    )? clusterBy? copyGrants? withRowAccessPolicy? withTags? commentClause? AS queryStatement
+    )? clusterBy? copyGrants? withRowAccessPolicy? withTags? commentClause? AS L_PAREN? queryStatement R_PAREN?
     ;
 
 createTableLike
@@ -2189,7 +2190,7 @@ sessionParamsList: sessionParams (COMMA sessionParams)*
 createTask
     : CREATE orReplace? TASK ifNotExists? objectName taskParameters* commentClause? copyGrants? (
         AFTER objectName (COMMA objectName)*
-    )? (WHEN predicate)? AS sql
+    )? (WHEN searchCondition)? AS sql
     ;
 
 taskParameters
@@ -2259,7 +2260,7 @@ whProperties
     | MAX_CLUSTER_COUNT EQ num
     | MIN_CLUSTER_COUNT EQ num
     | SCALING_POLICY EQ (STANDARD | ECONOMY)
-    | AUTO_SUSPEND (EQ num | NULL_)
+    | AUTO_SUSPEND (EQ num | NULL)
     | AUTO_RESUME EQ trueFalse
     | INITIALLY_SUSPENDED EQ trueFalse
     | RESOURCE_MONITOR EQ id
@@ -2991,6 +2992,8 @@ nonReservedWords
     | ARRAY
     | ARRAY_AGG
     | AT_KEYWORD
+    | BODY
+    | CHARACTER
     | CHECKSUM
     | CLUSTER
     | COLLATE
@@ -2999,6 +3002,7 @@ nonReservedWords
     | CONDITION
     | CONFIGURATION
     | COPY_OPTIONS_
+    | CURRENT_TIME
     | DATA
     | DATE
     | DATE_FORMAT
@@ -3006,6 +3010,7 @@ nonReservedWords
     | DELTA
     | DENSE_RANK
     | DIRECTION
+    | DISABLE_AUTO_CONVERT
     | DOWNSTREAM
     | DUMMY
     | DYNAMIC
@@ -3015,11 +3020,14 @@ nonReservedWords
     | EVENT
     | EXCHANGE
     | EXPIRY_DATE
+    | FILE_FORMAT
     | FIRST
     | FIRST_NAME
     | FLATTEN
     | FLOOR
+    | FREQUENCY
     | FUNCTION
+    | GET
     | GET
     | GLOBAL
     | IDENTIFIER
@@ -3027,6 +3035,7 @@ nonReservedWords
     | IF
     | INDEX
     | INPUT
+    | INSERT
     | INTERVAL
     | JAVASCRIPT
     | KEY
@@ -3038,6 +3047,8 @@ nonReservedWords
     | LENGTH
     | LISTAGG
     | LOCAL
+    | LOCATION
+    | MATCHES
     | MAX_CONCURRENCY_LEVEL
     | MODE
     | NAME
@@ -3076,6 +3087,7 @@ nonReservedWords
     | START
     | STATE
     | STATS
+    | SUBSTRING
     | SYSADMIN
     | TABLE
     | TAG
@@ -3125,49 +3137,46 @@ num: DECIMAL
 exprList: expr (COMMA expr)*
     ;
 
+// Snowflake stupidly allows AND and OR in any expression that results in a purely logical
+// TRUE/FALSE result and is not involved in, say, a predicate. So we must also allow that,
+// even though it messes with precedence somewhat. However,  as we only see queries that
+// parse/work in Snowflake, there is no practical effect on correct parsing. It is a PITA
+// that we have had to rename rules to make it make sense though.
 expr
-    : L_PAREN expr R_PAREN                      # exprPrecedence
-    | objectName DOT NEXTVAL                    # exprNextval
-    | expr DOT expr                             # exprDot
-    | expr COLON expr                           # exprColon
-    | expr COLLATE string                       # exprCollate
-    | caseExpression                            # exprCase
-    | iffExpr                                   # exprIff
-    | sign expr                                 # exprSign
-    | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
-    | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
-    | expr comparisonOperator expr              # exprComparison
-    | expr predicatePartial                     # exprPredicate
-    | expr COLON_COLON dataType                 # exprAscribe
-    | op = NOT+ expr                            # exprNot
-    | expr AND expr                             # exprAnd
-    | expr OR expr                              # exprOr
-    | expr withinGroup                          # exprWithinGroup
-    | expr overClause                           # exprOver
-    | castExpr                                  # exprCast
-    | functionCall                              # exprFuncCall
-    | DISTINCT expr                             # exprDistinct
-    | L_PAREN subquery R_PAREN                  # exprSubquery
-    | primitiveExpression                       # exprPrimitive
+    : op = NOT+ expr # exprNot
+    | expr AND expr  # exprAnd
+    | expr OR expr   # exprOr
+    | expression     # nonLogicalExpression
+    ;
+
+// Use this entry point into epxression when allowing AND and OR would be ambiguous, such as in
+// searchConditions.
+expression
+    : L_PAREN expression R_PAREN                            # exprPrecedence
+    | objectName DOT NEXTVAL                                # exprNextval
+    | expression DOT expression                             # exprDot
+    | expression COLON expression                           # exprColon
+    | expression COLLATE string                             # exprCollate
+    | caseExpression                                        # exprCase
+    | iffExpr                                               # exprIff
+    | sign expression                                       # exprSign
+    | expression op = (STAR | DIVIDE | MODULE) expression   # exprPrecedence0
+    | expression op = (PLUS | MINUS | PIPE_PIPE) expression # exprPrecedence1
+    | expression comparisonOperator expression              # exprComparison
+    | expression COLON_COLON dataType                       # exprAscribe
+    | expression withinGroup                                # exprWithinGroup
+    | expression overClause                                 # exprOver
+    | castExpr                                              # exprCast
+    | functionCall                                          # exprFuncCall
+    | DISTINCT expression                                   # exprDistinct
+    | L_PAREN subquery R_PAREN                              # exprSubquery
+    | primitiveExpression                                   # exprPrimitive
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
     ;
 
-predicatePartial
-    : IS nullNotNull
-    | NOT? IN L_PAREN (subquery | exprList) R_PAREN
-    | NOT? likeExpression
-    | NOT? BETWEEN expr AND expr
-    ;
-
-likeExpression
-    : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
-    | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
-    | RLIKE expr                                                           # likeExprRLike
-    ;
-
-iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
+iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
     ;
 
 castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
@@ -3179,7 +3188,7 @@ jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
 kvPair: key = string COLON literal
     ;
 
-arrayLiteral: LSB literal (COMMA literal)* RSB | LSB RSB
+arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
     ;
 
 dataTypeSize: L_PAREN num R_PAREN
@@ -3209,10 +3218,13 @@ dataType
     ) dataTypeSize?
     | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
     | VARIANT
-    | OBJECT
+    | OBJECT (L_PAREN objectField (COMMA objectField)* R_PAREN)?
     | ARRAY (L_PAREN dataType R_PAREN)?
     | GEOGRAPHY
     | GEOMETRY
+    ;
+
+objectField: id dataType
     ;
 
 primitiveExpression
@@ -3246,8 +3258,8 @@ builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtrac
     ;
 
 standardFunction
-    : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
-    | functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
+    : functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
+    | functionName L_PAREN (exprList | paramAssocList)? R_PAREN
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3287,15 +3299,15 @@ aggregateFunction
     ;
 
 literal
-    : DATE_LIT
-    | TIMESTAMP_LIT
+    : DATE string
+    | TIMESTAMP string
     | string
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
     | jsonLiteral
     | arrayLiteral
-    | NULL_
+    | NULL
     | PARAM // A question mark can be used as a placeholder for a prepared statement that will use binding.
     ;
 
@@ -3307,7 +3319,7 @@ caseExpression
     | CASE switchSearchConditionSection+ (ELSE expr)? END
     ;
 
-switchSearchConditionSection: WHEN predicate THEN expr
+switchSearchConditionSection: WHEN searchCondition THEN expr
     ;
 
 switchSection: WHEN expr THEN expr
@@ -3321,17 +3333,20 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN (
+        (selectStatement setOperators*)
+        | expr
+    ) R_PAREN
     ;
 
 selectStatement
     : selectClause selectOptionalClauses limitClause?
     | selectTopClause selectOptionalClauses //TOP and LIMIT are not allowed together
+    | L_PAREN selectStatement R_PAREN
     ;
 
 setOperators
     : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
-    | L_PAREN selectStatement R_PAREN
     ;
 
 selectOptionalClauses
@@ -3354,10 +3369,10 @@ selectList: selectListElem (COMMA selectListElem)*
     ;
 
 selectListElem
-    : columnElem asAlias?
+    : expressionElem asAlias?
+    | columnElem asAlias?
     | columnElemStar
     //    | udtElem
-    | expressionElem asAlias?
     ;
 
 columnElemStar: (objectName DOT)? STAR
@@ -3369,7 +3384,7 @@ columnElem: (objectName DOT)? columnName | (objectName DOT)? DOLLAR columnPositi
 asAlias: AS? alias
     ;
 
-expressionElem: expr | predicate
+expressionElem: searchCondition | expr
     ;
 
 columnPosition: num
@@ -3408,7 +3423,7 @@ objectRef
     | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
     | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
     | valuesTable tableAlias?                                                        # objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
+    | objectName START WITH searchCondition CONNECT BY priorList?                    # objRefStartWith
     ;
 
 tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
@@ -3427,7 +3442,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON predicate) | (USING L_PAREN columnList R_PAREN))?
+    : joinType? JOIN objectRef ((ON searchCondition) | (USING L_PAREN columnList R_PAREN))?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
     ;
@@ -3442,7 +3457,7 @@ atBefore
     | BEFORE L_PAREN STATEMENT ASSOC string R_PAREN
     ;
 
-end: END L_PAREN (TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
+end: END L_PAREN ( TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
     ;
 
 changes: CHANGES L_PAREN INFORMATION ASSOC defaultAppendOnly R_PAREN atBefore end?
@@ -3502,9 +3517,7 @@ columnAliasListInBrackets: L_PAREN id (COMMA id)* R_PAREN
 exprListInParentheses: L_PAREN exprList R_PAREN
     ;
 
-valuesTable
-    : L_PAREN valuesTableBody R_PAREN
-    | valuesTableBody
+valuesTable: L_PAREN valuesTableBody R_PAREN | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*
@@ -3525,20 +3538,34 @@ sampleSeed: (REPEATABLE | SEED) L_PAREN num R_PAREN
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
     ;
 
-nullNotNull: NOT? NULL_
+nullNotNull: NOT? NULL
     ;
 
 subquery: queryStatement
     ;
 
-predicate
-    : EXISTS L_PAREN subquery R_PAREN
-    | expr comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN
-    | expr predicatePartial
-    | expr
+searchCondition
+    : L_PAREN searchCondition R_PAREN     # scPrec
+    | NOT searchCondition                 # scNot
+    | searchCondition AND searchCondition # scAnd
+    | searchCondition OR searchCondition  # scOr
+    | predicate                           # scPred
     ;
 
-whereClause: WHERE predicate
+predicate
+    : EXISTS L_PAREN subquery R_PAREN                                                            # predExists
+    | expression comparisonOperator expression                                                   # predBinop
+    | expression comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN                  # predASA
+    | expression IS NOT? NULL                                                                    # predIsNull
+    | expression NOT? IN L_PAREN (subquery | exprList) R_PAREN                                   # predIn
+    | expression NOT? BETWEEN expression AND expression                                          # predBetween
+    | expression NOT? op = (LIKE | ILIKE) expression (ESCAPE expression)?                        # predLikeSinglePattern
+    | expression NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expression)? # predLikeMultiplePatterns
+    | expression NOT? RLIKE expression                                                           # predRLike
+    | expression                                                                                 # predExpr
+    ;
+
+whereClause: WHERE searchCondition
     ;
 
 groupByElem: columnElem | num | expressionElem
@@ -3553,7 +3580,7 @@ groupByClause
     | GROUP BY ALL
     ;
 
-havingClause: HAVING predicate
+havingClause: HAVING searchCondition
     ;
 
 qualifyClause: QUALIFY expr

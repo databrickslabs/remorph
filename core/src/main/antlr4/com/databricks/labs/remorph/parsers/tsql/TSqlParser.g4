@@ -2799,7 +2799,7 @@ predicate
     ;
 
 queryExpression
-    : querySpecification unions += sqlUnion*
+    : querySpecification sqlUnion*
     | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
     ;
 

@@ -401,6 +401,7 @@ class Snow(Snowflake):
             "RANK": local_expression.Rank.from_arg_list,
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
+            "TO_ARRAY": local_expression.ToArray.from_arg_list,
         }
 
         FUNCTION_PARSERS = {

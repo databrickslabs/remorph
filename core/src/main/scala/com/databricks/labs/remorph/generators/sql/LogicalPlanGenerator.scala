@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(
@@ -101,7 +101,7 @@ class LogicalPlanGenerator(
 
         s"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
 
-      case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS (${generate(ctx, ctas.query)})"
+      case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
     }
   }
 
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
-      case x => throw TranspileException(s"Unsupported table alteration ${x}")
+      case x => throw TranspileException(ir.UnexpectedTableAlteration(x))
     } mkString ", "
   }
 
@@ -372,7 +372,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkString(" IN(", ", ", ")")
         s"$child PIVOT($expressions FOR $col$values)"
-      case a => throw TranspileException(s"Unsupported aggregate $a")
+      case a => throw TranspileException(ir.UnsupportedGroupType(a))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): String = {

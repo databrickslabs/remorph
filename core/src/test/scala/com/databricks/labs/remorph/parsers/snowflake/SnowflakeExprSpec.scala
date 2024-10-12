@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
-import org.scalatest.Checkpoints.Checkpoint
+import com.databricks.labs.remorph.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -10,6 +9,9 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
   override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
   private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
+
+  private def searchConditionExample(input: String, expectedAst: Expression): Unit =
+    exampleExpr(input, _.searchCondition(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
     "do something" should {
@@ -121,113 +123,106 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       }
     }
 
-    def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
-      val cp = new Checkpoint()
-      cp(exampleExpr(query, _.expr(), expectedAst))
-      cp(exampleExpr(query, _.predicate(), expectedAst))
-      cp.reportAll()
-    }
-
     "translate IN expressions" should {
       "col1 IN (SELECT * FROM t)" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 IN (SELECT * FROM t)",
           In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))))
       }
       "col1 NOT IN (SELECT * FROM t)" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 NOT IN (SELECT * FROM t)",
           Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None))))))))
       }
       "col1 IN (1, 2, 3)" in {
-        exprAndPredicateExample("col1 IN (1, 2, 3)", In(Id("col1"), Seq(Literal(1), Literal(2), Literal(3))))
+        searchConditionExample("col1 IN (1, 2, 3)", In(Id("col1"), Seq(Literal(1), Literal(2), Literal(3))))
       }
       "col1 NOT IN ('foo', 'bar')" in {
-        exprAndPredicateExample("col1 NOT IN ('foo', 'bar')", Not(In(Id("col1"), Seq(Literal("foo"), Literal("bar")))))
+        searchConditionExample("col1 NOT IN ('foo', 'bar')", Not(In(Id("col1"), Seq(Literal("foo"), Literal("bar")))))
       }
     }
 
     "translate BETWEEN expressions" should {
       "col1 BETWEEN 3.14 AND 42" in {
-        exprAndPredicateExample("col1 BETWEEN 3.14 AND 42", Between(Id("col1"), Literal(3.14), Literal(42)))
+        searchConditionExample("col1 BETWEEN 3.14 AND 42", Between(Id("col1"), Literal(3.14), Literal(42)))
       }
       "col1 NOT BETWEEN 3.14 AND 42" in {
-        exprAndPredicateExample("col1 NOT BETWEEN 3.14 AND 42", Not(Between(Id("col1"), Literal(3.14), Literal(42))))
+        searchConditionExample("col1 NOT BETWEEN 3.14 AND 42", Not(Between(Id("col1"), Literal(3.14), Literal(42))))
       }
     }
 
     "translate LIKE expressions" should {
       "col1 LIKE '%foo'" in {
-        exprAndPredicateExample("col1 LIKE '%foo'", Like(Id("col1"), Literal("%foo"), None))
+        searchConditionExample("col1 LIKE '%foo'", Like(Id("col1"), Literal("%foo"), None))
       }
       "col1 ILIKE '%foo'" in {
-        exprAndPredicateExample("col1 ILIKE '%foo'", ILike(Id("col1"), Literal("%foo"), None))
+        searchConditionExample("col1 ILIKE '%foo'", ILike(Id("col1"), Literal("%foo"), None))
       }
       "col1 NOT LIKE '%foo'" in {
-        exprAndPredicateExample("col1 NOT LIKE '%foo'", Not(Like(Id("col1"), Literal("%foo"), None)))
+        searchConditionExample("col1 NOT LIKE '%foo'", Not(Like(Id("col1"), Literal("%foo"), None)))
       }
       "col1 NOT ILIKE '%foo'" in {
-        exprAndPredicateExample("col1 NOT ILIKE '%foo'", Not(ILike(Id("col1"), Literal("%foo"), None)))
+        searchConditionExample("col1 NOT ILIKE '%foo'", Not(ILike(Id("col1"), Literal("%foo"), None)))
       }
       "col1 LIKE '%foo' ESCAPE '^'" in {
-        exprAndPredicateExample("col1 LIKE '%foo' ESCAPE '^'", Like(Id("col1"), Literal("%foo"), Some(Literal('^'))))
+        searchConditionExample("col1 LIKE '%foo' ESCAPE '^'", Like(Id("col1"), Literal("%foo"), Some(Literal('^'))))
       }
       "col1 ILIKE '%foo' ESCAPE '^'" in {
-        exprAndPredicateExample("col1 ILIKE '%foo' ESCAPE '^'", ILike(Id("col1"), Literal("%foo"), Some(Literal('^'))))
+        searchConditionExample("col1 ILIKE '%foo' ESCAPE '^'", ILike(Id("col1"), Literal("%foo"), Some(Literal('^'))))
       }
       "col1 NOT LIKE '%foo' ESCAPE '^'" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 NOT LIKE '%foo' ESCAPE '^'",
           Not(Like(Id("col1"), Literal("%foo"), Some(Literal('^')))))
       }
       "col1 NOT ILIKE '%foo' ESCAPE '^'" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 NOT ILIKE '%foo' ESCAPE '^'",
           Not(ILike(Id("col1"), Literal("%foo"), Some(Literal('^')))))
       }
       "col1 LIKE ANY ('%foo', 'bar%', '%qux%')" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
           LikeAny(Id("col1"), Seq(Literal("%foo"), Literal("bar%"), Literal("%qux%"))))
       }
       "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
           LikeAll(Id("col1"), Seq(Literal("%foo"), Literal("bar\\^%"), Literal("%qux%"))))
       }
       "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
           ILikeAny(Id("col1"), Seq(Literal("%foo"), Literal("bar\\^%"), Literal("%qux%"))))
       }
       "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')" in {
-        exprAndPredicateExample(
+        searchConditionExample(
           "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')",
           ILikeAll(Id("col1"), Seq(Literal("%foo"), Literal("bar%"), Literal("%qux%"))))
       }
       "col1 RLIKE '[a-z][A-Z]*'" in {
-        exprAndPredicateExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Id("col1"), Literal("[a-z][A-Z]*")))
+        searchConditionExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Id("col1"), Literal("[a-z][A-Z]*")))
       }
       "col1 NOT RLIKE '[a-z][A-Z]*'" in {
-        exprAndPredicateExample("col1 NOT RLIKE '[a-z][A-Z]*'", Not(RLike(Id("col1"), Literal("[a-z][A-Z]*"))))
+        searchConditionExample("col1 NOT RLIKE '[a-z][A-Z]*'", Not(RLike(Id("col1"), Literal("[a-z][A-Z]*"))))
       }
     }
 
     "translate IS [NOT] NULL expressions" should {
       "col1 IS NULL" in {
-        exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
+        searchConditionExample("col1 IS NULL", IsNull(Id("col1")))
       }
       "col1 IS NOT NULL" in {
-        exprAndPredicateExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
+        searchConditionExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
       }
     }
 
     "translate DISTINCT expressions" in {
-      exprAndPredicateExample("DISTINCT col1", Distinct(Id("col1")))
+      searchConditionExample("DISTINCT col1", Distinct(Id("col1")))
     }
 
     "translate WITHIN GROUP expressions" in {
-      exprAndPredicateExample(
+      searchConditionExample(
         "ARRAY_AGG(col1) WITHIN GROUP (ORDER BY col2)",
         WithinGroup(CallFunction("ARRAY_AGG", Seq(Id("col1"))), Seq(SortOrder(Id("col2"), Ascending, NullsLast))))
     }

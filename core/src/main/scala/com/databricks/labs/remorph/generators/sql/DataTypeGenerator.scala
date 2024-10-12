@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.intermediate.UnsupportedDataType
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 /**
@@ -44,7 +45,7 @@ object DataTypeGenerator {
       s"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
     case ir.VarcharType(size) => s"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => s"CHAR${maybeSize(size)}"
-    case _ => throw TranspileException(s"not implemented: $dt")
+    case _ => throw TranspileException(UnsupportedDataType(dt))
   }
 
   private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")

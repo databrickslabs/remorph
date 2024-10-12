@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -11,7 +10,7 @@ class ExpressionGeneratorTest
     extends AnyWordSpec
     with GeneratorTestCommon[ir.Expression]
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
 
@@ -280,6 +279,16 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "ARRAY_REMOVE",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ARRAY_REMOVE(a, b)"
+    }
+
+    "ARRAY_REMOVE([2, 3, 4::DOUBLE, 4, NULL], 4)" in {
+      ir.CallFunction(
+        "ARRAY_REMOVE",
+        Seq(
+          ir.ArrayExpr(
+            Seq(ir.Literal(2), ir.Literal(3), ir.Cast(ir.Literal(4), ir.DoubleType), ir.Literal(4), ir.Literal(null)),
+            ir.IntegerType),
+          ir.Literal(4))) generates "ARRAY_REMOVE(ARRAY(2, 3, CAST(4 AS DOUBLE), 4, NULL), 4)"
     }
 
     "ARRAY_REPEAT(a, b)" in {

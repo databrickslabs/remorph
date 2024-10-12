@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 case class NamedArgumentExpression(key: String, value: ir.Expression) extends ir.Expression {
   override def children: Seq[ir.Expression] = value :: Nil
