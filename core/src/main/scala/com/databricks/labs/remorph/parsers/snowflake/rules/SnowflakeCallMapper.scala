@@ -436,13 +436,13 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       arr: ir.Expression,
       sortAscending: Option[ir.Expression],
       nullsFirst: Option[ir.Expression]): ir.Expression = {
-
+    // Currently, only TRUE/FALSE Boolean literals are supported for Boolean parameters.
     val paramSortAsc = sortAscending.getOrElse(ir.Literal.True)
     val paramNullsFirst = nullsFirst.getOrElse {
       paramSortAsc match {
         case ir.Literal.True => ir.Literal.False
         case ir.Literal.False => ir.Literal.True
-        case _ => ir.If(paramSortAsc, ir.Literal.False, ir.Literal.True)
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(paramSortAsc)))
       }
     }
 
@@ -450,9 +450,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       isNullOrSmallFirst match {
         case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
         case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
-        case _ =>
-          if (nullOrSmallAtLeft) ir.If(isNullOrSmallFirst, ir.Literal(-1), oneLiteral)
-          else ir.If(isNullOrSmallFirst, oneLiteral, ir.Literal(-1))
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(isNullOrSmallFirst)))
       }
     }
 
@@ -472,7 +470,15 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         Some(zeroLiteral)),
       Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
 
-    ir.ArraySort(arr, comparator)
+    val irSortArray = (paramSortAsc, paramNullsFirst) match {
+      // We can make the IR much simpler for some cases
+      // by using DBSQL SORT_ARRAY function without needing a custom comparator
+      case (ir.Literal.True, ir.Literal.True) => ir.SortArray(arr, None)
+      case (ir.Literal.False, ir.Literal.False) => ir.SortArray(arr, Some(ir.Literal.False))
+      case _ => ir.ArraySort(arr, comparator)
+    }
+
+    irSortArray
   }
 
 }
