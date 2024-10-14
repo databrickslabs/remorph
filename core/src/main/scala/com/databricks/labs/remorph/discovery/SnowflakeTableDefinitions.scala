@@ -32,23 +32,29 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |    TABLE_CATALOG,
        |    TABLE_SCHEMA,
        |    TABLE_NAME,
-       |    LISTAGG(column_name || '§' ||
+       |    LISTAGG(
+       |      column_name || '§' || CASE
+       |        WHEN numeric_precision IS NOT NULL
+       |        AND numeric_scale IS NOT NULL THEN CONCAT(data_type, '(', numeric_precision, ',', numeric_scale, ')')
+       |        WHEN LOWER(data_type) = 'text' THEN CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+       |        ELSE data_type
+       |      END || '§' || TO_BOOLEAN(
        |        CASE
-       |            WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
-       |            THEN
-       |                CONCAT(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
-       |            WHEN LOWER(data_type) = 'text'
-       |            THEN
-       |                CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
-       |            ELSE data_type
-       |         END|| '§' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END)
-       |         || '§' || COALESCE(COMMENT, '')
-       |         ,
-       |    '‡') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
+       |          WHEN IS_NULLABLE = 'YES' THEN 'true'
+       |          ELSE 'false'
+       |        END
+       |      ) || '§' || COALESCE(COMMENT, ''),
+       |      '‡'
+       |    ) WITHIN GROUP (
+       |      ORDER BY
+       |        ordinal_position
+       |    ) AS Schema
        |  FROM
-       |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS
+       |    ${catalogName}.INFORMATION_SCHEMA.COLUMNS
        |  GROUP BY
-       |      TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
+       |    TABLE_CATALOG,
+       |    TABLE_SCHEMA,
+       |    TABLE_NAME
        |)
        |SELECT
        |  sft.TABLE_CATALOG,
@@ -58,24 +64,24 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |  sfe.location,
        |  sfe.file_format_name,
        |  sfv.view_definition,
-       |  column_info.Schema as DERIVED_SCHEMA,
+       |  column_info.Schema AS DERIVED_SCHEMA,
        |  FLOOR(sft.BYTES / (1024 * 1024 * 1024)) AS SIZE_GB
        |FROM
        |  column_info
-       |JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft
-       |  ON column_info.TABLE_CATALOG = sft.TABLE_CATALOG
+       |  JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft ON column_info.TABLE_CATALOG = sft.TABLE_CATALOG
        |  AND column_info.TABLE_SCHEMA = sft.TABLE_SCHEMA
        |  AND column_info.TABLE_NAME = sft.TABLE_NAME
-       |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.VIEWS sfv
-       |  ON column_info.TABLE_CATALOG = sfv.TABLE_CATALOG
+       |  LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.VIEWS sfv ON column_info.TABLE_CATALOG = sfv.TABLE_CATALOG
        |  AND column_info.TABLE_SCHEMA = sfv.TABLE_SCHEMA
        |  AND column_info.TABLE_NAME = sfv.TABLE_NAME
-       |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
-       |  ON column_info.TABLE_CATALOG = sfe.TABLE_CATALOG
+       |  LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe ON column_info.TABLE_CATALOG = sfe.TABLE_CATALOG
        |  AND column_info.TABLE_SCHEMA = sfe.TABLE_SCHEMA
        |  AND column_info.TABLE_NAME = sfe.TABLE_NAME
        |ORDER BY
-       |  sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;""".stripMargin
+       |  sft.TABLE_CATALOG,
+       |  sft.TABLE_SCHEMA,
+       |  sft.TABLE_NAME;
+       |""".stripMargin
   }
 
   /**
