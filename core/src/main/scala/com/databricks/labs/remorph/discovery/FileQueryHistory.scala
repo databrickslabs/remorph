@@ -12,7 +12,7 @@ class FileQueryHistory(path: Path) extends QueryHistoryProvider {
 
     val queryMap = fileContent.getLines().zipWithIndex.foldLeft((Map.empty[Int, String], "", 1)) {
       case ((acc, query, startLineNumber), (line, lineNumber)) =>
-        val newQuery = query + "\n" + line
+        val newQuery = query + line + "\n"
         if (line.endsWith(";")) {
           (acc + (startLineNumber -> newQuery), "", lineNumber + 2)
         } else {
@@ -21,7 +21,7 @@ class FileQueryHistory(path: Path) extends QueryHistoryProvider {
     }._1
 
     queryMap.map { case (lineNumber, stmt) =>
-      ExecutedQuery(s"${file.getName}#${lineNumber}", stmt.mkString("\n"), QuerySpec(filename = Some(file.getName)))
+      ExecutedQuery(s"${file.getName}#${lineNumber}", stmt, QuerySpec(filename = Some(file.getName)))
     }.toSeq
   }
 
