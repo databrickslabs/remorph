@@ -10,16 +10,14 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
     "get table definitions for snowflake" in {
       val env = new EnvGetter
       val connFactory = new SnowflakeConnectionFactory(env)
-      val result = {
-        val conn = connFactory.newConnection()
-        try {
-          val snow = new SnowflakeTableDefinitions(conn)
-          snow.getAllTableDefinitions
-        } finally {
-          conn.close()
-        }
+      val conn = connFactory.newConnection()
+      try {
+        val snow = new SnowflakeTableDefinitions(conn)
+        val rs = snow.getAllTableDefinitions
+        rs should not be empty
+      } finally {
+        conn.close()
       }
-      assert(result.nonEmpty)
     }
   }
 }
