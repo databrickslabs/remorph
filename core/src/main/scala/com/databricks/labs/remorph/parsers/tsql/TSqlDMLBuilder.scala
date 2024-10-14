@@ -10,6 +10,14 @@ class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Modification]
     with ParserCommon[ir.Modification] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Modification = {
+    ir.UnresolvedModification(msg)
+  }
+
+  // Concrete visitors
+
   override def visitDmlClause(ctx: DmlClauseContext): ir.Modification =
     ctx match {
       // NB: select is handled by the relationBuilder
@@ -18,7 +26,7 @@ class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
       case dml if dml.merge() != null => dml.merge().accept(this)
       case dml if dml.update() != null => dml.update().accept(this)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(this)
-      case _ => ir.UnresolvedModification(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedModification(contextText(ctx))
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {

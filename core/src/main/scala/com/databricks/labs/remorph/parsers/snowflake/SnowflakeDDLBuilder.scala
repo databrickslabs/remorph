@@ -1,25 +1,87 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon}
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
-class SnowflakeDDLBuilder
-    extends SnowflakeParserBaseVisitor[ir.Catalog]
-    with ParserCommon[ir.Catalog]
-    with IncompleteParser[ir.Catalog] {
+class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val typeBuilder = new SnowflakeTypeBuilder
+  private val relationBuilder = new SnowflakeRelationBuilder
 
-  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.Catalog = {
+    ir.UnresolvedCatalog(msg)
+  }
+
+  // Concrete visitors
 
   private def extractString(ctx: StrContext): String =
     ctx.accept(expressionBuilder) match {
       case ir.StringLiteral(s) => s
       case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
     }
+
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog = ctx match {
+    case a if a.alterCommand() != null => a.alterCommand().accept(this)
+    case c if c.createCommand() != null => c.createCommand().accept(this)
+    case d if d.dropCommand() != null => d.dropCommand().accept(this)
+    case u if u.undropCommand() != null => u.undropCommand().accept(this)
+  }
+
+  override def visitCreateCommand(ctx: CreateCommandContext): ir.Catalog = {
+    ctx match {
+      case c if c.createAccount() != null => c.createAccount().accept(this)
+      case c if c.createAlert() != null => c.createAlert().accept(this)
+      case c if c.createApiIntegration() != null => c.createApiIntegration().accept(this)
+      case c if c.createObjectClone() != null => c.createObjectClone().accept(this)
+      case c if c.createConnection() != null => c.createConnection().accept(this)
+      case c if c.createDatabase() != null => c.createDatabase().accept(this)
+      case c if c.createDynamicTable() != null => c.createDynamicTable().accept(this)
+      case c if c.createEventTable() != null => c.createEventTable().accept(this)
+      case c if c.createExternalFunction() != null => c.createExternalFunction().accept(this)
+      case c if c.createExternalTable() != null => c.createExternalTable().accept(this)
+      case c if c.createFailoverGroup() != null => c.createFailoverGroup().accept(this)
+      case c if c.createFileFormat() != null => c.createFileFormat().accept(this)
+      case c if c.createFunction() != null => c.createFunction().accept(this)
+      case c if c.createManagedAccount() != null => c.createManagedAccount().accept(this)
+      case c if c.createMaskingPolicy() != null => c.createMaskingPolicy().accept(this)
+      case c if c.createMaterializedView() != null => c.createMaterializedView().accept(this)
+      case c if c.createNetworkPolicy() != null => c.createNetworkPolicy().accept(this)
+      case c if c.createNotificationIntegration() != null => c.createNotificationIntegration().accept(this)
+      case c if c.createPipe() != null => c.createPipe().accept(this)
+      case c if c.createProcedure() != null => c.createProcedure().accept(this)
+      case c if c.createReplicationGroup() != null => c.createReplicationGroup().accept(this)
+      case c if c.createResourceMonitor() != null => c.createResourceMonitor().accept(this)
+      case c if c.createRole() != null => c.createRole().accept(this)
+      case c if c.createRowAccessPolicy() != null => c.createRowAccessPolicy().accept(this)
+      case c if c.createSchema() != null => c.createSchema().accept(this)
+      case c if c.createSecurityIntegrationExternalOauth() != null =>
+        c.createSecurityIntegrationExternalOauth().accept(this)
+      case c if c.createSecurityIntegrationSnowflakeOauth() != null =>
+        c.createSecurityIntegrationSnowflakeOauth().accept(this)
+      case c if c.createSecurityIntegrationSaml2() != null => c.createSecurityIntegrationSaml2().accept(this)
+      case c if c.createSecurityIntegrationScim() != null => c.createSecurityIntegrationScim().accept(this)
+      case c if c.createSequence() != null => c.createSequence().accept(this)
+      case c if c.createSessionPolicy() != null => c.createSessionPolicy().accept(this)
+      case c if c.createShare() != null => c.createShare().accept(this)
+      case c if c.createStage() != null => c.createStage().accept(this)
+      case c if c.createStorageIntegration() != null => c.createStorageIntegration().accept(this)
+      case c if c.createStream() != null => c.createStream().accept(this)
+      case c if c.createTable() != null => c.createTable().accept(this)
+      case c if c.createTableAsSelect() != null => c.createTableAsSelect().accept(this)
+      case c if c.createTableLike() != null => c.createTableLike().accept(this)
+      case c if c.createTag() != null => c.createTag().accept(this)
+      case c if c.createTask() != null => c.createTask().accept(this)
+      case c if c.createUser() != null => c.createUser().accept(this)
+      case c if c.createView() != null => c.createView().accept(this)
+      case c if c.createWarehouse() != null => c.createWarehouse().accept(this)
+      case _ => ir.UnresolvedCatalog(contextText(ctx))
+    }
+  }
 
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
@@ -93,12 +155,28 @@ class SnowflakeDDLBuilder
     ir.CreateTableCommand(tableName, columns)
   }
 
+  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = {
+    val tableName = ctx.objectName().getText
+    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
+    val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+    // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
+    // TODO Capture other Table Properties
+    val colConstraints = Map.empty[String, Seq[ir.Constraint]]
+    val colOptions = Map.empty[String, Seq[ir.GenericOption]]
+    val constraints = Seq.empty[ir.Constraint]
+    val indices = Seq.empty[ir.Constraint]
+    val partition = None
+    val options = None
+    ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
+  }
+
   override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
   }
 
   override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
-    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedCommand(contextText(ctx))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -162,10 +240,14 @@ class SnowflakeDDLBuilder
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
+  override def visitCreateUser(ctx: CreateUserContext): ir.Catalog = {
+    ir.UnresolvedCommand(contextText(ctx))
+  }
+
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
     ctx match {
       case c if c.alterTable() != null => c.alterTable().accept(this)
-      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedCommand(contextText(ctx))
     }
   }
 
@@ -197,9 +279,9 @@ class SnowflakeDDLBuilder
     ctx match {
       case c if c.dataType() != null =>
         ir.ChangeColumnDataType(columnName, typeBuilder.buildDataType(c.dataType()))
-      case c if c.DROP() != null && c.NULL_() != null =>
+      case c if c.DROP() != null && c.NULL() != null =>
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
-      case c if c.NULL_() != null =>
+      case c if c.NULL() != null =>
         ir.AddConstraint(columnName, ir.Nullability(c.NOT() == null))
       case c => ir.UnresolvedTableAlteration(c.getText)
     }

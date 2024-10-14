@@ -121,7 +121,86 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
         ir.Literal("$123.5"),
         ir.DecimalType(Some(26), Some(4)))
 
+      ir.CallFunction(
+        "MONTHS_BETWEEN",
+        Seq(ir.Cast(ir.Literal("2021-01-01"), ir.DateType), ir.Cast(ir.Literal("2021-02-01"), ir.DateType))) becomes ir
+        .MonthsBetween(
+          ir.Cast(ir.Literal("2021-01-01"), ir.DateType),
+          ir.Cast(ir.Literal("2021-02-01"), ir.DateType),
+          ir.Literal.True)
+
+      ir.CallFunction(
+        "MONTHS_BETWEEN",
+        Seq(
+          ir.Cast(ir.Literal("2020-05-01 10:00:00"), ir.TimestampType),
+          ir.Cast(ir.Literal("2020-04-15 08:00:00"), ir.TimestampType))) becomes ir.MonthsBetween(
+        ir.Cast(ir.Literal("2020-05-01 10:00:00"), ir.TimestampType),
+        ir.Cast(ir.Literal("2020-04-15 08:00:00"), ir.TimestampType),
+        ir.Literal.True)
+
+      ir.CallFunction(
+        "ARRAY_SORT",
+        Seq(
+          ir.CreateArray(
+            Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+          ir.Literal.True,
+          ir.Literal.True)) becomes ir.SortArray(
+        ir.CreateArray(
+          Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+        None)
+
+      ir.CallFunction(
+        "ARRAY_SORT",
+        Seq(
+          ir.CreateArray(
+            Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+          ir.Literal.False,
+          ir.Literal.False)) becomes ir.SortArray(
+        ir.CreateArray(
+          Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+        Some(ir.Literal.False))
+
+      ir.CallFunction(
+        "ARRAY_SORT",
+        Seq(
+          ir.CreateArray(
+            Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+          ir.Literal.True,
+          ir.Literal.False)) becomes ir.ArraySort(
+        ir.CreateArray(
+          Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+        ir.LambdaFunction(
+          ir.Case(
+            None,
+            Seq(
+              ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), ir.Literal(0)),
+              ir.WhenBranch(ir.IsNull(ir.Id("left")), ir.Literal(1)),
+              ir.WhenBranch(ir.IsNull(ir.Id("right")), ir.Literal(-1)),
+              ir.WhenBranch(ir.LessThan(ir.Id("left"), ir.Id("right")), ir.Literal(-1)),
+              ir.WhenBranch(ir.GreaterThan(ir.Id("left"), ir.Id("right")), ir.Literal(1))),
+            Some(ir.Literal(0))),
+          Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right")))))
     }
+
+    ir.CallFunction(
+      "ARRAY_SORT",
+      Seq(
+        ir.CreateArray(
+          Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+        ir.Literal.False,
+        ir.Literal.True)) becomes ir.ArraySort(
+      ir.CreateArray(Seq(ir.Literal(0), ir.Literal(2), ir.Literal(4), ir.Literal.Null, ir.Literal(5), ir.Literal.Null)),
+      ir.LambdaFunction(
+        ir.Case(
+          None,
+          Seq(
+            ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), ir.Literal(0)),
+            ir.WhenBranch(ir.IsNull(ir.Id("left")), ir.Literal(-1)),
+            ir.WhenBranch(ir.IsNull(ir.Id("right")), ir.Literal(1)),
+            ir.WhenBranch(ir.LessThan(ir.Id("left"), ir.Id("right")), ir.Literal(1)),
+            ir.WhenBranch(ir.GreaterThan(ir.Id("left"), ir.Id("right")), ir.Literal(-1))),
+          Some(ir.Literal(0))),
+        Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right")))))
 
     "ARRAY_SLICE index shift" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.IntLiteral(0), ir.IntLiteral(2))) becomes ir.Slice(

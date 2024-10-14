@@ -12,6 +12,14 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = vc.expressionBuilder.visitId(ctx.id())
     // Column list can be empty if the select specifies distinct column names
@@ -43,6 +51,13 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     Option(ctx.optionClause) match {
       case Some(optionClause) => ir.WithOptions(query, optionClause.accept(vc.expressionBuilder))
       case None => query
+    }
+  }
+
+  override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = {
+    ctx match {
+      case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
+      case _ => ir.UnresolvedRelation(contextText(ctx)) // TODO: Implement this style of UNION
     }
   }
 
@@ -425,7 +440,7 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
       case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
       case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
       // TODO: OPENROWSET and OPENQUERY
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedRelation(contextText(ctx))
     }
   }
 
