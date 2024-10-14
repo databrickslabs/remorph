@@ -59,8 +59,7 @@ rank_functions = (
     local_expression.NthValue,
     local_expression.Ntile,
     local_expression.PercentRank,
-    local_expression.Rank,
-    exp.RowNumber,
+    local_expression.Rank
 )
 
 
