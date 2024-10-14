@@ -167,7 +167,7 @@ def test_get_schema():
 def test_get_schema_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SqlServerDataSource(engine, spark, ws, scope)
+    ds = SQLServerDataSource(engine, spark, ws, scope)
 
     spark.read.format().option().option().option().option().load.side_effect = RuntimeError("Test Exception")
 
