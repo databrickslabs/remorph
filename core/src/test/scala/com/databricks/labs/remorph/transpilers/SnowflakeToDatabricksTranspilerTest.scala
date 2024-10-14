@@ -148,6 +148,81 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1;""".stripMargin
     }
 
+    "transpile MONTHS_BETWEEN function" in {
+      "SELECT MONTHS_BETWEEN('2021-02-01'::DATE, '2021-01-01'::DATE);" transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2021-02-01' AS DATE), CAST('2021-01-01' AS DATE), TRUE)
+           |  ;""".stripMargin
+
+      """SELECT
+        | MONTHS_BETWEEN('2019-03-01 02:00:00'::TIMESTAMP, '2019-02-15 01:00:00'::TIMESTAMP)
+        | AS mb;""".stripMargin transpilesTo
+        """SELECT
+           |  MONTHS_BETWEEN(CAST('2019-03-01 02:00:00' AS TIMESTAMP), CAST('2019-02-15 01:00:00'
+           |  AS TIMESTAMP), TRUE) AS mb
+           |  ;""".stripMargin
+    }
+
+    "transpile ARRAY_REMOVE function" in {
+      "SELECT ARRAY_REMOVE([1, 2, 3], 1);" transpilesTo
+        "SELECT ARRAY_REMOVE(ARRAY(1, 2, 3), 1);"
+
+      "SELECT ARRAY_REMOVE([2, 3, 4.11::DOUBLE, 4, NULL], 4);" transpilesTo
+        "SELECT ARRAY_REMOVE(ARRAY(2, 3, CAST(4.11 AS DOUBLE), 4, NULL), 4);"
+
+      // TODO - Enable this test case once the VARIANT casting is implemented.
+      // In Snow, if the value to remove is a VARCHAR,
+      // it is required to cast the value to VARIANT.
+      // "SELECT ARRAY_REMOVE(['a', 'b', 'c'], 'a'::VARIANT);" transpilesTo
+      // "SELECT ARRAY_REMOVE(ARRAY('a', 'b', 'c'), 'a');"
+    }
+    "transpile ARRAY_SORT function" in {
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, True);" transpilesTo
+        """SELECT
+          |  SORT_ARRAY(ARRAY(0, 2, 4, NULL, 5, NULL))
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], FALSE, False);" transpilesTo
+        """SELECT
+          |  SORT_ARRAY(ARRAY(0, 2, 4, NULL, 5, NULL), false)
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, FALSE);" transpilesTo
+        """SELECT
+          |  ARRAY_SORT(
+          |    ARRAY(0, 2, 4, NULL, 5, NULL),
+          |    (left, right) -> CASE
+          |      WHEN left IS NULL
+          |      AND right IS NULL THEN 0
+          |      WHEN left IS NULL THEN 1
+          |      WHEN right IS NULL THEN -1
+          |      WHEN left < right THEN -1
+          |      WHEN left > right THEN 1
+          |      ELSE 0
+          |    END
+          |  )
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], False, true);" transpilesTo
+        """SELECT
+          |  ARRAY_SORT(
+          |    ARRAY(0, 2, 4, NULL, 5, NULL),
+          |    (left, right) -> CASE
+          |      WHEN left IS NULL
+          |      AND right IS NULL THEN 0
+          |      WHEN left IS NULL THEN -1
+          |      WHEN right IS NULL THEN 1
+          |      WHEN left < right THEN 1
+          |      WHEN left > right THEN -1
+          |      ELSE 0
+          |    END
+          |  )
+          |  ;""".stripMargin
+
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, 1 = 1);".failsTranspilation
+      "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
@@ -205,6 +280,30 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "EXECUTE TASK task1;" in {
       "EXECUTE TASK task1;" transpilesTo
         s"""-- EXECUTE TASK task1;""".stripMargin
+    }
+  }
+
+  "Snowflake MERGE commands" should {
+
+    "MERGE;" in {
+      """MERGE INTO target_table AS t
+        |USING source_table AS s
+        |ON t.id = s.id
+        |WHEN MATCHED AND s.status = 'active' THEN
+        |  UPDATE SET t.value = s.value AND status = 'active'
+        |WHEN MATCHED AND s.status = 'inactive' THEN
+        |  DELETE
+        |WHEN NOT MATCHED THEN
+        |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin transpilesTo
+        s"""MERGE INTO target_table AS t
+           |USING source_table AS s
+           |ON t.id = s.id
+           |WHEN MATCHED AND s.status = 'active' THEN
+           |  UPDATE SET t.value = s.value AND status = 'active'
+           |WHEN MATCHED AND s.status = 'inactive' THEN
+           |  DELETE
+           |WHEN NOT MATCHED THEN
+           |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
 

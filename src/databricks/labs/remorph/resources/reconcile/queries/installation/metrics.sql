@@ -2,12 +2,12 @@ CREATE TABLE IF NOT EXISTS metrics (
     recon_table_id BIGINT NOT NULL,
     recon_metrics STRUCT<
                         row_comparison: STRUCT<
-                                                missing_in_source: INTEGER,
-                                                missing_in_target: INTEGER
+                                                missing_in_source: BIGINT,
+                                                missing_in_target: BIGINT
                                               >,
                         column_comparison: STRUCT<
-                                                   absolute_mismatch: INTEGER,
-                                                   threshold_mismatch: INTEGER,
+                                                   absolute_mismatch: BIGINT,
+                                                   threshold_mismatch: BIGINT,
                                                    mismatch_columns: STRING
                                                  >,
                         schema_comparison: BOOLEAN

@@ -460,7 +460,7 @@ NOTIFY                                         : 'NOTIFY';
 NOTIFY_USERS                                   : 'NOTIFY_USERS';
 NOVALIDATE                                     : 'NOVALIDATE';
 NULLS                                          : 'NULLS';
-NULL_                                          : 'NULL';
+NULL                                           : 'NULL';
 NULL_IF                                        : 'NULL_IF';
 NUMBER                                         : 'NUMBER';
 OAUTH                                          : 'OAUTH';
