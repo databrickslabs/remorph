@@ -728,7 +728,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "TIME_FROM_PARTS" => FunctionDefinition.standard(3, 4)
     case "TIME_SLICE" => FunctionDefinition.standard(3, 4)
     case "TOP_INSIGHTS (SNOWFLAKE.ML)" => FunctionDefinition.standard(4)
-    case "TO_ARRAY" => FunctionDefinition.standard(1)
+    case "TO_ARRAY" => FunctionDefinition.standard(1, 2)
     case "TO_BINARY" => FunctionDefinition.standard(1, 2)
     case "TO_BOOLEAN" => FunctionDefinition.standard(1)
     case "TO_CHAR , TO_VARCHAR" => FunctionDefinition.standard(4, 5)

@@ -13,6 +13,14 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
   }
@@ -29,7 +37,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
 
   // TODO: Stored procedure calls etc as batch start
   override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
-    ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+    ir.UnresolvedRelation(contextText(ctx))
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
@@ -46,7 +54,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
       case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
       case cv if cv.createView() != null => cv.createView().accept(this)
       case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
+      case _ => ir.UnresolvedRelation(contextText(ctx))
     }
   }
 

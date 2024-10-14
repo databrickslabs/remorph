@@ -25,6 +25,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
         // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
         ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral))
+      case ir.CallFunction("ARRAY_SORT", args) => arraySort(args)
       case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
       case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
@@ -51,6 +52,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("LISTAGG", args) =>
         ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None)
       case ir.CallFunction("MONTHNAME", args) => ir.DateFormatClass(args.head, ir.Literal("MMM"))
+      case ir.CallFunction("MONTHS_BETWEEN", args) => ir.MonthsBetween(args.head, args(1), ir.Literal.True)
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
@@ -424,6 +426,59 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.Literal.Null => ir.WhenBranch(ir.IsNull(expr), out)
       case any => ir.WhenBranch(ir.Equals(expr, any), out)
     }
+  }
+
+  private def arraySort(args: Seq[ir.Expression]): ir.Expression = {
+    makeArraySort(args.head, args.lift(1), args.lift(2))
+  }
+
+  private def makeArraySort(
+      arr: ir.Expression,
+      sortAscending: Option[ir.Expression],
+      nullsFirst: Option[ir.Expression]): ir.Expression = {
+    // Currently, only TRUE/FALSE Boolean literals are supported for Boolean parameters.
+    val paramSortAsc = sortAscending.getOrElse(ir.Literal.True)
+    val paramNullsFirst = nullsFirst.getOrElse {
+      paramSortAsc match {
+        case ir.Literal.True => ir.Literal.False
+        case ir.Literal.False => ir.Literal.True
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(paramSortAsc)))
+      }
+    }
+
+    def handleComparison(isNullOrSmallFirst: ir.Expression, nullOrSmallAtLeft: Boolean): ir.Expression = {
+      isNullOrSmallFirst match {
+        case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
+        case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
+        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(isNullOrSmallFirst)))
+      }
+    }
+
+    val comparator = ir.LambdaFunction(
+      ir.Case(
+        None,
+        Seq(
+          ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), zeroLiteral),
+          ir.WhenBranch(ir.IsNull(ir.Id("left")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(ir.IsNull(ir.Id("right")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = false)),
+          ir.WhenBranch(
+            ir.LessThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = true)),
+          ir.WhenBranch(
+            ir.GreaterThan(ir.Id("left"), ir.Id("right")),
+            handleComparison(paramSortAsc, nullOrSmallAtLeft = false))),
+        Some(zeroLiteral)),
+      Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
+
+    val irSortArray = (paramSortAsc, paramNullsFirst) match {
+      // We can make the IR much simpler for some cases
+      // by using DBSQL SORT_ARRAY function without needing a custom comparator
+      case (ir.Literal.True, ir.Literal.True) => ir.SortArray(arr, None)
+      case (ir.Literal.False, ir.Literal.False) => ir.SortArray(arr, Some(ir.Literal.False))
+      case _ => ir.ArraySort(arr, comparator)
+    }
+
+    irSortArray
   }
 
 }

@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -17,24 +17,38 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   private val dmlBuilder = new SnowflakeDMLBuilder
   private val commandBuilder = new SnowflakeCommandBuilder
 
-  // TODO investigate why this is needed
-  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
-    if (nextResult == null) {
-      aggregate
-    } else {
-      nextResult
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(msg: String): ir.LogicalPlan = {
+    ir.UnresolvedRelation(msg)
+  }
+
+  // Concrete visitors
+
+  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan =
+    Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(Seq.empty))
+
+  override def visitBatch(ctx: BatchContext): ir.LogicalPlan =
+    ir.Batch(visitMany(ctx.sqlCommand()))
+
+  override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan = {
+    ctx match {
+      case c if c.ddlCommand() != null => c.ddlCommand().accept(this)
+      case c if c.dmlCommand() != null => c.dmlCommand().accept(this)
+      case c if c.showCommand() != null => c.showCommand().accept(this)
+      case c if c.useCommand() != null => c.useCommand().accept(this)
+      case c if c.describeCommand() != null => c.describeCommand().accept(this)
+      case c if c.otherCommand() != null => c.otherCommand().accept(this)
+      case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
+      case _ => ir.UnresolvedCommand(contextText(ctx))
     }
   }
 
-  override def visitBatch(ctx: BatchContext): ir.LogicalPlan = {
-    ir.Batch(visitMany(ctx.sqlCommand()))
-  }
-
+  // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     val select = ctx.selectStatement().accept(relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)
     ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
-
   }
 
   override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
@@ -71,6 +85,6 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
-    ir.UnresolvedCommand(ctx.getText)
+    ir.UnresolvedCommand(contextText(ctx))
   }
 }
