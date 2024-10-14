@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.discovery
 
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import java.nio.file.Files
@@ -26,8 +25,8 @@ class FileQueryHistorySpec extends AnyFlatSpec with Matchers {
       val queryHistory = fileQueryHistory.history()
 
       queryHistory.queries should have size 2
-      queryHistory.queries.head.source should include ("SELECT * FROM table1;")
-      queryHistory.queries(1).source should include ("SELECT * FROM table2;")
+      queryHistory.queries.head.source should include("SELECT * FROM table1;")
+      queryHistory.queries(1).source should include("SELECT * FROM table2;")
 
     } finally {
       // Clean up the temporary directory

@@ -10,15 +10,18 @@ class FileQueryHistory(path: Path) extends QueryHistoryProvider {
   private def extractQueriesFromFile(file: File): Seq[ExecutedQuery] = {
     val fileContent = Source.fromFile(file)
 
-    val queryMap = fileContent.getLines().zipWithIndex.foldLeft((Map.empty[Int, String], "", 1)) {
-      case ((acc, query, startLineNumber), (line, lineNumber)) =>
+    val queryMap = fileContent
+      .getLines()
+      .zipWithIndex
+      .foldLeft((Map.empty[Int, String], "", 1)) { case ((acc, query, startLineNumber), (line, lineNumber)) =>
         val newQuery = query + line + "\n"
         if (line.endsWith(";")) {
           (acc + (startLineNumber -> newQuery), "", lineNumber + 2)
         } else {
           (acc, newQuery, startLineNumber)
         }
-    }._1
+      }
+      ._1
 
     queryMap.map { case (lineNumber, stmt) =>
       ExecutedQuery(s"${file.getName}#${lineNumber}", stmt, QuerySpec(filename = Some(file.getName)))
