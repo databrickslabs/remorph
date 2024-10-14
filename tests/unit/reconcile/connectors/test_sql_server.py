@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 
 from databricks.labs.remorph.config import get_dialect
-from databricks.labs.remorph.reconcile.connectors.sql_server import SqlServerDataSource
+from databricks.labs.remorph.reconcile.connectors.sql_server import SQLServerDataSource
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
@@ -50,7 +50,7 @@ def test_get_jdbc_url_happy():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # create object for SnowflakeDataSource
-    ds = SqlServerDataSource(engine, spark, ws, scope)
+    ds = SQLServerDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -63,7 +63,7 @@ def test_get_jdbc_url_fail():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_secret
     # create object for SnowflakeDataSource
-    ds = SqlServerDataSource(engine, spark, ws, scope)
+    ds = SQLServerDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -76,7 +76,7 @@ def test_read_data_with_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SqlServerDataSource(engine, spark, ws, scope)
+    ds = SQLServerDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -121,7 +121,7 @@ def test_get_schema():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ds = SqlServerDataSource(engine, spark, ws, scope)
+    ds = SQLServerDataSource(engine, spark, ws, scope)
     # call test method
     ds.get_schema("org", "schema", "supplier")
     # spark assertions

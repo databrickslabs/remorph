@@ -6,7 +6,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.connectors.sql_server import SqlServerDataSource
+from databricks.labs.remorph.reconcile.connectors.sql_server import SQLServerDataSource
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.oracle import Oracle
 from databricks.labs.remorph.snow.snowflake import Snow
@@ -26,5 +26,5 @@ def create_adapter(
     if isinstance(engine, Databricks):
         return DatabricksDataSource(engine, spark, ws, secret_scope)
     if isinstance(engine, TSQL):
-        return SqlServerDataSource(engine, spark, ws, secret_scope)
+        return SQLServerDataSource(engine, spark, ws, secret_scope)
     raise ValueError(f"Unsupported source type --> {engine}")

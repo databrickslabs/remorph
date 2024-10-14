@@ -47,7 +47,7 @@ _SCHEMA_QUERY = """SELECT
               """
 
 
-class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
+class SQLServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     _DRIVER = "sqlserver"
 
     def __init__(
