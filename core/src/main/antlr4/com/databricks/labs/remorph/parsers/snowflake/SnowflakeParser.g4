@@ -3553,7 +3553,7 @@ searchCondition
     ;
 
 predicate
-    : EXISTS L_PAREN subquery R_PAREN                                                            # predExists
+    : EXISTS? L_PAREN (subquery | exprList) R_PAREN? IN L_PAREN subquery R_PAREN                 # predExists
     | expression comparisonOperator expression                                                   # predBinop
     | expression comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN                  # predASA
     | expression IS NOT? NULL                                                                    # predIsNull
