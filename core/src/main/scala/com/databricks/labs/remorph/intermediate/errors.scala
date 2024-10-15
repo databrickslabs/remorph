@@ -11,7 +11,9 @@ case class ParsingError(
     charPositionInLine: Int,
     msg: String,
     offendingTokenWidth: Int,
-    offendingTokenText: String)
+    offendingTokenText: String,
+    offendingTokenName: String,
+    ruleName: String)
     extends RemorphError
 
 object ParsingError {
