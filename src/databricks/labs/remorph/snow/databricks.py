@@ -350,6 +350,7 @@ def _not_sql(self, expression: exp.Not) -> str:
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
+    NULL_ORDERING = "nulls_are_large"
 
     class Generator(org_databricks.Databricks.Generator):
         INVERSE_TIME_MAPPING: dict[str, str] = {
