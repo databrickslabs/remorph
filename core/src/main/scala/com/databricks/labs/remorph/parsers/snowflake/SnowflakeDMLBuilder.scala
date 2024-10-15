@@ -7,19 +7,15 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
 
-class SnowflakeDMLBuilder
+class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
     extends SnowflakeParserBaseVisitor[ir.Modification]
     with ParserCommon[ir.Modification]
     with IRHelpers {
 
-  private val expressionBuilder = new SnowflakeExpressionBuilder
-  private val relationBuilder = new SnowflakeRelationBuilder
-
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Modification = {
-    ir.UnresolvedModification(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Modification =
+    ir.UnresolvedModification(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -33,40 +29,40 @@ class SnowflakeDMLBuilder
   }
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = {
-    val table = ctx.objectName().accept(relationBuilder)
-    val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(expressionBuilder.visitId))
+    val table = ctx.objectName().accept(vc.relationBuilder)
+    val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.visitId))
     val values = ctx match {
-      case c if c.queryStatement() != null => c.queryStatement().accept(relationBuilder)
-      case c if c.valuesTableBody() != null => c.valuesTableBody().accept(relationBuilder)
+      case c if c.queryStatement() != null => c.queryStatement().accept(vc.relationBuilder)
+      case c if c.valuesTableBody() != null => c.valuesTableBody().accept(vc.relationBuilder)
     }
     val overwrite = ctx.OVERWRITE() != null
     ir.InsertIntoTable(table, columns, values, None, None, overwrite)
   }
 
   override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(relationBuilder)
-    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
+    val target = ctx.tableRef().accept(vc.relationBuilder)
+    val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
     Option(ctx.tablesOrQueries()) match {
       case Some(value) =>
-        val relation = relationBuilder.visit(value)
+        val relation = vc.relationBuilder.visit(value)
         ir.MergeIntoTable(target, relation, where.getOrElse(ir.Noop), matchedActions = Seq(ir.DeleteAction(None)))
       case None => ir.DeleteFromTable(target, where = where)
     }
   }
 
   override def visitUpdateStatement(ctx: UpdateStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(relationBuilder)
-    val set = expressionBuilder.visitMany(ctx.setColumnValue())
+    val target = ctx.tableRef().accept(vc.relationBuilder)
+    val set = vc.expressionBuilder.visitMany(ctx.setColumnValue())
     val sources =
-      Option(ctx.tableSources()).map(t => relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
-    val where = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
+      Option(ctx.tableSources()).map(t => vc.relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
+    val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
     ir.UpdateTable(target, sources, set, where, None, None)
   }
 
   override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(relationBuilder)
-    val relation = ctx.tableSource().accept(relationBuilder)
-    val predicate = ctx.searchCondition().accept(expressionBuilder)
+    val target = ctx.tableRef().accept(vc.relationBuilder)
+    val relation = ctx.tableSource().accept(vc.relationBuilder)
+    val predicate = ctx.searchCondition().accept(vc.expressionBuilder)
     val matchedActions = ctx
       .mergeCond()
       .mergeCondMatch()
@@ -89,7 +85,7 @@ class SnowflakeDMLBuilder
 
   private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(vc.expressionBuilder))
       case _ => None
     }
 
@@ -101,7 +97,7 @@ class SnowflakeDMLBuilder
           .mergeUpdateDelete()
           .setColumnValue()
           .asScala
-          .map(expressionBuilder.visitSetColumnValue)
+          .map(vc.expressionBuilder.visitSetColumnValue)
           .map { case a: ir.Assign =>
             a
           }
@@ -112,27 +108,27 @@ class SnowflakeDMLBuilder
 
   private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
     val condition = ctx match {
-      case c if c.searchCondition() != null => Some(c.searchCondition().accept(expressionBuilder))
+      case c if c.searchCondition() != null => Some(c.searchCondition().accept(vc.expressionBuilder))
       case _ => None
     }
     ctx match {
       case c if c.mergeInsert().columnList() != null =>
-        val assignment = (c
+        val assignment = c
           .mergeInsert()
           .columnList()
           .columnName()
           .asScala
-          .map(_.accept(expressionBuilder))
+          .map(_.accept(vc.expressionBuilder))
           .zip(
             c
               .mergeInsert()
               .exprList()
               .expr()
               .asScala
-              .map(_.accept(expressionBuilder)))
+              .map(_.accept(vc.expressionBuilder)))
           .map { case (col, value) =>
             ir.Assign(col, value)
-          })
+          }
 
         ir.InsertAction(condition, assignment)
 

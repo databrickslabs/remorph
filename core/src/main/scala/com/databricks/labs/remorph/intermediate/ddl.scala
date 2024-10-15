@@ -111,7 +111,18 @@ sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
-case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
+case class UnresolvedTableAlteration(
+    ruleText: String,
+    message: String,
+    ruleName: String = "rule name undetermined",
+    tokenName: Option[String] = None)
+    extends TableAlteration
+    with UnwantedInGeneratorInput
+    with Unresolved[UnresolvedTableAlteration] {
+  override def annotate(newRuleName: String, newTokenName: Option[String]): UnresolvedTableAlteration =
+    copy(ruleName = newRuleName, tokenName = newTokenName)
+}
+
 case class DropConstraintByName(constraintName: String) extends TableAlteration
 // When constraintName is None, drop the constraint on every relevant column
 case class DropConstraint(columnName: Option[String], constraint: Constraint) extends TableAlteration

@@ -1,22 +1,20 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.ParserCommon
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
-
-  private val expressionBuilder = new SnowflakeExpressionBuilder
-  private val functionBuilder = new SnowflakeFunctionBuilder
+class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
+    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
+    with ParserCommon[ir.LogicalPlan] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.LogicalPlan = {
-    ir.UnresolvedRelation(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -35,7 +33,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
           c.selectTopClause().selectListTop().allDistinct(),
           c.selectTopClause().selectListTop().selectList().selectListElem().asScala)
     }
-    val expressions = selectListElements.map(_.accept(expressionBuilder))
+    val expressions = selectListElements.map(_.accept(vc.expressionBuilder))
 
     if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
       buildTop(top, buildDistinct(relation, expressions))
@@ -47,14 +45,14 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
-        val limit = ir.Limit(input, ctx.expr(0).accept(expressionBuilder))
+        val limit = ir.Limit(input, ctx.expr(0).accept(vc.expressionBuilder))
         if (c.OFFSET() != null) {
-          ir.Offset(limit, ctx.expr(1).accept(expressionBuilder))
+          ir.Offset(limit, ctx.expr(1).accept(vc.expressionBuilder))
         } else {
           limit
         }
       } else {
-        ir.Offset(input, ctx.expr(0).accept(expressionBuilder))
+        ir.Offset(input, ctx.expr(0).accept(vc.expressionBuilder))
       }
     }
   }
@@ -70,7 +68,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
 
   private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
-      ir.Limit(input, top.expr().accept(expressionBuilder))
+      ir.Limit(input, top.expr().accept(vc.expressionBuilder))
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
@@ -95,7 +93,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
     Option(ctx).fold(input) { c =>
-      ir.Filter(input, conditionRule(c).accept(expressionBuilder))
+      ir.Filter(input, conditionRule(c).accept(vc.expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
     buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
@@ -111,7 +109,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
         c.groupByList()
           .groupByElem()
           .asScala
-          .map(_.accept(expressionBuilder))
+          .map(_.accept(vc.expressionBuilder))
       val aggregate =
         ir.Aggregate(child = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
       buildHaving(c.havingClause(), aggregate)
@@ -120,13 +118,13 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
 
   private def buildOrderBy(ctx: OrderByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
-      val sortOrders = c.orderItem().asScala.map(expressionBuilder.visitOrderItem)
+      val sortOrders = c.orderItem().asScala.map(vc.expressionBuilder.visitOrderItem)
       ir.Sort(input, sortOrders, is_global = false)
     }
   }
 
   override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.LogicalPlan = {
-    val tableFunc = ir.TableFunction(ctx.functionCall().accept(expressionBuilder))
+    val tableFunc = ir.TableFunction(ctx.functionCall().accept(vc.expressionBuilder))
     buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
 
@@ -135,7 +133,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
   override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = {
     val relation = ctx match {
       case c if c.subquery() != null => c.subquery().accept(this)
-      case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(expressionBuilder))
+      case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(vc.expressionBuilder))
     }
     val maybeLateral = if (ctx.LATERAL() != null) {
       ir.Lateral(relation)
@@ -150,8 +148,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       .map(a =>
         ir.SubqueryAlias(
           input,
-          expressionBuilder.visitId(a.alias().id()),
-          a.id().asScala.map(expressionBuilder.visitId)))
+          vc.expressionBuilder.visitId(a.alias().id()),
+          a.id().asScala.map(vc.expressionBuilder.visitId)))
       .getOrElse(input)
   }
 
@@ -162,7 +160,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       ctx
         .exprListInParentheses()
         .asScala
-        .map(l => expressionBuilder.visitMany(l.exprList().expr()))
+        .map(l => vc.expressionBuilder.visitMany(l.exprList().expr()))
     ir.Values(expressions)
   }
 
@@ -180,7 +178,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
   }
 
   override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = {
-    val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
+    val tableName = ctx.id().asScala.map(vc.expressionBuilder.visitId).map(_.id).mkString(".")
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
   }
 
@@ -193,7 +191,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
     Option(ctx)
       .map { c =>
         val alias = c.alias().getText
-        val columns = Option(c.id()).map(_.asScala.map(expressionBuilder.visitId)).getOrElse(Seq.empty)
+        val columns = Option(c.id()).map(_.asScala.map(vc.expressionBuilder.visitId)).getOrElse(Seq.empty)
         ir.TableAlias(relation, alias, columns)
       }
       .getOrElse(relation)
@@ -210,11 +208,12 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
   }
 
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
-    val pivotValues: Seq[ir.Literal] = expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
-    val argument = ir.Column(None, expressionBuilder.visitId(ctx.pivotColumn))
-    val column = ir.Column(None, expressionBuilder.visitId(ctx.valueColumn))
-    val aggFunc = expressionBuilder.visitId(ctx.aggregateFunc)
-    val aggregateFunction = functionBuilder.buildFunction(aggFunc, Seq(argument))
+    val pivotValues: Seq[ir.Literal] =
+      vc.expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
+    val argument = ir.Column(None, vc.expressionBuilder.visitId(ctx.pivotColumn))
+    val column = ir.Column(None, vc.expressionBuilder.visitId(ctx.valueColumn))
+    val aggFunc = vc.expressionBuilder.visitId(ctx.aggregateFunc)
+    val aggregateFunction = vc.functionBuilder.buildFunction(aggFunc, Seq(argument))
     ir.Aggregate(
       child = relation,
       group_type = ir.Pivot,
@@ -227,9 +226,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       .columnList()
       .columnName()
       .asScala
-      .map(_.accept(expressionBuilder))
-    val variableColumnName = expressionBuilder.visitId(ctx.valueColumn)
-    val valueColumnName = expressionBuilder.visitId(ctx.nameColumn)
+      .map(_.accept(vc.expressionBuilder))
+    val variableColumnName = vc.expressionBuilder.visitId(ctx.valueColumn)
+    val valueColumnName = vc.expressionBuilder.visitId(ctx.nameColumn)
     ir.Unpivot(
       child = relation,
       ids = unpivotColumns,
@@ -263,7 +262,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
     ir.Join(
       left,
       right.objectRef().accept(this),
-      Option(right.searchCondition()).map(_.accept(expressionBuilder)),
+      Option(right.searchCondition()).map(_.accept(vc.expressionBuilder)),
       joinType,
       usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
@@ -293,8 +292,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
   }
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = expressionBuilder.visitId(ctx.tableName)
-    val columns = ctx.columns.asScala.map(expressionBuilder.visitId)
+    val tableName = vc.expressionBuilder.visitId(ctx.tableName)
+    val columns = ctx.columns.asScala.map(vc.expressionBuilder.visitId)
     val query = ctx.selectStatement().accept(this)
     ir.SubqueryAlias(query, tableName, columns)
   }
@@ -325,7 +324,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan
       val subquery = c.subquery().accept(this)
       Option(c.asAlias())
         .map { a =>
-          ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), Seq())
+          ir.SubqueryAlias(subquery, vc.expressionBuilder.visitId(a.alias().id()), Seq())
         }
         .getOrElse(subquery)
 

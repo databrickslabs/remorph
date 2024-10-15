@@ -6,15 +6,14 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
+class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Catalog = {
-    ir.UnresolvedCatalog(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Catalog =
+    ir.UnresolvedCatalog(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -22,7 +21,12 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     ctx match {
       case ci if ci.createInternal() != null => ci.createInternal().accept(this)
       case ct if ct.createExternal() != null => ct.createExternal().accept(this)
-      case _ => ir.UnresolvedCatalog(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCatalog(
+          ruleText = contextText(ctx),
+          message = "Unknown CREATE TABLE variant",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
 
   override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
@@ -66,7 +70,12 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
         ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(vc.relationBuilder), None, None, None)
-      case _ => ir.UnresolvedCatalog(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCatalog(
+          ruleText = contextText(ctx),
+          message = "Unknown variant of CREATE TABLE is not yet supported",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
 
     // But because TSQL is so much more complicated than Databricks SQL, we need to build the table alterations
@@ -116,7 +125,11 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
   }
 
   override def visitCreateExternal(ctx: TSqlParser.CreateExternalContext): ir.Catalog = {
-    ir.UnresolvedCatalog(contextText(ctx))
+    ir.UnresolvedCatalog(
+      ruleText = contextText(ctx),
+      message = "CREATE EXTERNAL TABLE is not yet supported",
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(tokenName(ctx.getStart)))
   }
 
   /**
@@ -602,7 +615,12 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case c if c.lockTable() != null => c.lockTable().accept(this)
       case c if c.truncateTable() != null => c.truncateTable().accept(this)
       case c if c.updateStatistics() != null => c.updateStatistics().accept(this)
-      case _ => ir.UnresolvedCatalog(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCatalog(
+          ruleText = contextText(ctx),
+          message = "Unknown DDL clause",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 }
