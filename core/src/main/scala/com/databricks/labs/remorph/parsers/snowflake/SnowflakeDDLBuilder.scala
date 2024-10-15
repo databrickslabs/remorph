@@ -5,22 +5,19 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringCont
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
-class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
-
-  private val expressionBuilder = new SnowflakeExpressionBuilder
-  private val typeBuilder = new SnowflakeTypeBuilder
-  private val relationBuilder = new SnowflakeRelationBuilder
+class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
+    extends SnowflakeParserBaseVisitor[ir.Catalog]
+    with ParserCommon[ir.Catalog] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Catalog = {
-    ir.UnresolvedCatalog(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Catalog =
+    ir.UnresolvedCatalog(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
   private def extractString(ctx: StrContext): String =
-    ctx.accept(expressionBuilder) match {
+    ctx.accept(vc.expressionBuilder) match {
       case ir.StringLiteral(s) => s
       case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
     }
@@ -79,7 +76,8 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       case c if c.createUser() != null => c.createUser().accept(this)
       case c if c.createView() != null => c.createView().accept(this)
       case c if c.createWarehouse() != null => c.createWarehouse().accept(this)
-      case _ => ir.UnresolvedCatalog(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCatalog(ruleText = contextText(ctx), "Unknown CREATE XXX command", ruleName = "createCommand")
     }
   }
 
@@ -92,7 +90,7 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.objectName().getText
-    val returnType = typeBuilder.buildDataType(ctx.dataType())
+    val returnType = vc.typeBuilder.buildDataType(ctx.dataType())
     val parameters = ctx.argDecl().asScala.map(buildParameter)
     val acceptsNullParameters = ctx.CALLED() != null
     val body = buildFunctionBody(ctx.functionDefinition())
@@ -103,9 +101,9 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
-      dataType = typeBuilder.buildDataType(ctx.argDataType().dataType()),
+      dataType = vc.typeBuilder.buildDataType(ctx.argDataType().dataType()),
       defaultValue = Option(ctx.argDefaultValueClause())
-        .map(_.expr().accept(expressionBuilder)))
+        .map(_.expr().accept(vc.expressionBuilder)))
   }
 
   private def buildFunctionBody(ctx: FunctionDefinitionContext): String = extractString(ctx.string()).trim
@@ -157,7 +155,7 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
 
   override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = {
     val tableName = ctx.objectName().getText
-    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
     // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
     val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
     // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
@@ -172,11 +170,19 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
-    ir.UnresolvedCommand(contextText(ctx))
+    ir.UnresolvedCommand(
+      ruleText = contextText(ctx),
+      "CREATE STREAM UNSUPPORTED",
+      ruleName = contextRuleName(ctx),
+      tokenName = Some("STREAM"))
   }
 
   override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
-    ir.UnresolvedCommand(contextText(ctx))
+    ir.UnresolvedCommand(
+      ruleText = contextText(ctx),
+      "CREATE TASK UNSUPPORTED",
+      ruleName = "createTask",
+      tokenName = Some("TASK"))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -202,7 +208,7 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
 
   private def buildColumnDeclaration(ctx: FullColDeclContext): ir.ColumnDeclaration = {
     val name = ctx.colDecl().columnName().getText
-    val dataType = typeBuilder.buildDataType(ctx.colDecl().dataType())
+    val dataType = vc.typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
     val nullability = if (ctx.nullNotNull().isEmpty) {
       Seq()
@@ -240,14 +246,22 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
-  override def visitCreateUser(ctx: CreateUserContext): ir.Catalog = {
-    ir.UnresolvedCommand(contextText(ctx))
-  }
+  override def visitCreateUser(ctx: CreateUserContext): ir.Catalog =
+    ir.UnresolvedCommand(
+      ruleText = contextText(ctx),
+      message = "CREATE USER UNSUPPORTED",
+      ruleName = "createUser",
+      tokenName = Some("USER"))
 
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
     ctx match {
       case c if c.alterTable() != null => c.alterTable().accept(this)
-      case _ => ir.UnresolvedCommand(contextText(ctx))
+      case _ =>
+        ir.UnresolvedCommand(
+          ruleText = contextText(ctx),
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)),
+          message = s"Unknown ALTER command variant")
     }
   }
 
@@ -258,7 +272,12 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
         ir.AlterTableCommand(tableName, buildColumnActions(c.tableColumnAction()))
       case c if c.constraintAction() != null =>
         ir.AlterTableCommand(tableName, buildConstraintActions(c.constraintAction()))
-      case c => ir.UnresolvedCatalog(c.getText)
+      case _ =>
+        ir.UnresolvedCatalog(
+          ruleText = contextText(ctx),
+          message = "Unknown ALTER TABLE variant",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -271,19 +290,30 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       Seq(ir.DropColumns(c.columnList().columnName().asScala.map(_.getText)))
     case c if c.RENAME() != null =>
       Seq(ir.RenameColumn(c.columnName(0).getText, c.columnName(1).getText))
-    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
+    case _ =>
+      Seq(
+        ir.UnresolvedTableAlteration(
+          ruleText = contextText(ctx),
+          message = "Unknown COLUMN action variant",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart))))
   }
 
   private[snowflake] def buildColumnAlterations(ctx: AlterColumnClauseContext): ir.TableAlteration = {
     val columnName = ctx.columnName().getText
     ctx match {
       case c if c.dataType() != null =>
-        ir.ChangeColumnDataType(columnName, typeBuilder.buildDataType(c.dataType()))
+        ir.ChangeColumnDataType(columnName, vc.typeBuilder.buildDataType(c.dataType()))
       case c if c.DROP() != null && c.NULL() != null =>
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
       case c if c.NULL() != null =>
         ir.AddConstraint(columnName, ir.Nullability(c.NOT() == null))
-      case c => ir.UnresolvedTableAlteration(c.getText)
+      case _ =>
+        ir.UnresolvedTableAlteration(
+          ruleText = contextText(ctx),
+          message = "Unknown ALTER COLUMN variant",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 
@@ -294,7 +324,13 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       buildDropConstraints(c)
     case c if c.RENAME() != null =>
       Seq(ir.RenameConstraint(c.id(0).getText, c.id(1).getText))
-    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
+    case c =>
+      Seq(
+        ir.UnresolvedTableAlteration(
+          ruleText = contextText(c),
+          message = "Unknown CONSTRAINT variant",
+          ruleName = vc.ruleName(c),
+          tokenName = Some(tokenName(ctx.getStart))))
   }
 
   private[snowflake] def buildDropConstraints(ctx: ConstraintActionContext): Seq[ir.TableAlteration] = {
@@ -304,7 +340,13 @@ class SnowflakeDDLBuilder extends SnowflakeParserBaseVisitor[ir.Catalog] with Pa
       case c if c.primaryKey() != null => dropConstraints(affectedColumns, ir.PrimaryKey())
       case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique())
       case c if c.id.size() > 0 => Seq(ir.DropConstraintByName(c.id(0).getText))
-      case c => Seq(ir.UnresolvedTableAlteration(ctx.getText))
+      case _ =>
+        Seq(
+          ir.UnresolvedTableAlteration(
+            ruleText = contextText(ctx),
+            message = "Unknown DROP constraint variant",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart))))
     }
   }
 

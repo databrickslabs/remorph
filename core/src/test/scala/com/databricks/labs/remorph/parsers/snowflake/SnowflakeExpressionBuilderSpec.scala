@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, ID, LiteralContext}
+import org.antlr.v4.runtime.CommonToken
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -14,8 +15,7 @@ class SnowflakeExpressionBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder =
-    new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder = vc.expressionBuilder
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" should {
@@ -278,7 +278,7 @@ class SnowflakeExpressionBuilderSpec
           "LAST_VALUE(col_name) IGNORE NULLS OVER (PARTITION BY a ORDER BY b, c DESC, d)",
           _.rankingWindowedFunction(),
           expectedAst = Window(
-            window_function = CallFunction("LAST_VALUE", Seq(Id("col_name", false))),
+            window_function = CallFunction("LAST_VALUE", Seq(Id("col_name"))),
             partition_spec = Seq(Id("a")),
             sort_order = Seq(
               SortOrder(Id("b"), Ascending, NullsLast),
@@ -357,36 +357,36 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsLast))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsLast))
     }
 
     "translate ORDER BY a ASC NULLS FIRST" in {
       val tree = parseString("ORDER BY a ASC NULLS FIRST", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsFirst))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsFirst))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Descending, NullsFirst))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Ascending, NullsLast),
         SortOrder(Id("b"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a DESC NULLS LAST, b" in {
       val tree = parseString("ORDER BY a DESC NULLS LAST, b", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Descending, NullsLast),
         SortOrder(Id("b"), Ascending, NullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC NULLS LAST, e", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Descending, NullsFirst),
         SortOrder(Id("b"), Ascending, NullsLast),
         SortOrder(Id("c"), Ascending, NullsLast),
@@ -454,7 +454,7 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved child" in {
       val literal = mock[LiteralContext]
-      astBuilder.visitLiteral(literal) shouldBe Literal.Null
+      vc.expressionBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
       verify(literal).DATE()
       verify(literal).TIMESTAMP()
@@ -473,9 +473,16 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
     "handle unresolved child" in {
       val operator = mock[ComparisonOperatorContext]
-      val dummyTextForOperator = "dummy"
-      when(operator.getText).thenReturn(dummyTextForOperator)
-      astBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(dummyTextForOperator)
+      val startTok = new CommonToken(ID, "%%%")
+      when(operator.getStart).thenReturn(startTok)
+      when(operator.getStop).thenReturn(startTok)
+      when(operator.getRuleIndex).thenReturn(SnowflakeParser.RULE_comparisonOperator)
+      vc.expressionBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(
+        ruleText = "Mocked string",
+        message = "Unknown comparison operator Mocked string in SnowflakeExpressionBuilder.buildComparisonExpression",
+        ruleName = "comparisonOperator",
+        tokenName = Some("ID"))
+
       verify(operator).EQ()
       verify(operator).NE()
       verify(operator).LTGT()
@@ -483,13 +490,15 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LT()
       verify(operator).GE()
       verify(operator).LE()
-      verify(operator).getText
+      verify(operator).getRuleIndex
+      verify(operator, times(5)).getStart
+      verify(operator, times(2)).getStop
       verifyNoMoreInteractions(operator)
     }
   }
 
-  // Note that when we truly handle &vars, we will get Variable here and not Id
-  // and the & parts will not be changed to ${} until we get to the final SQL generation
+  // Note that when we truly handle &vars, we will get Variable here and not 'Id'
+  // and the & parts will not be changed to ${} until we get to the final SQL generation,
   // but we are in a half way house transition state
   "variable substitution" should {
     "&abc" in {

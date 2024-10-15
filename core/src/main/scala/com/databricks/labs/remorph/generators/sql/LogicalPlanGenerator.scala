@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.{intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
@@ -49,8 +49,8 @@ class LogicalPlanGenerator(
   private def batch(ctx: GeneratorContext, b: ir.Batch): String = {
     val seqSql = b.children
       .map {
-        case ir.UnresolvedCommand(text) =>
-          s"-- ${text.stripSuffix(";")}"
+        case u: ir.UnresolvedCommand =>
+          s"-- ${u.ruleText.stripSuffix(";")}"
         case query => s"${generate(ctx, query)}"
       }
       .filter(_.nonEmpty)
