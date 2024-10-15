@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class SnowflakeExpressionBuilder()
+class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
     with ir.IRHelpers {
@@ -20,9 +20,8 @@ class SnowflakeExpressionBuilder()
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Expression = {
-    ir.UnresolvedExpression(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Expression =
+    ir.UnresolvedExpression(ruleText = ruleText, message = message)
 
   // Concrete visitors..
 
@@ -385,7 +384,12 @@ class SnowflakeExpressionBuilder()
     } else if (op.LE() != null) {
       ir.LessThanOrEqual(left, right)
     } else {
-      ir.UnresolvedExpression(op.getText)
+      ir.UnresolvedExpression(
+        ruleText = contextText(op),
+        message =
+          s"Unknown comparison operator ${contextText(op)} in SnowflakeExpressionBuilder.buildComparisonExpression",
+        ruleName = vc.ruleName(op),
+        tokenName = Some(tokenName(op.getStart)))
     }
   }
 
@@ -575,7 +579,7 @@ class SnowflakeExpressionBuilder()
   override def visitScPrec(ctx: ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredExists(ctx: PredExistsContext): ir.Expression = {
-    ir.Exists(ctx.subquery().accept(new SnowflakeRelationBuilder))
+    ir.Exists(ctx.subquery().accept(vc.relationBuilder))
   }
 
   override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
@@ -593,7 +597,12 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitPredASA(ctx: PredASAContext): ir.Expression = {
-    ir.UnresolvedExpression(contextText(ctx)) // TODO: build ASA
+    // TODO: build ASA
+    ir.UnresolvedExpression(
+      ruleText = contextText(ctx),
+      message = "ALL | SOME | ANY is not yet supported",
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(tokenName(ctx.getStart)))
   }
 
   override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
@@ -607,7 +616,7 @@ class SnowflakeExpressionBuilder()
   override def visitPredIn(ctx: PredInContext): ir.Expression = {
     val in = if (ctx.subquery() != null) {
       // In the result of a sub query
-      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))))
+      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
     } else {
       // In a list of expressions
       ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
@@ -681,6 +690,6 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))
+    ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))
   }
 }

@@ -130,7 +130,7 @@ class EstimationAnalyzer extends LazyLogging {
   private def logicalPlanEvaluator: PartialFunction[ir.LogicalPlan, RuleScore] = { case lp: ir.LogicalPlan =>
     try {
       lp match {
-        case ir.UnresolvedCommand(_) =>
+        case ir.UnresolvedCommand(_, _, _, _) =>
           RuleScore(UnsupportedCommandRule(), Seq.empty)
 
         // TODO: Add scores for other logical plans that add more complexity then a simple statement
@@ -178,8 +178,8 @@ class EstimationAnalyzer extends LazyLogging {
     func match {
       // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
       // which will be a significant amount of work.
-      case ir.UnresolvedFunction(name, _, _, _, _) =>
-        RuleScore(UnsupportedFunctionRule(funcName = name).resolve(), Seq.empty)
+      case af: ir.UnresolvedFunction =>
+        RuleScore(UnsupportedFunctionRule(funcName = af.function_name).resolve(), Seq.empty)
     }
   }
 
