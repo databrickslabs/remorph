@@ -1,20 +1,19 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.InsertDefaultsAction
-import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
-class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
+class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Modification]
     with ParserCommon[ir.Modification] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.Modification = {
-    ir.UnresolvedModification(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.Modification =
+    ir.UnresolvedModification(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -26,7 +25,12 @@ class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
       case dml if dml.merge() != null => dml.merge().accept(this)
       case dml if dml.update() != null => dml.update().accept(this)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(this)
-      case _ => ir.UnresolvedModification(contextText(ctx))
+      case _ =>
+        ir.UnresolvedModification(
+          ruleText = contextText(ctx),
+          message = s"Unknown DML clause ${ctx.getStart.getText} in TSqlDMLBuilder.visitDmlClause",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {

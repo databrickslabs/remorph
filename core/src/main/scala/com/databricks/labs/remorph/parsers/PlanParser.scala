@@ -1,11 +1,11 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode, WorkflowStage}
-import org.antlr.v4.runtime.{CharStream, CharStreams, CommonTokenStream, Parser, ParserRuleContext, TokenSource, TokenStream}
+import com.databricks.labs.remorph.{intermediate => ir}
+import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
-import org.json4s.{Formats, NoTypeHints}
 import org.json4s.jackson.Serialization.write
+import org.json4s.{Formats, NoTypeHints}
 
 import java.io.{PrintWriter, StringWriter}
 
@@ -13,7 +13,7 @@ trait PlanParser[P <: Parser] {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def createLexer(input: CharStream): TokenSource
+  protected def createLexer(input: CharStream): Lexer
   protected def createParser(stream: TokenStream): P
   protected def createTree(parser: P): ParserRuleContext
   protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan
@@ -30,7 +30,8 @@ trait PlanParser[P <: Parser] {
    */
   def parse(input: SourceCode): Result[ParserRuleContext] = {
     val inputString = CharStreams.fromString(input.source)
-    val tokenStream = new CommonTokenStream(createLexer(inputString))
+    val lexer = createLexer(inputString)
+    val tokenStream = new CommonTokenStream(lexer)
     val parser = createParser(tokenStream)
     addErrorStrategy(parser)
     val errListener = new ProductionErrorCollector(input.source, input.filename)

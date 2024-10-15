@@ -9,15 +9,14 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
+class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(msg: String): ir.LogicalPlan = {
-    ir.UnresolvedRelation(msg)
-  }
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
@@ -37,7 +36,11 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
 
   // TODO: Stored procedure calls etc as batch start
   override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
-    ir.UnresolvedRelation(contextText(ctx))
+    ir.UnresolvedRelation(
+      ruleText = contextText(ctx),
+      message = "Execute body batch is not supported yet",
+      ruleName = vc.ruleName(ctx),
+      tokenName = Some(tokenName(ctx.getStart)))
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
@@ -54,7 +57,12 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
       case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
       case cv if cv.createView() != null => cv.createView().accept(this)
       case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ => ir.UnresolvedRelation(contextText(ctx))
+      case _ =>
+        ir.UnresolvedRelation(
+          ruleText = contextText(ctx),
+          message = s"Unknown SQL clause ${ctx.getStart.getText} in TSqlAstBuilder.visitSqlClauses",
+          ruleName = vc.ruleName(ctx),
+          tokenName = Some(tokenName(ctx.getStart)))
     }
   }
 

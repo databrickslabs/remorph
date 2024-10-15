@@ -34,7 +34,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
-      case ir.UnresolvedAttribute(name, _, _) => name
+      case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => name
       case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
       case o: ir.ObjectReference => objectReference(ctx, o)
