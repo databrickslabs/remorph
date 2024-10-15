@@ -19,7 +19,7 @@ SELECT
   ROW_NUMBER() OVER (
     PARTITION BY exchange
     ORDER BY
-      shares NULLS LAST
+      shares ASC NULLS LAST
   ) AS row_number
 FROM
   trades;

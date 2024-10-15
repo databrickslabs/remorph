@@ -697,7 +697,7 @@ class Databricks(org_databricks.Databricks):  #
             return self.func(self.sql(expression, "this"), *expression.expressions)
 
         def order_sql(self, expression: exp.Order, flat: bool = False) -> str:
-            if isinstance(expression.parent, exp.Window) and contains_expression(expression.parent, rank_functions):
+            if isinstance(expression.parent, exp.Window) :
                 for ordered_expression in expression.expressions:
                     if isinstance(ordered_expression, exp.Ordered) and ordered_expression.args.get('desc') is None:
                         ordered_expression.args['desc'] = False

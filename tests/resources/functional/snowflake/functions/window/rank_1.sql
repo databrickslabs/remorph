@@ -13,7 +13,7 @@ SELECT
   RANK() OVER (
     PARTITION BY col1
     ORDER BY
-      col2 NULLS LAST
+      col2 ASC NULLS LAST
   ) AS rank_col1
 FROM
   tabl;
