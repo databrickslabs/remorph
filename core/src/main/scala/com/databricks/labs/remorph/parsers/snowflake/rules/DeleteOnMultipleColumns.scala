@@ -14,12 +14,14 @@ class DeleteOnMultipleColumns extends Rule[LogicalPlan] {
   }
 
   private def transformSubquery(target: LogicalPlan, subquery: Exists): LogicalPlan = {
-    // Assuming the subquery is a SELECT DISTINCT query
     print("--------- subquery.relation: " + subquery.relation)
-    //    ScalarSubquery(subquery.relation)
-    val table = subquery.relation
-//    Exists(Seq(ScalarSubquery(Project(table, Seq(Id("1"))))))
-    Project(table, Seq(Id("1")))
+//    val table = target
+    Filter(Project(NamedTable(subquery.relation.toString, Map(), is_streaming = false), Seq(Id("1")))
+      , Equals(Id("1"), Id("1")))
   }
+
+//  private def createWhereCondition(source): LogicalPlan = {
+//
+//  }
 
 }
