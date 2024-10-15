@@ -2,12 +2,17 @@ package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
+import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.LogicalPlan
 import com.databricks.labs.remorph.{KoResult, OkResult}
 import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
+import com.databricks.labs.remorph.transpilers.Result.{Failure, Success}
+import com.databricks.labs.remorph.transpilers.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging
+
+import scala.collection.mutable.ListBuffer
 
 class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
     extends LazyLogging {
@@ -30,8 +35,6 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       overallComplexity = analyzer.summarizeComplexity(reportEntries))
   }
 
-  // TODO: Remove hard coding of scores and record all scoring reports
-
   private def processQuery(
       query: ExecutedQuery,
       anonymizer: Anonymizer,
@@ -48,7 +51,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         case KoResult(PARSE, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error.msg)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errors)),
               EstimationAnalysisReport(
                 score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -79,7 +82,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
               EstimationTranspilationReport(
                 query = Some(query.source),
                 statements = 1,
-                parsing_error = Some("Unexpected result from parse phase")),
+                parsing_error =
+                  Some(ListBuffer(ParsingError(0, 0, "Unexpected result from parse phase", 0, "", "", "")))),
               EstimationAnalysisReport(
                 score = RuleScore(UnexpectedResultRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -133,7 +137,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some("Unexpected result from transpilation")),
+            transpilation_error = Some(ListBuffer(TranspileFailure("unknown", "Unexpected result from parse phase")))),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = RuleScore(UnexpectedResultRule().plusScore(ruleScore.rule.score), Seq(ruleScore)),

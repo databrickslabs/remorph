@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.transpilers
 import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
+import upickle.default._
 
 trait TranspilerTestCommon extends Matchers with Formatter {
 
