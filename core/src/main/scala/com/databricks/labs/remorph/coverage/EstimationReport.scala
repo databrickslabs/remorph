@@ -2,7 +2,10 @@ package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.coverage.estimation.{EstimationStatistics, RuleScore, SqlComplexity}
 import com.databricks.labs.remorph.discovery.Fingerprint
+import com.databricks.labs.remorph.intermediate.RemorphError
 import upickle.default.{ReadWriter, macroRW}
+
+import scala.collection.mutable.ListBuffer
 
 @upickle.implicits.serializeDefaults(true)
 case class EstimationReport(
@@ -43,10 +46,10 @@ case class EstimationTranspilationReport(
     output: Option[String] = None,
     parsed: Int = 0, // 1 for success, 0 for failure
     statements: Int = 0, // number of statements parsed
-    parsing_error: Option[String] = None,
+    parsing_error: Option[ListBuffer[RemorphError]] = None,
     transpiled: Int = 0, // 1 for success, 0 for failure
     transpiled_statements: Int = 0, // number of statements transpiled
-    transpilation_error: Option[String] = None) {
+    transpilation_error: Option[ListBuffer[RemorphError]] = None) {
 
   def withQueries(newQuery: String, output: Option[String]): EstimationTranspilationReport = {
     this.copy(query = Some(newQuery), output = output)
