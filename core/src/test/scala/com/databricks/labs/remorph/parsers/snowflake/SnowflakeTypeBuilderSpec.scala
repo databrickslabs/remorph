@@ -48,7 +48,7 @@ class SnowflakeTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommo
       example("TIMESTAMP_TZ", TimestampType)
       example("TINYINT", TinyintType)
       example("VARBINARY", BinaryType)
-      example("VARIANT", UnparsedType("VARIANT"))
+      example("VARIANT", VariantType)
     }
   }
 
