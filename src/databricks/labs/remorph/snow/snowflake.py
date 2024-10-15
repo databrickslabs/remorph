@@ -56,7 +56,7 @@ rank_functions = (
     exp.FirstValue,
     exp.LastValue,
     local_expression.NthValue,
-    local_expression.Ntile
+    local_expression.Ntile,
 )
 
 
