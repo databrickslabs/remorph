@@ -1,0 +1,2 @@
+--Query type: DQL
+WITH temp_result AS ( SELECT CAST(0x00 AS VARBINARY) AS VARBIN ) SELECT SET_BIT ( VARBIN, 2 ) AS VARBIN1 FROM temp_result
