@@ -3134,7 +3134,7 @@ num: DECIMAL
     ;
 
 /*** expressions ***/
-exprList: L_PAREN? expr (COMMA expr)* R_PAREN?
+exprList: expr (COMMA expr)*
     ;
 
 // Snowflake stupidly allows AND and OR in any expression that results in a purely logical
@@ -3557,7 +3557,7 @@ predicate
     | expression comparisonOperator expression                                                   # predBinop
     | expression comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN                  # predASA
     | expression IS NOT? NULL                                                                    # predIsNull
-    | exprList NOT? IN L_PAREN (subquery | exprList) R_PAREN                                     # predIn
+    | (L_PAREN exprList R_PAREN | expression) NOT? IN L_PAREN (subquery | exprList) R_PAREN      # predIn
     | expression NOT? BETWEEN expression AND expression                                          # predBetween
     | expression NOT? op = (LIKE | ILIKE) expression (ESCAPE expression)?                        # predLikeSinglePattern
     | expression NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expression)? # predLikeMultiplePatterns

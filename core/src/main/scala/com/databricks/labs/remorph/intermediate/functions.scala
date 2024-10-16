@@ -807,9 +807,9 @@ case class IfNull(left: Expression, right: Expression) extends Binary(left, righ
 }
 
 /** expr1 in(expr2, expr3, ...) - Returns true if `expr` equals to any valN. */
-case class In(left: Expression, other: Seq[Expression]) extends Expression with Fn {
+case class In(left: Seq[Expression], other: Seq[Expression]) extends Expression with Fn {
   override def prettyName: String = "IN"
-  override def children: Seq[Expression] = left +: other
+  override def children: Seq[Expression] = left ++ other
   override def dataType: DataType = UnresolvedType
 }
 

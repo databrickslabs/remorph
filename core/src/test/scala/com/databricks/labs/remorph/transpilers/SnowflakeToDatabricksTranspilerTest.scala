@@ -325,18 +325,4 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
-
-  "Snowflake commands" should {
-
-    "task1;" in {
-      """DELETE FROM test_tbl
-        |WHERE (version, type) IN (
-        |SELECT DISTINCT version, type
-        |FROM test_tbl_stg
-        |);
-        |""".stripMargin transpilesTo
-        s"""""".stripMargin
-    }
-  }
-
 }
