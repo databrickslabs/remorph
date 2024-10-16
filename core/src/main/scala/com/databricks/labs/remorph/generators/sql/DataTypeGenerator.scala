@@ -1,9 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.intermediate.UnsupportedDataType
-import com.databricks.labs.remorph.{intermediate => ir}
-import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.{Result, WorkflowStage, intermediate => ir}
 
 /**
  * @see
@@ -11,42 +9,42 @@ import com.databricks.labs.remorph.transpilers.TranspileException
  */
 object DataTypeGenerator {
 
-  def generateDataType(ctx: GeneratorContext, dt: ir.DataType): String = dt match {
-    case ir.NullType => "VOID"
-    case ir.BooleanType => "BOOLEAN"
-    case ir.BinaryType => "BINARY"
-    case ir.ShortType => "SMALLINT"
-    case ir.TinyintType => "TINYINT"
-    case ir.IntegerType => "INT"
-    case ir.LongType => "BIGINT"
-    case ir.FloatType => "FLOAT"
-    case ir.DoubleType => "DOUBLE"
+  def generateDataType(ctx: GeneratorContext, dt: ir.DataType): Result[String] = dt match {
+    case ir.NullType => Result.Success("VOID")
+    case ir.BooleanType => Result.Success("BOOLEAN")
+    case ir.BinaryType => Result.Success("BINARY")
+    case ir.ShortType => Result.Success("SMALLINT")
+    case ir.TinyintType => Result.Success("TINYINT")
+    case ir.IntegerType => Result.Success("INT")
+    case ir.LongType => Result.Success("BIGINT")
+    case ir.FloatType => Result.Success("FLOAT")
+    case ir.DoubleType => Result.Success("DOUBLE")
     case ir.DecimalType(precision, scale) =>
       val arguments = precision.toSeq ++ scale.toSeq
       if (arguments.isEmpty) {
-        "DECIMAL"
+        Result.Success("DECIMAL")
       } else {
-        s"DECIMAL${arguments.mkString("(", ", ", ")")}"
+        sql"DECIMAL${arguments.mkString("(", ", ", ")")}"
       }
-    case ir.StringType => "STRING"
-    case ir.DateType => "DATE"
-    case ir.TimestampType => "TIMESTAMP"
-    case ir.TimestampNTZType => "TIMESTAMP_NTZ"
-    case ir.ArrayType(elementType) => s"ARRAY<${generateDataType(ctx, elementType)}>"
+    case ir.StringType => Result.Success("STRING")
+    case ir.DateType => Result.Success("DATE")
+    case ir.TimestampType => Result.Success("TIMESTAMP")
+    case ir.TimestampNTZType => Result.Success("TIMESTAMP_NTZ")
+    case ir.ArrayType(elementType) => sql"ARRAY<${generateDataType(ctx, elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
         .map { case ir.StructField(name, dataType, nullable) =>
           val isNullable = if (nullable) "" else " NOT NULL"
-          s"$name:${generateDataType(ctx, dataType)}$isNullable"
+          sql"$name:${generateDataType(ctx, dataType)}$isNullable"
         }
-        .mkString(",")
-      s"STRUCT<$fieldTypes>"
+        .mkSql(",")
+      sql"STRUCT<$fieldTypes>"
     case ir.MapType(keyType, valueType) =>
-      s"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
-    case ir.VarcharType(size) => s"VARCHAR${maybeSize(size)}"
-    case ir.CharType(size) => s"CHAR${maybeSize(size)}"
-    case ir.VariantType => "VARIANT"
-    case _ => throw TranspileException(UnsupportedDataType(dt))
+      sql"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
+    case ir.VarcharType(size) => sql"VARCHAR${maybeSize(size)}"
+    case ir.CharType(size) => sql"CHAR${maybeSize(size)}"
+    case ir.VariantType => sql"VARIANT"
+    case _ => Result.Failure(WorkflowStage.GENERATE, ir.UnsupportedDataType(dt))
   }
 
   private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")

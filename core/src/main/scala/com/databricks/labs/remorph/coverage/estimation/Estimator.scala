@@ -45,18 +45,21 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       planParser
         .parse(SourceCode(query.source, query.user.getOrElse("unknown") + "_" + query.id))
         .flatMap(planParser.visit) match {
-        case Failure(PARSE, errorJson) =>
+        case Failure(PARSE, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error.toString)),
               EstimationAnalysisReport(
                 score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
-        case Failure(PLAN, errorJson) =>
+        case Failure(PLAN, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
+              EstimationTranspilationReport(
+                Some(query.source),
+                statements = 1,
+                transpilation_error = Some(error.toString)),
               EstimationAnalysisReport(
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -96,7 +99,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
     planParser.optimize(plan).flatMap(generator.generate) match {
-      case Failure(_, errorJson) =>
+      case Failure(_, error) =>
         // Failure to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
         val tfr = RuleScore(TranspileFailureRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
@@ -105,7 +108,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(errorJson)),
+            transpilation_error = Some(error.toString)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = tfr,

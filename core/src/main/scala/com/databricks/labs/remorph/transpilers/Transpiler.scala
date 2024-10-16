@@ -11,7 +11,6 @@ import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.matching.Regex
 
-
 trait Transpiler {
   def transpile(input: SourceCode): Result[String]
 }

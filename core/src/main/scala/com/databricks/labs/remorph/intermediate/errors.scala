@@ -20,6 +20,18 @@ object ParsingError {
   implicit val errorDetailRW: ReadWriter[ParsingError] = macroRW
 }
 
+case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError {
+  override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
+}
+
+case class VisitingError(cause: Throwable) extends RemorphError {
+  override def msg: String = s"Visiting error: ${cause.getMessage}"
+}
+
+case class OptimizingError(cause: Throwable) extends RemorphError {
+  override def msg: String = s"Optimizing error: ${cause.getMessage}"
+}
+
 case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError {
   override def msg: String = s"Unexpected node of class ${offendingNode.getClass.getSimpleName}"
 }
@@ -47,4 +59,8 @@ case class UnsupportedArguments(functionName: String, arguments: Seq[Expression]
 
 case class UnsupportedDateTimePart(expression: Expression) extends RemorphError {
   override def msg: String = s"Unsupported date/time part specification: $expression"
+}
+
+case class UncaughtException(exception: Throwable) extends RemorphError {
+  override def msg: String = exception.getMessage
 }
