@@ -79,7 +79,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
           query.timestamp,
           fingerprint(query.source),
           query.duration,
-          query.user,
+          query.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
       case Result.Failure(_, errorJson) =>
@@ -89,7 +89,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
           query.timestamp,
           fingerprint(query.source),
           query.duration,
-          query.user,
+          query.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
       case Result.Success(plan) =>
@@ -98,7 +98,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
           query.timestamp,
           fingerprint(plan),
           query.duration,
-          query.user,
+          query.user.getOrElse("unknown"),
           workloadType(plan),
           queryType(plan))
     }
@@ -116,7 +116,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
       query.timestamp,
       fingerprint(plan),
       query.duration,
-      query.user,
+      query.user.getOrElse("unknown"),
       workloadType(plan),
       queryType(plan))
   }
