@@ -56,10 +56,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         case Failure(PLAN, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(
-                Some(query.source),
-                statements = 1,
-                transpilation_error = Some(error.msg)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(error.msg)),
               EstimationAnalysisReport(
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
