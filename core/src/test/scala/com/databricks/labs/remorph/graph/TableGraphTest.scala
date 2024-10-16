@@ -47,8 +47,8 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query6",
         "INSERT INTO table1 (col1, col2) VALUES (2, 'value2')",
-        Duration.ofSeconds(40),
         new Timestamp(System.currentTimeMillis()),
+        Duration.ofSeconds(40),
         Some("user1")),
       ExecutedQuery(
         "query7",
