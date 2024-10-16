@@ -238,3 +238,8 @@ case class Variable(name: String) extends LeafExpression {
 case class SchemaReference(columnName: Expression) extends Unary(columnName) {
   override def dataType: DataType = UnresolvedType
 }
+
+case class ExprList(exprs: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = exprs
+  override def dataType: DataType = UnresolvedType
+}

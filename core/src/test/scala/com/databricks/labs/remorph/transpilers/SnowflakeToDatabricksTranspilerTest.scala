@@ -326,4 +326,17 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Snowflake commands" should {
+
+    "task1;" in {
+      """DELETE FROM test_tbl
+        |WHERE (version, type) IN (
+        |SELECT DISTINCT version, type
+        |FROM test_tbl_stg
+        |);
+        |""".stripMargin transpilesTo
+        s"""""".stripMargin
+    }
+  }
+
 }
