@@ -373,7 +373,6 @@ class SnowflakeExpressionBuilder()
         .map(buildWindowFrame)
         .orElse(snowflakeDefaultFrameSpec(windowFunction))
 
-
     ir.Window(
       window_function = windowFunction,
       partition_spec = partitionSpec,
@@ -385,12 +384,7 @@ class SnowflakeExpressionBuilder()
   // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions
   // default frameSpec(UNBOUNDED FOLLOWING) is not supported for:
   // "LAG", "DENSE_RANK","LEAD", "PERCENT_RANK","RANK","ROW_NUMBER"
-  private val rankRelatedWindowFunctions = Set(
-    "CUME_DIST",
-    "FIRST_VALUE",
-    "LAST_VALUE",
-    "NTH_VALUE",
-    "NTILE")
+  private val rankRelatedWindowFunctions = Set("CUME_DIST", "FIRST_VALUE", "LAST_VALUE", "NTH_VALUE", "NTILE")
 
   /**
    * For rank-related window functions, snowflake's default frame deviate from ANSI standard. So in such case, we must
