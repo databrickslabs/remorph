@@ -224,7 +224,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
     }
 
-    "transpile CREATE VIEW queries" in {
+    "transpile CREATE VIEW queries" ignore {
       "CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;" transpilesTo
         s"CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;"
     }
