@@ -73,7 +73,7 @@ class SnowflakeDDLBuilderSpec
                   |$$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "py_udf",
-          returnType = UnparsedType("VARIANT"),
+          returnType = VariantType,
           parameters = Seq(),
           runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
