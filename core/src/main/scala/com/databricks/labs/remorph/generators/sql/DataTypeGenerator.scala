@@ -45,6 +45,7 @@ object DataTypeGenerator {
       s"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
     case ir.VarcharType(size) => s"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => s"CHAR${maybeSize(size)}"
+    case ir.VariantType => "VARIANT"
     case _ => throw TranspileException(UnsupportedDataType(dt))
   }
 
