@@ -12,8 +12,6 @@ import com.databricks.labs.remorph.transpilers.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable.ListBuffer
-
 class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
     extends LazyLogging {
 
@@ -82,8 +80,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
               EstimationTranspilationReport(
                 query = Some(query.source),
                 statements = 1,
-                parsing_error =
-                  Some(ListBuffer(ParsingError(0, 0, "Unexpected result from parse phase", 0, "", "", "")))),
+                parsing_error = Some(ParsingError(0, 0, "Unexpected result from parse phase", 0, "", "", ""))),
               EstimationAnalysisReport(
                 score = RuleScore(UnexpectedResultRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -137,7 +134,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(ListBuffer(TranspileFailure("unknown", "Unexpected result from parse phase")))),
+            transpilation_error = Some(TranspileFailure("unknown", "Unexpected result from parse phase"))),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = RuleScore(UnexpectedResultRule().plusScore(ruleScore.rule.score), Seq(ruleScore)),

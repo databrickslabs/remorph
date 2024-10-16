@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.{PlanGenerationFailure, RemorphError, TranspileFailure}
+import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode, TranspileException, WorkflowStage}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.{Result, WorkflowStage}
@@ -13,7 +13,6 @@ import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 import java.io.{PrintWriter, StringWriter}
-import scala.collection.mutable.ListBuffer
 
 trait PlanParser[P <: Parser] {
 
@@ -82,5 +81,4 @@ trait PlanParser[P <: Parser] {
         KoResult(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
     }
   }
-
 }

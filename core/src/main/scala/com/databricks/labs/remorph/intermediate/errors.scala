@@ -14,7 +14,18 @@ trait MultipleErrors extends RemorphError {
 }
 
 object RemorphError {
-  implicit val remorphErrorRW: ReadWriter[RemorphError] = macroRW
+  implicit val rw: ReadWriter[RemorphError] = ReadWriter.merge(
+    ParsingError.rw,
+    ParsingErrors.rw,
+    UnexpectedNode.rw,
+    UnexpectedTableAlteration.rw,
+    UnsupportedGroupType.rw,
+    UnsupportedDataType.rw,
+    WrongNumberOfArguments.rw,
+    UnsupportedArguments.rw,
+    UnsupportedDateTimePart.rw,
+    PlanGenerationFailure.rw,
+    TranspileFailure.rw)
 
   def merge(l: RemorphError, r: RemorphError): RemorphError = (l, r) match {
     case (ls: MultipleErrors, rs: MultipleErrors) => RemorphErrors(ls.errors ++ rs.errors)
@@ -44,7 +55,15 @@ case class ParsingError(
     with SingleError
 
 object ParsingError {
-  implicit val errorDetailRW: ReadWriter[ParsingError] = macroRW
+  implicit val rw: ReadWriter[ParsingError] = macroRW
+}
+
+case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError {
+  override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
+}
+
+object ParsingErrors {
+  implicit val rw: ReadWriter[ParsingErrors] = macroRW
 }
 
 case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError with MultipleErrors {
@@ -64,35 +83,30 @@ case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError with 
 }
 
 object UnexpectedNode {
-  implicit val unexpectedNodeRW: ReadWriter[UnexpectedNode] = macroRW
-  implicit val treeNodeRW: ReadWriter[TreeNode[_]] = upickle.default.readwriter[TreeNode[_]]
+  implicit val rw: ReadWriter[UnexpectedNode] = macroRW
 }
 
-case class UnexpectedTableAlteration(offendingTableAlteration: TableAlteration) extends RemorphError with SingleError {
+case class UnexpectedTableAlteration(offendingTableAlteration: String) extends RemorphError with SingleError {
   override def msg: String = s"Unexpected table alteration $offendingTableAlteration"
 }
 
 object UnexpectedTableAlteration {
-  implicit val unexpectedTableAlterationRW: ReadWriter[UnexpectedTableAlteration] = macroRW
-  implicit val tableAlterationRW: ReadWriter[TableAlteration] = upickle.default.readwriter[TableAlteration]
+  implicit val rw: ReadWriter[UnexpectedTableAlteration] = macroRW
 }
 
-case class UnsupportedGroupType(offendingGroupType: GroupType) extends RemorphError with SingleError {
+case class UnsupportedGroupType(offendingGroupType: String) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported group type $offendingGroupType"
 }
 
 object UnsupportedGroupType {
-  implicit val unsupportedGroupTypeRW: ReadWriter[UnsupportedGroupType] = macroRW
-  implicit val groupTypeRW: ReadWriter[GroupType] = upickle.default.readwriter[GroupType]
+  implicit val rw: ReadWriter[UnsupportedGroupType] = macroRW
 }
 
-case class UnsupportedDataType(offendingDataType: DataType) extends RemorphError with SingleError {
+case class UnsupportedDataType(offendingDataType: String) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported data type $offendingDataType"
 }
-
 object UnsupportedDataType {
-  implicit val unsupportedDataTypeRW: ReadWriter[UnsupportedDataType] = macroRW
-  implicit val dataTypeRW: ReadWriter[DataType] = upickle.default.readwriter[DataType]
+  implicit val rw: ReadWriter[UnsupportedDataType] = macroRW
 }
 
 case class WrongNumberOfArguments(functionName: String, got: Int, expectationMessage: String) extends RemorphError with SingleError {
@@ -101,37 +115,44 @@ case class WrongNumberOfArguments(functionName: String, got: Int, expectationMes
 }
 
 object WrongNumberOfArguments {
-  implicit val wrongNumberOfArgumentsRW: ReadWriter[WrongNumberOfArguments] = macroRW
+  implicit val rw: ReadWriter[WrongNumberOfArguments] = macroRW
 }
 
 case class UnsupportedArguments(functionName: String, arguments: Seq[Expression]) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported argument(s) to $functionName"
 }
 
+@upickle.implicits.serializeDefaults(false)
 object UnsupportedArguments {
-  implicit val unsupportedArgumentsRW: ReadWriter[UnsupportedArguments] = macroRW
-  implicit val expressionRW: ReadWriter[Expression] = upickle.default.readwriter[Expression]
+  // NOte that we don't serialize all the arguments because we would have to adorn the Expression trait with a RW
+  // including all its sub classes
+  implicit val rw: ReadWriter[UnsupportedArguments] = macroRW
+  implicit val rwE: ReadWriter[Expression] = readwriter[ujson.Value].bimap[Expression](
+    _ => ujson.Null, // Serialize to "null" as we don't need to serialize the arguments right now
+    _ => null.asInstanceOf[Expression] // Deserialize to null
+  )
 }
 
 case class UnsupportedDateTimePart(expression: Expression) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported date/time part specification: $expression"
 }
-
 object UnsupportedDateTimePart {
-  implicit val unsupportedDateTimePartRW: ReadWriter[UnsupportedDateTimePart] = macroRW
+  implicit val rw: ReadWriter[UnsupportedDateTimePart] = macroRW
   implicit val expressionRW: ReadWriter[Expression] = upickle.default.readwriter[Expression]
 }
 
-case class PlanGenerationFailure(exception: String, msg: String) extends RemorphError
-
+case class PlanGenerationFailure(exception: String, messsage: String) extends RemorphError {
+  override def msg: String = s"PlanGenerationFailure: $exception, $messsage"
+}
 object PlanGenerationFailure {
-  implicit val planGenerationFailureRW: ReadWriter[PlanGenerationFailure] = macroRW
+  implicit val rw: ReadWriter[PlanGenerationFailure] = macroRW
 }
 
-case class TranspileFailure(exception: String, msg: String) extends RemorphError
-
+case class TranspileFailure(exception: String, message: String) extends RemorphError {
+  override def msg: String = s"TranspileFailure: $exception, $message"
+}
 object TranspileFailure {
-  implicit val transpileFailureRW: ReadWriter[TranspileFailure] = macroRW
+  implicit val rw: ReadWriter[TranspileFailure] = macroRW
 }
 
 case class UncaughtException(exception: Throwable) extends RemorphError with SingleError {
