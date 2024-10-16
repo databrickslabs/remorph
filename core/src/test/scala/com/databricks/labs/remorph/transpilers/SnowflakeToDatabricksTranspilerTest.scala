@@ -325,4 +325,5 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
+
 }
