@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.coverage.estimation.{EstimationAnalyzer, Estimator}
-import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, QueryHistoryProvider, QuerySpec}
+import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, QueryHistoryProvider}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -27,11 +27,15 @@ class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
         ExecutedQuery(
           "id1",
           "SELECT * FROM table1",
-          QuerySpec(new Timestamp(1725032011000L), Duration.ofMillis(300), Some("user1"), None)),
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user1")),
         ExecutedQuery(
           "id2",
           "SELECT * FROM table2",
-          QuerySpec(new Timestamp(1725032011000L), Duration.ofMillis(300), Some("user2"), None))))
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user2"))))
     when(mockQueryHistoryProvider.history()).thenReturn(mockHistory)
 
     // Create Estimator instance
@@ -61,7 +65,9 @@ class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
         ExecutedQuery(
           "id1",
           "SOME GARBAGE STATEMENT",
-          QuerySpec(new Timestamp(1725032011000L), Duration.ofMillis(300), Some("user1"), None))))
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user1"))))
     when(mockQueryHistoryProvider.history()).thenReturn(mockHistory)
 
     // Create Estimator instance

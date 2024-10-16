@@ -5,13 +5,13 @@ import com.databricks.labs.remorph.intermediate.StructField
 import java.sql.Timestamp
 import java.time.Duration
 
-case class QuerySpec(
+case class ExecutedQuery(
+    id: String,
+    source: String,
     timestamp: Timestamp = new Timestamp(System.currentTimeMillis()),
     duration: Duration = Duration.ofMillis(0),
     user: Option[String] = None,
     filename: Option[String] = None)
-
-case class ExecutedQuery(id: String, source: String, querySpec: QuerySpec)
 
 case class QueryHistory(queries: Seq[ExecutedQuery])
 

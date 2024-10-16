@@ -24,7 +24,7 @@ class FileQueryHistory(path: Path) extends QueryHistoryProvider {
       ._1
 
     queryMap.map { case (lineNumber, stmt) =>
-      ExecutedQuery(s"${file.getName}#${lineNumber}", stmt, QuerySpec(filename = Some(file.getName)))
+      ExecutedQuery(id = s"${file.getName}#${lineNumber}", source = stmt, filename = Some(file.getName))
     }.toSeq
   }
 
