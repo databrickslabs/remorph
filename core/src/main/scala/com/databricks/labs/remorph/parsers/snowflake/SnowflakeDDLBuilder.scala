@@ -255,7 +255,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   override def visitCreateView(ctx: CreateViewContext): ir.Catalog = {
     val viewName = ctx.objectName().getText
-    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
     val columns = buildViewColumns(ctx)
     val allowExisting = ctx.ifNotExists() != null
     val replace = ctx.orReplace() != null
