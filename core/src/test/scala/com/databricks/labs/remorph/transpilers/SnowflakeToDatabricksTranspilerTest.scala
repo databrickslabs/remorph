@@ -176,6 +176,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       // "SELECT ARRAY_REMOVE(['a', 'b', 'c'], 'a'::VARIANT);" transpilesTo
       // "SELECT ARRAY_REMOVE(ARRAY('a', 'b', 'c'), 'a');"
     }
+
     "transpile ARRAY_SORT function" in {
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, True);" transpilesTo
         """SELECT
@@ -221,6 +222,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], TRUE, 1 = 1);".failsTranspilation
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
+    }
+
+    "transpile CREATE VIEW queries" in {
+      "CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;" transpilesTo
+        s"CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;"
     }
 
   }

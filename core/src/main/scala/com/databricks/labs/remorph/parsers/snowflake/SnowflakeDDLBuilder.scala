@@ -253,6 +253,37 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleName = "createUser",
       tokenName = Some("USER"))
 
+  override def visitCreateView(ctx: CreateViewContext): ir.Catalog = {
+    val viewName = ctx.objectName().getText
+    val selectStatement = ctx.queryStatement().accept(relationBuilder)
+    val columns = buildViewColumns(ctx)
+    val allowExisting = ctx.ifNotExists() != null
+    val replace = ctx.orReplace() != null
+    val properties = Map.empty[String, String]
+    val schemaMode = None
+    val comment = Option(ctx.commentClause()).map(c => extractString(c.string()))
+    val viewType = inferViewType(ctx)
+
+    ir.CreateView(viewName, selectStatement, columns, allowExisting, replace, viewType, properties, schemaMode, comment)
+  }
+
+  private def inferViewType(ctx: CreateViewContext): ir.ViewType = {
+    val viwTypeClause = ctx.tableType()
+    val viewType = if (viwTypeClause == null) {
+      ir.PersistedView
+    } else if (viwTypeClause.GLOBAL() != null) {
+      ir.GlobalTempView
+    } else {
+      ir.LocalTempView
+    }
+    viewType
+  }
+
+  private def buildViewColumns(ctx: CreateViewContext): Seq[(String, Option[String])] = {
+    // TODO: Implement building the column list
+    Seq.empty[(String, Option[String])]
+  }
+
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
     ctx match {
       case c if c.alterTable() != null => c.alterTable().accept(this)
