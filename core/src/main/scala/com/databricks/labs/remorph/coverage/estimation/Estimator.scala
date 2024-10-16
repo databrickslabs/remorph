@@ -48,7 +48,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         case Failure(PARSE, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error.toString)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error.msg)),
               EstimationAnalysisReport(
                 score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -59,7 +59,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
               EstimationTranspilationReport(
                 Some(query.source),
                 statements = 1,
-                transpilation_error = Some(error.toString)),
+                transpilation_error = Some(error.msg)),
               EstimationAnalysisReport(
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -108,7 +108,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(error.toString)),
+            transpilation_error = Some(error.msg)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = tfr,
