@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.utils.Strings
 import upickle.default._
 
 trait RemorphError {
@@ -63,4 +64,12 @@ case class UnsupportedDateTimePart(expression: Expression) extends RemorphError 
 
 case class UncaughtException(exception: Throwable) extends RemorphError {
   override def msg: String = exception.getMessage
+}
+
+case class UnexpectedOutput(expected: String, actual: String) extends RemorphError {
+  override def msg: String =
+    s"""
+       |=== Unexpected output (expected vs actual) ===
+       |${Strings.sideBySide(expected, actual).mkString("\n")}
+       |""".stripMargin
 }
