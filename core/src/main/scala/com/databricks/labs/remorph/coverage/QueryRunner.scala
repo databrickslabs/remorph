@@ -17,11 +17,11 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     transpiler.transpile(SourceCode(exampleQuery.query)) match {
-      case Result.Failure(PARSE, errors) =>
-        ReportEntryReport(statements = 1, parsing_error = Some(write(errors.toList)))
-      case Result.Failure(_, errors) =>
+      case Result.Failure(PARSE, error) =>
+        ReportEntryReport(statements = 1, parsing_error = Some(write(error)))
+      case Result.Failure(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly
-        ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(write(errors.toList)))
+        ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(write(error)))
       case Result.Success(output) =>
         if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
           val expected = exampleQuery.expectedTranslation.getOrElse("")

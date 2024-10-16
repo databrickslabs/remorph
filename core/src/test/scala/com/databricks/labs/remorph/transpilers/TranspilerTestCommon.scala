@@ -13,7 +13,7 @@ trait TranspilerTestCommon extends Matchers with Formatter {
     def transpilesTo(expectedOutput: String): Assertion = {
       transpiler.transpile(SourceCode(input)) match {
         case Result.Success(output) => format(output) shouldBe format(expectedOutput)
-        case Result.Failure(_, err) => fail(write(err.toList))
+        case Result.Failure(_, err) => fail(write(err))
       }
     }
     def failsTranspilation: Assertion = {

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.{PlanGenerationFailure, RemorphError, TranspileFailure}
+import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode, TranspileException, WorkflowStage}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.{Result, WorkflowStage}
@@ -11,7 +11,6 @@ import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 import java.io.{PrintWriter, StringWriter}
-import scala.collection.mutable.ListBuffer
 
 trait PlanParser[P <: Parser] {
 
@@ -43,7 +42,7 @@ trait PlanParser[P <: Parser] {
     parser.addErrorListener(errListener)
     val tree = createTree(parser)
     if (errListener.errorCount > 0) {
-      Result.Failure(stage = WorkflowStage.PARSE, errors = errListener.errors.map(e => e: RemorphError))
+      Result.Failure(stage = WorkflowStage.PARSE, errors = ParsingErrors(errListener.errors))
     } else {
       Result.Success(tree)
     }
@@ -62,7 +61,7 @@ trait PlanParser[P <: Parser] {
       case e: Exception =>
         val sw = new StringWriter
         e.printStackTrace(new PrintWriter(sw))
-        Result.Failure(stage = WorkflowStage.PLAN, ListBuffer(PlanGenerationFailure(e.getMessage, sw.toString)))
+        Result.Failure(stage = WorkflowStage.PLAN, PlanGenerationFailure(e.getMessage, sw.toString))
     }
   }
 
@@ -79,12 +78,11 @@ trait PlanParser[P <: Parser] {
       Result.Success(plan)
     } catch {
       case te: TranspileException =>
-        Result.Failure(stage = WorkflowStage.OPTIMIZE, ListBuffer(te.err))
+        Result.Failure(stage = WorkflowStage.OPTIMIZE, te.err)
       case e: Exception =>
         val sw = new StringWriter
         e.printStackTrace(new PrintWriter(sw))
-        Result.Failure(stage = WorkflowStage.PLAN, ListBuffer(TranspileFailure(e.getClass.getSimpleName, sw.toString)))
+        Result.Failure(stage = WorkflowStage.PLAN, TranspileFailure(e.getClass.getSimpleName, sw.toString))
     }
   }
-
 }

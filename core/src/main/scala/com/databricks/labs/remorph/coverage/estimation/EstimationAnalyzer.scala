@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage.EstimationReportRecord
-import com.databricks.labs.remorph.intermediate.ParsingError
+import com.databricks.labs.remorph.intermediate.{ParsingErrors}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
@@ -292,19 +292,17 @@ class EstimationAnalyzer extends LazyLogging {
     val ruleNameCounts = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
     val tokenNameCounts = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
 
-    reportEntries.foreach { entry =>
-      entry.transpilationReport.parsing_error.foreach { errors =>
-        errors.foreach {
-          case e: ParsingError =>
+    reportEntries.foreach(err =>
+      err.transpilationReport.parsing_error match {
+        case Some(e: ParsingErrors) =>
+          e.errors.foreach(e => {
             val ruleName = e.ruleName
             val tokenName = e.offendingTokenName
             ruleNameCounts(ruleName) += 1
             tokenNameCounts(tokenName) += 1
-          case _ =>
-          // Do nothing as this cannot happen
-        }
-      }
-    }
+          })
+        case _ => // No errors
+      })
 
     val topRuleNames = ruleNameCounts.toSeq.sortBy(-_._2).take(5).toMap
     val topTokenNames = tokenNameCounts.toSeq.sortBy(-_._2).take(5).toMap
