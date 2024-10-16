@@ -7,8 +7,10 @@ import scala.util.control.NonFatal
 
 package object sql {
 
-  implicit class ResultInterpolator(sc: StringContext) {
-    def sql(args: Any*): Result[String] = {
+  type SQL = Result[String]
+
+  implicit class SQLInterpolator(sc: StringContext) {
+    def sql(args: Any*): SQL = {
 
       val stringParts = sc.parts.iterator
       val arguments = args.iterator
@@ -31,8 +33,6 @@ package object sql {
       Result.Success(sb.toString)
     }
   }
-
-  type SQL = Result[String]
 
   implicit class SqlOps(sql: SQL) {
     def nonEmpty: Boolean = sql match {
