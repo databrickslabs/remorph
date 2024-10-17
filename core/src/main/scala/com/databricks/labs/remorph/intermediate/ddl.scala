@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.intermediate
 
+import upickle.default._
+
 abstract class DataType {
   def isPrimitive: Boolean = this match {
     case BooleanType => true
@@ -121,6 +123,9 @@ case class UnresolvedTableAlteration(
     with Unresolved[UnresolvedTableAlteration] {
   override def annotate(newRuleName: String, newTokenName: Option[String]): UnresolvedTableAlteration =
     copy(ruleName = newRuleName, tokenName = newTokenName)
+}
+object UnresolvedTableAlteration {
+  implicit val unresolvedTableAlterationRW: ReadWriter[UnresolvedTableAlteration] = macroRW
 }
 
 case class DropConstraintByName(constraintName: String) extends TableAlteration

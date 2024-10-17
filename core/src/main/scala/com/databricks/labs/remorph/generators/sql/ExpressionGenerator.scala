@@ -282,7 +282,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
           .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
           .format(timeFormat))
       sql"CAST($timestampStr AS TIMESTAMP)"
-    case _ => Result.Failure(WorkflowStage.GENERATE, ir.UnsupportedDataType(l.dataType))
+    case _ => Result.Failure(WorkflowStage.GENERATE, ir.UnsupportedDataType(l.dataType.toString))
   }
 
   private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): SQL = {
