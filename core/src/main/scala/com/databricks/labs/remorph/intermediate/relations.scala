@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.intermediate
 
-import upickle.default._
-
 abstract class Relation extends LogicalPlan
 
 abstract class RelationCommon extends Relation {}
@@ -51,10 +49,7 @@ abstract class JoinType
 
 abstract class SetOpType
 
-sealed abstract class GroupType
-object GroupType {
-  implicit val rw: ReadWriter[GroupType] = macroRW
-}
+abstract class GroupType
 
 abstract class ParseFormat
 
@@ -388,17 +383,11 @@ case object UnionSetOp extends SetOpType
 
 case object ExceptSetOp extends SetOpType
 
-case object UnspecifiedGroupType extends GroupType {
-  implicit val rw: ReadWriter[UnspecifiedGroupType.type] = macroRW
-}
+case object UnspecifiedGroupType extends GroupType
 
-case object GroupBy extends GroupType {
-  implicit val rw: ReadWriter[GroupBy.type] = macroRW
-}
+case object GroupBy extends GroupType
 
-case object Pivot extends GroupType {
-  implicit val rw: ReadWriter[Pivot.type] = macroRW
-}
+case object Pivot extends GroupType
 
 case object UnspecifiedFormat extends ParseFormat
 
