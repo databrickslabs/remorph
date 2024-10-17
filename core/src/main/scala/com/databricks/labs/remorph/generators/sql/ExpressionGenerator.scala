@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.{OkResult, Result, intermediate => ir}
 
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class ExpressionGenerator extends Generator[ir.Expression, String] {
+class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
@@ -69,7 +69,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case fn: ir.Fn => sql"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkSql(", ")})"
 
       case null => sql"" // don't fail transpilation if the expression is null
-      case x => unknown(x)
+      case x => partialResult(x)
     }
   }
 
@@ -95,7 +95,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case ir.IntLiteral(value) => Seq(sql"[$value]")
       case ir.StringLiteral(value) => Seq(sql"['$value']")
       case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
-      case i: ir.Expression => Seq(unknown(i))
+      case i: ir.Expression => Seq(partialResult(i))
     }
   }
 
@@ -243,7 +243,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
     case ir.LessThanOrEqual(left, right) => sql"${expression(ctx, left)} <= ${expression(ctx, right)}"
     case ir.GreaterThan(left, right) => sql"${expression(ctx, left)} > ${expression(ctx, right)}"
     case ir.GreaterThanOrEqual(left, right) => sql"${expression(ctx, left)} >= ${expression(ctx, right)}"
-    case _ => unknown(expr)
+    case _ => partialResult(expr)
   }
 
   private def andPredicate(ctx: GeneratorContext, a: ir.And): SQL = a match {
@@ -282,7 +282,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
           .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
           .format(timeFormat))
       sql"CAST($timestampStr AS TIMESTAMP)"
-    case _ => KoResult(WorkflowStage.GENERATE, ir.UnsupportedDataType(l.dataType))
+    case _ => partialResult(l, ir.UnsupportedDataType(l.dataType))
   }
 
   private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): SQL = {

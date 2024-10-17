@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.generators.{GeneratorContext}
 import com.databricks.labs.remorph.{KoResult, OkResult, WorkflowStage, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
     val optGen: OptionGenerator,
     val explicitDistinct: Boolean = false)
-    extends Generator[ir.LogicalPlan, String] {
+    extends BaseSQLGenerator[ir.LogicalPlan] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): SQL = tree match {
     case b: ir.Batch => batch(ctx, b)
@@ -42,7 +42,7 @@ class LogicalPlanGenerator(
     case ir.NoopNode => sql""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => sql"" // don't fail transpilation if the plan is null
-    case x => unknown(x)
+    case x => partialResult(x)
   }
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {

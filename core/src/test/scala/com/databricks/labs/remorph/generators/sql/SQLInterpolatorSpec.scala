@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.intermediate.{Noop, UnexpectedNode}
-import com.databricks.labs.remorph.{KoResult, OkResult, WorkflowStage}
+import com.databricks.labs.remorph.intermediate.{IntegerType, Noop, RemorphErrors, UnexpectedNode, UnsupportedDataType}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, WorkflowStage}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -43,11 +43,30 @@ class SQLInterpolatorSpec extends AnyWordSpec with Matchers {
       sql"arg1: $arg1, arg2: $arg2, arg3: $arg3" shouldBe OkResult("arg1: foo, arg2: bar, arg3: 42")
     }
 
+    "accumulate errors when some arguments are PartialResults" in {
+      val arg1 = PartialResult("!!! error 1 !!!", UnexpectedNode(Noop))
+      val arg2 = "foo"
+      val arg3 = PartialResult("!!! error 2 !!!", UnsupportedDataType(IntegerType))
+
+      sql"SELECT $arg1 FROM $arg2 WHERE $arg3" shouldBe PartialResult(
+        "SELECT !!! error 1 !!! FROM foo WHERE !!! error 2 !!!",
+        RemorphErrors(Seq(UnexpectedNode(Noop), UnsupportedDataType(IntegerType))))
+    }
+
     "return a KoResult if any one of the arguments is a KoResult" in {
       val arg1 = "foo"
       val arg2 = KoResult(WorkflowStage.GENERATE, UnexpectedNode(Noop))
       val arg3 = 42
       sql"arg1: $arg1, arg2: $arg2, arg3: $arg3" shouldBe KoResult(WorkflowStage.GENERATE, UnexpectedNode(Noop))
+    }
+
+    "work nicely with mkSql" in {
+      val arg1 = "foo"
+      val arg2 = PartialResult("!boom!", UnexpectedNode(Noop))
+      val arg3 = 42
+      Seq(sql"arg1: $arg1", sql"arg2: $arg2", sql"arg3: $arg3").mkSql(", ") shouldBe PartialResult(
+        "arg1: foo, arg2: !boom!, arg3: 42",
+        UnexpectedNode(Noop))
     }
 
     "unfortunately, if evaluating one of the arguments throws an exception, " +

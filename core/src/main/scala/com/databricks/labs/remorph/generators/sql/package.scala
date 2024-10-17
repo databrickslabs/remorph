@@ -1,8 +1,9 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.intermediate.UncaughtException
-import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage}
+import com.databricks.labs.remorph.intermediate.{RemorphError, UncaughtException}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Result, WorkflowStage}
 
+import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
 
 package object sql {
@@ -15,11 +16,15 @@ package object sql {
       val stringParts = sc.parts.iterator
       val arguments = args.iterator
       val sb = new StringBuilder(StringContext.treatEscapes(stringParts.next()))
+      val errors = new ListBuffer[RemorphError]
 
       while (arguments.hasNext) {
         try {
           arguments.next() match {
             case OkResult(s) => sb.append(StringContext.treatEscapes(s.toString))
+            case PartialResult(s, err) =>
+              sb.append(StringContext.treatEscapes(s.toString))
+              errors.append(err)
             case failure: KoResult => return failure
             case other => sb.append(StringContext.treatEscapes(other.toString))
           }
@@ -29,8 +34,13 @@ package object sql {
             return KoResult(WorkflowStage.GENERATE, UncaughtException(e))
         }
       }
-
-      OkResult(sb.toString)
+      if (errors.isEmpty) {
+        OkResult(sb.toString)
+      } else if (errors.size == 1) {
+        PartialResult(sb.toString(), errors.head)
+      } else {
+        PartialResult(sb.toString, errors.reduce(RemorphError.merge))
+      }
     }
   }
 
