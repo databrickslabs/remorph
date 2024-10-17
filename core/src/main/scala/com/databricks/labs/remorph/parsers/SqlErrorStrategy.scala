@@ -31,7 +31,7 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     try {
       super.sync(recognizer)
     } catch {
-      case e: RecognitionException => throw e  // Throw back to parser
+      case e: RecognitionException => throw e // Throw back to parser
     } finally {
       val endIndex: Int = tokens.index
       for (i <- startIndex until endIndex) {
@@ -52,7 +52,7 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
         for (token <- skippedTokens.asScala) {
           errorNode.addChild(new TerminalNodeImpl(token))
         }
-        recognizer.getContext.addErrorNode(errorNode)
+        findHighestContext(recognizer.getContext).addErrorNode(errorNode)
       }
     }
   }
