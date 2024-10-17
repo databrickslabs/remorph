@@ -194,3 +194,20 @@ case class CatalogTable(
     viewText: Option[String],
     comment: Option[String],
     unsupportedFeatures: Seq[String])
+
+abstract class ViewType
+case object LocalTempView extends ViewType
+case object GlobalTempView extends ViewType
+case object PersistedView extends ViewType
+
+case class CreateView(
+    view_name: String,
+    query: LogicalPlan,
+    columns: Seq[(String, Option[String])],
+    allowExisting: Boolean,
+    replace: Boolean,
+    viewType: ViewType,
+    properties: Map[String, String],
+    viewSchemaMode: Option[String],
+    comment: Option[String])
+    extends Catalog {}
