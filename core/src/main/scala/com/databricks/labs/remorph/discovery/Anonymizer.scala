@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.{Result, WorkflowStage}
+import com.databricks.labs.remorph.{Failure, Success, WorkflowStage}
 import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
@@ -72,7 +72,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
-      case Result.Failure(WorkflowStage.PARSE, errorJson) =>
+      case Failure(WorkflowStage.PARSE, errorJson) =>
         logger.warn(s"Failed to parse query: ${query.source} $errorJson")
         Fingerprint(
           query.id,
@@ -82,7 +82,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
           query.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
-      case Result.Failure(_, errorJson) =>
+      case Failure(_, errorJson) =>
         logger.warn(s"Failed to produce plan from query: ${query.source} $errorJson")
         Fingerprint(
           query.id,
@@ -92,7 +92,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
           query.user.getOrElse("unknown"),
           WorkloadType.OTHER,
           QueryType.OTHER)
-      case Result.Success(plan) =>
+      case Success(plan) =>
         Fingerprint(
           query.id,
           query.timestamp,

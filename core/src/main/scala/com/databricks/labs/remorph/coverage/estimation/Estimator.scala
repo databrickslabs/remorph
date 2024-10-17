@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.LogicalPlan
-import com.databricks.labs.remorph.Result.{Failure, Success}
+import com.databricks.labs.remorph.{Failure, Success}
 import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging

@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{OptimizingError, ParsingErrors, VisitingError}
-import com.databricks.labs.remorph.{intermediate => ir}
-import com.databricks.labs.remorph.{Result, WorkflowStage}
+import com.databricks.labs.remorph.{Failure, Result, Success, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
@@ -41,9 +40,9 @@ trait PlanParser[P <: Parser] {
     val tree = createTree(parser)
     // TODO: Should we return the error listener, or perhaps the collection of errors and not JSON at this stage?
     if (errListener.errorCount > 0) {
-      Result.Failure(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
+      Failure(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
     } else {
-      Result.Success(tree)
+      Success(tree)
     }
   }
 
@@ -55,10 +54,10 @@ trait PlanParser[P <: Parser] {
   def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
     try {
       val plan = createPlan(tree)
-      Result.Success(plan)
+      Success(plan)
     } catch {
       case NonFatal(e) =>
-        Result.Failure(stage = WorkflowStage.PLAN, VisitingError(e))
+        Failure(stage = WorkflowStage.PLAN, VisitingError(e))
     }
   }
 
@@ -72,10 +71,10 @@ trait PlanParser[P <: Parser] {
   def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
     try {
       val plan = createOptimizer.apply(logicalPlan)
-      Result.Success(plan)
+      Success(plan)
     } catch {
       case NonFatal(e) =>
-        Result.Failure(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
+        Failure(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
     }
   }
 

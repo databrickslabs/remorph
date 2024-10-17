@@ -16,21 +16,18 @@ sealed trait Result[+A] {
   def isSuccess: Boolean
 }
 
-object Result {
-  case class Success[A](output: A) extends Result[A] {
-    override def map[B](f: A => B): Result[B] = Success(f(output))
+case class Success[A](output: A) extends Result[A] {
+  override def map[B](f: A => B): Result[B] = Success(f(output))
 
-    override def flatMap[B](f: A => Result[B]): Result[B] = f(output)
+  override def flatMap[B](f: A => Result[B]): Result[B] = f(output)
 
-    override def isSuccess: Boolean = true
-  }
+  override def isSuccess: Boolean = true
+}
 
-  case class Failure(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
-    override def map[B](f: Nothing => B): Result[B] = this
+case class Failure(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
+  override def map[B](f: Nothing => B): Result[B] = this
 
-    override def flatMap[B](f: Nothing => Result[B]): Result[B] = this
+  override def flatMap[B](f: Nothing => Result[B]): Result[B] = this
 
-    override def isSuccess: Boolean = false
-  }
-
+  override def isSuccess: Boolean = false
 }
