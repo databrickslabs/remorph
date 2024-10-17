@@ -3329,7 +3329,7 @@ switchSection: WHEN expr THEN expr
 queryStatement: withExpression? selectStatement setOperators*
     ;
 
-withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
+withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
