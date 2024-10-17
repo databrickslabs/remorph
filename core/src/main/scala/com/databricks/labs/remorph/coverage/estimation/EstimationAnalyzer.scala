@@ -110,7 +110,7 @@ class EstimationAnalyzer extends LazyLogging {
   /**
    * <p>
    *   Given the raw query text, produce some statistics that are purely derived from the text, rather than
-   *   a parsed plan or translation result.
+   *   a parsed plan or translation
    * </p>
    * <p>
    *   Text complexity is just one component for the overall score of a query, but it can be a good indicator

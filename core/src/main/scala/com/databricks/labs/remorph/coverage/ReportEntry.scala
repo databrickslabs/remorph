@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.intermediate.RemorphError
+import com.databricks.labs.remorph.intermediate.{MultipleErrors, RemorphError, SingleError}
 
 case class ReportEntryHeader(
     project: String,
@@ -23,10 +23,14 @@ case class ReportEntryReport(
 
 case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport) {
 
+  def singleErrorJson(error: SingleError): ujson.Value.Value =
+    ujson.Obj("error_type" -> error.getClass.getSimpleName, "error_message" -> error.msg)
+
   def errorJson(errOpt: Option[RemorphError]): ujson.Value.Value = {
     errOpt
-      .map { err =>
-        ujson.Obj("error_type" -> err.getClass.getSimpleName, "error_message" -> err.msg)
+      .map {
+        case s: SingleError => singleErrorJson(s)
+        case m: MultipleErrors => ujson.Arr(m.errors.map(singleErrorJson))
       }
       .getOrElse(ujson.Null)
   }

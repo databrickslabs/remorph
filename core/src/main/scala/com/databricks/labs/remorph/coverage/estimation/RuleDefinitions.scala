@@ -66,7 +66,7 @@ object PlanFailureRule {
 }
 
 /**
- * Either the optimizer or the generator failed to produce a result. This is possibly a significant amount of
+ * Either the optimizer or the generator failed to produce a  This is possibly a significant amount of
  * work for the core team, but it is not necessarily work for the user, so we can filter out these scores.
  */
 @upickle.implicits.serializeDefaults(true)

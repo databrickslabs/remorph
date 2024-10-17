@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, Table
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.{Result, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table
@@ -110,15 +110,20 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
       try {
         val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
         plan match {
-          case Result.Failure(_, errorJson) =>
+          case KoResult(_, error) =>
             logger.warn(s"Failed to produce plan from query: ${query.id}")
-            logger.debug(s"Error: $errorJson")
-          case Result.Success(p) =>
+            logger.debug(s"Error: ${error.msg}")
+          case PartialResult(p, error) =>
+            logger.warn(s"Errors occurred while producing plan from query ${query.id}")
+            logger.debug(s"Error: ${error.msg}")
+            buildNode(p, tableDefinition, query)
+            generateEdges(p, tableDefinition, query.id)
+          case OkResult(p) =>
             buildNode(p, tableDefinition, query)
             generateEdges(p, tableDefinition, query.id)
         }
       } catch {
-        // TODO Null Pointer Exception is thrown as Result.Success, need to investigate for Merge Query.
+        // TODO Null Pointer Exception is thrown as OkResult, need to investigate for Merge Query.
         case e: Exception => logger.warn(s"Failed to produce plan from query: ${query.source}")
       }
     }

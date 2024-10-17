@@ -1,8 +1,9 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.intermediate.UncaughtException
-import com.databricks.labs.remorph.{Result, WorkflowStage}
+import com.databricks.labs.remorph.intermediate.{RemorphError, UncaughtException}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Result, WorkflowStage}
 
+import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
 
 package object sql {
@@ -15,32 +16,41 @@ package object sql {
       val stringParts = sc.parts.iterator
       val arguments = args.iterator
       val sb = new StringBuilder(StringContext.treatEscapes(stringParts.next()))
+      val errors = new ListBuffer[RemorphError]
 
       while (arguments.hasNext) {
         try {
           arguments.next() match {
-            case Result.Success(s) => sb.append(StringContext.treatEscapes(s.toString))
-            case failure: Result.Failure => return failure
+            case OkResult(s) => sb.append(StringContext.treatEscapes(s.toString))
+            case PartialResult(s, err) =>
+              sb.append(StringContext.treatEscapes(s.toString))
+              errors.append(err)
+            case failure: KoResult => return failure
             case other => sb.append(StringContext.treatEscapes(other.toString))
           }
           sb.append(StringContext.treatEscapes(stringParts.next()))
         } catch {
           case NonFatal(e) =>
-            return Result.Failure(WorkflowStage.GENERATE, UncaughtException(e))
+            return KoResult(WorkflowStage.GENERATE, UncaughtException(e))
         }
       }
-
-      Result.Success(sb.toString)
+      if (errors.isEmpty) {
+        OkResult(sb.toString)
+      } else if (errors.size == 1) {
+        PartialResult(sb.toString(), errors.head)
+      } else {
+        PartialResult(sb.toString, errors.reduce(RemorphError.merge))
+      }
     }
   }
 
   implicit class SqlOps(sql: SQL) {
     def nonEmpty: Boolean = sql match {
-      case Result.Success(str) => str.nonEmpty
+      case OkResult(str) => str.nonEmpty
       case _ => false
     }
     def isEmpty: Boolean = sql match {
-      case Result.Success(str) => str.isEmpty
+      case OkResult(str) => str.isEmpty
       case _ => false
     }
   }
