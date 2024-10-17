@@ -5,8 +5,6 @@ import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult}
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.UnexpectedOutput
 import com.databricks.labs.remorph.transpilers._
-import com.databricks.labs.remorph.utils.Strings
-import upickle.default.write
 
 trait QueryRunner extends Formatter {
   def runQuery(exampleQuery: ExampleQuery): ReportEntryReport

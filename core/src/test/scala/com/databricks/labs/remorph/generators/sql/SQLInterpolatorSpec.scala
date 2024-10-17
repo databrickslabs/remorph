@@ -62,11 +62,11 @@ class SQLInterpolatorSpec extends AnyWordSpec with Matchers {
 
     "work nicely with mkSql" in {
       val arg1 = "foo"
-      val arg2 = PartialResult("!boom!", UnexpectedNode(Noop))
+      val arg2 = PartialResult("!boom!", UnexpectedNode(Noop.toString))
       val arg3 = 42
       Seq(sql"arg1: $arg1", sql"arg2: $arg2", sql"arg3: $arg3").mkSql(", ") shouldBe PartialResult(
         "arg1: foo, arg2: !boom!, arg3: 42",
-        UnexpectedNode(Noop))
+        UnexpectedNode(Noop.toString))
     }
 
     "unfortunately, if evaluating one of the arguments throws an exception, " +

@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => sql"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => sql"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => sql"RENAME COLUMN ${oldName} to ${newName}"
-      case x => partialResult(x, ir.UnexpectedTableAlteration(x))
+      case x => partialResult(x, ir.UnexpectedTableAlteration(x.toString))
     } mkSql ", "
   }
 

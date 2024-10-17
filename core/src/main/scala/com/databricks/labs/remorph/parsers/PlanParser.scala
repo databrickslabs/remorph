@@ -1,10 +1,9 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
-import com.databricks.labs.remorph.transpilers.{Result, SourceCode, TranspileException, WorkflowStage}
+import com.databricks.labs.remorph.transpilers.{SourceCode}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.{Result, WorkflowStage}
-import com.databricks.labs.remorph.intermediate.{OptimizingError, ParsingErrors, VisitingError}
 import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
@@ -12,7 +11,6 @@ import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
-import java.io.{PrintWriter, StringWriter}
 
 trait PlanParser[P <: Parser] {
 
@@ -61,7 +59,7 @@ trait PlanParser[P <: Parser] {
       OkResult(plan)
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.PLAN, VisitingError(e))
+        KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e))
     }
   }
 
@@ -78,7 +76,7 @@ trait PlanParser[P <: Parser] {
       OkResult(plan)
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
+        KoResult(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e))
     }
   }
 }
