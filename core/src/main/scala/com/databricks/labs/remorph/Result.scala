@@ -24,6 +24,19 @@ case class OkResult[A](output: A) extends Result[A] {
   override def isSuccess: Boolean = true
 }
 
+case class PartialResult[A](output: A, error: RemorphError) extends Result[A] {
+
+  override def map[B](f: A => B): Result[B] = PartialResult(f(output), error)
+
+  override def flatMap[B](f: A => Result[B]): Result[B] = f(output) match {
+    case OkResult(res) => PartialResult(res, error)
+    case PartialResult(res, err) => PartialResult(res, RemorphError.merge(error, err))
+    case KoResult(stage, err) => KoResult(stage, RemorphError.merge(error, err))
+  }
+
+  override def isSuccess: Boolean = true
+}
+
 case class KoResult(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
   override def map[B](f: Nothing => B): Result[B] = this
 
