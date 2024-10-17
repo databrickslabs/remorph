@@ -45,9 +45,11 @@ class SQLInterpolatorSpec extends AnyWordSpec with Matchers {
 
     "return a Failure if any one of the arguments is a Failure" in {
       val arg1 = "foo"
-      val arg2 = Result.Failure(WorkflowStage.GENERATE, UnexpectedNode(Noop))
+      val arg2 = Result.Failure(WorkflowStage.GENERATE, UnexpectedNode(Noop.toString))
       val arg3 = 42
-      sql"arg1: $arg1, arg2: $arg2, arg3: $arg3" shouldBe Result.Failure(WorkflowStage.GENERATE, UnexpectedNode(Noop))
+      sql"arg1: $arg1, arg2: $arg2, arg3: $arg3" shouldBe Result.Failure(
+        WorkflowStage.GENERATE,
+        UnexpectedNode(Noop.toString))
     }
 
     "unfortunately, if evaluating one of the arguments throws an exception, " +

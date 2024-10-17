@@ -1,16 +1,14 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
-import com.databricks.labs.remorph.transpilers.{Result, SourceCode, TranspileException, WorkflowStage}
+import com.databricks.labs.remorph.transpilers.{SourceCode}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.{Result, WorkflowStage}
-import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
-import java.io.{PrintWriter, StringWriter}
 
 trait PlanParser[P <: Parser] {
 
@@ -42,7 +40,7 @@ trait PlanParser[P <: Parser] {
     parser.addErrorListener(errListener)
     val tree = createTree(parser)
     if (errListener.errorCount > 0) {
-      Result.Failure(stage = WorkflowStage.PARSE, errors = ParsingErrors(errListener.errors))
+      Result.Failure(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
     } else {
       Result.Success(tree)
     }
@@ -58,10 +56,8 @@ trait PlanParser[P <: Parser] {
       val plan = createPlan(tree)
       Result.Success(plan)
     } catch {
-      case e: Exception =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        Result.Failure(stage = WorkflowStage.PLAN, PlanGenerationFailure(e.getMessage, sw.toString))
+      case NonFatal(e) =>
+        Result.Failure(stage = WorkflowStage.PLAN, PlanGenerationFailure(e))
     }
   }
 
@@ -77,12 +73,8 @@ trait PlanParser[P <: Parser] {
       val plan = createOptimizer.apply(logicalPlan)
       Result.Success(plan)
     } catch {
-      case te: TranspileException =>
-        Result.Failure(stage = WorkflowStage.OPTIMIZE, te.err)
-      case e: Exception =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        Result.Failure(stage = WorkflowStage.PLAN, TranspileFailure(e.getClass.getSimpleName, sw.toString))
+      case NonFatal(e) =>
+        Result.Failure(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e))
     }
   }
 }

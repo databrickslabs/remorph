@@ -3,6 +3,8 @@ package com.databricks.labs.remorph.intermediate
 import com.databricks.labs.remorph.utils.Strings
 import upickle.default._
 
+import java.io.{PrintWriter, StringWriter}
+
 sealed trait RemorphError {
   def msg: String
 }
@@ -19,6 +21,16 @@ object RemorphError {
     UnsupportedDateTimePart.rw,
     PlanGenerationFailure.rw,
     TranspileFailure.rw)
+  implicit val rwExcept: ReadWriter[Throwable] = upickle.default
+    .readwriter[ujson.Value]
+    .bimap[Throwable](
+      e => {
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        ujson.Str(s"Exception: ${e.getClass.getSimpleName}, ${e.getMessage}, ${sw.toString}")
+      },
+      _ => null.asInstanceOf[Throwable] // Deserialize to null
+    )
 }
 
 case class ParsingError(
@@ -43,20 +55,9 @@ object ParsingErrors {
   implicit val rw: ReadWriter[ParsingErrors] = macroRW
 }
 
-case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError {
-  override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
-}
-
-case class VisitingError(cause: Throwable) extends RemorphError {
-  override def msg: String = s"Visiting error: ${cause.getMessage}"
-}
-
-case class OptimizingError(cause: Throwable) extends RemorphError {
-  override def msg: String = s"Optimizing error: ${cause.getMessage}"
-}
-
-case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError {
-  override def msg: String = s"Unexpected node of class ${offendingNode.getClass.getSimpleName}"
+// TODO: If we wish to preserve the whole node in say JSON output, we will need to accept TreeNodew[_] and deal with it
+case class UnexpectedNode(offendingNode: String) extends RemorphError {
+  override def msg: String = s"Unexpected node of class ${offendingNode}"
 }
 
 object UnexpectedNode {
@@ -118,22 +119,58 @@ object UnsupportedDateTimePart {
   implicit val expressionRW: ReadWriter[Expression] = upickle.default.readwriter[Expression]
 }
 
-case class PlanGenerationFailure(exception: String, messsage: String) extends RemorphError {
-  override def msg: String = s"PlanGenerationFailure: $exception, $messsage"
+case class PlanGenerationFailure(exception: Throwable) extends RemorphError {
+  override def msg: String = s"PlanGenerationFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
 }
 object PlanGenerationFailure {
   implicit val rw: ReadWriter[PlanGenerationFailure] = macroRW
+  implicit val rwExcept: ReadWriter[Throwable] = upickle.default
+    .readwriter[ujson.Value]
+    .bimap[Throwable](
+      e => {
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        ujson.Str(
+          s"Plan generation failure with exception: ${e.getClass.getSimpleName} - ${e.getMessage}\n${sw.toString}")
+      },
+      _ => null.asInstanceOf[Throwable] // Deserialize to null
+    )
 }
 
-case class TranspileFailure(exception: String, message: String) extends RemorphError {
-  override def msg: String = s"TranspileFailure: $exception, $message"
+case class TranspileFailure(exception: Throwable) extends RemorphError {
+  override def msg: String = s"TranspileFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
 }
 object TranspileFailure {
   implicit val rw: ReadWriter[TranspileFailure] = macroRW
+  implicit val rwExcept: ReadWriter[Throwable] = upickle.default
+    .readwriter[ujson.Value]
+    .bimap[Throwable](
+      e => {
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        ujson.Str(
+          s"Transpilation failure with exception: ${e.getClass.getSimpleName} - ${e.getMessage}\n${sw.toString}")
+      },
+      _ => null.asInstanceOf[Throwable] // Deserialize to null
+    )
 }
 
 case class UncaughtException(exception: Throwable) extends RemorphError {
   override def msg: String = exception.getMessage
+}
+
+object UncaughtException {
+  implicit val rw: ReadWriter[UncaughtException] = macroRW
+  implicit val rwExcept: ReadWriter[Throwable] = upickle.default
+    .readwriter[ujson.Value]
+    .bimap[Throwable](
+      e => {
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        ujson.Str(s"Exception: ${e.getClass.getSimpleName}, ${e.getMessage}, ${sw.toString}")
+      },
+      _ => null.asInstanceOf[Throwable] // Deserialize to null
+    )
 }
 
 case class UnexpectedOutput(expected: String, actual: String) extends RemorphError {
@@ -142,4 +179,8 @@ case class UnexpectedOutput(expected: String, actual: String) extends RemorphErr
        |=== Unexpected output (expected vs actual) ===
        |${Strings.sideBySide(expected, actual).mkString("\n")}
        |""".stripMargin
+}
+
+object UnexpectedOutput {
+  implicit val rw: ReadWriter[UnexpectedOutput] = macroRW
 }

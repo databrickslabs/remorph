@@ -1,14 +1,11 @@
 package com.databricks.labs.remorph.coverage.estimation
 
+import com.databricks.labs.remorph.Result.{Failure, Success}
+import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.intermediate.LogicalPlan
-import com.databricks.labs.remorph.Result.{Failure, Success}
-import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
-import com.databricks.labs.remorph.transpilers.Result.{Failure, Success}
-import com.databricks.labs.remorph.transpilers.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -18,7 +15,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
   def run(): EstimationReport = {
     val history = queryHistory.history()
     val anonymizer = new Anonymizer(planParser)
-    // Hashews of either query strings or plans that we have seen before.
+    // Hashes of either query strings or plans that we have seen before.
     val parsedSet = scala.collection.mutable.Set[String]()
     val reportEntries = history.queries.flatMap(processQuery(_, anonymizer, parsedSet))
     val (uniqueSuccesses, parseFailures, transpileFailures) = countReportEntries(reportEntries)
@@ -55,7 +52,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         case Failure(PLAN, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(error.msg)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(error)),
               EstimationAnalysisReport(
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
@@ -104,7 +101,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(error.msg)),
+            transpilation_error = Some(error)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = tfr,
@@ -132,7 +129,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(TranspileFailure("unknown", "Unexpected result from parse phase"))),
+            transpilation_error =
+              Some(TranspileFailure(new RuntimeException("Unexpected result from transpile phase")))),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = RuleScore(UnexpectedResultRule().plusScore(ruleScore.rule.score), Seq(ruleScore)),
