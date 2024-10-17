@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.SqlCommandContext
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.SqlClausesContext
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.{IntervalSet, Pair}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
@@ -27,7 +29,7 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     try {
       super.sync(recognizer)
     } catch {
-      case e: RecognitionException => throw e  // Throw back to parser
+      case e: RecognitionException => throw e // Throw back to parser
     } finally {
       val endIndex: Int = tokens.index
       for (i <- startIndex until endIndex) {
@@ -48,9 +50,22 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
         for (token <- skippedTokens.asScala) {
           errorNode.addChild(new TerminalNodeImpl(token))
         }
-        recognizer.getContext.addErrorNode(errorNode)
+        findHighestContext(recognizer.getContext).addErrorNode(errorNode)
       }
     }
+  }
+
+  def findHighestContext(ctx: ParserRuleContext): ParserRuleContext = {
+    @annotation.tailrec
+    def findContext(currentCtx: ParserRuleContext): ParserRuleContext = {
+      currentCtx match {
+        case _: SqlClausesContext | _: SqlCommandContext => currentCtx
+        case _ if currentCtx.getParent == null => currentCtx
+        case _ => findContext(currentCtx.getParent.asInstanceOf[ParserRuleContext])
+      }
+    }
+
+    findContext(ctx)
   }
 
   // Note that it is not possible to get this error from the current grammar, we would have to do an inordinate
