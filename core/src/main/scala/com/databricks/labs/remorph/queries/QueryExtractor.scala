@@ -60,11 +60,11 @@ class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => 
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _)) =>
         parser.parse(new SourceCode(query)).flatMap(parser.visit) match {
-          case com.databricks.labs.remorph.transpilers.Result.Failure(stage, errorJson) =>
+          case com.databricks.labs.remorph.Result.Failure(stage, errorJson) =>
             // scalastyle:off println
             System.err.println(s"Failed to parse query: $query $errorJson")
           // scalastyle:on println
-          case com.databricks.labs.remorph.transpilers.Result.Success(plan) =>
+          case com.databricks.labs.remorph.Result.Success(plan) =>
             prettyPrinter(plan)
         }
       case None => throw new IllegalArgumentException(s"Example $name not found")

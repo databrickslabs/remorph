@@ -2,9 +2,9 @@ package com.databricks.labs.remorph.graph
 
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, TableDefinition}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
+import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table

@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.queries
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.NoopNode
-import com.databricks.labs.remorph.transpilers.Result
+import com.databricks.labs.remorph.Result
 import org.antlr.v4.runtime.ParserRuleContext
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when

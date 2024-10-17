@@ -1,13 +1,14 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.transpilers.{Result, SourceCode, WorkflowStage}
+import com.databricks.labs.remorph.intermediate.{OptimizingError, ParsingErrors, VisitingError}
 import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, WorkflowStage}
+import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.write
 import org.json4s.{Formats, NoTypeHints}
 
-import java.io.{PrintWriter, StringWriter}
+import scala.util.control.NonFatal
 
 trait PlanParser[P <: Parser] {
 
@@ -40,7 +41,7 @@ trait PlanParser[P <: Parser] {
     val tree = createTree(parser)
     // TODO: Should we return the error listener, or perhaps the collection of errors and not JSON at this stage?
     if (errListener.errorCount > 0) {
-      Result.Failure(stage = WorkflowStage.PARSE, errListener.errorsAsJson)
+      Result.Failure(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
     } else {
       Result.Success(tree)
     }
@@ -56,13 +57,8 @@ trait PlanParser[P <: Parser] {
       val plan = createPlan(tree)
       Result.Success(plan)
     } catch {
-      case e: Exception =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        val stackTrace = sw.toString
-        val errorJson = write(
-          Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(stage = WorkflowStage.PLAN, errorJson)
+      case NonFatal(e) =>
+        Result.Failure(stage = WorkflowStage.PLAN, VisitingError(e))
     }
   }
 
@@ -78,13 +74,8 @@ trait PlanParser[P <: Parser] {
       val plan = createOptimizer.apply(logicalPlan)
       Result.Success(plan)
     } catch {
-      case e: Exception =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        val stackTrace = sw.toString
-        val errorJson = write(
-          Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(stage = WorkflowStage.OPTIMIZE, errorJson)
+      case NonFatal(e) =>
+        Result.Failure(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
     }
   }
 

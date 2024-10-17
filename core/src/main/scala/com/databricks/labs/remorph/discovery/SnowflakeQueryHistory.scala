@@ -4,10 +4,6 @@ import java.sql.Connection
 import java.time.Duration
 import scala.collection.mutable.ListBuffer
 
-trait QueryHistoryProvider {
-  def history(): QueryHistory
-}
-
 class SnowflakeQueryHistory(conn: Connection) extends QueryHistoryProvider {
   def history(): QueryHistory = {
     val stmt = conn.createStatement()
@@ -37,11 +33,12 @@ class SnowflakeQueryHistory(conn: Connection) extends QueryHistoryProvider {
         while (rs.next()) {
           queries.append(
             ExecutedQuery(
-              rs.getString("QUERY_HASH"),
-              rs.getTimestamp("START_TIME"),
-              rs.getString("QUERY_TEXT"),
-              Duration.ofMillis(rs.getLong("TOTAL_ELAPSED_TIME")),
-              rs.getString("USER_NAME")))
+              id = rs.getString("QUERY_HASH"),
+              source = rs.getString("QUERY_TEXT"),
+              timestamp = rs.getTimestamp("START_TIME"),
+              duration = Duration.ofMillis(rs.getLong("TOTAL_ELAPSED_TIME")),
+              user = Some(rs.getString("USER_NAME")),
+              filename = None))
         }
         QueryHistory(queries)
       } finally {

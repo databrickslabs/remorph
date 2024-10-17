@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import org.scalatest.wordspec.AnyWordSpec
@@ -45,7 +45,7 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
       val optionGenerator = new OptionGenerator(exprGenerator)
       val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
       forAll(translations) { (dt, expected) =>
-        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt) shouldBe expected
+        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt) shouldBe Result.Success(expected)
       }
     }
   }

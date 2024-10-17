@@ -24,8 +24,18 @@ class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
     // Mock query history
     val mockHistory = QueryHistory(
       Seq(
-        ExecutedQuery("id1", new Timestamp(1725032011000L), "SELECT * FROM table1", Duration.ofMillis(300), "user1"),
-        ExecutedQuery("id2", new Timestamp(1725032011000L), "SELECT * FROM table2", Duration.ofMillis(300), "user2")))
+        ExecutedQuery(
+          "id1",
+          "SELECT * FROM table1",
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user1")),
+        ExecutedQuery(
+          "id2",
+          "SELECT * FROM table2",
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user2"))))
     when(mockQueryHistoryProvider.history()).thenReturn(mockHistory)
 
     // Create Estimator instance
@@ -52,7 +62,12 @@ class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
     // Mock query history
     val mockHistory = QueryHistory(
       Seq(
-        ExecutedQuery("id1", new Timestamp(1725032011000L), "SOME GARBAGE STATEMENT", Duration.ofMillis(300), "user1")))
+        ExecutedQuery(
+          "id1",
+          "SOME GARBAGE STATEMENT",
+          new Timestamp(1725032011000L),
+          Duration.ofMillis(300),
+          Some("user1"))))
     when(mockQueryHistoryProvider.history()).thenReturn(mockHistory)
 
     // Create Estimator instance

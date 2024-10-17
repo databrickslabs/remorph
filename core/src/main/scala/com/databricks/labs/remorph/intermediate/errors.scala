@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.utils.Strings
 import upickle.default._
 
 trait RemorphError {
@@ -18,6 +19,18 @@ case class ParsingError(
 
 object ParsingError {
   implicit val errorDetailRW: ReadWriter[ParsingError] = macroRW
+}
+
+case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError {
+  override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
+}
+
+case class VisitingError(cause: Throwable) extends RemorphError {
+  override def msg: String = s"Visiting error: ${cause.getMessage}"
+}
+
+case class OptimizingError(cause: Throwable) extends RemorphError {
+  override def msg: String = s"Optimizing error: ${cause.getMessage}"
 }
 
 case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError {
@@ -47,4 +60,16 @@ case class UnsupportedArguments(functionName: String, arguments: Seq[Expression]
 
 case class UnsupportedDateTimePart(expression: Expression) extends RemorphError {
   override def msg: String = s"Unsupported date/time part specification: $expression"
+}
+
+case class UncaughtException(exception: Throwable) extends RemorphError {
+  override def msg: String = exception.getMessage
+}
+
+case class UnexpectedOutput(expected: String, actual: String) extends RemorphError {
+  override def msg: String =
+    s"""
+       |=== Unexpected output (expected vs actual) ===
+       |${Strings.sideBySide(expected, actual).mkString("\n")}
+       |""".stripMargin
 }
