@@ -304,8 +304,8 @@ class EstimationAnalyzer extends LazyLogging {
         case _ => // No errors
       })
 
-    val topRuleNames = ruleNameCounts.toSeq.sortBy(-_._2).take(5).toMap
-    val topTokenNames = tokenNameCounts.toSeq.sortBy(-_._2).take(5).toMap
+    val topRuleNames = ruleNameCounts.toSeq.sortBy(-_._2).take(10).toMap
+    val topTokenNames = tokenNameCounts.toSeq.sortBy(-_._2).take(10).toMap
 
     ParseFailStats(topRuleNames, topTokenNames)
   }
