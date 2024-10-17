@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
-import org.antlr.v4.runtime.tree._
+import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ErrorNode, ParseTree, ParseTreeVisitor, RuleNode}
 import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
@@ -137,4 +137,3 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
     logger.warn(s"Error node encountered: ${node.getText}")
     unresolved(node.getText, "Unparsed input - ErrorNode encountered")
   }
-}
