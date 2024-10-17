@@ -16,15 +16,15 @@ sealed trait Result[+A] {
   def isSuccess: Boolean
 }
 
-case class Success[A](output: A) extends Result[A] {
-  override def map[B](f: A => B): Result[B] = Success(f(output))
+case class OkResult[A](output: A) extends Result[A] {
+  override def map[B](f: A => B): Result[B] = OkResult(f(output))
 
   override def flatMap[B](f: A => Result[B]): Result[B] = f(output)
 
   override def isSuccess: Boolean = true
 }
 
-case class Failure(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
+case class KoResult(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
   override def map[B](f: Nothing => B): Result[B] = this
 
   override def flatMap[B](f: Nothing => Result[B]): Result[B] = this

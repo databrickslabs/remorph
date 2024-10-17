@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.{Failure, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator, SQL}
 import org.json4s.jackson.Serialization
@@ -23,7 +23,7 @@ class SqlGenerator {
       generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
     } catch {
       case NonFatal(e) =>
-        Failure(WorkflowStage.GENERATE, ir.UncaughtException(e))
+        KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e))
     }
   }
 }

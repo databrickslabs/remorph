@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{Failure, Success, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, WorkflowStage, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
@@ -13,7 +13,7 @@ class LogicalPlanGenerator(
     case b: ir.Batch => batch(ctx, b)
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
-    case ir.NamedTable(id, _, _) => Success(id)
+    case ir.NamedTable(id, _, _) => OkResult(id)
     case ir.Filter(input, condition) =>
       sql"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
     case ir.Limit(input, limit) =>
@@ -93,9 +93,9 @@ class LogicalPlanGenerator(
           if (indicesStr.isEmpty) sql""
           else sql"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
         val leadingComment = (tableOptionsComment, indicesComment) match {
-          case (Success(""), Success("")) => Success("")
-          case (a, Success("")) => sql"/*\n$a*/\n"
-          case (Success(""), b) => sql"/*\n$b*/\n"
+          case (OkResult(""), OkResult("")) => OkResult("")
+          case (a, OkResult("")) => sql"/*\n$a*/\n"
+          case (OkResult(""), b) => sql"/*\n$b*/\n"
           case (a, b) => sql"/*\n$a\n$b*/\n"
         }
 
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => sql"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => sql"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => sql"RENAME COLUMN ${oldName} to ${newName}"
-      case x => Failure(WorkflowStage.GENERATE, ir.UnexpectedTableAlteration(x))
+      case x => KoResult(WorkflowStage.GENERATE, ir.UnexpectedTableAlteration(x))
     } mkSql ", "
   }
 
@@ -157,7 +157,7 @@ class LogicalPlanGenerator(
       val outer = if (isOuter) " OUTER" else ""
       val view = if (isView) " VIEW" else ""
       sql"LATERAL$view$outer ${expr.generate(ctx, fn)}"
-    case _ => Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(lateral))
+    case _ => KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(lateral))
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
@@ -183,7 +183,7 @@ class LogicalPlanGenerator(
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): SQL = c match {
     case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
-    case ir.Nullability(nullable) => Success(if (nullable) "NULL" else "NOT NULL")
+    case ir.Nullability(nullable) => OkResult(if (nullable) "NULL" else "NOT NULL")
     case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
     case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
     case ir.NamedConstraint(name, unnamed) => sql"CONSTRAINT $name ${constraint(ctx, unnamed)}"
@@ -300,16 +300,16 @@ class LogicalPlanGenerator(
 
   private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): SQL = {
     if (setOp.allow_missing_columns) {
-      return Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
     }
     if (setOp.by_name) {
-      return Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
     }
     val op = setOp.set_op_type match {
       case ir.UnionSetOp => "UNION"
       case ir.IntersectSetOp => "INTERSECT"
       case ir.ExceptSetOp => "EXCEPT"
-      case _ => return Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      case _ => return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     sql"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
@@ -382,7 +382,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkSql(" IN(", ", ", ")")
         sql"$child PIVOT($expressions FOR $col$values)"
-      case a => Failure(WorkflowStage.GENERATE, ir.UnsupportedGroupType(a))
+      case a => KoResult(WorkflowStage.GENERATE, ir.UnsupportedGroupType(a))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): SQL = {

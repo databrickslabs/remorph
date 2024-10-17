@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.queries
 
-import com.databricks.labs.remorph.Success
+import com.databricks.labs.remorph.OkResult
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.NoopNode
 import org.antlr.v4.runtime.ParserRuleContext
@@ -15,8 +15,8 @@ class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar {
     "work" in {
       val buf = new StringBuilder
       val parser = mock[PlanParser[_]]
-      when(parser.parse(any())).thenReturn(Success(ParserRuleContext.EMPTY))
-      when(parser.visit(any())).thenReturn(Success(NoopNode))
+      when(parser.parse(any())).thenReturn(OkResult(ParserRuleContext.EMPTY))
+      when(parser.visit(any())).thenReturn(OkResult(NoopNode))
 
       val debugger = new ExampleDebugger(_ => parser, x => buf.append(x))
       val name = s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake/nested_query_with_json_1.sql"

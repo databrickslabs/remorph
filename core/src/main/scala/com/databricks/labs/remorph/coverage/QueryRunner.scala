@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.queries.ExampleQuery
-import com.databricks.labs.remorph.{Failure, Success}
+import com.databricks.labs.remorph.{KoResult, OkResult}
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.UnexpectedOutput
 import com.databricks.labs.remorph.transpilers._
@@ -15,11 +15,11 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     transpiler.transpile(SourceCode(exampleQuery.query)) match {
-      case Failure(PARSE, error) => ReportEntryReport(statements = 1, parsing_error = Some(error))
-      case Failure(_, error) =>
+      case KoResult(PARSE, error) => ReportEntryReport(statements = 1, parsing_error = Some(error))
+      case KoResult(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly
         ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(error))
-      case Success(output) =>
+      case OkResult(output) =>
         if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
           val expected = exampleQuery.expectedTranslation.getOrElse("")
           ReportEntryReport(

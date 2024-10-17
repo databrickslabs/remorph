@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators
 
 import com.databricks.labs.remorph.intermediate.UncaughtException
-import com.databricks.labs.remorph.{Failure, Result, Success, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage}
 
 import scala.util.control.NonFatal
 
@@ -19,28 +19,28 @@ package object sql {
       while (arguments.hasNext) {
         try {
           arguments.next() match {
-            case Success(s) => sb.append(StringContext.treatEscapes(s.toString))
-            case failure: Failure => return failure
+            case OkResult(s) => sb.append(StringContext.treatEscapes(s.toString))
+            case failure: KoResult => return failure
             case other => sb.append(StringContext.treatEscapes(other.toString))
           }
           sb.append(StringContext.treatEscapes(stringParts.next()))
         } catch {
           case NonFatal(e) =>
-            return Failure(WorkflowStage.GENERATE, UncaughtException(e))
+            return KoResult(WorkflowStage.GENERATE, UncaughtException(e))
         }
       }
 
-      Success(sb.toString)
+      OkResult(sb.toString)
     }
   }
 
   implicit class SqlOps(sql: SQL) {
     def nonEmpty: Boolean = sql match {
-      case Success(str) => str.nonEmpty
+      case OkResult(str) => str.nonEmpty
       case _ => false
     }
     def isEmpty: Boolean = sql match {
-      case Success(str) => str.isEmpty
+      case OkResult(str) => str.isEmpty
       case _ => false
     }
   }
