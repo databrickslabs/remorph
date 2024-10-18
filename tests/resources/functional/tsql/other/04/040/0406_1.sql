@@ -1,0 +1,2 @@
+--Query type: DDL
+SELECT SERVICE_NAME, ADDRESS FROM (VALUES ('NotifyService', 'LOCAL')) AS RouteInfo(SERVICE_NAME, ADDRESS);

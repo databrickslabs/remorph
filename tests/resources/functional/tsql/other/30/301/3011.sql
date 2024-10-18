@@ -1,0 +1,2 @@
+--Query type: DCL
+SET LOCK_TIMEOUT 1800;

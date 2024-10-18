@@ -1,0 +1,9 @@
+--Query type: DDL
+DECLARE @value INT;
+SELECT @value = Val
+FROM (
+    VALUES (250)
+) AS tmp(Val);
+ALTER PARTITION FUNCTION myRangePF2 ()
+SPLIT RANGE (@value);
+-- REMORPH CLEANUP: DROP PARTITION FUNCTION myRangePF2;

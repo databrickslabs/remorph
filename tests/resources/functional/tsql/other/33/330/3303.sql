@@ -1,0 +1,32 @@
+--Query type: DML
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'supplierData')
+BEGIN
+    CREATE TABLE supplierData (
+        id INT,
+        name VARCHAR(50)
+    );
+END
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'auditSupplierData')
+BEGIN
+    CREATE TABLE auditSupplierData (
+        id INT,
+        name VARCHAR(50)
+    );
+END
+
+SELECT * FROM supplierData;
+SELECT * FROM auditSupplierData;
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'supplierData')
+BEGIN
+    DROP TABLE supplierData;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'auditSupplierData')
+BEGIN
+    DROP TABLE auditSupplierData;
+END
+
+-- REMORPH CLEANUP: DROP TABLE supplierData;
+-- REMORPH CLEANUP: DROP TABLE auditSupplierData;

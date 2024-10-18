@@ -1,0 +1,8 @@
+--Query type: DDL
+CREATE TABLE #TempTable (id INT, c_name NVARCHAR(50));
+ALTER TABLE #TempTable ADD CONSTRAINT PK_TempTable PRIMARY KEY (id);
+INSERT INTO #TempTable (id, c_name) VALUES (1, 'John');
+CREATE FULLTEXT INDEX ON #TempTable (c_name) KEY INDEX PK_TempTable;
+ALTER FULLTEXT INDEX ON #TempTable START FULL POPULATION;
+SELECT * FROM #TempTable;
+-- REMORPH CLEANUP: DROP TABLE #TempTable;

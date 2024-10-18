@@ -1,0 +1,24 @@
+--Query type: DDL
+CREATE TABLE #TempTable
+(
+    ValidFrom datetime2,
+    ValidTo datetime2,
+    StartDate datetime2,
+    EndDate datetime2
+);
+
+ALTER TABLE #TempTable
+ADD PERIOD FOR SYSTEM_TIME (ValidFrom, ValidTo),
+    ValidFrom datetime2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL DEFAULT SYSUTCDATETIME(),
+    ValidTo datetime2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL DEFAULT CONVERT(DATETIME2, '9999-12-31 23:59:59.99999999');
+
+ALTER TABLE #TempTable
+SET (SYSTEM_VERSIONING = ON (HISTORY_RETENTION_PERIOD = 1 YEAR));
+
+WITH TempResult AS
+(
+    SELECT '2022-01-01' AS ValidFrom, '2022-12-31' AS ValidTo, '2022-01-01 00:00:00.0000000' AS StartDate, '2022-12-31 23:59:59.9999999' AS EndDate
+)
+SELECT ValidFrom, ValidTo, CONVERT(DATETIME2, StartDate) AS StartDate, CONVERT(DATETIME2, EndDate) AS EndDate
+FROM TempResult;
+-- REMORPH CLEANUP: DROP TABLE IF EXISTS #TempTable;
