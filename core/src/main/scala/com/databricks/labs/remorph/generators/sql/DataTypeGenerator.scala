@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, Result, intermediate => ir}
 
 /**
  * @see
@@ -44,7 +44,7 @@ object DataTypeGenerator {
     case ir.VarcharType(size) => sql"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => sql"CHAR${maybeSize(size)}"
     case ir.VariantType => sql"VARIANT"
-    case _ => KoResult(WorkflowStage.GENERATE, ir.UnsupportedDataType(dt))
+    case _ => PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt))
   }
 
   private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")

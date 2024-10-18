@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{GeneratorContext}
-import com.databricks.labs.remorph.{KoResult, OkResult, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => sql"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => sql"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => sql"RENAME COLUMN ${oldName} to ${newName}"
-      case x => KoResult(WorkflowStage.GENERATE, ir.UnexpectedTableAlteration(x))
+      case x => partialResult(x, ir.UnexpectedTableAlteration(x))
     } mkSql ", "
   }
 
@@ -157,7 +157,7 @@ class LogicalPlanGenerator(
       val outer = if (isOuter) " OUTER" else ""
       val view = if (isView) " VIEW" else ""
       sql"LATERAL$view$outer ${expr.generate(ctx, fn)}"
-    case _ => KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(lateral))
+    case _ => partialResult(lateral)
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
@@ -300,16 +300,16 @@ class LogicalPlanGenerator(
 
   private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): SQL = {
     if (setOp.allow_missing_columns) {
-      return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return partialResult(setOp)
     }
     if (setOp.by_name) {
-      return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return partialResult(setOp)
     }
     val op = setOp.set_op_type match {
       case ir.UnionSetOp => "UNION"
       case ir.IntersectSetOp => "INTERSECT"
       case ir.ExceptSetOp => "EXCEPT"
-      case _ => return KoResult(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      case _ => return partialResult(setOp)
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     sql"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
@@ -382,7 +382,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkSql(" IN(", ", ", ")")
         sql"$child PIVOT($expressions FOR $col$values)"
-      case a => KoResult(WorkflowStage.GENERATE, ir.UnsupportedGroupType(a))
+      case a => partialResult(a, ir.UnsupportedGroupType(a))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): SQL = {

@@ -6,5 +6,6 @@ import com.databricks.labs.remorph.intermediate.{RemorphError, TreeNode, Unexpec
 
 abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String] {
   def partialResult(tree: In): SQL = partialResult(tree, UnexpectedNode(tree))
-  def partialResult(tree: In, err: RemorphError): SQL = PartialResult(s"!!! $tree !!!", err)
+  def partialResult(trees: Seq[Any], err: RemorphError): SQL = PartialResult(s"!!! ${trees.mkString(" | ")} !!!", err)
+  def partialResult(tree: Any, err: RemorphError): SQL = PartialResult(s"!!! $tree !!!", err)
 }

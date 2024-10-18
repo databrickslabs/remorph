@@ -21,7 +21,7 @@ trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
       val exprGenerator = new ExpressionGenerator()
       val optionGenerator = new OptionGenerator(exprGenerator)
       val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
-      generator.generate(GeneratorContext(logical), t).isSuccess shouldBe false
+      generator.generate(GeneratorContext(logical), t).isInstanceOf[OkResult[_]] shouldBe false
     }
   }
 }
