@@ -9,9 +9,9 @@ sealed trait RemorphError {
   def msg: String
 }
 
-trait SingleError extends RemorphError
+sealed trait SingleError extends RemorphError
 
-trait MultipleErrors extends RemorphError {
+sealed trait MultipleErrors extends RemorphError {
   def errors: Seq[SingleError]
 }
 
@@ -28,16 +28,6 @@ object RemorphError {
     UnsupportedDateTimePart.rw,
     PlanGenerationFailure.rw,
     TranspileFailure.rw)
-  implicit val rwExcept: ReadWriter[Throwable] = upickle.default
-    .readwriter[ujson.Value]
-    .bimap[Throwable](
-      e => {
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        ujson.Str(s"Exception: ${e.getClass.getSimpleName}, ${e.getMessage}, ${sw.toString}")
-      },
-      _ => null.asInstanceOf[Throwable] // Deserialize to null
-    )
 
   def merge(l: RemorphError, r: RemorphError): RemorphError = (l, r) match {
     case (ls: MultipleErrors, rs: MultipleErrors) => RemorphErrors(ls.errors ++ rs.errors)
@@ -53,6 +43,7 @@ case class RemorphErrors(errors: Seq[SingleError]) extends RemorphError with Mul
 
 object RemorphErrors {
   implicit val rw: ReadWriter[RemorphErrors] = macroRW
+  implicit val singleErrorSeqRW: ReadWriter[Seq[SingleError]] = upickle.default.readwriter[Seq[SingleError]]
 }
 
 case class ParsingError(
@@ -78,22 +69,10 @@ object ParsingErrors {
   implicit val rw: ReadWriter[ParsingErrors] = macroRW
 }
 
-// TODO: If we wish to preserve the whole node in say JSON output, we will need to accept TreeNodew[_] and deal with it
-case class UnexpectedNode(offendingNode: String) extends RemorphError {
+// TODO: If we wish to preserve the whole node in say JSON output, we will need to accept TreeNodew[_] and deal with
+//       implicits for TreeNode[_] as well
+case class UnexpectedNode(offendingNode: String) extends RemorphError with SingleError {
   override def msg: String = s"Unexpected node of class ${offendingNode}"
-
-
-
-case class VisitingError(cause: Throwable) extends RemorphError with SingleError {
-  override def msg: String = s"Visiting error: ${cause.getMessage}"
-}
-
-case class OptimizingError(cause: Throwable) extends RemorphError with SingleError {
-  override def msg: String = s"Optimizing error: ${cause.getMessage}"
-}
-
-case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError with SingleError {
-  override def msg: String = s"Unexpected node of class ${offendingNode.getClass.getSimpleName}"
 }
 
 object UnexpectedNode {
@@ -123,7 +102,9 @@ object UnsupportedDataType {
   implicit val rw: ReadWriter[UnsupportedDataType] = macroRW
 }
 
-case class WrongNumberOfArguments(functionName: String, got: Int, expectationMessage: String) extends RemorphError with SingleError {
+case class WrongNumberOfArguments(functionName: String, got: Int, expectationMessage: String)
+    extends RemorphError
+    with SingleError {
   override def msg: String =
     s"Wrong number of arguments for $functionName: got $got, expected $expectationMessage"
 }
@@ -132,7 +113,9 @@ object WrongNumberOfArguments {
   implicit val rw: ReadWriter[WrongNumberOfArguments] = macroRW
 }
 
-case class UnsupportedArguments(functionName: String, arguments: Seq[Expression]) extends RemorphError with SingleError {
+case class UnsupportedArguments(functionName: String, arguments: Seq[Expression])
+    extends RemorphError
+    with SingleError {
   override def msg: String = s"Unsupported argument(s) to $functionName"
 }
 
@@ -155,7 +138,7 @@ object UnsupportedDateTimePart {
   implicit val expressionRW: ReadWriter[Expression] = upickle.default.readwriter[Expression]
 }
 
-case class PlanGenerationFailure(exception: Throwable) extends RemorphError {
+case class PlanGenerationFailure(exception: Throwable) extends RemorphError with SingleError {
   override def msg: String = s"PlanGenerationFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
 }
 object PlanGenerationFailure {
@@ -173,9 +156,10 @@ object PlanGenerationFailure {
     )
 }
 
-case class TranspileFailure(exception: Throwable) extends RemorphError {
+case class TranspileFailure(exception: Throwable) extends RemorphError with SingleError {
   override def msg: String = s"TranspileFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
 }
+
 object TranspileFailure {
   implicit val rw: ReadWriter[TranspileFailure] = macroRW
   implicit val rwExcept: ReadWriter[Throwable] = upickle.default

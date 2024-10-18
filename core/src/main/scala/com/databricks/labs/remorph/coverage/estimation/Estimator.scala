@@ -5,11 +5,7 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.intermediate.LogicalPlan
 import com.databricks.labs.remorph.{KoResult, OkResult}
-import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
-import com.databricks.labs.remorph.transpilers.Result.{Failure, Success}
-import com.databricks.labs.remorph.transpilers.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -50,7 +46,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         case KoResult(PARSE, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errors)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error)),
               EstimationAnalysisReport(
                 score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
