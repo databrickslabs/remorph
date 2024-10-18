@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
-import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ErrorNode, ParseTree, ParseTreeVisitor, RuleNode}
+import org.antlr.v4.runtime.tree._
 import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
