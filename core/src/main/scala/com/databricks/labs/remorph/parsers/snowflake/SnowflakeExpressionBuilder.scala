@@ -753,17 +753,75 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
   }
 
-  override def visitPredIn(ctx: PredInContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val in = if (ctx.subquery() != null) {
-        // In the result of a sub query
-        ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
-      } else {
-        // In a list of expressions
-        ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+  override def visitPredIn(ctx: PredInContext): ir.Expression = {
+    val in = if (ctx.subquery() != null) {
+      // In the result of a sub query
+//     val left = ctx.exprList().expr().asScala match {
+//        case Seq(expr) => ir.In(Seq(expr.accept(this)),
+//          Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
+//        case exprs => ir.In(exprs.map(_.accept(this)), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder)))
+//        )
+//      }
+      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
+//      left
+    } else {
+      // In a list of expressions
+      ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+    }
+    Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+  }
+
+  override def visitPredExprListIn(ctx: PredExprListInContext): ir.Expression = {
+    // left side of In can be a list of expressions
+    val leftExprList = ctx.exprList(0).expr().asScala.map(_.accept(this))
+
+    val rightExprListOrSubquery = if (ctx.subquery() != null) {
+      // Case: Right-hand side is a subquery
+      val subqueryExpr1 = ctx.subquery().queryStatement().accept(this)
+      val subQueryTable = subqueryExpr1
+        .collect({ case ir.ObjectReference(ir.Id(table, _), _*) =>
+          table
+        })
+        .head
+
+      val subqueryExpr = ctx
+        .subquery()
+        .queryStatement()
+        .selectStatement()
+        .selectClause()
+        .selectListNoTop()
+        .selectList()
+        .selectListElem()
+        .asScala
+        .map(_.accept(this))
+
+      // Assume subquery has output columns (v3, v4, etc.)
+      val subqueryOutput = subqueryExpr.collect { case ir.Id(id, _) =>
+        id
       }
-      Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+
+      // Create comparisons between left-hand side and subquery columns
+      val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
+        ir.Equals(leftExpr, ir.Id(rightExpr))
+      }
+
+      // Combine all the comparisons with AND
+      val conjunction = comparisonExprs.reduce(ir.And)
+      ir.Exists(ir.Project(ir.Filter(namedTable(subQueryTable), conjunction), Seq(ir.Id("1"))))
+
+    } else {
+      // Case: Right-hand side is an expression list (e.g., (v3, v4))
+      val rightExprList = ctx.exprList(1).expr().asScala.map(expr => expr.accept(this).asInstanceOf[ir.Expression])
+      // Create comparisons between the tuples directly
+      val comparisonExprs = leftExprList.zip(rightExprList).map { case (leftExpr, rightExpr) =>
+        ir.Equals(leftExpr, rightExpr)
+      }
+      // Combine the comparisons into an AND clause
+      comparisonExprs.reduce(ir.And)
+    }
+
+    // Return the final expression (either EXISTS or an ANDed comparison)
+    rightExprListOrSubquery
   }
 
   override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = errorCheck(ctx) match {
