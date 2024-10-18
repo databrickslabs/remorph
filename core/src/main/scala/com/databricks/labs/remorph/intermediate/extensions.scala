@@ -211,6 +211,32 @@ case class CreateTableParams(
     options: Option[Seq[GenericOption]] // Command level options
 ) extends Catalog
 
+// Various policies may be applied to objects in source systems like Snow.
+// If these are not natively supported in DBSQL,
+// we can try to emulate using row filters and column masking etc.
+// These are likely to change in the future.
+sealed trait PolicyClause
+sealed trait ColumnPolicy extends PolicyClause
+sealed trait ObjectPolicy extends PolicyClause
+case class ProjectionPolicy(name: String) extends ColumnPolicy
+case class MaskingPolicy(name: String, arguments: Option[Seq[Expression]] = None) extends ColumnPolicy
+case class RowAccessPolicy(name: String, arguments: Option[Seq[Expression]] = None) extends ObjectPolicy
+case class AggregationPolicy(name: String, entityKeys: Option[Seq[Expression]] = None) extends ObjectPolicy
+
+// Snow allows the policy, tags and change tracking clauses in CREATE VIEW,
+// whereas Databricks SQL does not. We will store these information separately from the
+// spark like CreateView and then deal with them in the generator.
+// Some of these need to be generated as ALTER statements after the CREATE VIEW.
+case class CreateViewParams(
+    create: Catalog, // The base create view command
+    tags: Seq[(String, String)], // View tags
+    columnTags: Map[String, Seq[(String, String)]], // Column tags, column name -> [(tag name, tag value)]
+    policies: Seq[PolicyClause], // View policies
+    columnPolicies: Map[String, Seq[PolicyClause]], // Column policies, column name -> [policy]
+    copyGrants: Boolean, // Retains original view's access permissions when using OR REPLACE clause.
+    enableChangeTracking: Boolean // Enables change tracking for the view.
+) extends Catalog
+
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing
 sealed trait KnownIntervalType
