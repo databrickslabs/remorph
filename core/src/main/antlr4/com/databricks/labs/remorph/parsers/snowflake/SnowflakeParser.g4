@@ -3333,7 +3333,7 @@ withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpressi
     ;
 
 commonTableExpression
-: id (L_PAREN columnList R_PAREN)? AS L_PAREN ((selectStatement setOperators*)| expr) R_PAREN
+    : id (L_PAREN columnList R_PAREN)? AS L_PAREN ((selectStatement setOperators*) | expr) R_PAREN
     ;
 
 selectStatement
