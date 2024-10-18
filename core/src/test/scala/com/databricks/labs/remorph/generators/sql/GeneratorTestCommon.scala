@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{Result, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Assertion
 
@@ -14,14 +14,14 @@ trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
       val exprGenerator = new ExpressionGenerator()
       val optionGenerator = new OptionGenerator(exprGenerator)
       val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
-      generator.generate(GeneratorContext(logical), t) shouldBe Result.Success(expectedOutput)
+      generator.generate(GeneratorContext(logical), t) shouldBe OkResult(expectedOutput)
     }
 
     def doesNotTranspile: Assertion = {
       val exprGenerator = new ExpressionGenerator()
       val optionGenerator = new OptionGenerator(exprGenerator)
       val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
-      generator.generate(GeneratorContext(logical), t).isSuccess shouldBe false
+      generator.generate(GeneratorContext(logical), t).isInstanceOf[OkResult[_]] shouldBe false
     }
   }
 }

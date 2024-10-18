@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{Result, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.{OkResult, Result, intermediate => ir}
 
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class ExpressionGenerator extends Generator[ir.Expression, String] {
+class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
@@ -32,7 +32,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
-      case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => Result.Success(name)
+      case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => OkResult(name)
       case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
       case o: ir.ObjectReference => objectReference(ctx, o)
@@ -69,7 +69,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case fn: ir.Fn => sql"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkSql(", ")})"
 
       case null => sql"" // don't fail transpilation if the expression is null
-      case x => unknown(x)
+      case x => partialResult(x)
     }
   }
 
@@ -91,11 +91,11 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
   private def jsonPath(j: ir.Expression): Seq[SQL] = {
     j match {
       case ir.Id(name, _) if isValidIdentifier(name) => Seq(sql".$name")
-      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\"")).map(Result.Success(_))
+      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\"")).map(OkResult(_))
       case ir.IntLiteral(value) => Seq(sql"[$value]")
       case ir.StringLiteral(value) => Seq(sql"['$value']")
       case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
-      case i: ir.Expression => Seq(unknown(i))
+      case i: ir.Expression => Seq(partialResult(i))
     }
   }
 
@@ -243,7 +243,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
     case ir.LessThanOrEqual(left, right) => sql"${expression(ctx, left)} <= ${expression(ctx, right)}"
     case ir.GreaterThan(left, right) => sql"${expression(ctx, left)} > ${expression(ctx, right)}"
     case ir.GreaterThanOrEqual(left, right) => sql"${expression(ctx, left)} >= ${expression(ctx, right)}"
-    case _ => unknown(expr)
+    case _ => partialResult(expr)
   }
 
   private def andPredicate(ctx: GeneratorContext, a: ir.And): SQL = a match {
@@ -264,14 +264,14 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): SQL = l match {
     case ir.Literal(_, ir.NullType) => sql"NULL"
-    case ir.Literal(bytes: Array[Byte], ir.BinaryType) => Result.Success(bytes.map("%02X" format _).mkString)
-    case ir.Literal(value, ir.BooleanType) => Result.Success(value.toString.toLowerCase(Locale.getDefault))
-    case ir.Literal(value, ir.ShortType) => Result.Success(value.toString)
-    case ir.IntLiteral(value) => Result.Success(value.toString)
-    case ir.Literal(value, ir.LongType) => Result.Success(value.toString)
-    case ir.FloatLiteral(value) => Result.Success(value.toString)
-    case ir.DoubleLiteral(value) => Result.Success(value.toString)
-    case ir.DecimalLiteral(value) => Result.Success(value.toString)
+    case ir.Literal(bytes: Array[Byte], ir.BinaryType) => OkResult(bytes.map("%02X" format _).mkString)
+    case ir.Literal(value, ir.BooleanType) => OkResult(value.toString.toLowerCase(Locale.getDefault))
+    case ir.Literal(value, ir.ShortType) => OkResult(value.toString)
+    case ir.IntLiteral(value) => OkResult(value.toString)
+    case ir.Literal(value, ir.LongType) => OkResult(value.toString)
+    case ir.FloatLiteral(value) => OkResult(value.toString)
+    case ir.DoubleLiteral(value) => OkResult(value.toString)
+    case ir.DecimalLiteral(value) => OkResult(value.toString)
     case ir.Literal(value: String, ir.StringType) => singleQuote(value)
     case ir.Literal(epochDay: Long, ir.DateType) =>
       val dateStr = singleQuote(LocalDate.ofEpochDay(epochDay).format(dateFormat))
@@ -282,7 +282,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
           .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
           .format(timeFormat))
       sql"CAST($timestampStr AS TIMESTAMP)"
-    case _ => Result.Failure(WorkflowStage.GENERATE, ir.UnsupportedDataType(l.dataType))
+    case _ => partialResult(l, ir.UnsupportedDataType(l.dataType))
   }
 
   private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): SQL = {
@@ -302,7 +302,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
 
   private def id(ctx: GeneratorContext, id: ir.Id): SQL = id match {
     case ir.Id(name, true) => sql"`$name`"
-    case ir.Id(name, false) => Result.Success(name)
+    case ir.Id(name, false) => OkResult(name)
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): SQL = {
@@ -443,7 +443,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
   }
 
   private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): SQL = {
-    Result.Success(arg.name_parts.mkString("."))
+    OkResult(arg.name_parts.mkString("."))
   }
 
   private def variable(ctx: GeneratorContext, v: ir.Variable): SQL = sql"$${${v.name}}"

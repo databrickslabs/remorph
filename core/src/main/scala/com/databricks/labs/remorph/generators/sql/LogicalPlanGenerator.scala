@@ -1,19 +1,19 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.{Result, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext}
+import com.databricks.labs.remorph.{OkResult, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
     val optGen: OptionGenerator,
     val explicitDistinct: Boolean = false)
-    extends Generator[ir.LogicalPlan, String] {
+    extends BaseSQLGenerator[ir.LogicalPlan] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): SQL = tree match {
     case b: ir.Batch => batch(ctx, b)
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
-    case ir.NamedTable(id, _, _) => Result.Success(id)
+    case ir.NamedTable(id, _, _) => OkResult(id)
     case ir.Filter(input, condition) =>
       sql"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
     case ir.Limit(input, limit) =>
@@ -42,7 +42,7 @@ class LogicalPlanGenerator(
     case ir.NoopNode => sql""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => sql"" // don't fail transpilation if the plan is null
-    case x => unknown(x)
+    case x => partialResult(x)
   }
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {
@@ -93,9 +93,9 @@ class LogicalPlanGenerator(
           if (indicesStr.isEmpty) sql""
           else sql"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
         val leadingComment = (tableOptionsComment, indicesComment) match {
-          case (Result.Success(""), Result.Success("")) => Result.Success("")
-          case (a, Result.Success("")) => sql"/*\n$a*/\n"
-          case (Result.Success(""), b) => sql"/*\n$b*/\n"
+          case (OkResult(""), OkResult("")) => OkResult("")
+          case (a, OkResult("")) => sql"/*\n$a*/\n"
+          case (OkResult(""), b) => sql"/*\n$b*/\n"
           case (a, b) => sql"/*\n$a\n$b*/\n"
         }
 
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => sql"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => sql"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => sql"RENAME COLUMN ${oldName} to ${newName}"
-      case x => Result.Failure(WorkflowStage.GENERATE, ir.UnexpectedTableAlteration(x))
+      case x => partialResult(x, ir.UnexpectedTableAlteration(x))
     } mkSql ", "
   }
 
@@ -157,7 +157,7 @@ class LogicalPlanGenerator(
       val outer = if (isOuter) " OUTER" else ""
       val view = if (isView) " VIEW" else ""
       sql"LATERAL$view$outer ${expr.generate(ctx, fn)}"
-    case _ => Result.Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(lateral))
+    case _ => partialResult(lateral)
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
@@ -183,7 +183,7 @@ class LogicalPlanGenerator(
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): SQL = c match {
     case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
-    case ir.Nullability(nullable) => Result.Success(if (nullable) "NULL" else "NOT NULL")
+    case ir.Nullability(nullable) => OkResult(if (nullable) "NULL" else "NOT NULL")
     case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
     case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
     case ir.NamedConstraint(name, unnamed) => sql"CONSTRAINT $name ${constraint(ctx, unnamed)}"
@@ -300,16 +300,16 @@ class LogicalPlanGenerator(
 
   private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): SQL = {
     if (setOp.allow_missing_columns) {
-      return Result.Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return partialResult(setOp)
     }
     if (setOp.by_name) {
-      return Result.Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      return partialResult(setOp)
     }
     val op = setOp.set_op_type match {
       case ir.UnionSetOp => "UNION"
       case ir.IntersectSetOp => "INTERSECT"
       case ir.ExceptSetOp => "EXCEPT"
-      case _ => return Result.Failure(WorkflowStage.GENERATE, ir.UnexpectedNode(setOp))
+      case _ => return partialResult(setOp)
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     sql"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
@@ -382,7 +382,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkSql(" IN(", ", ", ")")
         sql"$child PIVOT($expressions FOR $col$values)"
-      case a => Result.Failure(WorkflowStage.GENERATE, ir.UnsupportedGroupType(a))
+      case a => partialResult(a, ir.UnsupportedGroupType(a))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): SQL = {
