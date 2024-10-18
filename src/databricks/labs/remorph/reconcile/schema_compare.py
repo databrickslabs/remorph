@@ -80,11 +80,10 @@ class SchemaCompare:
 
     @classmethod
     def _parse(cls, source: Dialect, column: str, data_type: str) -> str:
-        return (
-            parse_one(f"create table dummy ({column} {data_type})", read=source)
-            .sql(dialect=get_dialect("databricks"))
-            .replace(", ", ",")
-        )
+        query = f"create table dummy ({column} {data_type})"
+        if source == "tsql":
+            query = f"create table dummy ([{column}] {data_type})"
+        return parse_one(query, read=source).sql(dialect=get_dialect("databricks")).replace(", ", ",")
 
     @classmethod
     def _table_schema_status(cls, schema_compare_maps: list[SchemaMatchResult]) -> bool:
