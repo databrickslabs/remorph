@@ -1,6 +1,9 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.{OptimizingError, ParsingErrors, VisitingError}
+import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
+import com.databricks.labs.remorph.transpilers.{SourceCode}
+import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, WorkflowStage}
 import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
@@ -38,7 +41,6 @@ trait PlanParser[P <: Parser] {
     parser.removeErrorListeners()
     parser.addErrorListener(errListener)
     val tree = createTree(parser)
-    // TODO: Should we return the error listener, or perhaps the collection of errors and not JSON at this stage?
     if (errListener.errorCount > 0) {
       KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
     } else {
@@ -57,7 +59,7 @@ trait PlanParser[P <: Parser] {
       OkResult(plan)
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.PLAN, VisitingError(e))
+        KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e))
     }
   }
 
@@ -65,7 +67,7 @@ trait PlanParser[P <: Parser] {
   /**
    * Optimize the logical plan
    *
-   * @param plan The logical plan
+   * @param logicalPlan The logical plan
    * @return Returns an optimized logical plan on success otherwise a description of the errors
    */
   def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
@@ -74,8 +76,7 @@ trait PlanParser[P <: Parser] {
       OkResult(plan)
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
+        KoResult(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e))
     }
   }
-
 }

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.{GeneratorContext}
+import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.{OkResult, intermediate => ir}
 
 class LogicalPlanGenerator(
@@ -137,7 +137,7 @@ class LogicalPlanGenerator(
       case ir.DropColumns(columns) => sql"DROP COLUMN ${columns.mkString(", ")}"
       case ir.DropConstraintByName(constraints) => sql"DROP CONSTRAINT ${constraints}"
       case ir.RenameColumn(oldName, newName) => sql"RENAME COLUMN ${oldName} to ${newName}"
-      case x => partialResult(x, ir.UnexpectedTableAlteration(x))
+      case x => partialResult(x, ir.UnexpectedTableAlteration(x.toString))
     } mkSql ", "
   }
 
@@ -382,7 +382,7 @@ class LogicalPlanGenerator(
         val col = expr.generate(ctx, pivot.col)
         val values = pivot.values.map(expr.generate(ctx, _)).mkSql(" IN(", ", ", ")")
         sql"$child PIVOT($expressions FOR $col$values)"
-      case a => partialResult(a, ir.UnsupportedGroupType(a))
+      case a => partialResult(a, ir.UnsupportedGroupType(a.toString))
     }
   }
   private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): SQL = {

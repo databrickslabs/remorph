@@ -44,7 +44,7 @@ object DataTypeGenerator {
     case ir.VarcharType(size) => sql"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => sql"CHAR${maybeSize(size)}"
     case ir.VariantType => sql"VARIANT"
-    case _ => PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt))
+    case _ => PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString))
   }
 
   private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")

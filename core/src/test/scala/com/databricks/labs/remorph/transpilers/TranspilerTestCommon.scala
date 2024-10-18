@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.transpilers
 import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
+import upickle.default._
 
 trait TranspilerTestCommon extends Matchers with Formatter {
 
@@ -12,8 +13,8 @@ trait TranspilerTestCommon extends Matchers with Formatter {
     def transpilesTo(expectedOutput: String): Assertion = {
       transpiler.transpile(SourceCode(input)) match {
         case OkResult(output) => format(output) shouldBe format(expectedOutput)
-        case PartialResult(_, err) => fail(err.msg)
-        case KoResult(_, err) => fail(err.msg)
+        case PartialResult(_, err) => fail(write(err))
+        case KoResult(_, err) => fail(write(err))
       }
     }
     def failsTranspilation: Assertion = {

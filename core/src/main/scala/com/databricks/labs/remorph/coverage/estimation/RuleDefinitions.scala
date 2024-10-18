@@ -164,7 +164,7 @@ object UnsupportedFunctionRule {
 
 /**
  * When we see a command that we do not support, it either means that this is a command that we have not yet
- * implemented or that we can never implement it and it is going to add a lot of complexity to the conversion.
+ * implemented or that we can never implement it, and it is going to add a lot of complexity to the conversion.
  */
 @upickle.implicits.serializeDefaults(true)
 case class UnsupportedCommandRule(override val score: Int = 10) extends Rule {
