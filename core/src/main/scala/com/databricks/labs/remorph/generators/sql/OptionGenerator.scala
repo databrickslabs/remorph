@@ -1,26 +1,26 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, intermediate => ir}
 
 class OptionGenerator(expr: ExpressionGenerator) {
 
-  def generateOption(ctx: GeneratorContext, option: ir.GenericOption): String =
+  def generateOption(ctx: GeneratorContext, option: ir.GenericOption): Result[String] =
     option match {
       case ir.OptionExpression(id, value, supplement) =>
-        s"$id = ${expr.generate(ctx, value)}" + supplement.map(s => s" $s").getOrElse("")
+        sql"$id = ${expr.generate(ctx, value)} ${supplement.map(s => s" $s").getOrElse("")}"
       case ir.OptionString(id, value) =>
-        s"$id = '$value'"
+        sql"$id = '$value'"
       case ir.OptionOn(id) =>
-        s"$id = ON"
+        sql"$id = ON"
       case ir.OptionOff(id) =>
-        s"$id = OFF"
+        sql"$id = OFF"
       case ir.OptionAuto(id) =>
-        s"$id = AUTO"
+        sql"$id = AUTO"
       case ir.OptionDefault(id) =>
-        s"$id = DEFAULT"
+        sql"$id = DEFAULT"
       case ir.OptionUnresolved(text) =>
-        s"$text"
+        sql"$text"
     }
 
   def generateOptionList(ctx: GeneratorContext, options: Seq[ir.GenericOption]): String =

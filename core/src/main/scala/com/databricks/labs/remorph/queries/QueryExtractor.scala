@@ -1,7 +1,9 @@
 package com.databricks.labs.remorph.queries
 
+import com.databricks.labs.remorph.PartialResult
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.SourceCode
+import com.typesafe.scalalogging.LazyLogging
 
 import java.io.File
 import scala.io.Source
@@ -52,19 +54,20 @@ class CommentBasedQueryExtractor(inputDialect: String, targetDialect: String) ex
   }
 }
 
-class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => Unit) {
+class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => Unit) extends LazyLogging {
   def debugExample(name: String, maybeDialect: Option[String]): Unit = {
     val dialect = maybeDialect.getOrElse("snowflake")
     val parser = getParser(dialect)
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _)) =>
-        parser.parse(new SourceCode(query)).flatMap(parser.visit) match {
-          case com.databricks.labs.remorph.transpilers.Result.Failure(stage, errorJson) =>
-            // scalastyle:off println
-            System.err.println(s"Failed to parse query: $query $errorJson")
-          // scalastyle:on println
-          case com.databricks.labs.remorph.transpilers.Result.Success(plan) =>
+        parser.parse(SourceCode(query)).flatMap(parser.visit) match {
+          case com.databricks.labs.remorph.KoResult(_, error) =>
+            logger.error(s"Failed to parse query: $query ${error.msg}")
+          case PartialResult(plan, error) =>
+            logger.warn(s"Errors occurred while parsing query: $query ${error.msg}")
+            prettyPrinter(plan)
+          case com.databricks.labs.remorph.OkResult(plan) =>
             prettyPrinter(plan)
         }
       case None => throw new IllegalArgumentException(s"Example $name not found")

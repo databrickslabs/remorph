@@ -4,8 +4,8 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.LogicalPlan
-import com.databricks.labs.remorph.transpilers.Result.{Failure, Success}
-import com.databricks.labs.remorph.transpilers.WorkflowStage.{PARSE, PLAN}
+import com.databricks.labs.remorph.{KoResult, OkResult}
+import com.databricks.labs.remorph.WorkflowStage.{PARSE, PLAN}
 import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -42,24 +42,26 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
     val fingerprint = anonymizer(query.source)
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
-      planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
-        case Failure(PARSE, errorJson) =>
+      planParser
+        .parse(SourceCode(query.source, query.user.getOrElse("unknown") + "_" + query.id))
+        .flatMap(planParser.visit) match {
+        case KoResult(PARSE, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(error.msg)),
               EstimationAnalysisReport(
                 score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
-        case Failure(PLAN, errorJson) =>
+        case KoResult(PLAN, error) =>
           Some(
             EstimationReportRecord(
-              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
+              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(error.msg)),
               EstimationAnalysisReport(
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
-        case Success(plan) =>
+        case OkResult(plan) =>
           val queryHash = anonymizer(plan)
           val score = analyzer.evaluateTree(plan)
           // Note that the plan hash will generally be more accurate than the query hash, hence we check here
@@ -94,8 +96,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
     planParser.optimize(plan).flatMap(generator.generate) match {
-      case Failure(_, errorJson) =>
-        // Failure to transpile means that we need to increase the ruleScore as it will take some
+      case KoResult(_, error) =>
+        // KoResult to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
         val tfr = RuleScore(TranspileFailureRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
@@ -103,13 +105,13 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             query = Some(query.source),
             statements = 1,
             parsed = 1,
-            transpilation_error = Some(errorJson)),
+            transpilation_error = Some(error.msg)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
             score = tfr,
             complexity = SqlComplexity.fromScore(tfr.rule.score)))
 
-      case Success(output: String) =>
+      case OkResult(output: String) =>
         val newScore =
           RuleScore(SuccessfulTranspileRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(

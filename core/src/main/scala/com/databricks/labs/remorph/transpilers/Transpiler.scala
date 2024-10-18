@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Result, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -10,14 +10,6 @@ import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.matching.Regex
-
-sealed trait WorkflowStage
-object WorkflowStage {
-  case object PARSE extends WorkflowStage
-  case object PLAN extends WorkflowStage
-  case object OPTIMIZE extends WorkflowStage
-  case object GENERATE extends WorkflowStage
-}
 
 trait Transpiler {
   def transpile(input: SourceCode): Result[String]
