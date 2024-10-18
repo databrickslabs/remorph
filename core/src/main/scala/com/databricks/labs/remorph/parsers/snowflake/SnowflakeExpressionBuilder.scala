@@ -756,14 +756,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitPredIn(ctx: PredInContext): ir.Expression = {
     val in = if (ctx.subquery() != null) {
       // In the result of a sub query
-//     val left = ctx.exprList().expr().asScala match {
-//        case Seq(expr) => ir.In(Seq(expr.accept(this)),
-//          Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
-//        case exprs => ir.In(exprs.map(_.accept(this)), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder)))
-//        )
-//      }
       ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
-//      left
     } else {
       // In a list of expressions
       ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
