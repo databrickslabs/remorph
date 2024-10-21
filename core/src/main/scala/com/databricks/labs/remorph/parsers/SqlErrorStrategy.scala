@@ -3,13 +3,6 @@ package com.databricks.labs.remorph.parsers
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.SqlCommandContext
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.SqlClausesContext
 import org.antlr.v4.runtime._
-import org.antlr.v4.runtime.misc.{IntervalSet, Pair}
-import org.antlr.v4.runtime.tree.TerminalNodeImpl
-
-import java.util
-import scala.jdk.CollectionConverters._
-import org.antlr.v4.runtime.misc.{Interval, IntervalSet, Pair}
-import org.antlr.v4.runtime.tree.ErrorNodeImpl
 import org.antlr.v4.runtime.misc.{Interval, IntervalSet, Pair}
 import org.antlr.v4.runtime.tree.ErrorNodeImpl
 
