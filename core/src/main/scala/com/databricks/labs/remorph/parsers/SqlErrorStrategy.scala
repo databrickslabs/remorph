@@ -25,37 +25,32 @@ import org.antlr.v4.runtime.tree.ErrorNodeImpl
  */
 abstract class SqlErrorStrategy extends DefaultErrorStrategy {
 
-  @throws[RecognitionException]
-  override def sync(recognizer: Parser): Unit = {
+  override def recover(recognizer: Parser, e: RecognitionException): Unit = {
     val tokens: TokenStream = recognizer.getInputStream
     val startIndex: Int = tokens.index
     val first = tokens.LT(1)
-    try {
-      super.sync(recognizer)
-    } catch {
-      case e: RecognitionException => throw e // Throw back to parser
-    } finally {
-      val endIndex: Int = tokens.index
-      if (startIndex < endIndex) {
-        val interval = new Interval(startIndex, endIndex)
-        val errorToken: CommonToken = new CommonToken(
-          new Pair(first.getTokenSource, first.getInputStream),
-          Token.INVALID_TYPE,
-          Token.DEFAULT_CHANNEL,
-          first.getStartIndex,
-          tokens.LT(1).getStopIndex)
-        errorToken.setText(first.getInputStream.getText(interval))
-        errorToken.setLine(first.getLine)
-        errorToken.setCharPositionInLine(first.getCharPositionInLine)
-        val errorNode = new ErrorNodeImpl(errorToken)
+    super.recover(recognizer, e)
+    val endIndex: Int = tokens.index
+    if (startIndex < endIndex) {
+      val interval = new Interval(startIndex, endIndex)
+      val errorToken: CommonToken = new CommonToken(
+        new Pair(first.getTokenSource, first.getInputStream),
+        Token.INVALID_TYPE,
+        Token.DEFAULT_CHANNEL,
+        first.getStartIndex,
+        tokens.LT(1).getStopIndex)
+      errorToken.setText(tokens.getText(interval))
+      errorToken.setLine(first.getLine)
+      errorToken.setCharPositionInLine(first.getCharPositionInLine)
+      val errorNode = new ErrorNodeImpl(errorToken)
 
-        // Here we add the error node to the highest level context in the tree for the particular parser,
-        // so that we do not have to search for error nodes in the children of every visitor context.
-        // If we added it to the current context, it would mean that every visitor method would
-        // have to check for it, which would soon become unwieldy. We may come back to that though
-        // if preserved skipped text is generated far away from the original text in error.
-        findHighestContext(recognizer.getContext).addErrorNode(errorNode)
-      }
+      // Here we add the error node to the highest level context in the tree for the particular parser,
+      // so that we do not have to search for error nodes in the children of every visitor context.
+      // If we added it to the current context, it would mean that every visitor method would
+      // have to check for it, which would soon become unwieldy. We may come back to that though
+      // if preserved skipped text is generated far away from the original text in error.
+      val insertContext = findHighestContext(recognizer.getContext)
+      insertContext.addErrorNode(errorNode)
     }
   }
 
@@ -65,7 +60,7 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
       currentCtx match {
         case _: SqlClausesContext | _: SqlCommandContext => currentCtx
         case _ if currentCtx.getParent == null => currentCtx
-        case _ => findContext(currentCtx.getParent.asInstanceOf[ParserRuleContext])
+        case _ => findContext(currentCtx.getParent)
       }
     }
 

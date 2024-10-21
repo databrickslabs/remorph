@@ -137,3 +137,8 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
     logger.warn(s"Error node encountered: ${node.getText}")
     unresolved(node.getText, "Unparsed input - ErrorNode encountered")
   }
+
+  def findError(ctx: ParserRuleContext): Option[ErrorNode] = {
+    ctx.children.asScala.collectFirst { case e: ErrorNode => e }
+  }
+}

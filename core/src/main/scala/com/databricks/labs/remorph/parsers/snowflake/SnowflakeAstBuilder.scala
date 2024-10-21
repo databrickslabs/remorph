@@ -28,6 +28,12 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.Batch(visitMany(ctx.sqlCommand()))
 
   override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan = {
+
+    val errorNode = findError(ctx)
+    if (errorNode.isDefined) {
+      logger.info("Found error in visitSqlCommand: " + errorNode.get.getSymbol.getText)
+    }
+
     ctx match {
       case c if c.ddlCommand() != null => c.ddlCommand().accept(this)
       case c if c.dmlCommand() != null => c.dmlCommand().accept(this)
