@@ -115,10 +115,13 @@ class QueryBuilder(ABC):
             source_dialect = source_dialects[0] if source_dialects else "universal"
 
             source_mapping = DataType_transform_mapping.get(source_dialect, {})
-            if source_mapping.get(datatype.upper()) is not None:
-                return source_mapping.get(datatype.upper())
-            if source_mapping.get("default") is not None:
-                return source_mapping.get("default")
+            source_mapping_prefixes = [a for a in source_mapping.keys() if datatype.upper().startswith(a)]
+            if len(source_mapping_prefixes) > 0:
+                return source_mapping.get(source_mapping_prefixes[0])
+            # if source_mapping.get(datatype.upper()) is not None:
+            #     return source_mapping.get(datatype.upper())
+            # if source_mapping.get("default") is not None:
+            #     return source_mapping.get("default")
 
             return DataType_transform_mapping.get("universal", {}).get("default")
 

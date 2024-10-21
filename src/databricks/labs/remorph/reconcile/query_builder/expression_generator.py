@@ -237,6 +237,7 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
         exp.DataType.Type.DATETIME.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
         exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
         exp.DataType.Type.INTERVAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
+        exp.DataType.Type.DECIMAL.value: [partial(anonymous, func="COALESCE(CAST(CAST({} AS INTEGER) AS VARCHAR(50)), '_null_recon_')")],
     },
 }
 
