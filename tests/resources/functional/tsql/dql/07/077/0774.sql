@@ -1,0 +1,8 @@
+--Query type: DQL
+WITH dates AS (
+    SELECT '2016-01-02T23:39:20.123-07:00' AS tstamp
+)
+SELECT CAST(tstamp AS DATETIME) AS tstamp,
+       DATEPART(DW, CAST(tstamp AS DATETIME)) AS [DAY OF WEEK],
+       DATEPART(WEEK, CAST(tstamp AS DATETIME)) AS [DAY OF WEEK ISO]
+FROM dates;

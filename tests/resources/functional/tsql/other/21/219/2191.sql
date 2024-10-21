@@ -1,0 +1,2 @@
+--Query type: DML
+INSERT INTO NewCities (Location) VALUES (CONVERT(GEOGRAPHY, 'POINT(-74.0060 40.7128)'))

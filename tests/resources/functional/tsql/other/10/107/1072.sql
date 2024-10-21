@@ -1,0 +1,2 @@
+--Query type: DDL
+CREATE PARTITION FUNCTION pf_orders_range (int) AS RANGE RIGHT FOR VALUES (1000, 5000, 10000);
