@@ -39,11 +39,24 @@ class LogicalPlanGenerator(
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
     case c: ir.CreateTableParams => createTableParams(ctx, c)
+
+    // We see an unresolved relation for parsing errors, when we have no visitor for a given rule,
+    // when something went wrong with IR generation, or when we have a visitor but it is not
+    // yet implemented.
+    case u: ir.UnresolvedRelation => describeError(u)
+
     case ir.NoopNode => sql""
-    //  TODO We should always generate an unresolved node, our plan should never be null
     case null => sql"" // don't fail transpilation if the plan is null
     case x => partialResult(x)
   }
+
+  /**
+   * Generate an inline comment that describes the error that was detected in the unresolved relation,
+   * which could be parsing errors, or could be something that is not yet implemented. Implemented as
+   * a separate method as we may wish to do more with this in the future.
+   */
+  private def describeError(relation: ir.UnresolvedRelation): SQL =
+    sql"/* The following issues were detected:\n\n${relation.message}\n${relation.ruleText}\n\n*/"
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {
     val seqSql = b.children
