@@ -9,6 +9,15 @@ trait EstimationReporter {
 
 class SummaryEstimationReporter(outputDir: os.Path, estimate: EstimationReport) extends EstimationReporter {
   override def report(): Unit = {
+    val ruleFrequency = estimate.overallComplexity.pfStats.ruleNameCounts.toSeq
+      .sortBy(-_._2) // Sort by count in ascending order
+      .map { case (ruleName, count) => s"| $ruleName | $count |\n" }
+      .mkString
+    val tokenFrequency = estimate.overallComplexity.pfStats.tokenNameCounts.toSeq
+      .sortBy(-_._2) // Sort by count in ascending order
+      .map { case (tokenName, count) => s"| $tokenName | $count |\n" }
+      .mkString
+
     val output =
       s"""
          |# Conversion Complexity Estimation Report
@@ -64,6 +73,23 @@ class SummaryEstimationReporter(outputDir: os.Path, estimate: EstimationReport) 
          | | Transpile failures          | ${estimate.transpileFailures}  |
          | | Overall complexity (ALL)    | ${estimate.overallComplexity.allStats.complexity} |
          | | Overall complexity (SUCCESS)| ${estimate.overallComplexity.successStats.complexity} |
+         |
+         |## Failing Parser Rule and Failed Token Frequencies
+         | This table shows the top N ANTLR grammar rules where parsing errors occurred and therefore
+         | where spent in improving the parser will have the most impact. It should be used as a starting
+         | point as these counts may include many instances of the same error. So fixing one parsing problem
+         | may rid you of a large number of failing queries.
+         |
+         | | Rule Name                   | Frequency                      |
+         | |:----------------------------|--------------------------------:|
+         | $ruleFrequency
+         |
+         | This table is less useful than the rule table but it may be useful to see if there might be
+         | a missing token definition or a token that is a keyword but not bing allowed as an identifier etc.
+         |
+         | | Token Name                  | Frequency                      |
+         | |:----------------------------|--------------------------------:|
+         | $tokenFrequency
          |
          |## Statistics used to calculate overall complexity (ALL results)
          |

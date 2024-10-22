@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder = vc.expressionBuilder
 
   private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
 
