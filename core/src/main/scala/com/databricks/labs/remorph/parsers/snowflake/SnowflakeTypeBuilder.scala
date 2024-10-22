@@ -52,7 +52,7 @@ class SnowflakeTypeBuilder {
       case "TIMESTAMP_TZ" => ir.TimestampType
       case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
-      case "VARIANT" => ir.UnparsedType("VARIANT") // TODO: get more examples
+      case "VARIANT" => ir.VariantType
 
       // and everything else
       case _ => ir.UnparsedType(typeDef)

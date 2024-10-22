@@ -30,10 +30,15 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
   "ErrorCollector" should "collect syntax errors correctly" in {
     val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
-    val recognizer: Null = null
-    val e: Null = null
-    errorCollector.syntaxError(recognizer, token, 1, 1, "msg", e)
-    errorCollector.errors.head shouldBe ParsingError(1, 1, "msg", 1, null)
+    errorCollector.syntaxError(null, token, 1, 1, "msg", null)
+    errorCollector.errors.head shouldBe ParsingError(
+      1,
+      1,
+      "msg",
+      1,
+      null,
+      "unresolved token name",
+      "unresolved rule name")
   }
 
   it should "format errors correctly" in {
@@ -42,7 +47,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
-    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text")
+    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text", "unresolved token name", "unresolved rule name")
     errorCollector.formatErrors.head should include("Token: text")
   }
 
@@ -52,7 +57,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
-    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text")
+    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text", "unresolved token name", "unresolved rule name")
     errorCollector.errorsAsJson should include("\"line\":1")
   }
 
@@ -62,7 +67,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
-    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text")
+    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text", "unresolved token name", "unresolved rule name")
     errorCollector.errorCount shouldBe 1
   }
 
@@ -75,7 +80,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setStartIndex(40)
     token.setStopIndex(44)
     token.setText("error")
-    errorCollector.errors += ParsingError(1, 40, "msg", 5, "error")
+    errorCollector.errors += ParsingError(1, 40, "msg", 5, "error", "unresolved token name", "unresolved rule name")
 
     // Call the method
     val formattedErrors = errorCollector.formatErrors
@@ -91,7 +96,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
-    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text")
+    errorCollector.errors += ParsingError(1, 1, "msg", 4, "text", "unresolved token name", "unresolved rule name")
 
     // Capture the logs
     val logger: Logger = LogManager.getLogger("com.databricks.labs.remorph.parsers.ErrorCollector")
@@ -138,7 +143,8 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     errorCollector.syntaxError(null, token, 10, 5, "Syntax error message", null)
 
     errorCollector.errorCount shouldBe 1
-    errorCollector.errors should contain(ParsingError(10, 5, "Syntax error message", 9, "errorText"))
+    errorCollector.errors should contain(
+      ParsingError(10, 5, "Syntax error message", 9, "errorText", "unresolved token name", "unresolved rule name"))
   }
 
   def captureStdErr[T](block: => T): (T, String) = {

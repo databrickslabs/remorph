@@ -66,7 +66,7 @@ object PlanFailureRule {
 }
 
 /**
- * Either the optimizer or the generator failed to produce a result. This is possibly a significant amount of
+ * Either the optimizer or the generator failed to produce a  This is possibly a significant amount of
  * work for the core team, but it is not necessarily work for the user, so we can filter out these scores.
  */
 @upickle.implicits.serializeDefaults(true)
@@ -164,7 +164,7 @@ object UnsupportedFunctionRule {
 
 /**
  * When we see a command that we do not support, it either means that this is a command that we have not yet
- * implemented or that we can never implement it and it is going to add a lot of complexity to the conversion.
+ * implemented or that we can never implement it, and it is going to add a lot of complexity to the conversion.
  */
 @upickle.implicits.serializeDefaults(true)
 case class UnsupportedCommandRule(override val score: Int = 10) extends Rule {

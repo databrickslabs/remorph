@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.ID
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
@@ -290,7 +292,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Dot(
           simplyNamedColumn("a"),
-          ir.UnresolvedFunction("b", List(), is_distinct = false, is_user_defined_function = false)))
+          ir.UnresolvedFunction(
+            "b",
+            List(),
+            is_distinct = false,
+            is_user_defined_function = false,
+            ruleText = "b(...)",
+            ruleName = "N/A",
+            tokenName = Some("N/A"),
+            message = "Function b is not convertible to Databricks SQL")))
       exampleExpr(
         "a.b.c()",
         _.expression(),
@@ -298,7 +308,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           simplyNamedColumn("a"),
           ir.Dot(
             simplyNamedColumn("b"),
-            ir.UnresolvedFunction("c", List(), is_distinct = false, is_user_defined_function = false))))
+            ir.UnresolvedFunction(
+              "c",
+              List(),
+              is_distinct = false,
+              is_user_defined_function = false,
+              ruleText = "c(...)",
+              ruleName = "N/A",
+              tokenName = Some("N/A"),
+              message = "Function c is not convertible to Databricks SQL"))))
       exampleExpr(
         "a.b.c.FLOOR(c)",
         _.expression(),
@@ -315,7 +333,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Dot(
           simplyNamedColumn("a"),
-          ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false)))
+          ir.UnresolvedFunction(
+            "UNKNOWN_FUNCTION",
+            List(),
+            is_distinct = false,
+            is_user_defined_function = false,
+            ruleText = "UNKNOWN_FUNCTION(...)",
+            ruleName = "N/A",
+            tokenName = Some("N/A"),
+            message = "Function UNKNOWN_FUNCTION is not convertible to Databricks SQL")))
     }
 
     "cover case that cannot happen with dot" in {
@@ -392,6 +418,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       // Ensure that both asterisk() and expressionElem() methods return null
       when(mockCtx.asterisk()).thenReturn(null)
       when(mockCtx.expressionElem()).thenReturn(null)
+      val startTok = new CommonToken(ID, "s")
+      when(mockCtx.getStart).thenReturn(startTok)
+      when(mockCtx.getStop).thenReturn(startTok)
+      when(mockCtx.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
 
       // Call the method with the mock instance
       val result = vc.expressionBuilder.visitSelectListElem(mockCtx)

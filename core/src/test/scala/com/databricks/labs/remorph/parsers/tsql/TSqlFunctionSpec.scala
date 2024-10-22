@@ -56,11 +56,18 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     exampleExpr(
       "UNKNOWN_FUNCTION()",
       _.expression(),
-      ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "UNKNOWN_FUNCTION",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "UNKNOWN_FUNCTION(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function UNKNOWN_FUNCTION is not convertible to Databricks SQL"))
   }
 
   "translate functions with invalid function argument counts" in {
-    // Later, we will register a semantic or lint error
     exampleExpr(
       "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
       _.expression(),
@@ -69,7 +76,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.Literal("a"), ir.Literal("b"), ir.Literal("c"), ir.Literal("d")),
         is_distinct = false,
         is_user_defined_function = false,
-        has_incorrect_argc = true))
+        has_incorrect_argc = true,
+        ruleText = "USER_NAME(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Invocation of USER_NAME has incorrect argument count"))
 
     exampleExpr(
       "FLOOR()", // FLOOR requires 1 argument
@@ -79,7 +90,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         List(),
         is_distinct = false,
         is_user_defined_function = false,
-        has_incorrect_argc = true))
+        has_incorrect_argc = true,
+        ruleText = "FLOOR(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Invocation of FLOOR has incorrect argument count"))
   }
 
   "translate functions that we know cannot be converted" in {
@@ -91,7 +106,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         "CONNECTIONPROPERTY",
         List(ir.Literal("property")),
         is_distinct = false,
-        is_user_defined_function = false))
+        is_user_defined_function = false,
+        ruleText = "CONNECTIONPROPERTY(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function CONNECTIONPROPERTY is not convertible to Databricks SQL"))
   }
 
   "translate windowing functions in all forms" in {
@@ -176,13 +195,29 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@CURSOR_ROWS",
       _.expression(),
-      ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "@@CURSOR_ROWS",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "@@CURSOR_ROWS(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function @@CURSOR_ROWS is not convertible to Databricks SQL"))
 
     exampleExpr(
       // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@FETCH_STATUS",
       _.expression(),
-      ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "@@FETCH_STATUS",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "@@FETCH_STATUS(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function @@FETCH_STATUS is not convertible to Databricks SQL"))
 
     exampleExpr("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
 
@@ -331,20 +366,44 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     exampleExpr(
       query = "FREETEXTTABLE(table, col, 'search')",
       _.expression(),
-      ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "FREETEXTTABLE",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "FREETEXTTABLE(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function FREETEXTTABLE is not convertible to Databricks SQL"))
   }
 
   "translate $PARTITION functions as inconvertible" in {
     exampleExpr(
       query = "$PARTITION.partitionFunction(col)",
       _.expression(),
-      ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "$PARTITION",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "$PARTITION(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function $PARTITION is not convertible to Databricks SQL"))
   }
 
   "translate HIERARCHYID static method as inconvertible" in {
     exampleExpr(
       query = "HIERARCHYID::Parse('1/2/3')",
       _.expression(),
-      ir.UnresolvedFunction("HIERARCHYID", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "HIERARCHYID",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "HIERARCHYID(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function HIERARCHYID is not convertible to Databricks SQL"))
   }
 }
