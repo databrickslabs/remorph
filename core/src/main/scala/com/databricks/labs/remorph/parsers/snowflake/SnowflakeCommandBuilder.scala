@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.Command
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -73,7 +72,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
       tokenName = Some(tokenName(ctx.getStart)))
   }
 
-  override def visitOtherCommand(ctx: OtherCommandContext): Command =
+  override def visitOtherCommand(ctx: OtherCommandContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
