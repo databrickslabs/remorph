@@ -3,4 +3,9 @@
 !set exit_on_error = true;
 
 -- databricks sql:
--- !set exit_on_error = true;
+/* The following issues were detected:
+
+   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand:
+
+   !set exit_on_error = true;
+*/

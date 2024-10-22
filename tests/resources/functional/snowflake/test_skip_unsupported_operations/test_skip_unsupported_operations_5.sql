@@ -3,4 +3,9 @@
 CREATE STREAM mystream ON TABLE mytable;
 
 -- databricks sql:
--- CREATE STREAM mystream ON TABLE mytable;
+/* The following issues were detected:
+
+   CREATE STREAM UNSUPPORTED:
+
+   CREATE STREAM mystream ON TABLE mytable
+*/

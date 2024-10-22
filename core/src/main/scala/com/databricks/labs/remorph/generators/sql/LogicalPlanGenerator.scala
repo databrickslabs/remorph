@@ -40,10 +40,10 @@ class LogicalPlanGenerator(
     case l: ir.Lateral => lateral(ctx, l)
     case c: ir.CreateTableParams => createTableParams(ctx, c)
 
-    // We see an unresolved relation for parsing errors, when we have no visitor for a given rule,
+    // We see an unresolved for parsing errors, when we have no visitor for a given rule,
     // when something went wrong with IR generation, or when we have a visitor but it is not
     // yet implemented.
-    case u: ir.UnresolvedRelation => describeError(u)
+    case u: ir.Unresolved[_] => describeError(u)
 
     case ir.NoopNode => sql""
     case null => sql"" // don't fail transpilation if the plan is null
@@ -55,19 +55,22 @@ class LogicalPlanGenerator(
    * which could be parsing errors, or could be something that is not yet implemented. Implemented as
    * a separate method as we may wish to do more with this in the future.
    */
-  private def describeError(relation: ir.UnresolvedRelation): SQL =
-    sql"/* The following issues were detected:\n\n${relation.message}\n${relation.ruleText}\n\n*/"
+  private def describeError(relation: ir.Unresolved[_]): SQL =
+    sql"/* The following issues were detected:\n\n   ${relation.message}:\n\n   ${relation.ruleText}\n*/"
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {
     val seqSql = b.children
-      .map {
-        case u: ir.UnresolvedCommand =>
-          sql"-- ${u.ruleText.stripSuffix(";")}"
-        case query => sql"${generate(ctx, query)}"
-      }
+      .map(query => sql"${generate(ctx, query)}")
       .filter(_.isSuccess)
     if (seqSql.nonEmpty) {
-      seqSql.mkSql("", ";\n", ";")
+      val sqlStats = seqSql
+        .map {
+          case OkResult(sqlStr) if sqlStr.endsWith("*/") => OkResult(sqlStr)
+          case OkResult(sqlStr) => sql"$sqlStr;"
+          case other => other
+        }
+        .mkSql("", "\n", "")
+      sql"$sqlStats"
     } else {
       sql""
     }

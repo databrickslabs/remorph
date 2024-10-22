@@ -135,9 +135,14 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @return The unresolved object representing the error and containing the text that was skipped
    */
   def errorCheck(ctx: ParserRuleContext): Option[A] = {
-    val unparsedText = ctx.children.asScala.collect { case e: ErrorNode =>
-      s"Unparsable text: ${e.getSymbol.getText}\n\n"
-    }.mkString
+    val unparsedText = Option(ctx.children)
+      .map(_.asScala)
+      .getOrElse(Seq.empty)
+      .collect { case e: ErrorNode =>
+        s"Unparsable text: ${e.getSymbol.getText}\n\n"
+      }
+      .mkString
+
     if (unparsedText.nonEmpty) {
       Some(unresolved(unparsedText, "Unparsed input - ErrorNode encountered"))
     } else {
