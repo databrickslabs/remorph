@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.intermediate
 
-
 abstract class DataType {
   def isPrimitive: Boolean = this match {
     case BooleanType => true
