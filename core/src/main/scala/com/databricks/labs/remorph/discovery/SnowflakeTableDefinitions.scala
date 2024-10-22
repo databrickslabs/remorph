@@ -1,9 +1,8 @@
 package com.databricks.labs.remorph.discovery
 
-import com.databricks.labs.remorph.intermediate.{DataType, StructField}
+import com.databricks.labs.remorph.intermediate.{DataType, Metadata, StructField}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser, SnowflakeTypeBuilder}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
-import org.apache.spark.sql.types.MetadataBuilder
 
 import java.sql.Connection
 import scala.collection.mutable
@@ -108,8 +107,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               val dataType = getDataType(data(1))
               val nullable = data(2).toBoolean
               val comment = if (data.length > 3) Option(data(3)) else None
-              val metaData = new MetadataBuilder().putString("comment", comment.getOrElse(""))
-              StructField(name, dataType, nullable, Option(metaData.build()))
+              StructField(name, dataType, nullable, Option(Metadata(comment)))
             })
           tableDefinitionList.append(
             TableDefinition(
