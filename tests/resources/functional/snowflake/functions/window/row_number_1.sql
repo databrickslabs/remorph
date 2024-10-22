@@ -19,8 +19,7 @@ SELECT
   ROW_NUMBER() OVER (
     PARTITION BY exchange
     ORDER BY
-      shares ASC NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING
-      AND UNBOUNDED FOLLOWING
+      shares ASC NULLS LAST
   ) AS row_number
 FROM
   trades;

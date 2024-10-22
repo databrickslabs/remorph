@@ -53,16 +53,10 @@ DATE_DELTA_INTERVAL = {
 
 rank_functions = (
     local_expression.CumeDist,
-    local_expression.DenseRank,
     exp.FirstValue,
-    exp.Lag,
     exp.LastValue,
-    exp.Lead,
     local_expression.NthValue,
     local_expression.Ntile,
-    local_expression.PercentRank,
-    local_expression.Rank,
-    exp.RowNumber,
 )
 
 
