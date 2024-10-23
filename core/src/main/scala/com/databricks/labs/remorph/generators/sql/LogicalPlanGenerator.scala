@@ -63,14 +63,12 @@ class LogicalPlanGenerator(
       .map(query => sql"${generate(ctx, query)}")
       .filter(_.isSuccess)
     if (seqSql.nonEmpty) {
-      val sqlStats = seqSql
+      seqSql
         .map {
-          case OkResult(sqlStr) if sqlStr.endsWith("*/") => OkResult(sqlStr)
-          case OkResult(sqlStr) => sql"$sqlStr;"
+          case OkResult(sqlStr) if !sqlStr.endsWith("*/") => sql"$sqlStr;"
           case other => other
         }
         .mkSql("", "\n", "")
-      sql"$sqlStats"
     } else {
       sql""
     }
