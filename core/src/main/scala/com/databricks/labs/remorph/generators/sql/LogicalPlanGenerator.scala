@@ -50,14 +50,6 @@ class LogicalPlanGenerator(
     case x => partialResult(x)
   }
 
-  /**
-   * Generate an inline comment that describes the error that was detected in the unresolved relation,
-   * which could be parsing errors, or could be something that is not yet implemented. Implemented as
-   * a separate method as we may wish to do more with this in the future.
-   */
-  private def describeError(relation: ir.Unresolved[_]): SQL =
-    sql"/* The following issues were detected:\n\n   ${relation.message}:\n\n   ${relation.ruleText}\n*/"
-
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {
     val seqSql = b.children
       .map(query => sql"${generate(ctx, query)}")
