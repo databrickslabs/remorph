@@ -1,10 +1,8 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
-import com.databricks.labs.remorph.transpilers.{SourceCode}
-import com.databricks.labs.remorph.{intermediate => ir}
-import com.databricks.labs.remorph.{Result, WorkflowStage}
-import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.transpilers.SourceCode
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Result, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.transpilers.SourceCode
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
@@ -42,7 +40,7 @@ trait PlanParser[P <: Parser] {
     parser.addErrorListener(errListener)
     val tree = createTree(parser)
     if (errListener.errorCount > 0) {
-      KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
+      PartialResult(tree, ParsingErrors(errListener.errors))
     } else {
       OkResult(tree)
     }

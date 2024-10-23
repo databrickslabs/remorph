@@ -11,6 +11,7 @@ abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec 
       runner.runAcceptanceTest(test) match {
         case None => pending
         case Some(r) if r.isSuccess => succeed
+        case Some(r) if runner.shouldFailParse.contains(test.testName) && r.failedParseOnly => succeed
         case Some(report) => fail(report.errorMessage.getOrElse(""))
       }
     }
@@ -33,7 +34,8 @@ class SnowflakeAcceptanceSuite
             "test_command/test_command_3.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
-            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql"))))
+            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql"),
+          shouldFailParse = Set("core_engine/test_invalid_syntax/syntax_error_1.sql"))))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(

@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.SqlCommandContext
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.SqlClausesContext
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.{Interval, IntervalSet, Pair}
 import org.antlr.v4.runtime.tree.ErrorNodeImpl
@@ -32,37 +30,16 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
         Token.DEFAULT_CHANNEL,
         first.getStartIndex,
         tokens.LT(1).getStopIndex)
-      errorToken.setText(tokens.getText(interval))
+      errorToken.setText(s"parser recovered by ignoring: ${tokens.getText(interval)}")
       errorToken.setLine(first.getLine)
       errorToken.setCharPositionInLine(first.getCharPositionInLine)
       val errorNode = new ErrorNodeImpl(errorToken)
 
-      // Here we add the error node to the highest level context in the tree for the particular parser,
-      // so that we do not have to search for error nodes in the children of every visitor context.
-      // If we added it to the current context, it would mean that every visitor method would
-      // have to check for it, which would soon become unwieldy. We may come back to that though
-      // if preserved skipped text is generated far away from the original text in error.
-      val insertContext = findHighestContext(recognizer.getContext)
-      insertContext.addErrorNode(errorNode)
+      // Here we add the error node to the current context so that we can report it in the correct place
+      recognizer.getContext.addErrorNode(errorNode)
     }
   }
 
-  def findHighestContext(ctx: ParserRuleContext): ParserRuleContext = {
-    @annotation.tailrec
-    def findContext(currentCtx: ParserRuleContext): ParserRuleContext = {
-      currentCtx match {
-        case _: SqlClausesContext | _: SqlCommandContext => currentCtx
-        case _ if currentCtx.getParent == null => currentCtx
-        case _ => findContext(currentCtx.getParent)
-      }
-    }
-
-    findContext(ctx)
-  }
-
-  // Note that it is not possible to get this error from the current grammar, we would have to do an inordinate
-  // amount of mocking to raise this. It isn't worth the effort.
-  // $COVERAGE-OFF$
   override protected def reportNoViableAlternative(recognizer: Parser, e: NoViableAltException): Unit = {
     val tokens = recognizer.getInputStream
     var input: String = null
@@ -71,11 +48,24 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
       else input = tokens.getText(e.getStartToken, e.getOffendingToken)
     else input = "<unknown input>"
     val msg = new StringBuilder()
-    msg.append("could not process ")
+    msg.append("input is not parsable ")
     msg.append(escapeWSAndQuote(input))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
+
+    val errorToken: CommonToken = new CommonToken(
+      new Pair(e.getStartToken.getTokenSource, e.getStartToken.getInputStream),
+      Token.INVALID_TYPE,
+      Token.DEFAULT_CHANNEL,
+      e.getStartToken.getStartIndex,
+      e.getStartToken.getStopIndex)
+    errorToken.setText(input)
+    errorToken.setLine(e.getStartToken.getLine)
+    errorToken.setCharPositionInLine(e.getStartToken.getCharPositionInLine)
+    val errorNode = new ErrorNodeImpl(errorToken)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    recognizer.getContext.addErrorNode(errorNode)
   }
-  // $COVERAGE-ON$
 
   override protected def reportInputMismatch(recognizer: Parser, e: InputMismatchException): Unit = {
     val msg = new StringBuilder()
