@@ -1,35 +1,35 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{OkResult, PartialResult, Result, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, RemorphContext, TBAS, intermediate => ir}
 
 /**
  * @see
  *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
  */
-object DataTypeGenerator {
+object DataTypeGenerator extends TBAS[RemorphContext]{
 
-  def generateDataType(ctx: GeneratorContext, dt: ir.DataType): Result[String] = dt match {
-    case ir.NullType => OkResult("VOID")
-    case ir.BooleanType => OkResult("BOOLEAN")
-    case ir.BinaryType => OkResult("BINARY")
-    case ir.ShortType => OkResult("SMALLINT")
-    case ir.TinyintType => OkResult("TINYINT")
-    case ir.IntegerType => OkResult("INT")
-    case ir.LongType => OkResult("BIGINT")
-    case ir.FloatType => OkResult("FLOAT")
-    case ir.DoubleType => OkResult("DOUBLE")
+  def generateDataType(ctx: GeneratorContext, dt: ir.DataType): SQL = dt match {
+    case ir.NullType => lift(OkResult("VOID"))
+    case ir.BooleanType => lift(OkResult("BOOLEAN"))
+    case ir.BinaryType => lift(OkResult("BINARY"))
+    case ir.ShortType => lift(OkResult("SMALLINT"))
+    case ir.TinyintType => lift(OkResult("TINYINT"))
+    case ir.IntegerType => lift(OkResult("INT"))
+    case ir.LongType => lift(OkResult("BIGINT"))
+    case ir.FloatType => lift(OkResult("FLOAT"))
+    case ir.DoubleType => lift(OkResult("DOUBLE"))
     case ir.DecimalType(precision, scale) =>
       val arguments = precision.toSeq ++ scale.toSeq
       if (arguments.isEmpty) {
-        OkResult("DECIMAL")
+        lift(OkResult("DECIMAL"))
       } else {
         sql"DECIMAL${arguments.mkString("(", ", ", ")")}"
       }
-    case ir.StringType => OkResult("STRING")
-    case ir.DateType => OkResult("DATE")
-    case ir.TimestampType => OkResult("TIMESTAMP")
-    case ir.TimestampNTZType => OkResult("TIMESTAMP_NTZ")
+    case ir.StringType => lift(OkResult("STRING"))
+    case ir.DateType => lift(OkResult("DATE"))
+    case ir.TimestampType => lift(OkResult("TIMESTAMP"))
+    case ir.TimestampNTZType => lift(OkResult("TIMESTAMP_NTZ"))
     case ir.ArrayType(elementType) => sql"ARRAY<${generateDataType(ctx, elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
@@ -44,7 +44,7 @@ object DataTypeGenerator {
     case ir.VarcharType(size) => sql"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => sql"CHAR${maybeSize(size)}"
     case ir.VariantType => sql"VARIANT"
-    case _ => PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString))
+    case _ => lift(PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString)))
   }
 
   private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")
