@@ -1,20 +1,20 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{OkResult, Result, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, RemorphContext, TBA, TBAS, intermediate => ir}
 
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
+class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TBAS[RemorphContext] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
-  override def generate(ctx: GeneratorContext, tree: ir.Expression): SQL = expression(ctx, tree)
+  override def generate(ctx: GeneratorContext, tree: ir.Expression): TBA[RemorphContext, String] = expression(ctx, tree)
 
-  def expression(ctx: GeneratorContext, expr: ir.Expression): SQL = {
-    expr match {
+  def expression(ctx: GeneratorContext, expr: ir.Expression): TBA[RemorphContext, String] = {
+    val sql: SQL = expr match {
       case ir.Like(subject, pattern, escape) => likeSingle(ctx, subject, pattern, escape, caseSensitive = true)
       case ir.LikeAny(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = true, all = false)
       case ir.LikeAll(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = true, all = true)
@@ -32,7 +32,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
       case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
-      case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => OkResult(name)
+      case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => lift(OkResult(name))
       case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
       case o: ir.ObjectReference => objectReference(ctx, o)
@@ -76,6 +76,14 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
       case null => sql"" // don't fail transpilation if the expression is null
       case x => partialResult(x)
     }
+
+    for {
+      _ <- update {
+        case g: Generating => g.copy(currentNode = expr)
+        case x => x
+      }
+      res <- sql
+    } yield res
   }
 
   private def structExpr(ctx: GeneratorContext, s: ir.StructExpr): SQL = {
@@ -96,7 +104,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
   private def jsonPath(j: ir.Expression): Seq[SQL] = {
     j match {
       case ir.Id(name, _) if isValidIdentifier(name) => Seq(sql".$name")
-      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\"")).map(OkResult(_))
+      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\"")).map(OkResult(_)).map(lift)
       case ir.IntLiteral(value) => Seq(sql"[$value]")
       case ir.StringLiteral(value) => Seq(sql"['$value']")
       case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
@@ -131,12 +139,13 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
       }
       .toSeq
       .mkSql
-    val exprStr = if (exprOptions.nonEmpty) {
-      sql"    Expression options:\n\n${exprOptions}\n"
-    } else {
-      sql""
+    val exprStr = exprOptions.nonEmpty.flatMap { nonEmpty =>
+      if (nonEmpty) {
+        sql"    Expression options:\n\n${exprOptions}\n"
+      } else {
+        sql""
+      }
     }
-
     val stringOptions = opts.stringOpts.map { case (key, value) =>
       s"     ${key} = '${value}'\n"
     }.mkString
@@ -165,10 +174,12 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
       ""
     }
     val optString = sql"${exprStr}${stringStr}${boolStr}${autoStr}"
-    if (optString.nonEmpty) {
-      sql"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
-    } else {
-      sql""
+    optString.nonEmpty.flatMap{ nonEmpty =>
+      if (nonEmpty) {
+        sql"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
+      } else {
+        sql""
+      }
     }
   }
 
@@ -267,28 +278,29 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
     case ir.Or(left, right) => sql"${expression(ctx, left)} OR ${expression(ctx, right)}"
   }
 
-  private def literal(ctx: GeneratorContext, l: ir.Literal): SQL = l match {
-    case ir.Literal(_, ir.NullType) => sql"NULL"
-    case ir.Literal(bytes: Array[Byte], ir.BinaryType) => OkResult(bytes.map("%02X" format _).mkString)
-    case ir.Literal(value, ir.BooleanType) => OkResult(value.toString.toLowerCase(Locale.getDefault))
-    case ir.Literal(value, ir.ShortType) => OkResult(value.toString)
-    case ir.IntLiteral(value) => OkResult(value.toString)
-    case ir.Literal(value, ir.LongType) => OkResult(value.toString)
-    case ir.FloatLiteral(value) => OkResult(value.toString)
-    case ir.DoubleLiteral(value) => OkResult(value.toString)
-    case ir.DecimalLiteral(value) => OkResult(value.toString)
-    case ir.Literal(value: String, ir.StringType) => singleQuote(value)
-    case ir.Literal(epochDay: Long, ir.DateType) =>
-      val dateStr = singleQuote(LocalDate.ofEpochDay(epochDay).format(dateFormat))
-      sql"CAST($dateStr AS DATE)"
-    case ir.Literal(epochSecond: Long, ir.TimestampType) =>
-      val timestampStr = singleQuote(
-        LocalDateTime
-          .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
-          .format(timeFormat))
-      sql"CAST($timestampStr AS TIMESTAMP)"
-    case _ => partialResult(l, ir.UnsupportedDataType(l.dataType.toString))
-  }
+  private def literal(ctx: GeneratorContext, l: ir.Literal): SQL =
+    l match {
+      case ir.Literal(_, ir.NullType) => sql"NULL"
+      case ir.Literal(bytes: Array[Byte], ir.BinaryType) => lift(OkResult(bytes.map("%02X" format _).mkString))
+      case ir.Literal(value, ir.BooleanType) => lift(OkResult(value.toString.toLowerCase(Locale.getDefault)))
+      case ir.Literal(value, ir.ShortType) => lift(OkResult(value.toString))
+      case ir.IntLiteral(value) => lift(OkResult(value.toString))
+      case ir.Literal(value, ir.LongType) => lift(OkResult(value.toString))
+      case ir.FloatLiteral(value) => lift(OkResult(value.toString))
+      case ir.DoubleLiteral(value) => lift(OkResult(value.toString))
+      case ir.DecimalLiteral(value) => lift(OkResult(value.toString))
+      case ir.Literal(value: String, ir.StringType) => singleQuote(value)
+      case ir.Literal(epochDay: Long, ir.DateType) =>
+        val dateStr = singleQuote(LocalDate.ofEpochDay(epochDay).format(dateFormat))
+        sql"CAST($dateStr AS DATE)"
+      case ir.Literal(epochSecond: Long, ir.TimestampType) =>
+        val timestampStr = singleQuote(
+          LocalDateTime
+            .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
+            .format(timeFormat))
+        sql"CAST($timestampStr AS TIMESTAMP)"
+      case _ => partialResult(l, ir.UnsupportedDataType(l.dataType.toString))
+    }
 
   private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): SQL = {
     val elementsStr = a.children.map(expression(ctx, _)).mkSql(", ")
@@ -307,7 +319,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
 
   private def id(ctx: GeneratorContext, id: ir.Id): SQL = id match {
     case ir.Id(name, true) => sql"`$name`"
-    case ir.Id(name, false) => OkResult(name)
+    case ir.Id(name, false) => lift(OkResult(name))
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): SQL = {
@@ -393,7 +405,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
     sql"$expr OVER ($partition$orderBy$windowFrame)"
   }
 
-  private def frameBoundary(ctx: GeneratorContext, boundary: ir.FrameBoundary): Seq[Result[String]] = boundary match {
+  private def frameBoundary(ctx: GeneratorContext, boundary: ir.FrameBoundary): Seq[SQL] = boundary match {
     case ir.NoBoundary => Seq.empty
     case ir.CurrentRow => Seq(sql"CURRENT ROW")
     case ir.UnboundedPreceding => Seq(sql"UNBOUNDED PRECEDING")
@@ -448,7 +460,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
   }
 
   private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): SQL = {
-    OkResult(arg.name_parts.mkString("."))
+    lift(OkResult(arg.name_parts.mkString(".")))
   }
 
   private def variable(ctx: GeneratorContext, v: ir.Variable): SQL = sql"$${${v.name}}"

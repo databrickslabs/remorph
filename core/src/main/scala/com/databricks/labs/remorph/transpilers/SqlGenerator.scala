@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.{KoResult, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, RemorphContext, TBAS, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator, SQL}
 import org.json4s.jackson.Serialization
@@ -10,7 +10,7 @@ import scala.util.control.NonFatal
 
 // TODO: This should not be under transpilers but we have not refactored generation out of the transpiler yet
 //       and it may need changes before it is considered finished anyway, such as implementing a trait
-class SqlGenerator {
+class SqlGenerator extends TBAS[RemorphContext]{
 
   private val exprGenerator = new ExpressionGenerator
   private val optionGenerator = new OptionGenerator(exprGenerator)
@@ -23,7 +23,7 @@ class SqlGenerator {
       generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
     } catch {
       case NonFatal(e) =>
-        KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e))
+        lift(KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e)))
     }
   }
 }

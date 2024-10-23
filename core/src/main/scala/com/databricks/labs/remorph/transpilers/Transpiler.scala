@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{Result, intermediate => ir}
+import com.databricks.labs.remorph.{RemorphContext, TBA, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -12,7 +12,7 @@ import org.json4s.{Formats, NoTypeHints}
 import scala.util.matching.Regex
 
 trait Transpiler {
-  def transpile(input: SourceCode): Result[String]
+  def transpile(input: SourceCode): TBA[RemorphContext, String]
 }
 
 class Sed(rules: (String, String)*) {
@@ -54,19 +54,20 @@ abstract class BaseTranspiler extends Transpiler with Formatter {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def parse(input: SourceCode): Result[ParserRuleContext] = planParser.parse(input)
+  protected def parse(input: SourceCode): TBA[RemorphContext, ParserRuleContext] = planParser.parse(input)
 
-  protected def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = planParser.visit(tree)
+  protected def visit(tree: ParserRuleContext): TBA[RemorphContext, ir.LogicalPlan] = planParser.visit(tree)
 
   // TODO: optimizer really should be its own thing and not part of PlanParser
   // I have put it here for now until we discuss^h^h^h^h^h^h^hSerge dictates where it should go ;)
-  protected def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = planParser.optimize(logicalPlan)
+  protected def optimize(logicalPlan: ir.LogicalPlan): TBA[RemorphContext, ir.LogicalPlan] =
+    planParser.optimize(logicalPlan)
 
-  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Result[String] = {
+  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): TBA[RemorphContext, String] = {
     generator.generate(optimizedLogicalPlan)
   }
 
-  override def transpile(input: SourceCode): Result[String] = {
+  override def transpile(input: SourceCode): TBA[RemorphContext, String] = {
     parse(input).flatMap(visit).flatMap(optimize).flatMap(generate)
   }
 }

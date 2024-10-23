@@ -1,17 +1,17 @@
 package com.databricks.labs.remorph.generators
 
 import com.databricks.labs.remorph.intermediate.{RemorphError, UncaughtException}
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Result, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, RemorphContext, TBA, TBAS, WorkflowStage}
 
 import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
 
 package object sql {
 
-  type SQL = Result[String]
+  type SQL = TBA[RemorphContext, String]
 
-  implicit class SQLInterpolator(sc: StringContext) {
-    def sql(args: Any*): SQL = {
+  implicit class SQLInterpolator(sc: StringContext) extends TBAS[RemorphContext] {
+    def sql(args: Any*): TBA[RemorphContext, String] = {
 
       val stringParts = sc.parts.iterator
       val arguments = args.iterator
@@ -25,54 +25,54 @@ package object sql {
             case PartialResult(s, err) =>
               sb.append(StringContext.treatEscapes(s.toString))
               errors.append(err)
-            case failure: KoResult => return failure
+            case failure: KoResult => return lift(failure)
             case other => sb.append(StringContext.treatEscapes(other.toString))
           }
           sb.append(StringContext.treatEscapes(stringParts.next()))
         } catch {
           case NonFatal(e) =>
-            return KoResult(WorkflowStage.GENERATE, UncaughtException(e))
+            return lift(KoResult(WorkflowStage.GENERATE, UncaughtException(e)))
         }
       }
       if (errors.isEmpty) {
-        OkResult(sb.toString)
+        lift(OkResult(sb.toString))
       } else if (errors.size == 1) {
-        PartialResult(sb.toString(), errors.head)
+        lift(PartialResult(sb.toString(), errors.head))
       } else {
-        PartialResult(sb.toString, errors.reduce(RemorphError.merge))
+        lift(PartialResult(sb.toString, errors.reduce(RemorphError.merge)))
       }
     }
   }
 
   implicit class SqlOps(sql: SQL) {
-    def nonEmpty: Boolean = sql match {
-      case OkResult(str) => str.nonEmpty
-      case _ => false
-    }
-    def isEmpty: Boolean = sql match {
-      case OkResult(str) => str.isEmpty
-      case _ => false
-    }
+    def nonEmpty: TBA[RemorphContext, Boolean] = sql.map(_.nonEmpty)
+    def isEmpty: TBA[RemorphContext, Boolean] = sql.map(_.isEmpty)
   }
 
-  implicit class SQLSeqOps(sqls: Seq[SQL]) {
+  implicit class TBASeqOps(tbas: Seq[TBA[RemorphContext, String]]) extends TBAS[RemorphContext] {
 
-    def mkSql: SQL = mkSql("", "", "")
+    def mkSql: TBA[RemorphContext, String] = mkSql("", "", "")
 
-    def mkSql(sep: String): SQL = mkSql("", sep, "")
+    def mkSql(sep: String): TBA[RemorphContext, String] = mkSql("", sep, "")
 
-    def mkSql(start: String, sep: String, end: String): SQL = {
+    def mkSql(start: String, sep: String, end: String): TBA[RemorphContext, String] = {
 
-      if (sqls.isEmpty) {
+      if (tbas.isEmpty) {
         sql"$start$end"
       } else {
-        val separatedItems = sqls.tail.foldLeft[SQL](sqls.head) { case (agg, item) =>
+        val separatedItems = tbas.tail.foldLeft[TBA[RemorphContext, String]](tbas.head) { case (agg, item) =>
           sql"$agg$sep$item"
         }
         sql"$start$separatedItems$end"
       }
-
     }
-  }
 
+    def sequence: TBA[RemorphContext, Seq[String]] =
+      tbas.foldLeft(ok(Seq.empty[String])) { case (agg, item) =>
+        for {
+          aggSeq <- agg
+          i <- item
+        } yield aggSeq :+ i
+      }
+  }
 }

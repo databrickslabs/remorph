@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.queries
 
-import com.databricks.labs.remorph.PartialResult
+import com.databricks.labs.remorph.{PartialResult, Raw}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
@@ -61,13 +61,13 @@ class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => 
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _)) =>
-        parser.parse(SourceCode(query)).flatMap(parser.visit) match {
+        parser.parse(SourceCode(query)).flatMap(parser.visit).run(Raw(query)) match {
           case com.databricks.labs.remorph.KoResult(_, error) =>
             logger.error(s"Failed to parse query: $query ${error.msg}")
-          case PartialResult(plan, error) =>
+          case PartialResult((_, plan), error) =>
             logger.warn(s"Errors occurred while parsing query: $query ${error.msg}")
             prettyPrinter(plan)
-          case com.databricks.labs.remorph.OkResult(plan) =>
+          case com.databricks.labs.remorph.OkResult((_, plan)) =>
             prettyPrinter(plan)
         }
       case None => throw new IllegalArgumentException(s"Example $name not found")
