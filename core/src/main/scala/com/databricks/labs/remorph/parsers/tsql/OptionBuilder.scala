@@ -35,7 +35,7 @@ class OptionBuilder(vc: TSqlVisitorCoordinator) {
       // FOR cannot be allowed as an id as it clashes with the FOR clause in SELECT et al. So
       // we special case it here and elide the FOR. It handles just a few things such as OPTIMIZE FOR UNKNOWN,
       // which becomes "OPTIMIZE", Id(UNKNOWN)
-      case c if c.FOR() != null => ir.OptionExpression(id, vc.expressionBuilder.visitId(c.id(1)), None)
+      case c if c.FOR() != null => ir.OptionExpression(id, vc.expressionBuilder.buildId(c.id(1)), None)
       case c if c.expression() != null =>
         val supplement = if (c.id(1) != null) Some(ctx.id(1).getText) else None
         ir.OptionExpression(id, c.expression().accept(vc.expressionBuilder), supplement)

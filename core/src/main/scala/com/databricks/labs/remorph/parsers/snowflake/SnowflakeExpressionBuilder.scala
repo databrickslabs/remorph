@@ -52,27 +52,32 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitId(ctx: IdContext): ir.Id =
-    ctx match {
-      case c if c.DOUBLE_QUOTE_ID() != null =>
-        val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
-        ir.Id(idValue, caseSensitive = true)
-      case v if v.AMP() != null =>
-        // Note that there is nothing special about &id other than they become $id in Databricks
-        // Many places in the builder concatenate the output of visitId with other strings and so we
-        // lose the ir.Dot(ir.Variable, ir.Id) that we could pick up and therefore propagate ir.Variable if
-        // we wanted to leave the translation to generate phase. I think we probably do want to do that, but
-        // a lot of code has bypassed accept() and called visitId directly, and expects ir.Id,
-        // then uses fields from it.
-        //
-        // To rework that is quite a big job. So, for now, we translate &id to $id here.
-        // It is not wrong for the id rule to hold the AMP ID alt, but ideally it would produce
-        // an ir.Variable and we would process that at generation time instead of concatenating into strings :(
-        ir.Id(s"$$${v.ID().getText}")
-      case d if d.ID2() != null =>
-        ir.Id(s"$$${d.ID2().getText.drop(1)}")
-      case id => ir.Id(id.getText)
-    }
+  override def visitId(ctx: IdContext): ir.Expression = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      buildId(ctx)
+  }
+
+  private[snowflake] def buildId(ctx: IdContext): ir.Id = ctx match {
+    case c if c.DOUBLE_QUOTE_ID() != null =>
+      val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
+      ir.Id(idValue, caseSensitive = true)
+    case v if v.AMP() != null =>
+      // Note that there is nothing special about &id other than they become $id in Databricks
+      // Many places in the builder concatenate the output of visitId with other strings and so we
+      // lose the ir.Dot(ir.Variable, ir.Id) that we could pick up and therefore propagate ir.Variable if
+      // we wanted to leave the translation to generate phase. I think we probably do want to do that, but
+      // a lot of code has bypassed accept() and called visitId directly, and expects ir.Id,
+      // then uses fields from it.
+      //
+      // To rework that is quite a big job. So, for now, we translate &id to $id here.
+      // It is not wrong for the id rule to hold the AMP ID alt, but ideally it would produce
+      // an ir.Variable and we would process that at generation time instead of concatenating into strings :(
+      ir.Id(s"$$${v.ID().getText}")
+    case d if d.ID2() != null =>
+      ir.Id(s"$$${d.ID2().getText.drop(1)}")
+    case id => ir.Id(id.getText)
+  }
 
   override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
@@ -97,8 +102,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val objectNameIds = Option(ctx.objectName()).map(_.id().asScala.map(visitId)).getOrElse(Seq())
-      val columnIds = ctx.columnName().id().asScala.map(visitId)
+      val objectNameIds = Option(ctx.objectName()).map(_.id().asScala.map(buildId)).getOrElse(Seq())
+      val columnIds = ctx.columnName().id().asScala.map(buildId)
       val fqn = objectNameIds ++ columnIds
       val objectRefIds = fqn.take(fqn.size - 1)
       val objectRef = if (objectRefIds.isEmpty) {
@@ -110,7 +115,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   }
 
   override def visitObjectName(ctx: ObjectNameContext): ir.ObjectReference = {
-    val ids = ctx.id().asScala.map(visitId)
+    val ids = ctx.id().asScala.map(buildId)
     ir.ObjectReference(ids.head, ids.tail: _*)
   }
 
@@ -118,14 +123,14 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       ir.Star(Option(ctx.objectName()).map { on =>
-        val objectNameIds = on.id().asScala.map(visitId)
+        val objectNameIds = on.id().asScala.map(buildId)
         ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
       })
   }
 
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
-      val alias = visitId(c.alias().id())
+      val alias = buildId(c.alias().id())
       ir.Alias(input, alias)
     }
 
@@ -133,9 +138,9 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       ctx.id().asScala match {
-        case Seq(columnName) => ir.Column(None, visitId(columnName))
+        case Seq(columnName) => ir.Column(None, buildId(columnName))
         case Seq(tableNameOrAlias, columnName) =>
-          ir.Column(Some(ir.ObjectReference(visitId(tableNameOrAlias))), visitId(columnName))
+          ir.Column(Some(ir.ObjectReference(buildId(tableNameOrAlias))), buildId(columnName))
       }
   }
 
@@ -211,7 +216,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
         // $$string$$ means interpret the string as raw string with no variable substitution, escape sequences, etc.
         // TODO: Do we need a raw flag in the ir.StringLiteral so that we generate r'sdfsdfsdsfds' for Databricks SQL?
         //       or is r'string' a separate Ir in Spark?
-        case ds if ctx.DOLLAR_STRING() != null =>
+        case _ if ctx.DOLLAR_STRING() != null =>
           val str = ctx.DOLLAR_STRING().getText.stripPrefix("$$").stripSuffix("$$")
           ir.StringLiteral(str)
 
@@ -416,7 +421,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val elements = ctx.expr().asScala.map(_.accept(this)).toList.toSeq
+      val elements = ctx.expr().asScala.map(_.accept(this)).toList
       // TODO: The current type determination may be too naive
       // but this does not affect code generation as the generator does not use it.
       // Here we determine the type of the array by inspecting the first expression in the array literal,
@@ -606,7 +611,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def fetchFunctionName(ctx: StandardFunctionContext): String = {
     if (ctx.functionName() != null) {
       ctx.functionName() match {
-        case c if c.id() != null => visitId(c.id()).id
+        case c if c.id() != null => buildId(c.id()).id
         case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
       }
     } else {
@@ -620,13 +625,13 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       val param = visitMany(ctx.exprList().expr())
-      functionBuilder.buildFunction(visitId(ctx.id()), param)
+      functionBuilder.buildFunction(buildId(ctx.id()), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      functionBuilder.buildFunction(visitId(ctx.id()), Seq(ir.Star(None)))
+      functionBuilder.buildFunction(buildId(ctx.id()), Seq(ir.Star(None)))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = errorCheck(ctx) match {

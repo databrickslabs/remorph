@@ -163,8 +163,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .map(a =>
         ir.SubqueryAlias(
           input,
-          vc.expressionBuilder.visitId(a.alias().id()),
-          a.id().asScala.map(vc.expressionBuilder.visitId)))
+          vc.expressionBuilder.buildId(a.alias().id()),
+          a.id().asScala.map(vc.expressionBuilder.buildId)))
       .getOrElse(input)
   }
 
@@ -205,7 +205,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val tableName = ctx.id().asScala.map(vc.expressionBuilder.visitId).map(_.id).mkString(".")
+      val tableName = ctx.id().asScala.map(vc.expressionBuilder.buildId).map(_.id).mkString(".")
       ir.NamedTable(tableName, Map.empty, is_streaming = false)
   }
 
@@ -220,7 +220,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     Option(ctx)
       .map { c =>
         val alias = c.alias().getText
-        val columns = Option(c.id()).map(_.asScala.map(vc.expressionBuilder.visitId)).getOrElse(Seq.empty)
+        val columns = Option(c.id()).map(_.asScala.map(vc.expressionBuilder.buildId)).getOrElse(Seq.empty)
         ir.TableAlias(relation, alias, columns)
       }
       .getOrElse(relation)
@@ -239,9 +239,9 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     val pivotValues: Seq[ir.Literal] =
       vc.expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
-    val argument = ir.Column(None, vc.expressionBuilder.visitId(ctx.pivotColumn))
-    val column = ir.Column(None, vc.expressionBuilder.visitId(ctx.valueColumn))
-    val aggFunc = vc.expressionBuilder.visitId(ctx.aggregateFunc)
+    val argument = ir.Column(None, vc.expressionBuilder.buildId(ctx.pivotColumn))
+    val column = ir.Column(None, vc.expressionBuilder.buildId(ctx.valueColumn))
+    val aggFunc = vc.expressionBuilder.buildId(ctx.aggregateFunc)
     val aggregateFunction = vc.functionBuilder.buildFunction(aggFunc, Seq(argument))
     ir.Aggregate(
       child = relation,
@@ -256,8 +256,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .columnName()
       .asScala
       .map(_.accept(vc.expressionBuilder))
-    val variableColumnName = vc.expressionBuilder.visitId(ctx.valueColumn)
-    val valueColumnName = vc.expressionBuilder.visitId(ctx.nameColumn)
+    val variableColumnName = vc.expressionBuilder.buildId(ctx.valueColumn)
+    val valueColumnName = vc.expressionBuilder.buildId(ctx.nameColumn)
     ir.Unpivot(
       child = relation,
       ids = unpivotColumns,
@@ -327,8 +327,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val tableName = vc.expressionBuilder.visitId(ctx.tableName)
-      val columns = ctx.columns.asScala.map(vc.expressionBuilder.visitId)
+      val tableName = vc.expressionBuilder.buildId(ctx.tableName)
+      val columns = ctx.columns.asScala.map(vc.expressionBuilder.buildId)
       val query = ctx.selectStatement().accept(this)
       ir.SubqueryAlias(query, tableName, columns)
   }
@@ -362,7 +362,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
           val subquery = c.subquery().accept(this)
           Option(c.asAlias())
             .map { a =>
-              ir.SubqueryAlias(subquery, vc.expressionBuilder.visitId(a.alias().id()), Seq())
+              ir.SubqueryAlias(subquery, vc.expressionBuilder.buildId(a.alias().id()), Seq())
             }
             .getOrElse(subquery)
 
