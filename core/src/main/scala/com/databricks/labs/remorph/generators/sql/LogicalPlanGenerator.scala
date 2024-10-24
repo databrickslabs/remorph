@@ -39,22 +39,28 @@ class LogicalPlanGenerator(
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
     case c: ir.CreateTableParams => createTableParams(ctx, c)
+
+    // We see an unresolved for parsing errors, when we have no visitor for a given rule,
+    // when something went wrong with IR generation, or when we have a visitor but it is not
+    // yet implemented.
+    case u: ir.Unresolved[_] => describeError(u)
+
     case ir.NoopNode => sql""
-    //  TODO We should always generate an unresolved node, our plan should never be null
     case null => sql"" // don't fail transpilation if the plan is null
     case x => partialResult(x)
   }
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): SQL = {
     val seqSql = b.children
-      .map {
-        case u: ir.UnresolvedCommand =>
-          sql"-- ${u.ruleText.stripSuffix(";")}"
-        case query => sql"${generate(ctx, query)}"
-      }
+      .map(query => sql"${generate(ctx, query)}")
       .filter(_.isSuccess)
     if (seqSql.nonEmpty) {
-      seqSql.mkSql("", ";\n", ";")
+      seqSql
+        .map {
+          case OkResult(sqlStr) if !sqlStr.endsWith("*/") => sql"$sqlStr;"
+          case other => other
+        }
+        .mkSql("", "\n", "")
     } else {
       sql""
     }

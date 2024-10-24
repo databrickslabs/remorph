@@ -68,6 +68,11 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] {
       // keep this case after every case involving an `Fn`, otherwise it will make said case unreachable
       case fn: ir.Fn => sql"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkSql(", ")})"
 
+      // We see an unresolved for parsing errors, when we have no visitor for a given rule,
+      // when something went wrong with IR generation, or when we have a visitor but it is not
+      // yet implemented.
+      case u: ir.Unresolved[_] => describeError(u)
+
       case null => sql"" // don't fail transpilation if the expression is null
       case x => partialResult(x)
     }
