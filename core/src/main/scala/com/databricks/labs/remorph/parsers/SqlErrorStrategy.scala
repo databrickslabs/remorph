@@ -57,9 +57,8 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append(escapeWSAndQuote(input))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
 
-    val errorNode = createErrorNode(e.getStartToken, input)
-
     // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(e.getStartToken, input)
     recognizer.getContext.addErrorNode(errorNode)
   }
 
@@ -71,6 +70,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append("\nexpecting one of: ")
     msg.append(buildExpectedMessage(recognizer, e.getExpectedTokens))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(e.getOffendingToken, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   override protected def reportUnwantedToken(recognizer: Parser): Unit = {
@@ -87,6 +90,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append("\nexpecting one of: ")
     msg.append(buildExpectedMessage(recognizer, expecting))
     recognizer.notifyErrorListeners(t, msg.toString(), null)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(t, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   override protected def reportMissingToken(recognizer: Parser): Unit = {
@@ -103,6 +110,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append('\n')
     msg.append(generateMessage(recognizer, new InputMismatchException(recognizer)))
     recognizer.notifyErrorListeners(t, msg.toString(), null)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(t, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   val capitalizedSort: Ordering[String] = Ordering.fromLessThan((a, b) =>

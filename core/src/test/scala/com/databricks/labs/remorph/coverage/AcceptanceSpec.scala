@@ -35,7 +35,10 @@ class SnowflakeAcceptanceSuite
             "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql"),
-          shouldFailParse = Set("core_engine/test_invalid_syntax/syntax_error_1.sql"))))
+          shouldFailParse = Set(
+            "core_engine/test_invalid_syntax/syntax_error_1.sql",
+            "core_engine/test_invalid_syntax/syntax_error_2.sql",
+            "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(
@@ -68,4 +71,8 @@ class TSqlAcceptanceSuite
             "functions/test_percent_rank_1.sql",
             "functions/test_percentile_cont_1.sql",
             "functions/test_percentile_disc_1.sql",
-            "select/test_cte_xml.sql"))))
+            "select/test_cte_xml.sql"),
+          shouldFailParse = Set(
+            "core_engine/test_invalid_syntax/syntax_error_1.sql",
+            "core_engine/test_invalid_syntax/syntax_error_2.sql",
+            "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
