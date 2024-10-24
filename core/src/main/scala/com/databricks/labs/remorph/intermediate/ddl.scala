@@ -57,11 +57,11 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true, metadata: Option[Metadata] = None)
 case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 case object VariantType extends DataType
-
+case class Metadata(comment: Option[String])
 // While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
 // Id BIGINT GENERATED ALWAYS AS IDENTITY
 case class IdentityType(start: Option[Int], increment: Option[Int]) extends DataType
