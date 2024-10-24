@@ -208,7 +208,7 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
     val target = Option(ctx.ddlObject()).map(_.accept(vc.relationBuilder))
     val columns =
       Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.visitId(id))))
+        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.buildId(id))))
 
     // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
     // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE

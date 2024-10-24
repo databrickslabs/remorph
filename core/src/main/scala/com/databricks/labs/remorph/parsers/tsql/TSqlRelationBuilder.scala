@@ -20,11 +20,11 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   // Concrete visitors
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = vc.expressionBuilder.visitId(ctx.id())
+    val tableName = vc.expressionBuilder.buildId(ctx.id())
     // Column list can be empty if the select specifies distinct column names
     val columns =
       Option(ctx.columnNameList())
-        .map(_.id().asScala.map(vc.expressionBuilder.visitId))
+        .map(_.id().asScala.map(vc.expressionBuilder.buildId))
         .getOrElse(Seq.empty)
     val query = ctx.selectStatement().accept(this)
     ir.SubqueryAlias(query, tableName, columns)
@@ -239,7 +239,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
-      case c if c.id() != null => vc.expressionBuilder.visitId(c.id())
+      case c if c.id() != null => vc.expressionBuilder.buildId(c.id())
       case _ => ir.Id(vc.expressionBuilder.removeQuotes(ctx.getText))
     }
   }
@@ -432,7 +432,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     val target = Option(ctx.ddlObject()).map(_.accept(this))
     val columns =
       Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.visitId(id))))
+        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.buildId(id))))
 
     // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
     // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
@@ -471,8 +471,8 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       .fullColumnName()
       .asScala
       .map(_.accept(vc.expressionBuilder))
-    val variableColumnName = vc.expressionBuilder.visitId(ctx.unpivotClause().id(0))
-    val valueColumnName = vc.expressionBuilder.visitId(ctx.unpivotClause().id(1))
+    val variableColumnName = vc.expressionBuilder.buildId(ctx.unpivotClause().id(0))
+    val valueColumnName = vc.expressionBuilder.buildId(ctx.unpivotClause().id(1))
     ir.Unpivot(
       child = left,
       ids = unpivotColumns,

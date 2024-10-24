@@ -36,7 +36,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       val table = ctx.objectName().accept(vc.relationBuilder)
-      val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.visitId))
+      val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.buildId))
       val values = ctx match {
         case c if c.queryStatement() != null => c.queryStatement().accept(vc.relationBuilder)
         case c if c.valuesTableBody() != null => c.valuesTableBody().accept(vc.relationBuilder)
