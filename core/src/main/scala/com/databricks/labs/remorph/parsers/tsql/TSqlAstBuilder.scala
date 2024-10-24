@@ -20,65 +20,76 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
-    Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
+  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
   }
 
-  override def visitBatch(ctx: TSqlParser.BatchContext): ir.LogicalPlan = {
-    val executeBodyBatchPlan = Option(ctx.executeBodyBatch()).map(_.accept(this))
-    val sqlClausesPlans = ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.LogicalPlan => p }
+  override def visitBatch(ctx: TSqlParser.BatchContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val executeBodyBatchPlan = Option(ctx.executeBodyBatch()).map(_.accept(this))
+      val sqlClausesPlans = ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.LogicalPlan => p }
 
-    executeBodyBatchPlan match {
-      case Some(plan) => ir.Batch(plan :: sqlClausesPlans.toList)
-      case None => ir.Batch(sqlClausesPlans.toList)
-    }
+      executeBodyBatchPlan match {
+        case Some(plan) => ir.Batch(plan :: sqlClausesPlans.toList)
+        case None => ir.Batch(sqlClausesPlans.toList)
+      }
   }
 
   // TODO: Stored procedure calls etc as batch start
-  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
-    ir.UnresolvedRelation(
-      ruleText = contextText(ctx),
-      message = "Execute body batch is not supported yet",
-      ruleName = vc.ruleName(ctx),
-      tokenName = Some(tokenName(ctx.getStart)))
-
-  override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
-    ctx match {
-      case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
-      case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
-      case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
-      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(vc.ddlBuilder)
-      case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
-      case backup if backup.backupStatement() != null => backup.backupStatement().accept(vc.ddlBuilder)
-      case coaFunction if coaFunction.createOrAlterFunction() != null =>
-        coaFunction.createOrAlterFunction().accept(this)
-      case coaProcedure if coaProcedure.createOrAlterProcedure() != null =>
-        coaProcedure.createOrAlterProcedure().accept(this)
-      case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
-      case cv if cv.createView() != null => cv.createView().accept(this)
-      case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ =>
-        ir.UnresolvedRelation(
-          ruleText = contextText(ctx),
-          message = s"Unknown SQL clause ${ctx.getStart.getText} in TSqlAstBuilder.visitSqlClauses",
-          ruleName = vc.ruleName(ctx),
-          tokenName = Some(tokenName(ctx.getStart)))
-    }
+  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ir.UnresolvedRelation(
+        ruleText = contextText(ctx),
+        message = "Execute body batch is not supported yet",
+        ruleName = vc.ruleName(ctx),
+        tokenName = Some(tokenName(ctx.getStart)))
   }
 
-  override def visitDmlClause(ctx: TSqlParser.DmlClauseContext): ir.LogicalPlan = {
-    val dml = ctx match {
-      case dml if dml.selectStatement() != null =>
-        dml.selectStatement().accept(vc.relationBuilder)
-      case _ =>
-        ctx.accept(vc.dmlBuilder)
-    }
-
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(vc.relationBuilder))
-        ir.WithCTE(ctes, dml)
+  override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
+        case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
+        case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
+        case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(vc.ddlBuilder)
+        case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
+        case backup if backup.backupStatement() != null => backup.backupStatement().accept(vc.ddlBuilder)
+        case coaFunction if coaFunction.createOrAlterFunction() != null =>
+          coaFunction.createOrAlterFunction().accept(this)
+        case coaProcedure if coaProcedure.createOrAlterProcedure() != null =>
+          coaProcedure.createOrAlterProcedure().accept(this)
+        case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
+        case cv if cv.createView() != null => cv.createView().accept(this)
+        case go if go.goStatement() != null => go.goStatement().accept(this)
+        case _ =>
+          ir.UnresolvedRelation(
+            ruleText = contextText(ctx),
+            message = s"Unknown SQL clause ${ctx.getStart.getText} in TSqlAstBuilder.visitSqlClauses",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)))
       }
-      .getOrElse(dml)
+  }
+
+  override def visitDmlClause(ctx: TSqlParser.DmlClauseContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val dml = ctx match {
+        case dml if dml.selectStatement() != null =>
+          dml.selectStatement().accept(vc.relationBuilder)
+        case _ =>
+          ctx.accept(vc.dmlBuilder)
+      }
+
+      Option(ctx.withExpression())
+        .map { withExpression =>
+          val ctes = withExpression.commonTableExpression().asScala.map(_.accept(vc.relationBuilder))
+          ir.WithCTE(ctes, dml)
+        }
+        .getOrElse(dml)
   }
 }
