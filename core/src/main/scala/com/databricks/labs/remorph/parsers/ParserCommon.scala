@@ -139,9 +139,9 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
       .map(_.asScala)
       .getOrElse(Seq.empty)
       .collect { case e: ErrorNode =>
-        s"Unparsable text: ${e.getSymbol.getText}\n\n"
+        s"Unparsable text: ${e.getSymbol.getText}"
       }
-      .mkString
+      .mkString("\n")
 
     if (unparsedText.nonEmpty) {
       Some(unresolved(unparsedText, "Unparsed input - ErrorNode encountered"))

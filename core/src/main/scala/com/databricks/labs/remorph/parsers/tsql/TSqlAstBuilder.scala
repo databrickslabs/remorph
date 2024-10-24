@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
@@ -20,22 +21,34 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
+  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
+
+    // This very top level visitor does not ignore any valid statements for the batch, instead
+    // we prepend any errors to the batch plan, so they are generated first in the output.
+    val errors = errorCheck(ctx)
+    val batchPlan = Option(ctx.batch()).map(buildBatch).getOrElse(Seq.empty)
+    errors match {
+      case Some(errorResult) => ir.Batch(errorResult +: batchPlan)
+      case None => ir.Batch(batchPlan)
+    }
   }
 
-  override def visitBatch(ctx: TSqlParser.BatchContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val executeBodyBatchPlan = Option(ctx.executeBodyBatch()).map(_.accept(this))
-      val sqlClausesPlans = ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.LogicalPlan => p }
+  private def buildBatch(ctx: TSqlParser.BatchContext): Seq[LogicalPlan] = {
 
-      executeBodyBatchPlan match {
-        case Some(plan) => ir.Batch(plan :: sqlClausesPlans.toList)
-        case None => ir.Batch(sqlClausesPlans.toList)
-      }
+    // This very top level visitor does not ignore any valid statements for the batch, instead
+    // we prepend any errors to the batch plan, so they are generated first in the output.
+    val errors = errorCheck(ctx)
+    val executeBodyBatchPlan = Option(ctx.executeBodyBatch()).map(_.accept(this))
+    val sqlClausesPlans = ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.LogicalPlan => p }
+
+    val validStatements = executeBodyBatchPlan match {
+      case Some(plan) => plan +: sqlClausesPlans
+      case None => sqlClausesPlans
+    }
+    errors match {
+      case Some(errorResult) => errorResult +: validStatements
+      case None => validStatements
+    }
   }
 
   // TODO: Stored procedure calls etc as batch start

@@ -12,28 +12,25 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "!set error_flag = true;" transpilesTo
         """/* The following issues were detected:
           |
-          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand:
-          |
-          |   !set error_flag = true;
-          |*/""".stripMargin
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !set error_flag = true;
+          | */""".stripMargin
     }
     "transpile BANG without semicolon" in {
       "!print Include This Text" transpilesTo
         """/* The following issues were detected:
         |
-        |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand:
-        |
-        |   !print Include This Text
-        |*/""".stripMargin
+        |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+        |    !print Include This Text
+        | */""".stripMargin
     }
     "transpile BANG with options" in {
       "!options catch=true" transpilesTo
         """/* The following issues were detected:
           |
-          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand:
-          |
-          |   !options catch=true
-          |*/""".stripMargin
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !options catch=true
+          | */""".stripMargin
     }
     "transpile BANG with negative scenario unknown command" in {
       "!test unknown command".failsTranspilation
@@ -299,10 +296,9 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "EXECUTE TASK task1;" transpilesTo
         """/* The following issues were detected:
           |
-          |   Execute Task is not yet supported:
-          |
-          |   EXECUTE TASK task1
-          |*/""".stripMargin
+          |   Execute Task is not yet supported
+          |    EXECUTE TASK task1
+          | */""".stripMargin
     }
   }
 

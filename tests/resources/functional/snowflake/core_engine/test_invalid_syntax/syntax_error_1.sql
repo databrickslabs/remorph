@@ -13,55 +13,42 @@ select col1,, col2 from table_name;
 -- databricks sql:
 /* The following issues were detected:
 
-   Unparsed input - ErrorNode encountered:
-
-   Unparsable text: select col1,,
-
-
-*/
+   Unparsed input - ErrorNode encountered
+    Unparsable text: select col1,,
+ */
 /* The following issues were detected:
 
-   Unparsed input - ErrorNode encountered:
-
-   Unparsable text: select
-
-Unparsable text: parser recovered by ignoring: select col1
-
-
-*/
+   Unparsed input - ErrorNode encountered
+    Unparsable text: select
+    Unparsable text: parser recovered by ignoring: select col1
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   Mocked string
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    Mocked string
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   col1,,
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    col1,,
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   Mocked string
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    Mocked string
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   col2 from
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    col2 from
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   Mocked string
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    Mocked string
+ */
 /* The following issues were detected:
 
-   Unimplemented visitor accept in class SnowflakeCommandBuilder:
-
-   table_name
-*/
+   Unimplemented visitor accept in class SnowflakeCommandBuilder
+    table_name
+ */
