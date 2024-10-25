@@ -35,10 +35,10 @@ options {
     tokenVocab = SnowflakeLexer;
 }
 
-snowflakeFile: batch? EOF
+snowflakeFile: SEMI* batch? EOF
     ;
 
-batch: SEMI* (sqlCommand SEMI*)+
+batch: (sqlCommand SEMI*)+
     ;
 
 sqlCommand

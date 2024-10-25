@@ -39,10 +39,10 @@ options {
     tokenVocab = TSqlLexer;
 }
 
-tSqlFile: batch? EOF
+tSqlFile: SEMI* batch? EOF
     ;
 
-batch: SEMI* executeBodyBatch? SEMI* (sqlClauses SEMI*)+
+batch: executeBodyBatch? SEMI* (sqlClauses SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
