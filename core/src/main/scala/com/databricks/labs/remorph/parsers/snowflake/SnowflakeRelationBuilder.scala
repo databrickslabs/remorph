@@ -329,7 +329,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       val tableName = vc.expressionBuilder.buildId(ctx.tableName)
-          val columns = ctx.columnList() match {
+      val columns = ctx.columnList() match {
       case null => Seq.empty[ir.Id]
       case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
     }
