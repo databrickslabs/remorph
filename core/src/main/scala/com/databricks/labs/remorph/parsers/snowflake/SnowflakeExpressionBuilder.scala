@@ -765,13 +765,16 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   }
 
   override def visitPredExprListIn(ctx: PredExprListInContext): ir.Expression = {
-    // left side of In can be a list of expressions
+    // left side of In is a list of expressions
     val leftExprList = ctx.exprList(0).expr().asScala.map(_.accept(this))
 
     val rightExprListOrSubquery = if (ctx.subquery() != null) {
+      // TODO: Handle when subquery contains a inner join
+      //  example: delete from t1 where (v1, v2) in (select v3, v4 from t2 inner join t3 on t2.v3 = t3.v4)
+
       // Case: Right-hand side is a subquery
-      val subqueryExpr1 = ctx.subquery().queryStatement().accept(this)
-      val subQueryTable = subqueryExpr1
+      val subqueryStatement = ctx.subquery().queryStatement().accept(this)
+      val subQueryTable = subqueryStatement
         .collect({ case ir.ObjectReference(ir.Id(table, _), _*) =>
           table
         })
@@ -794,14 +797,16 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
 
       // Create comparisons between left-hand side and subquery columns
+      // Adding outer and inner to the column references to avoid ambiguity while
+      // generating there where clause in the optimized plan
       val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
-        ir.Equals(leftExpr, ir.Id(rightExpr))
+        ir.Equals(
+          ir.Column(Some(ir.ObjectReference(ir.Id("outer"))), leftExpr.asInstanceOf[ir.Id]),
+          ir.Column(Some(ir.ObjectReference(ir.Id("inner"))), ir.Id(rightExpr)))
       }
 
-      // Combine all the comparisons with AND
       val conjunction = comparisonExprs.reduce(ir.And)
       ir.Exists(ir.Project(ir.Filter(namedTable(subQueryTable), conjunction), Seq(ir.Id("1"))))
-
     } else {
       // Case: Right-hand side is an expression list (e.g., (v3, v4))
       val rightExprList = ctx.exprList(1).expr().asScala.map(expr => expr.accept(this).asInstanceOf[ir.Expression])
@@ -809,11 +814,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       val comparisonExprs = leftExprList.zip(rightExprList).map { case (leftExpr, rightExpr) =>
         ir.Equals(leftExpr, rightExpr)
       }
-      // Combine the comparisons into an AND clause
       comparisonExprs.reduce(ir.And)
     }
-
-    // Return the final expression (either EXISTS or an ANDed comparison)
     rightExprListOrSubquery
   }
 
