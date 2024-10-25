@@ -324,15 +324,14 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(ir.UnspecifiedJoin)
   }
 
-
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = vc.expressionBuilder.buildId(ctx.tableName)
       val columns = ctx.columnList() match {
-      case null => Seq.empty[ir.Id]
-      case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
-    }
+        case null => Seq.empty[ir.Id]
+        case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
+      }
 
       val query = ctx.selectStatement().accept(this)
       ir.SubqueryAlias(query, tableName, columns)
