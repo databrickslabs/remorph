@@ -24,7 +24,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                                               then data_type || '(' || data_precision || ')'
                                               when data_precision is null and (lower(data_type) in ('date') or
                                               lower(data_type) like 'timestamp%') then  data_type
-                                              when CHAR_LENGTH == 0 then data_type
+                                              when CHAR_LENGTH = 0 then data_type
                                               else data_type || '(' || CHAR_LENGTH || ')'
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
