@@ -836,11 +836,6 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
   }
 
-  override def visitExprList(ctx: ExprListContext): ir.Expression = {
-    val exprList = ctx.expr().asScala.map(_.accept(this)).toList
-    ir.ExprList(exprList)
-  }
-
   override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.Expression =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
