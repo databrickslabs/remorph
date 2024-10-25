@@ -42,7 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-batch: SEMI* executeBodyBatch? SEMI* (sqlClauses+ SEMI*)+
+batch: SEMI* executeBodyBatch? SEMI* (sqlClauses SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some

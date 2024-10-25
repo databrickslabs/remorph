@@ -38,7 +38,7 @@ options {
 snowflakeFile: batch? EOF
     ;
 
-batch: sqlCommand (SEMI* sqlCommand)* SEMI*
+batch: SEMI* (sqlCommand SEMI*)+
     ;
 
 sqlCommand
