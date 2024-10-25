@@ -237,7 +237,18 @@ class LogicalPlanGenerator(
     } else {
       sql""
     }
-    sql"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkSql(", ")}$fromClause"
+
+    // Don't put commas after unresolved expressions as they are error comments only
+    val generatedExpressions = proj.expressions.map { exp: ir.Expression => expr.generate(ctx, exp) -> exp }
+    val sqlParts = generatedExpressions
+      .map {
+        case (OkResult(sqlStr), exp) if !exp.isInstanceOf[ir.Unresolved[_]] => s"$sqlStr, "
+        case (OkResult(sqlStr), _) => sqlStr
+      }
+      .mkString
+      .stripSuffix(", ")
+
+    sql"SELECT $sqlParts$fromClause"
   }
 
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): SQL = {

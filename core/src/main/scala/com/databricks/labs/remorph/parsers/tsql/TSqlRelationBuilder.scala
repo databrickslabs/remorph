@@ -82,8 +82,9 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       // TODO: Check the logic here for all the elements of a query specification
       val select = ctx.selectOptionalClauses().accept(this)
 
-      val columns =
-        ctx.selectListElem().asScala.map(_.accept(vc.expressionBuilder))
+      // A single column definition could also hold an ErrorNode that it recovered from so we collect all of them
+      val columns: Seq[ir.Expression] =
+        ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
       // Note that ALL is the default so we don't need to check for it
       ctx match {
         case c if c.DISTINCT() != null =>
