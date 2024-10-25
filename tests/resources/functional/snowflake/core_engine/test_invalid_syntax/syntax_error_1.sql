@@ -20,35 +20,11 @@ select col1,, col2 from table_name;
 
    Unparsed input - ErrorNode encountered
     Unparsable text: select
-    Unparsable text: parser recovered by ignoring: select col1
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    Mocked string
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    col1,,
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    Mocked string
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    col2 from
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    Mocked string
- */
-/* The following issues were detected:
-
-   Unimplemented visitor accept in class SnowflakeCommandBuilder
-    table_name
+    Unparsable text: col1
+    Unparsable text: ,
+    Unparsable text: ,
+    Unparsable text: col2
+    Unparsable text: from
+    Unparsable text: table_name
+    Unparsable text: parser recovered by ignoring: select col1,, col2 from table_name;
  */

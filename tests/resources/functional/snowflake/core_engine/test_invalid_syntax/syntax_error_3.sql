@@ -11,7 +11,7 @@ SELECT A B FROM C ;
 
    Unparsed input - ErrorNode encountered
     Unparsable text: '*' was unexpected while parsing a Snowflake batch
-    expecting one of: $Identifier, End of batch, Identifier, Select Statement, Statement, '""', '(', 'BODY', 'CALL', 'CHARACTER', 'CURRENT_TIME', 'DECLARE'...
+    expecting one of: End of batch, Select Statement, Statement, '(', 'CALL', 'COMMENT', 'DECLARE', 'DESC', 'GET', 'LET', 'START', 'WITH'...
     Unparsable text: *
     Unparsable text: ;
     Unparsable text: SELECT
