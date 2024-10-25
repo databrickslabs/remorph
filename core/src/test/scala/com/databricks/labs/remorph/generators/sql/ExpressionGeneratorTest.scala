@@ -1727,4 +1727,16 @@ class ExpressionGeneratorTest
         ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
     }
   }
+
+  "error node in expression tree" should {
+    "generate inline error message comment for a and bad text" in {
+      ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
+        """a AND /* The following issues were detected:
+         |
+         |   some error message:
+         |
+         |   bad text
+         |*/""".stripMargin
+    }
+  }
 }

@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers
 
 import org.antlr.v4.runtime._
-import org.antlr.v4.runtime.misc.IntervalSet
+import org.antlr.v4.runtime.misc.{Interval, IntervalSet, Pair}
+import org.antlr.v4.runtime.tree.ErrorNodeImpl
 
 /**
  * Custom error strategy for SQL parsing <p> While we do not do anything super special here, we wish to override a
@@ -15,9 +16,30 @@ import org.antlr.v4.runtime.misc.IntervalSet
  */
 abstract class SqlErrorStrategy extends DefaultErrorStrategy {
 
-  // Note that it is not possible to get this error from the current grammar, we would have to do an inordinate
-  // amount of mocking to raise this. It isn't worth the effort.
-  // $COVERAGE-OFF$
+  override def recover(recognizer: Parser, e: RecognitionException): Unit = {
+    val tokens: TokenStream = recognizer.getInputStream
+    val startIndex: Int = tokens.index
+    val first = tokens.LT(1)
+    super.recover(recognizer, e)
+    val endIndex: Int = tokens.index
+    if (startIndex < endIndex) {
+      val interval = new Interval(startIndex, endIndex)
+      val errorToken: CommonToken = new CommonToken(
+        new Pair(first.getTokenSource, first.getInputStream),
+        Token.INVALID_TYPE,
+        Token.DEFAULT_CHANNEL,
+        first.getStartIndex,
+        tokens.LT(1).getStopIndex)
+      errorToken.setText(s"parser recovered by ignoring: ${tokens.getText(interval)}")
+      errorToken.setLine(first.getLine)
+      errorToken.setCharPositionInLine(first.getCharPositionInLine)
+      val errorNode = new ErrorNodeImpl(errorToken)
+
+      // Here we add the error node to the current context so that we can report it in the correct place
+      recognizer.getContext.addErrorNode(errorNode)
+    }
+  }
+
   override protected def reportNoViableAlternative(recognizer: Parser, e: NoViableAltException): Unit = {
     val tokens = recognizer.getInputStream
     var input: String = null
@@ -26,11 +48,24 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
       else input = tokens.getText(e.getStartToken, e.getOffendingToken)
     else input = "<unknown input>"
     val msg = new StringBuilder()
-    msg.append("could not process ")
+    msg.append("input is not parsable ")
     msg.append(escapeWSAndQuote(input))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
+
+    val errorToken: CommonToken = new CommonToken(
+      new Pair(e.getStartToken.getTokenSource, e.getStartToken.getInputStream),
+      Token.INVALID_TYPE,
+      Token.DEFAULT_CHANNEL,
+      e.getStartToken.getStartIndex,
+      e.getStartToken.getStopIndex)
+    errorToken.setText(input)
+    errorToken.setLine(e.getStartToken.getLine)
+    errorToken.setCharPositionInLine(e.getStartToken.getCharPositionInLine)
+    val errorNode = new ErrorNodeImpl(errorToken)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    recognizer.getContext.addErrorNode(errorNode)
   }
-  // $COVERAGE-ON$
 
   override protected def reportInputMismatch(recognizer: Parser, e: InputMismatchException): Unit = {
     val msg = new StringBuilder()

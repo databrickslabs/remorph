@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.intermediate.RemorphError
+import com.databricks.labs.remorph.intermediate.{MultipleErrors, RemorphError, SingleError}
 
 case class ReportEntryHeader(
     project: String,
@@ -18,15 +18,23 @@ case class ReportEntryReport(
     transpiled_statements: Int = 0, // number of statements transpiled
     transpilation_error: Option[RemorphError] = None) {
   def isSuccess: Boolean = parsing_error.isEmpty && transpilation_error.isEmpty
-  def errorMessage: Option[String] = parsing_error.orElse(transpilation_error).map(_.msg)
+  def failedParseOnly: Boolean = parsing_error.isDefined && transpilation_error.isEmpty
+
+  // Transpilation error takes precedence over parsing error as parsing errors will be
+  // shown in the output. If there is a transpilation error, we should therefore show that instead.
+  def errorMessage: Option[String] = transpilation_error.orElse(parsing_error).map(_.msg)
 }
 
 case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport) {
 
+  def singleErrorJson(error: SingleError): ujson.Value.Value =
+    ujson.Obj("error_type" -> error.getClass.getSimpleName, "error_message" -> error.msg)
+
   def errorJson(errOpt: Option[RemorphError]): ujson.Value.Value = {
     errOpt
-      .map { err =>
-        ujson.Obj("error_type" -> err.getClass.getSimpleName, "error_message" -> err.msg)
+      .map {
+        case s: SingleError => singleErrorJson(s)
+        case m: MultipleErrors => ujson.Arr(m.errors.map(singleErrorJson))
       }
       .getOrElse(ujson.Null)
   }

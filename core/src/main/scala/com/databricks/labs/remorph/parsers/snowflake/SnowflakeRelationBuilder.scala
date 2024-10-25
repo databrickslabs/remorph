@@ -18,28 +18,35 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = {
-    val select = ctx.selectOptionalClauses().accept(this)
-    val relation = buildLimitOffset(ctx.limitClause(), select)
-    val (top, allOrDistinct, selectListElements) = ctx match {
-      case c if ctx.selectClause() != null =>
-        (
-          None,
-          c.selectClause().selectListNoTop().allDistinct(),
-          c.selectClause().selectListNoTop().selectList().selectListElem().asScala)
-      case c if ctx.selectTopClause() != null =>
-        (
-          Option(c.selectTopClause().selectListTop().topClause()),
-          c.selectTopClause().selectListTop().allDistinct(),
-          c.selectTopClause().selectListTop().selectList().selectListElem().asScala)
-    }
-    val expressions = selectListElements.map(_.accept(vc.expressionBuilder))
+  override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      // Note that the optional select clauses may be null on very simple statements
+      // such as SELECT 1;
+      val select = Option(ctx.selectOptionalClauses()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val relation = buildLimitOffset(ctx.limitClause(), select)
+      val (top, allOrDistinct, selectListElements) = ctx match {
+        case c if ctx.selectClause() != null =>
+          (
+            None,
+            c.selectClause().selectListNoTop().allDistinct(),
+            c.selectClause().selectListNoTop().selectList().selectListElem().asScala)
+        case c if ctx.selectTopClause() != null =>
+          (
+            Option(c.selectTopClause().selectListTop().topClause()),
+            c.selectTopClause().selectListTop().allDistinct(),
+            c.selectTopClause().selectListTop().selectList().selectListElem().asScala)
 
-    if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
-      buildTop(top, buildDistinct(relation, expressions))
-    } else {
-      ir.Project(buildTop(top, relation), expressions)
-    }
+        // NOte that we must cater for error recovery where neither clause is present
+        case _ => (None, null, Seq.empty)
+      }
+      val expressions = selectListElements.map(_.accept(vc.expressionBuilder))
+
+      if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
+        buildTop(top, buildDistinct(relation, expressions))
+      } else {
+        ir.Project(buildTop(top, relation), expressions)
+      }
   }
 
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
@@ -71,24 +78,28 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Limit(input, top.expr().accept(vc.expressionBuilder))
     }
 
-  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
-    val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
-    buildOrderBy(
-      ctx.orderByClause(),
-      buildQualify(
-        ctx.qualifyClause(),
-        buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from)))))
+  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      buildOrderBy(
+        ctx.orderByClause(),
+        buildQualify(
+          ctx.qualifyClause(),
+          buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from)))))
   }
 
-  override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = {
-    val tableSources = visitMany(ctx.tableSources().tableSource())
-    // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
-    tableSources match {
-      case Seq(tableSource) => tableSource
-      case sources =>
-        sources.reduce(
-          ir.Join(_, _, None, ir.InnerJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
+  override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableSources = visitMany(ctx.tableSources().tableSource())
+      // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
+      tableSources match {
+        case Seq(tableSource) => tableSource
+        case sources =>
+          sources.reduce(
+            ir.Join(_, _, None, ir.InnerJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      }
   }
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
@@ -123,24 +134,28 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.LogicalPlan = {
-    val tableFunc = ir.TableFunction(ctx.functionCall().accept(vc.expressionBuilder))
-    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
+  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableFunc = ir.TableFunction(ctx.functionCall().accept(vc.expressionBuilder))
+      buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
 
   // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
   // @see https://docs.snowflake.com/en/sql-reference/functions-table
-  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = {
-    val relation = ctx match {
-      case c if c.subquery() != null => c.subquery().accept(this)
-      case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(vc.expressionBuilder))
-    }
-    val maybeLateral = if (ctx.LATERAL() != null) {
-      ir.Lateral(relation)
-    } else {
-      relation
-    }
-    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), maybeLateral))
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val relation = ctx match {
+        case c if c.subquery() != null => c.subquery().accept(this)
+        case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(vc.expressionBuilder))
+      }
+      val maybeLateral = if (ctx.LATERAL() != null) {
+        ir.Lateral(relation)
+      } else {
+        relation
+      }
+      buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), maybeLateral))
   }
 
   private def buildSubqueryAlias(ctx: TableAliasContext, input: ir.LogicalPlan): ir.LogicalPlan = {
@@ -148,50 +163,64 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .map(a =>
         ir.SubqueryAlias(
           input,
-          vc.expressionBuilder.visitId(a.alias().id()),
-          a.id().asScala.map(vc.expressionBuilder.visitId)))
+          vc.expressionBuilder.buildId(a.alias().id()),
+          a.id().asScala.map(vc.expressionBuilder.buildId)))
       .getOrElse(input)
   }
 
-  override def visitValuesTable(ctx: ValuesTableContext): ir.LogicalPlan = ctx.valuesTableBody().accept(this)
-
-  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.LogicalPlan = {
-    val expressions =
-      ctx
-        .exprListInParentheses()
-        .asScala
-        .map(l => vc.expressionBuilder.visitMany(l.exprList().expr()))
-    ir.Values(expressions)
+  override def visitValuesTable(ctx: ValuesTableContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx.valuesTableBody().accept(this)
   }
 
-  override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = {
-    buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
+  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val expressions =
+        ctx
+          .exprListInParentheses()
+          .asScala
+          .map(l => vc.expressionBuilder.visitMany(l.exprList().expr()))
+      ir.Values(expressions)
   }
 
-  override def visitTableRef(ctx: TableRefContext): ir.LogicalPlan = {
-    val table = ctx.objectName().accept(this)
-    Option(ctx.asAlias())
-      .map { a =>
-        ir.TableAlias(table, a.alias().getText, Seq())
-      }
-      .getOrElse(table)
+  override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
   }
 
-  override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = {
-    val tableName = ctx.id().asScala.map(vc.expressionBuilder.visitId).map(_.id).mkString(".")
-    ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  override def visitTableRef(ctx: TableRefContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val table = ctx.objectName().accept(this)
+      Option(ctx.asAlias())
+        .map { a =>
+          ir.TableAlias(table, a.alias().getText, Seq())
+        }
+        .getOrElse(table)
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = {
-    val values = ctx.valuesTable().accept(this)
-    buildTableAlias(ctx.tableAlias(), values)
+  override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = ctx.id().asScala.map(vc.expressionBuilder.buildId).map(_.id).mkString(".")
+      ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  }
+
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val values = ctx.valuesTable().accept(this)
+      buildTableAlias(ctx.tableAlias(), values)
   }
 
   private def buildTableAlias(ctx: TableAliasContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx)
       .map { c =>
         val alias = c.alias().getText
-        val columns = Option(c.id()).map(_.asScala.map(vc.expressionBuilder.visitId)).getOrElse(Seq.empty)
+        val columns = Option(c.id()).map(_.asScala.map(vc.expressionBuilder.buildId)).getOrElse(Seq.empty)
         ir.TableAlias(relation, alias, columns)
       }
       .getOrElse(relation)
@@ -210,9 +239,9 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     val pivotValues: Seq[ir.Literal] =
       vc.expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
-    val argument = ir.Column(None, vc.expressionBuilder.visitId(ctx.pivotColumn))
-    val column = ir.Column(None, vc.expressionBuilder.visitId(ctx.valueColumn))
-    val aggFunc = vc.expressionBuilder.visitId(ctx.aggregateFunc)
+    val argument = ir.Column(None, vc.expressionBuilder.buildId(ctx.pivotColumn))
+    val column = ir.Column(None, vc.expressionBuilder.buildId(ctx.valueColumn))
+    val aggFunc = vc.expressionBuilder.buildId(ctx.aggregateFunc)
     val aggregateFunction = vc.functionBuilder.buildFunction(aggFunc, Seq(argument))
     ir.Aggregate(
       child = relation,
@@ -227,8 +256,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .columnName()
       .asScala
       .map(_.accept(vc.expressionBuilder))
-    val variableColumnName = vc.expressionBuilder.visitId(ctx.valueColumn)
-    val valueColumnName = vc.expressionBuilder.visitId(ctx.nameColumn)
+    val variableColumnName = vc.expressionBuilder.buildId(ctx.valueColumn)
+    val valueColumnName = vc.expressionBuilder.buildId(ctx.nameColumn)
     ir.Unpivot(
       child = relation,
       ids = unpivotColumns,
@@ -237,17 +266,21 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       value_column_name = valueColumnName)
   }
 
-  override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = {
-    val tableSource = ctx match {
-      case c if c.tableSourceItemJoined() != null => c.tableSourceItemJoined().accept(this)
-      case c if c.tableSource() != null => c.tableSource().accept(this)
-    }
-    buildSample(ctx.sample(), tableSource)
+  override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableSource = ctx match {
+        case c if c.tableSourceItemJoined() != null => c.tableSourceItemJoined().accept(this)
+        case c if c.tableSource() != null => c.tableSource().accept(this)
+      }
+      buildSample(ctx.sample(), tableSource)
   }
 
-  override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ir.LogicalPlan = {
-    val left = ctx.objectRef().accept(this)
-    ctx.joinClause().asScala.foldLeft(left)(buildJoin)
+  override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val left = ctx.objectRef().accept(this)
+      ctx.joinClause().asScala.foldLeft(left)(buildJoin)
   }
 
   private def buildJoin(left: ir.LogicalPlan, right: JoinClauseContext): ir.Join = {
@@ -291,15 +324,19 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(ir.UnspecifiedJoin)
   }
 
-  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = vc.expressionBuilder.visitId(ctx.id)
-    val columns = ctx.columnList() match {
+
+  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = vc.expressionBuilder.buildId(ctx.tableName)
+          val columns = ctx.columnList() match {
       case null => Seq.empty[ir.Id]
-      case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.visitId))
+      case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
     }
 
-    val query = ctx.selectStatement().accept(this)
-    ir.SubqueryAlias(query, tableName, columns)
+      val query = ctx.selectStatement().accept(this)
+      ir.SubqueryAlias(query, tableName, columns)
+
   }
 
   private def buildNum(ctx: NumContext): BigDecimal = {
@@ -322,15 +359,19 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(input)
   }
 
-  override def visitTableOrQuery(ctx: TableOrQueryContext): ir.LogicalPlan = ctx match {
-    case c if c.tableRef() != null => c.tableRef().accept(this)
-    case c if c.subquery() != null =>
-      val subquery = c.subquery().accept(this)
-      Option(c.asAlias())
-        .map { a =>
-          ir.SubqueryAlias(subquery, vc.expressionBuilder.visitId(a.alias().id()), Seq())
-        }
-        .getOrElse(subquery)
+  override def visitTableOrQuery(ctx: TableOrQueryContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case c if c.tableRef() != null => c.tableRef().accept(this)
+        case c if c.subquery() != null =>
+          val subquery = c.subquery().accept(this)
+          Option(c.asAlias())
+            .map { a =>
+              ir.SubqueryAlias(subquery, vc.expressionBuilder.buildId(a.alias().id()), Seq())
+            }
+            .getOrElse(subquery)
 
+      }
   }
 }

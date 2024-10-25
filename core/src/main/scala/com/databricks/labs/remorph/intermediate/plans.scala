@@ -163,6 +163,7 @@ abstract class LogicalPlan extends Plan[LogicalPlan] {
       UnresolvedType
     }
   }
+
 }
 
 abstract class LeafNode extends LogicalPlan {
