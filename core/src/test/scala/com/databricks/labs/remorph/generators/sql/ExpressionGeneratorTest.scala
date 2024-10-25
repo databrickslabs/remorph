@@ -1733,10 +1733,9 @@ class ExpressionGeneratorTest
       ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
         """a AND /* The following issues were detected:
          |
-         |   some error message:
-         |
-         |   bad text
-         |*/""".stripMargin
+         |   some error message
+         |    bad text
+         | */""".stripMargin
     }
   }
 }
