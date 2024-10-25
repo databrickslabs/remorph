@@ -816,7 +816,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
       comparisonExprs.reduce(ir.And)
     }
-    rightExprListOrSubquery
+//    rightExprListOrSubquery
+    Option(ctx.NOT()).fold[ir.Expression](rightExprListOrSubquery)(_ => ir.Not(rightExprListOrSubquery))
   }
 
   override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = errorCheck(ctx) match {

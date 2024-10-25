@@ -7,6 +7,9 @@ class DeleteOnMultipleColumns extends Rule[LogicalPlan] {
     case delete @ DeleteFromTable(target, _, Some(exists: Exists), _, _) =>
       val newSubquery = transformSubquery(target, exists)
       delete.copy(where = Some(Exists(newSubquery)))
+    case delete @ DeleteFromTable(target, _, Some(Not(Exists(subquery))), _, _) =>
+      val newSubquery = transformSubquery(target, Exists(subquery))
+      delete.copy(where = Some(Not(Exists(newSubquery))))
   }
 
   private def transformSubquery(target: LogicalPlan, exists: Exists): LogicalPlan = {

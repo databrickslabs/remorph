@@ -326,4 +326,34 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Snowflake DELETE commands" should {
+
+    "DELETE FROM TABLE WHERE IN SUBQUERY;" in {
+      """DELETE FROM test_tbl
+        |WHERE EXISTS(
+        |SELECT 1
+        |FROM test_tbl_stg
+        |WHERE test_tbl.version = test_tbl_stg.version1
+        |AND test_tbl.type = test_tbl_stg.type2
+        |);""".stripMargin transpilesTo
+        s"""DELETE FROM test_tbl
+           |WHERE EXISTS(
+           |SELECT 1
+           |FROM test_tbl_stg
+           |WHERE test_tbl.version = test_tbl_stg.version1
+           |AND test_tbl.type = test_tbl_stg.type2
+           |);""".stripMargin
+    }
+
+    "DELETE FROM TABLE WHERE IN EXPRLIST;" in {
+      """DELETE FROM test_tbl
+        |WHERE version IN (
+        | 1, 2);
+        |""".stripMargin transpilesTo
+        s"""DELETE FROM test_tbl
+           |WHERE version IN (
+           | 1 , 2);""".stripMargin
+
+    }
+  }
 }
