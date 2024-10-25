@@ -235,6 +235,7 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
 
 let
     // variable and resultset are covered under the same visitor since expr is common
+    // TODO: See if we can improve this rule to prevent it stopping error recovery
     : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
     | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
     ;
