@@ -11,7 +11,7 @@ case class RawExpr(expr: ir.Expression) extends ir.LeafExpression {
   override def dataType: ir.DataType = ir.UnresolvedType
 }
 
-class PySparkExpressions extends ir.Rule[ir.Expression] {
+class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
@@ -44,16 +44,8 @@ class PySparkExpressions extends ir.Rule[ir.Expression] {
     case ir.In(value, list) => methodOf(value, "isin", list)
   }
 
-  private def methodOf(value: ir.Expression, name: String, args: Seq[ir.Expression]): ir.Expression =
-    py.Call(py.Attribute(value, ir.Name(name)), args)
-
-  // TODO: add import of `import pyspark.sql.functions as F` to the generated code
   private def F(name: String, args: Seq[ir.Expression]): ir.Expression = {
-    ImportAliasSideEffect(
-      methodOf(ir.Name("F"), name, args),
-      module = "pyspark.sql.functions",
-      alias = Some("F")
-    )
+    ImportAliasSideEffect(methodOf(ir.Name("F"), name, args), "pyspark.sql.functions", alias = Some("F"))
   }
 
   private def sortOrder(order: ir.SortOrder): ir.Expression = order match {
@@ -79,26 +71,16 @@ class PySparkExpressions extends ir.Rule[ir.Expression] {
       case None => windowSpec
       case Some(value) => windowFrame(windowSpec, value)
     }
-    ImportClassSideEffect(
-      windowSpec,
-      module = "pyspark.sql.window",
-      klass = "Window"
-    )
+    ImportClassSideEffect(windowSpec, module = "pyspark.sql.window", klass = "Window")
   }
 
   private def windowFrame(windowSpec: ir.Expression, frame: ir.WindowFrame) = {
     frame match {
       case ir.WindowFrame(ir.UndefinedFrame, _, _) => windowSpec
       case ir.WindowFrame(ir.RangeFrame, left, right) =>
-        methodOf(windowSpec, "rangeBetween", Seq(
-          frameBoundary(left),
-          frameBoundary(right)
-        ))
+        methodOf(windowSpec, "rangeBetween", Seq(frameBoundary(left), frameBoundary(right)))
       case ir.WindowFrame(ir.RowsFrame, left, right) =>
-        methodOf(windowSpec, "rowsBetween", Seq(
-          frameBoundary(left),
-          frameBoundary(right)
-        ))
+        methodOf(windowSpec, "rowsBetween", Seq(frameBoundary(left), frameBoundary(right)))
     }
   }
 
@@ -128,9 +110,10 @@ class PySparkExpressions extends ir.Rule[ir.Expression] {
   }
 
   private def timestampLiteral(epochSecond: Long): ir.Expression = {
-    val raw = ir.StringLiteral(LocalDateTime
-      .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
-      .format(timeFormat))
+    val raw = ir.StringLiteral(
+      LocalDateTime
+        .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
+        .format(timeFormat))
     methodOf(F("lit", Seq(raw)), "cast", Seq(ir.StringLiteral("timestamp")))
   }
 

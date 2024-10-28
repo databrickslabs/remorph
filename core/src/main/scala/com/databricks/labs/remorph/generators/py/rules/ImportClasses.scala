@@ -3,20 +3,13 @@ package com.databricks.labs.remorph.generators.py.rules
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.generators.py
 
-case class ImportAliasSideEffect(
-                                  expr: ir.Expression,
-                                  module: String,
-                                  alias: Option[String] = None
-                                ) extends ir.Expression {
+case class ImportAliasSideEffect(expr: ir.Expression, module: String, alias: Option[String] = None)
+    extends ir.Expression {
   override def children: Seq[ir.Expression] = Seq(expr)
   override def dataType: ir.DataType = ir.UnresolvedType
 }
 
-case class ImportClassSideEffect(
-                                  expr: ir.Expression,
-                                  module: String,
-                                  klass: String
-                                ) extends ir.Expression {
+case class ImportClassSideEffect(expr: ir.Expression, module: String, klass: String) extends ir.Expression {
   override def children: Seq[ir.Expression] = Seq(expr)
   override def dataType: ir.DataType = ir.UnresolvedType
 }
@@ -27,8 +20,8 @@ class ImportClasses extends ir.Rule[py.Statement] {
     case py.Module(children) =>
       var imports = Seq.empty[py.Import]
       var importsFrom = Seq.empty[py.ImportFrom]
-      children map {
-        statement => statement transformAllExpressions {
+      children map { statement =>
+        statement transformAllExpressions {
           case ImportAliasSideEffect(expr, module, alias) =>
             imports = imports :+ py.Import(Seq(py.ImportAlias(ir.Name(module), alias.map(ir.Name))))
             expr
