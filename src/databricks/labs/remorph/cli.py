@@ -30,6 +30,13 @@ proxy_command(remorph, "debug-coverage")
 
 
 @remorph.command
+def debug(w: WorkspaceClient):
+    """Debug the Remorph CLI"""
+    for k,v in sorted(os.environ.items()):
+        print(f'{k}={v}')  # PYTHONBIN needs to be propagated down to the JVM
+
+
+@remorph.command
 def transpile(
     w: WorkspaceClient,
     source: str,

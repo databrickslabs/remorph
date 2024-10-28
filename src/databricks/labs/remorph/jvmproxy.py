@@ -44,12 +44,16 @@ class JvmProxy:
             "com.databricks.labs.remorph.Main",
             sys.argv[1],
         ]
+        env = os.environ.copy()
+        # TODO: pass it from Databricks CLI
+        # see https://github.com/databricks/cli/blob/main/cmd/labs/project/project.go#L241
+        env["PYTHON_BIN"] = sys.executable
         with subprocess.Popen(
             args,
             stdin=sys.stdin,
             stdout=sys.stdout,
             stderr=sys.stderr,
-            env=os.environ.copy(),
+            env=env,
             text=True,
         ) as process:
             return process.wait()
