@@ -63,6 +63,15 @@ object EstimationStatisticsEntry {
 
 class EstimationAnalyzer extends LazyLogging {
 
+  def findStatements(node: ir.TreeNode[_]): Seq[ir.LogicalPlan] = {
+
+    node match {
+      case lp: ir.Batch =>
+        lp.children.flatMap(findStatements) :+ lp
+      case _ => Seq.empty
+    }
+  }
+
   def evaluateTree(node: ir.TreeNode[_]): RuleScore = {
     evaluateTree(node, logicalPlanEvaluator, expressionEvaluator)
   }
