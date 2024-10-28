@@ -96,7 +96,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               val data = x.split(":")
               val name = data(0)
               val dataType = getDataType(data(1))
-              StructField(name, dataType, data(2).toBoolean, null)
+              StructField(name, dataType, data(2).toBoolean, None)
             })
           tableDefinitionList.append(
             TableDefinition(
