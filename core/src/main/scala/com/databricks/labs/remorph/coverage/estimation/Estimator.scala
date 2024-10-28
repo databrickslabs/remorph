@@ -61,10 +61,16 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
 
         case OkResult(plan) =>
           val queryHash = anonymizer(plan)
-          val score = analyzer.evaluateTree(plan)
           // Note that the plan hash will generally be more accurate than the query hash, hence we check here
           // as well as against the plain text
           if (!parsedSet.contains(queryHash)) {
+            val score = analyzer.evaluateTree(plan)
+            val stats = analyzer.findStatements(plan)
+            if (stats.size > 1) {
+              // scalastyle:off println
+              println(s"Stats: $stats")
+              // scalastyle:on println
+            }
             parsedSet += queryHash
             Some(generateReportRecord(query, plan, score, anonymizer))
           } else {

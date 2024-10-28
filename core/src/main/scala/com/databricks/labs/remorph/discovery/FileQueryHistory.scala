@@ -1,11 +1,9 @@
 package com.databricks.labs.remorph.discovery
 
 import java.io.File
-import java.nio.file.{Files, Path}
-import scala.collection.JavaConverters._
 import scala.io.Source
 
-class FileQueryHistory(path: Path) extends QueryHistoryProvider {
+class FileQueryHistory(path: os.Path) extends QueryHistoryProvider {
 
   private def extractQueriesFromFile(file: File): Seq[ExecutedQuery] = {
     val fileContent = Source.fromFile(file)
@@ -28,22 +26,16 @@ class FileQueryHistory(path: Path) extends QueryHistoryProvider {
     }.toSeq
   }
 
-  private def extractQueriesFromFolder(folder: Path): Seq[ExecutedQuery] = {
+  private def extractQueriesFromFolder(folder: os.Path): Seq[ExecutedQuery] = {
     val files =
-      Files
-        .walk(folder)
-        .iterator()
-        .asScala
-        .filter(f => Files.isRegularFile(f))
-        .toSeq
-        .filter(_.getFileName.toString.endsWith(".sql"))
+      os.walk(folder)
+        .filter(_.ext == "sql")
 
-    files.flatMap(file => extractQueriesFromFile(file.toFile))
+    files.flatMap(file => extractQueriesFromFile(file.toIO))
   }
 
   override def history(): QueryHistory = {
     val queries = extractQueriesFromFolder(path)
     QueryHistory(queries)
   }
-
 }

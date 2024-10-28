@@ -12,13 +12,15 @@ object Main extends App with ApplicationContext {
     case Payload("debug-coverage", args) =>
       coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"))
     case Payload("debug-estimate", args) =>
-      val report = estimator(args("source-dialect")).run()
-      jsonEstimationReporter(
-        os.Path(args("dst")) / s"${now.getEpochSecond}",
-        args("preserve-queries").toBoolean,
-        report).report()
-      args("console-output") match {
-        case "true" => consoleEstimationReporter(os.Path(args("dst")) / s"${now.getEpochSecond}", report).report()
+      val srcDialect = args("source-dialect")
+      val srcDir = args.get("src").map(os.Path(_))
+      val report = srcDir.fold(historyEstimator(srcDialect).run())(dir => dirEstimator(dir, srcDialect).run())
+      val outputPath = os.Path(args("dst")) / s"${now.getEpochSecond}"
+
+      jsonEstimationReporter(outputPath, args("preserve-queries").toBoolean, report).report()
+
+      if (args.getOrElse("console-output", "false") == "true") {
+        consoleEstimationReporter(outputPath, report).report()
       }
     case Payload(command, _) =>
       println(s"Unknown command: $command")

@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage.EstimationReportRecord
-import com.databricks.labs.remorph.intermediate.{ParsingErrors}
+import com.databricks.labs.remorph.intermediate.ParsingErrors
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
@@ -67,7 +67,14 @@ class EstimationAnalyzer extends LazyLogging {
 
     node match {
       case lp: ir.Batch =>
-        lp.children.flatMap(findStatements) :+ lp
+        // All the children of a batch are individual statements
+        lp.children.flatMap(findStatements) ++ lp.children
+
+      case lp: ir.ScalarSubquery =>
+        // A scalar subquery is a statement in itself, but the IR is just a wrapper for the relation, so we visit it
+        // expressly to find any subqueries within it
+        findStatements(lp.relation) :+ lp.relation
+
       case _ => Seq.empty
     }
   }

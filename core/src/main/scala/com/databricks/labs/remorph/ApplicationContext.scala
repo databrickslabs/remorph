@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.coverage.connections.SnowflakeConnectionFactory
-import com.databricks.labs.remorph.coverage.estimation.{SummaryEstimationReporter, EstimationAnalyzer, Estimator, JsonEstimationReporter}
+import com.databricks.labs.remorph.coverage.estimation.{EstimationAnalyzer, Estimator, JsonEstimationReporter, SummaryEstimationReporter}
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
 import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
-import com.databricks.labs.remorph.discovery.SnowflakeQueryHistory
+import com.databricks.labs.remorph.discovery.{FileQueryHistory, SnowflakeQueryHistory}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
@@ -45,7 +45,10 @@ trait ApplicationContext {
 
   def connectionFactory: SnowflakeConnectionFactory = new SnowflakeConnectionFactory(new EnvGetter)
 
-  def estimator(dialect: String): Estimator =
+  def dirEstimator(inputDir: os.Path, dialect: String): Estimator =
+    new Estimator(new FileQueryHistory(inputDir), planParser(dialect), new EstimationAnalyzer())
+
+  def historyEstimator(dialect: String): Estimator =
     new Estimator(
       new SnowflakeQueryHistory(connectionFactory.newConnection()),
       planParser(dialect),
