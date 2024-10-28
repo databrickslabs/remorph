@@ -61,6 +61,17 @@ package object py {
 
     def mkPython(sep: String): Python = mkPython("", sep, "")
 
+    def maybeMkPython(start: String, sep: String, end: String): Python = {
+      if (Pythons.isEmpty) {
+        py""
+      } else {
+        val separatedItems = Pythons.tail.foldLeft[Python](Pythons.head) { case (agg, item) =>
+          py"$agg$sep$item"
+        }
+        py"$start$separatedItems$end"
+      }
+    }
+
     def mkPython(start: String, sep: String, end: String): Python = {
       if (Pythons.isEmpty) {
         py"$start$end"
