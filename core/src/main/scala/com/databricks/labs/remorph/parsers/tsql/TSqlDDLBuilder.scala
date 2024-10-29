@@ -220,7 +220,8 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
 
         case d if d.identityColumn() != null =>
           // IDENTITY is supported in Databricks SQL but is done via GENERATED constraint
-          constraints += ir.IdentityConstraint(d.identityColumn().INT(0).getText, d.identityColumn().INT(1).getText)
+          constraints += ir
+            .IdentityConstraint(Some(d.identityColumn().INT(0).getText), Some(d.identityColumn().INT(1).getText))
 
         // Unsupported stuff
         case m if m.MASKED() != null =>

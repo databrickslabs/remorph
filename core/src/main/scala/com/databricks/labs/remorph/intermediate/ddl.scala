@@ -93,9 +93,16 @@ case class ForeignKey(tableCols: String, refObject: String, refCols: String, opt
     extends UnnamedConstraint
 case class DefaultValueConstraint(value: Expression) extends UnnamedConstraint
 case class CheckConstraint(expression: Expression) extends UnnamedConstraint
-case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
+// ExtendedBased on https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-create-table-using.html#syntax
+case class IdentityConstraint(
+    start: Option[String] = None,
+    increment: Option[String] = None,
+    always: Boolean = false,
+    default: Boolean = false)
+    extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
+case class GeneratedAlways(expression: Expression) extends UnnamedConstraint
 
 // This, and the above, are likely to change in a not-so-remote future.
 // There's already a CreateTable case defined in catalog.scala but its structure seems too different from
@@ -107,7 +114,8 @@ case class ColumnDeclaration(
     virtualColumnDeclaration: Option[Expression] = Option.empty,
     constraints: Seq[Constraint] = Seq.empty)
 
-case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration], replace: Boolean = false)
+    extends Catalog {}
 
 sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
