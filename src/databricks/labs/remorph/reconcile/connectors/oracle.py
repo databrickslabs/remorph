@@ -64,7 +64,11 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
             reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
             df = self.reader(table_query).options(**reader_options).load()
-            return df.toDF(*[c.lower() for c in df.columns])
+            logger.warning(f"Fetching data using query: \n`{table_query}`")
+
+            # Convert all column names to lower case
+            df = df.toDF(*[c.lower() for c in df.columns])
+            return df
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 

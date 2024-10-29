@@ -821,14 +821,14 @@ class Reconciliation:
                 table=table_conf.source_name,
                 query=source_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).collect()[0]["COUNT"]
             target_count = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
                 query=target_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).collect()[0]["COUNT"]
 
             return ReconcileRecordCount(source=int(source_count), target=int(target_count))
         return ReconcileRecordCount()
