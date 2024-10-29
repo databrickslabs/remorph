@@ -23,7 +23,7 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     case IfExp(test, body, orElse) => ifExpr(ctx, test, body, orElse)
     case Lambda(args, body) => py"lambda ${arguments(ctx, args)}: ${expression(ctx, body)}"
     case Tuple(elements, _) => py"(${commas(ctx, elements)},)"
-    case Attribute(value, ir.Name(attr), _) => py"${expression(ctx, value)}.$attr"
+    case Attribute(value, attr, _) => py"${expression(ctx, value)}.${expression(ctx, attr)}"
     case Subscript(value, index, _) => py"${expression(ctx, value)}[${expression(ctx, index)}]"
     case List(elements, _) => py"[${commas(ctx, elements)}]"
     case Set(Nil) => py"set()"

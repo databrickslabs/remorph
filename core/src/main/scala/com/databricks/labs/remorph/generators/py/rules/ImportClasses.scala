@@ -20,7 +20,7 @@ class ImportClasses extends ir.Rule[py.Statement] {
     case py.Module(children) =>
       var imports = Seq.empty[py.Import]
       var importsFrom = Seq.empty[py.ImportFrom]
-      children map { statement =>
+      val body = children map { statement =>
         statement transformAllExpressions {
           case ImportAliasSideEffect(expr, module, alias) =>
             imports = imports :+ py.Import(Seq(py.Alias(ir.Name(module), alias.map(ir.Name))))
@@ -30,6 +30,6 @@ class ImportClasses extends ir.Rule[py.Statement] {
             expr
         }
       }
-      py.Module(imports.distinct ++ importsFrom.distinct ++ children)
+      py.Module(imports.distinct ++ importsFrom.distinct ++ body)
   }
 }

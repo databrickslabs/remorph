@@ -26,7 +26,6 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
     case ir.IsNull(col) => methodOf(col, "isNull", Seq())
     case ir.IsNotNull(col) => methodOf(col, "isNotNull", Seq())
     case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => F("col", ir.StringLiteral(name) :: Nil)
-    case ir.Dot(left, ir.Name(right)) => py.Attribute(left, ir.Name(right))
     case ir.Id(name, _) => F("col", ir.StringLiteral(name) :: Nil)
     case ir.Alias(child, ir.Id(name, _)) => methodOf(child, "alias", Seq(ir.StringLiteral(name)))
     case o: ir.SortOrder => sortOrder(o)
@@ -42,10 +41,6 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
     case ir.Concat(children) => F("concat", children)
     case ir.ConcatWs(children) => F("concat_ws", children)
     case ir.In(value, list) => methodOf(value, "isin", list)
-  }
-
-  private def F(name: String, args: Seq[ir.Expression]): ir.Expression = {
-    ImportAliasSideEffect(methodOf(ir.Name("F"), name, args), "pyspark.sql.functions", alias = Some("F"))
   }
 
   private def sortOrder(order: ir.SortOrder): ir.Expression = order match {

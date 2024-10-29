@@ -7,5 +7,6 @@ class AndOrToBitwise extends ir.Rule[ir.Expression] {
   override def apply(plan: ir.Expression): ir.Expression = plan match {
     case ir.And(left, right) => ir.BitwiseAnd(left, right)
     case ir.Or(left, right) => ir.BitwiseOr(left, right)
+    case _ => plan
   }
 }

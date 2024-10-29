@@ -9,6 +9,7 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
   private def statement(ctx: GeneratorContext, tree: Statement): Python = tree match {
     case Module(children) => lines(ctx, children)
     case Alias(name, None) => e(ctx, name)
+    case ExprStatement(expr) => e(ctx, expr)
     case FunctionDef(name, args, children, decorators) =>
       py"${decorate(ctx, decorators)}def ${name.name}(${exprs.arguments(ctx, args)}):\n${lines(ctx.nest, children)}"
     case ClassDef(name, bases, children, decorators) =>

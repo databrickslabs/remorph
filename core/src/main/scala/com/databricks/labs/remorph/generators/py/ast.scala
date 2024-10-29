@@ -183,7 +183,7 @@ case class JoinedStr(children: Seq[Expression]) extends Expression {
 }
 
 // see https://docs.python.org/3/library/ast.html#ast.Attribute
-case class Attribute(value: Expression, attr: Name, ctx: ExprContext = Load) extends Expression {
+case class Attribute(value: Expression, attr: Expression, ctx: ExprContext = Load) extends Expression {
   def this(value: Expression, name: String) = this(value, Name(name), Load)
   override def children: Seq[Expression] = Seq(value, attr)
   override def dataType: DataType = UnresolvedType
