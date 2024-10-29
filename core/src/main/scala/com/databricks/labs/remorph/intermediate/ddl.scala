@@ -114,8 +114,23 @@ case class ColumnDeclaration(
     virtualColumnDeclaration: Option[Expression] = Option.empty,
     constraints: Seq[Constraint] = Seq.empty)
 
-case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration], replace: Boolean = false)
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration])
     extends Catalog {}
+
+
+// TODO Need to introduce TableSpecBase, TableSpec and UnresolvedTableSpec
+
+case class ReplaceTable(
+                         name: String,
+                         columns: Seq[ColumnDeclaration],
+                         orCreate: Boolean)
+
+case class ReplaceTableAsSelect(
+                                 name: String,
+                                 query: LogicalPlan,
+                                 writeOptions: Map[String, String],
+                                 orCreate: Boolean,
+                                 isAnalyzed: Boolean = false)
 
 sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
