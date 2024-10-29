@@ -6,6 +6,6 @@
 
    Unparsed input - ErrorNode encountered
     Unparsable text: unexpected extra input '*' while parsing a Snowflake batch
-    expecting one of: $Identifier, End of batch, Identifier, Select Statement, Statement, '""', '(', 'BODY', 'CALL', 'CHARACTER', 'CURRENT_TIME', 'DECLARE'...
+    expecting one of: End of batch, Select Statement, Statement, '(', ';', 'CALL', 'COMMENT', 'DECLARE', 'DESC', 'GET', 'LET', 'START'...
     Unparsable text: *
  */
