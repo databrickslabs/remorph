@@ -63,7 +63,8 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
             reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**reader_options).load()
+            df = self.reader(table_query).options(**reader_options).load()
+            return df.toDF(*[c.lower() for c in df.columns])
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
