@@ -1,9 +1,7 @@
 package com.databricks.labs.remorph.intermediate.workflows
 
 import com.databricks.labs.remorph.intermediate.TreeNode
-import com.databricks.sdk.service.compute._
-import com.databricks.sdk.service.jobs._
-import com.databricks.sdk.service.{compute, jobs}
+import com.databricks.sdk.service.compute
 
 abstract class JobNode extends TreeNode[JobNode]
 

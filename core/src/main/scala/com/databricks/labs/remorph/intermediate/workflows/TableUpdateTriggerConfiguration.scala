@@ -9,7 +9,7 @@ case class TableUpdateTriggerConfiguration(
     tableNames: Seq[String] = Seq.empty,
     waitAfterLastChangeSeconds: Option[Int] = None)
     extends JobNode {
-  override def children: Seq[JobNode] = Seq() ++ condition
+  override def children: Seq[JobNode] = Seq()
   def toSDK: jobs.TableUpdateTriggerConfiguration = {
     val raw = new jobs.TableUpdateTriggerConfiguration()
     raw
