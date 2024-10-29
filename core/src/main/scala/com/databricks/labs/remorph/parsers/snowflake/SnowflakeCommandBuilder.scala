@@ -104,11 +104,12 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
           case b if b.beginTxn != null => b.beginTxn.accept(this)
           case d if d.declareCommand != null => d.declareCommand.accept(this)
           case l if l.let != null => l.let.accept(this)
-          case _ => ir.UnresolvedCommand(
-            ruleText = contextText(ctx),
-            message = "Unknown command",
-            ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))
+          case _ =>
+            ir.UnresolvedCommand(
+              ruleText = contextText(ctx),
+              message = "Unknown command",
+              ruleName = vc.ruleName(ctx),
+              tokenName = Some(tokenName(ctx.getStart)))
         }
     }
 }
