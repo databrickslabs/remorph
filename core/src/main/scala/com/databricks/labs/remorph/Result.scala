@@ -17,6 +17,7 @@ final class TBA[S, +A](val runF: Result[S => Result[(S, A)]]) {
     f(a).runF.flatMap(_.apply(s))
   })))
   def run(initialState: S): Result[(S, A)] = runF.flatMap(_.apply(initialState))
+  def runAndDiscardState(initialState: S): Result[A] = run(initialState).map(_._2)
 }
 
 trait TBAS[S] {

@@ -5,21 +5,19 @@ import org.antlr.v4.runtime.ParserRuleContext
 
 sealed trait RemorphContext
 
-case class Raw(input: String) extends RemorphContext
+case object Empty extends RemorphContext
 
-case class Parsed(input: String, tree: ParserRuleContext) extends RemorphContext
+case class Sources(input: String) extends RemorphContext
 
-case class Visited(input: String, tree: ParserRuleContext, unoptimizedPlan: LogicalPlan) extends RemorphContext
+case class Parsed(tree: ParserRuleContext, sources: Option[Sources] = None) extends RemorphContext
 
-case class Optimized(input: String, tree: ParserRuleContext, unoptimizedPlan: LogicalPlan, optimizedPlan: LogicalPlan)
-    extends RemorphContext
+case class Ast(unoptimizedPlan: LogicalPlan, parsed: Option[Parsed] = None) extends RemorphContext
+
+case class Optimized(optimizedPlan: TreeNode[_], ast: Option[Ast] = None) extends RemorphContext
 
 case class Generating(
-    input: String,
-    tree: ParserRuleContext,
-    unoptimizedPlan: LogicalPlan,
-    optimizedPlan: LogicalPlan,
     currentNode: TreeNode[_],
-    totalStatements: Int,
-    transpiledStatements: Int)
+    totalStatements: Int = 0,
+    transpiledStatements: Int = 0,
+    optimized: Option[Optimized] = None)
     extends RemorphContext

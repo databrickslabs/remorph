@@ -174,7 +174,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TBAS[Remo
       ""
     }
     val optString = sql"${exprStr}${stringStr}${boolStr}${autoStr}"
-    optString.nonEmpty.flatMap{ nonEmpty =>
+    optString.nonEmpty.flatMap { nonEmpty =>
       if (nonEmpty) {
         sql"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
       } else {

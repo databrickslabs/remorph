@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, Table
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Raw, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Sources, intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table
@@ -108,7 +108,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       try {
-        val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(Raw(query.source))
+        val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(Sources(query.source))
         plan match {
           case KoResult(_, error) =>
             logger.warn(s"Failed to produce plan from query: ${query.id}")

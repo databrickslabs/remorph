@@ -68,6 +68,11 @@ abstract class BaseTranspiler extends Transpiler with Formatter {
   }
 
   override def transpile(input: SourceCode): TBA[RemorphContext, String] = {
-    parse(input).flatMap(visit).flatMap(optimize).flatMap(generate)
+    for {
+      tree <- parse(input)
+      ast <- visit(tree)
+      plan <- optimize(ast)
+      sql <- generate(plan)
+    } yield sql
   }
 }

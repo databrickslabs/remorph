@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.coverage
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.{RemorphError, UnexpectedOutput}
 import com.databricks.labs.remorph.queries.ExampleQuery
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Raw}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Sources}
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.UnexpectedOutput
 import com.databricks.labs.remorph.transpilers._
@@ -32,7 +32,7 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
   }
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
-    transpiler.transpile(SourceCode(exampleQuery.query)).run(Raw(exampleQuery.query)) match {
+    transpiler.transpile(SourceCode(exampleQuery.query)).run(Sources(exampleQuery.query)) match {
       case KoResult(PARSE, error) => ReportEntryReport(statements = 1, parsing_error = Some(error))
       case KoResult(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly

@@ -7,7 +7,7 @@ import com.databricks.labs.remorph.{OkResult, PartialResult, RemorphContext, TBA
  * @see
  *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
  */
-object DataTypeGenerator extends TBAS[RemorphContext]{
+object DataTypeGenerator extends TBAS[RemorphContext] {
 
   def generateDataType(ctx: GeneratorContext, dt: ir.DataType): SQL = dt match {
     case ir.NullType => lift(OkResult("VOID"))

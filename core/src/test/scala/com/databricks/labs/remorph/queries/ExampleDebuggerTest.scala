@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
-class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar with TBAS[RemorphContext]{
+class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar with TBAS[RemorphContext] {
   "ExampleDebugger" should {
     "work" in {
       val buf = new StringBuilder

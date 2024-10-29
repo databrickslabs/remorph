@@ -2,14 +2,14 @@ package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
 import com.databricks.labs.remorph.transpilers.SourceCode
-import com.databricks.labs.remorph.{KoResult, OkResult, Optimized, Parsed, Raw, RemorphContext, TBA, TBAS, Visited, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, Optimized, Parsed, Sources, RemorphContext, TBA, TBAS, Ast, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 
-trait PlanParser[P <: Parser] extends TBAS[RemorphContext]{
+trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
@@ -47,8 +47,8 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext]{
           lift(OkResult(tree))
         }
       }
-      _ <- update {
-        case r: Raw => Parsed(r.input, t)
+      _ <- update { case r: Sources =>
+        Parsed(t, Some(r))
       }
     } yield t
 
@@ -63,10 +63,10 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext]{
     try {
       for {
         plan <- ok(createPlan(tree))
-        _ <- update {
-          case p: Parsed => Visited(p.input, p.tree, plan)
+        _ <- update { case p: Parsed =>
+          Ast(plan, Some(p))
         }
-      }  yield plan
+      } yield plan
     } catch {
       case NonFatal(e) =>
         lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
@@ -84,8 +84,8 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext]{
     try {
       for {
         plan <- ok(createOptimizer.apply(logicalPlan))
-        _ <- update {
-          case v: Visited => Optimized(v.input, v.tree, v.unoptimizedPlan, plan)
+        _ <- update { case a: Ast =>
+          Optimized(plan, Some(a))
         }
       } yield plan
     } catch {
