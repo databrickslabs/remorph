@@ -21,19 +21,27 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan =
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(Seq.empty))
+  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan = {
+    // This very top level visitor does not ignore any valid statements for the batch, instead
+    // we prepend any errors to the batch plan, so they are generated first in the output.
+    val errors = errorCheck(ctx)
+    val batchPlan = Option(ctx.batch()).map(buildBatch).getOrElse(Seq.empty)
+    errors match {
+      case Some(errorResult) => ir.Batch(errorResult +: batchPlan)
+      case None => ir.Batch(batchPlan)
     }
+  }
 
-  override def visitBatch(ctx: BatchContext): ir.LogicalPlan =
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        ir.Batch(visitMany(ctx.sqlCommand()))
+  private def buildBatch(ctx: BatchContext): Seq[ir.LogicalPlan] = {
+    // This very top level visitor does not ignore any valid statements for the batch, instead
+    // we prepend any errors to the batch plan, so they are generated first in the output.
+    val errors = errorCheck(ctx)
+    val statements = visitMany(ctx.sqlCommand())
+    errors match {
+      case Some(errorResult) => errorResult +: statements
+      case None => statements
     }
+  }
 
   override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
