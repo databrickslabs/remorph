@@ -25,8 +25,8 @@ class PySparkGenerator {
     try {
       val generatorContext = GeneratorContext(new py.LogicalPlanGenerator)
       val withShims = PySparkStatements(optimizedLogicalPlan)
-      val withExpressions = withShims transformAllExpressions {
-        case expr: ir.Expression => expressionRules(expr)
+      val withExpressions = withShims transformAllExpressions { case expr: ir.Expression =>
+        expressionRules(expr)
       }
       val statements = statementRules(withExpressions)
       stmtGenerator.generate(generatorContext, statements)

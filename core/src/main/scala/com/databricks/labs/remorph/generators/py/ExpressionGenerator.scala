@@ -36,11 +36,10 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
   }
 
   private def comprehension(
-     ctx: GeneratorContext,
-     target: Expression,
-     iter: Expression,
-     ifs: Seq[Expression]
-  ): Python = {
+      ctx: GeneratorContext,
+      target: Expression,
+      iter: Expression,
+      ifs: Seq[Expression]): Python = {
     val ifsExpr = ifs.map(expression(ctx, _)).mkPython(" and ")
     val base = py"for ${expression(ctx, target)} in ${expression(ctx, iter)}"
     if (ifsExpr.isEmpty) {
@@ -81,7 +80,7 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
   private def dict(ctx: GeneratorContext, d: Dict): Python = {
     d.keys.zip(d.values).map { case (k, v) =>
       py"${expression(ctx, k)}: ${expression(ctx, v)}"
-    } mkPython("{", ", ", "}")
+    } mkPython ("{", ", ", "}")
   }
 
   private def call(ctx: GeneratorContext, c: Call): Python = {

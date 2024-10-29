@@ -47,12 +47,8 @@ case class Delete(targets: Seq[Expression]) extends LeafStatement
 case class Assign(targets: Seq[Expression], value: Expression) extends LeafStatement
 
 // see https://docs.python.org/3/library/ast.html#ast.For
-case class For(
-    target: Expression,
-    iter: Expression,
-    body: Seq[Statement],
-    orElse: Seq[Statement] = Seq.empty
-) extends Statement {
+case class For(target: Expression, iter: Expression, body: Seq[Statement], orElse: Seq[Statement] = Seq.empty)
+    extends Statement {
   override def children: Seq[Statement] = body ++ orElse
 }
 
@@ -76,11 +72,11 @@ case class Raise(exc: Option[Expression] = None, cause: Option[Expression] = Non
 
 // see https://docs.python.org/3/library/ast.html#ast.Try
 case class Try(
-  body: Seq[Statement],
-  handlers: Seq[Except] = Seq.empty,
-  orElse: Seq[Statement] = Seq.empty,
-  orFinally: Seq[Statement] = Seq.empty
-) extends Statement {
+    body: Seq[Statement],
+    handlers: Seq[Except] = Seq.empty,
+    orElse: Seq[Statement] = Seq.empty,
+    orFinally: Seq[Statement] = Seq.empty)
+    extends Statement {
   override def children: Seq[Statement] = body ++ handlers ++ orElse ++ orFinally
 }
 

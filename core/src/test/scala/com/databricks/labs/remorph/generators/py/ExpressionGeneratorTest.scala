@@ -104,7 +104,9 @@ class ExpressionGeneratorTest
       Call(ir.Name("f"), Seq(ir.Name("a")), Seq(Keyword(ir.Name("c"), ir.Literal(1)))) generates "f(a, c=1)"
     }
     "f(a, b, c=1, d=2)" in {
-      Call(ir.Name("f"), Seq(ir.Name("a")),
+      Call(
+        ir.Name("f"),
+        Seq(ir.Name("a")),
         Seq(Keyword(ir.Name("c"), ir.Literal(1)), Keyword(ir.Name("d"), ir.Literal(2)))) generates "f(a, c=1, d=2)"
     }
   }
@@ -150,11 +152,7 @@ class ExpressionGeneratorTest
 
   "if expr" should {
     "a if b else c" in {
-      IfExp(
-        test = ir.Name("a"),
-        body = ir.Name("b"),
-        orElse = ir.Name("c")
-      ) generates "b if a else c"
+      IfExp(test = ir.Name("a"), body = ir.Name("b"), orElse = ir.Name("c")) generates "b if a else c"
     }
   }
 
@@ -214,11 +212,12 @@ class ExpressionGeneratorTest
       Lambda(Arguments(kwargs = Some(ir.Name("kw"))), ir.Name("c")) generates "lambda **kw: c"
     }
     "lambda pos1, pos2, *other, **keywords: c" in {
-      Lambda(Arguments(
-        args = Seq(ir.Name("pos1"), ir.Name("pos2")),
-        vararg = Some(ir.Name("other")),
-        kwargs = Some(ir.Name("keywords"))
-      ), ir.Name("c")) generates "lambda pos1, pos2, *other, **keywords: c"
+      Lambda(
+        Arguments(
+          args = Seq(ir.Name("pos1"), ir.Name("pos2")),
+          vararg = Some(ir.Name("other")),
+          kwargs = Some(ir.Name("keywords"))),
+        ir.Name("c")) generates "lambda pos1, pos2, *other, **keywords: c"
     }
   }
 
@@ -231,15 +230,22 @@ class ExpressionGeneratorTest
     "[a*2 for a in b if len(a) > 2]" in {
       ListComp(
         ir.Multiply(ir.Name("a"), ir.Literal(2)),
-        Seq(Comprehension(ir.Name("a"), ir.Name("b"),
-          Seq(ir.GreaterThan(Call(ir.Name("len"), Seq(ir.Name("a"))), ir.Literal(2)))))
-      ) generates "[a * 2 for a in b if len(a) > 2]"
+        Seq(
+          Comprehension(
+            ir.Name("a"),
+            ir.Name("b"),
+            Seq(
+              ir.GreaterThan(
+                Call(ir.Name("len"), Seq(ir.Name("a"))),
+                ir.Literal(2)))))) generates "[a * 2 for a in b if len(a) > 2]"
     }
     "{a for a in b}" in {
       SetComp(ir.Name("a"), Seq(Comprehension(ir.Name("a"), ir.Name("b"), Seq.empty))) generates "{a for a in b}"
     }
     "{a:1 for a in b}" in {
-      DictComp(ir.Name("a"), ir.Literal(1),
+      DictComp(
+        ir.Name("a"),
+        ir.Literal(1),
         Seq(Comprehension(ir.Name("a"), ir.Name("b"), Seq.empty))) generates "{a: 1 for a in b}"
     }
   }

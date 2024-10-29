@@ -15,16 +15,12 @@ class StatementGeneratorTest
 
   "imports" should {
     "import a, b as c" in {
-      Import(Seq(
-        Alias(ir.Name("a")),
-        Alias(ir.Name("b"), Some(ir.Name("c")))
-      )) generates "import a, b as c"
+      Import(Seq(Alias(ir.Name("a")), Alias(ir.Name("b"), Some(ir.Name("c"))))) generates "import a, b as c"
     }
     "from foo.bar import a, b as c" in {
-      ImportFrom(Some(ir.Name("foo.bar")), Seq(
-        Alias(ir.Name("a")),
-        Alias(ir.Name("b"), Some(ir.Name("c")))
-      )) generates "from foo.bar import a, b as c"
+      ImportFrom(
+        Some(ir.Name("foo.bar")),
+        Seq(Alias(ir.Name("a")), Alias(ir.Name("b"), Some(ir.Name("c"))))) generates "from foo.bar import a, b as c"
     }
   }
 
@@ -33,45 +29,33 @@ class StatementGeneratorTest
       Decorator(ir.Name("foo")) generates "@foo"
     }
     "simple" in {
-      FunctionDef(ir.Name("foo"), Arguments(), Seq(
-          Pass
-      )) generates "def foo():\n  pass\n"
+      FunctionDef(ir.Name("foo"), Arguments(), Seq(Pass)) generates "def foo():\n  pass\n"
     }
     "decorated" in {
-      FunctionDef(ir.Name("foo"), Arguments(), Seq(
-          Pass
-      ), Seq(
-          Decorator(ir.Name("bar"))
-      )) generates "@bar\ndef foo():\n  pass\n"
+      FunctionDef(
+        ir.Name("foo"),
+        Arguments(),
+        Seq(Pass),
+        Seq(Decorator(ir.Name("bar")))) generates "@bar\ndef foo():\n  pass\n"
     }
   }
 
   "classes" should {
     "simple" in {
-      ClassDef(ir.Name("Foo"), Seq(), Seq(
-          Pass
-      )) generates "class Foo:\n  pass\n"
+      ClassDef(ir.Name("Foo"), Seq(), Seq(Pass)) generates "class Foo:\n  pass\n"
     }
     "with bases" in {
-      ClassDef(ir.Name("Foo"), Seq(ir.Name("Bar")), Seq(
-          Pass
-      )) generates "class Foo(Bar):\n  pass\n"
+      ClassDef(ir.Name("Foo"), Seq(ir.Name("Bar")), Seq(Pass)) generates "class Foo(Bar):\n  pass\n"
     }
     "with decorators" in {
-      ClassDef(ir.Name("Foo"), Seq(), Seq(
-          Pass
-      ), Seq(
-          Decorator(ir.Name("bar"))
-      )) generates "@bar\nclass Foo:\n  pass\n"
+      ClassDef(ir.Name("Foo"), Seq(), Seq(Pass), Seq(Decorator(ir.Name("bar")))) generates "@bar\nclass Foo:\n  pass\n"
     }
     "with decorated functions" in {
-      ClassDef(ir.Name("Foo"), Seq(), Seq(
-          FunctionDef(ir.Name("foo"), Arguments(), Seq(
-              Pass
-          ), Seq(
-              Decorator(ir.Name("bar"))
-          ))
-      )) generates """class Foo:
+      ClassDef(
+        ir.Name("Foo"),
+        Seq(),
+        Seq(
+          FunctionDef(ir.Name("foo"), Arguments(), Seq(Pass), Seq(Decorator(ir.Name("bar")))))) generates """class Foo:
                      |  @bar
                      |  def foo():
                      |    pass
@@ -85,10 +69,7 @@ class StatementGeneratorTest
       Assign(Seq(ir.Name("a")), ir.Name("b")) generates "a = b"
     }
     "a, b = c, d" in {
-      Assign(
-        Seq(ir.Name("a"), ir.Name("b")),
-        Tuple(Seq(ir.Name("c"), ir.Name("d")))
-      ) generates "a, b = (c, d,)"
+      Assign(Seq(ir.Name("a"), ir.Name("b")), Tuple(Seq(ir.Name("c"), ir.Name("d")))) generates "a, b = (c, d,)"
     }
   }
 
@@ -105,9 +86,10 @@ class StatementGeneratorTest
           |""".stripMargin
     }
     "for-else in function propagates whitespace for else branch" in {
-      FunctionDef(ir.Name("foo"), Arguments(), Seq(
-          For(ir.Name("a"), ir.Name("b"), Seq(Pass), Seq(Pass))
-      )) generates """def foo():
+      FunctionDef(
+        ir.Name("foo"),
+        Arguments(),
+        Seq(For(ir.Name("a"), ir.Name("b"), Seq(Pass), Seq(Pass)))) generates """def foo():
                      |  for a in b:
                      |    pass
                      |  else:
@@ -147,10 +129,9 @@ class StatementGeneratorTest
 
   "with statement" should {
     "with a(), b() as c: pass" in {
-      With(Seq(
-          Alias(Call(ir.Name("a"), Seq())),
-          Alias(Call(ir.Name("b"), Seq()), Some(ir.Name("c")))
-      ), Seq(Pass)) generates """with a(), b() as c:
+      With(
+        Seq(Alias(Call(ir.Name("a"), Seq())), Alias(Call(ir.Name("b"), Seq()), Some(ir.Name("c")))),
+        Seq(Pass)) generates """with a(), b() as c:
                                |  pass
                                |""".stripMargin
     }
@@ -177,17 +158,9 @@ class StatementGeneratorTest
       Try(
         Seq(Pass),
         Seq(
-          Except(
-            Some(Alias(ir.Name("Foo"), Some(ir.Name("x")))),
-            Seq(Pass)
-          ),
-          Except(
-            Some(Alias(ir.Name("NotFound"))),
-            Seq(Pass)
-          )
-        ),
-        Seq(Pass)
-      ) generates
+          Except(Some(Alias(ir.Name("Foo"), Some(ir.Name("x")))), Seq(Pass)),
+          Except(Some(Alias(ir.Name("NotFound"))), Seq(Pass))),
+        Seq(Pass)) generates
         """try:
           |  pass
           |except Foo as x:
@@ -200,15 +173,15 @@ class StatementGeneratorTest
     }
     "try: ... finally: ..." in {
       Try(Seq(Pass), orFinally = Seq(Pass)) generates
-          """try:
+        """try:
           |  pass
           |finally:
           |  pass
           |""".stripMargin
     }
     "if True: try: ... finally: ..." in {
-        If(ir.Literal.True, Seq(Try(Seq(Pass), orFinally = Seq(Pass)))) generates
-            """if True:
+      If(ir.Literal.True, Seq(Try(Seq(Pass), orFinally = Seq(Pass)))) generates
+        """if True:
               |  try:
               |    pass
               |  finally:
@@ -239,21 +212,21 @@ class StatementGeneratorTest
     }
   }
 
-    "return" should {
-        "return" in {
-        Return(None) generates "return"
-        }
-        "return a" in {
-        Return(Some(ir.Name("a"))) generates "return a"
-        }
+  "return" should {
+    "return" in {
+      Return(None) generates "return"
     }
+    "return a" in {
+      Return(Some(ir.Name("a"))) generates "return a"
+    }
+  }
 
-    "delete" should {
-        "delete a" in {
-        Delete(Seq(ir.Name("a"))) generates "del a"
-        }
-        "delete a, b" in {
-        Delete(Seq(ir.Name("a"), ir.Name("b"))) generates "del a, b"
-        }
+  "delete" should {
+    "delete a" in {
+      Delete(Seq(ir.Name("a"))) generates "del a"
     }
+    "delete a, b" in {
+      Delete(Seq(ir.Name("a"), ir.Name("b"))) generates "del a, b"
+    }
+  }
 }

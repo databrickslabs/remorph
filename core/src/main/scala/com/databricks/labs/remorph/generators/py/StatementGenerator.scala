@@ -63,8 +63,8 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
       py""
     } else {
       val body = statements.map(generate(ctx, _))
-      val separatedItems = body.tail.foldLeft[Python](body.head) {
-        case (agg, item) => py"$agg\n$item"
+      val separatedItems = body.tail.foldLeft[Python](body.head) { case (agg, item) =>
+        py"$agg\n$item"
       }
       py"$separatedItems$finish"
     }
@@ -73,10 +73,11 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
   // decorators need their leading whitespace trimmed and get followed by a trailing whitespace
   private def decorate(ctx: GeneratorContext, decorators: Seq[Decorator]): Python = {
     lines(ctx, decorators) match {
-      case OkResult(output) => output match {
-        case "" => OkResult("")
-        case some => OkResult(s"${some.trim}\n${ctx.ws}")
-      }
+      case OkResult(output) =>
+        output match {
+          case "" => OkResult("")
+          case some => OkResult(s"${some.trim}\n${ctx.ws}")
+        }
       case nok: Python => nok
     }
   }
