@@ -51,13 +51,10 @@ class LogicalPlanGenerator(
       case null => sql"" // don't fail transpilation if the plan is null
       case x => partialResult(x)
     }
-    for {
-      _ <- update {
-        case g: Generating => g.copy(currentNode = tree)
-        case x => x
-      }
-      res <- sql
-    } yield res
+
+    update { case g: Generating =>
+      g.copy(currentNode = tree)
+    }.flatMap(_ => sql)
   }
 
   private def batch(ctx: GeneratorContext, b: ir.Batch): TBA[RemorphContext, String] = {

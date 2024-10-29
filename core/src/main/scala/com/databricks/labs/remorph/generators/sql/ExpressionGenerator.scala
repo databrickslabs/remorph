@@ -77,13 +77,9 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TBAS[Remo
       case x => partialResult(x)
     }
 
-    for {
-      _ <- update {
-        case g: Generating => g.copy(currentNode = expr)
-        case x => x
-      }
-      res <- sql
-    } yield res
+    update { case g: Generating =>
+      g.copy(currentNode = expr)
+    }.flatMap(_ => sql)
   }
 
   private def structExpr(ctx: GeneratorContext, s: ir.StructExpr): SQL = {
