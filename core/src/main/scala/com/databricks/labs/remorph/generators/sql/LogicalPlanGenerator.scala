@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{OkResult, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
@@ -244,7 +244,10 @@ class LogicalPlanGenerator(
         case u: ir.Unresolved[_] => expr.generate(ctx, u)
         case exp: ir.Expression => expr.generate(ctx, exp).map(_ + ", ")
       }
-      .collect { case OkResult(sqlStr) => sqlStr }
+      .collect {
+        case OkResult(sqlStr) => sqlStr
+        case PartialResult(output, _) => output // UnresolvedExpression returns PartialResult in the future
+      }
       .mkString
       .stripSuffix(", ")
 
