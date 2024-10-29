@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -48,7 +48,7 @@ class SnowflakeTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommo
       example("TIMESTAMP_TZ", TimestampType)
       example("TINYINT", TinyintType)
       example("VARBINARY", BinaryType)
-      example("VARIANT", UnparsedType("VARIANT"))
+      example("VARIANT", VariantType)
     }
   }
 

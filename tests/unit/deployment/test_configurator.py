@@ -41,30 +41,31 @@ def test_prompt_for_catalog_setup_existing_catalog_no_access_abort(ws):
     prompts = MockPrompts(
         {
             r"Enter catalog name": "remorph",
-            r"Do you want to use another catalog?": "no",
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
+    catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
     catalog_operations.has_catalog_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_catalog_setup()
+        configurator.has_necessary_access("remorph", "reconcile", None)
 
 
 def test_prompt_for_catalog_setup_existing_catalog_no_access_retry_exhaust_attempts(ws):
     prompts = MockPrompts(
         {
             r"Enter catalog name": "remorph",
-            r"Do you want to use another catalog?": "yes",
+            r"Catalog .* doesn't exist. Create it?": "no",
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
+    catalog_operations.get_catalog.return_value = None
     catalog_operations.has_catalog_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
-        configurator.prompt_for_catalog_setup(max_attempts=2)
+        configurator.prompt_for_catalog_setup()
 
 
 def test_prompt_for_catalog_setup_new_catalog(ws):
@@ -116,30 +117,33 @@ def test_prompt_for_schema_setup_existing_schema_no_access_abort(ws):
     prompts = MockPrompts(
         {
             r"Enter schema name": "remorph",
-            r"Do you want to use another schema?": "no",
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
+    catalog_operations.get_schema.return_value = SchemaInfo(
+        catalog_name="remorph", name="reconcile", full_name="remorph.reconcile"
+    )
+    catalog_operations.has_catalog_access.return_value = True
     catalog_operations.has_schema_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_schema_setup("remorph", "reconcile")
+        configurator.has_necessary_access("remorph", "reconcile", None)
 
 
 def test_prompt_for_schema_setup_existing_schema_no_access_retry_exhaust_attempts(ws):
     prompts = MockPrompts(
         {
             r"Enter schema name": "remorph",
-            r"Do you want to use another schema?": "yes",
+            r"Schema .* doesn't exist .* Create it?": "no",
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
+    catalog_operations.get_schema.return_value = None
     catalog_operations.has_schema_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
-        configurator.prompt_for_schema_setup("remorph", "reconcile", max_attempts=2)
+        configurator.prompt_for_schema_setup("remorph", "reconcile")
 
 
 def test_prompt_for_schema_setup_new_schema(ws):
@@ -206,6 +210,7 @@ def test_prompt_for_volume_setup_existing_volume_no_access_abort(ws):
         catalog_name="remorph",
         schema_name="reconcile",
         name="recon_volume",
+        full_name="remorph.reconcile.recon_volume",
     )
     catalog_operations.has_volume_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
@@ -215,21 +220,18 @@ def test_prompt_for_volume_setup_existing_volume_no_access_abort(ws):
             "reconcile",
             "recon_volume",
         )
+        configurator.has_necessary_access("remorph", "reconcile", "recon_volume")
 
 
 def test_prompt_for_volume_setup_existing_volume_no_access_retry_exhaust_attempts(ws):
     prompts = MockPrompts(
         {
             r"Enter volume name": "recon_volume",
-            r"Do you want to use another volume?": "yes",
+            r"Volume .* doesn't exist .* Create it?": "no",
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_volume.return_value = VolumeInfo(
-        catalog_name="remorph",
-        schema_name="reconcile",
-        name="recon_volume",
-    )
+    catalog_operations.get_volume.return_value = None
     catalog_operations.has_volume_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
@@ -237,7 +239,6 @@ def test_prompt_for_volume_setup_existing_volume_no_access_retry_exhaust_attempt
             "remorph",
             "reconcile",
             "recon_volume",
-            max_attempts=2,
         )
 
 

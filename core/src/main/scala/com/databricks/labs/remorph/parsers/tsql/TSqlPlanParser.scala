@@ -1,23 +1,23 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{PlanParser, intermediate => ir}
-import com.databricks.labs.remorph.parsers.intermediate.{LogicalPlan, Rules}
+import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TSqlCallMapper, TopPercentToLimitSubquery, TrapInsertDefaultsAction}
-import org.antlr.v4.runtime.{CharStream, ParserRuleContext, TokenSource, TokenStream}
+import com.databricks.labs.remorph.{intermediate => ir}
+import org.antlr.v4.runtime._
 
 class TSqlPlanParser extends PlanParser[TSqlParser] {
 
-  private val vc = new TSqlVisitorCoordinator
+  val vc = new TSqlVisitorCoordinator(TSqlParser.VOCABULARY, TSqlParser.ruleNames)
 
-  override protected def createLexer(input: CharStream): TokenSource = new TSqlLexer(input)
+  override protected def createLexer(input: CharStream): Lexer = new TSqlLexer(input)
   override protected def createParser(stream: TokenStream): TSqlParser = new TSqlParser(stream)
   override protected def createTree(parser: TSqlParser): ParserRuleContext = parser.tSqlFile()
-  override protected def createPlan(tree: ParserRuleContext): LogicalPlan = vc.astBuilder.visit(tree)
+  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = vc.astBuilder.visit(tree)
   override protected def addErrorStrategy(parser: TSqlParser): Unit = parser.setErrorHandler(new TSqlErrorStrategy)
   def dialect: String = "tsql"
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
-  override protected def createOptimizer: Rules[LogicalPlan] = {
+  override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {
     ir.Rules(
       new TSqlCallMapper,
       ir.AlwaysUpperNameForCallFunction,

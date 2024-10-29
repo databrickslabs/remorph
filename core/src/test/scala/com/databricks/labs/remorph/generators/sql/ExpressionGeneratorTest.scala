@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.generators.GeneratorTestCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -11,7 +11,7 @@ class ExpressionGeneratorTest
     extends AnyWordSpec
     with GeneratorTestCommon[ir.Expression]
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
 
@@ -280,6 +280,16 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "ARRAY_REMOVE",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ARRAY_REMOVE(a, b)"
+    }
+
+    "ARRAY_REMOVE([2, 3, 4::DOUBLE, 4, NULL], 4)" in {
+      ir.CallFunction(
+        "ARRAY_REMOVE",
+        Seq(
+          ir.ArrayExpr(
+            Seq(ir.Literal(2), ir.Literal(3), ir.Cast(ir.Literal(4), ir.DoubleType), ir.Literal(4), ir.Literal(null)),
+            ir.IntegerType),
+          ir.Literal(4))) generates "ARRAY_REMOVE(ARRAY(2, 3, CAST(4 AS DOUBLE), 4, NULL), 4)"
     }
 
     "ARRAY_REPEAT(a, b)" in {
@@ -1716,6 +1726,17 @@ class ExpressionGeneratorTest
           ir.JsonAccess(ir.Dot(ir.Id("demo"), ir.Id("level_key")), ir.Literal("level_1_key")),
           ir.Literal("level_2_key")),
         ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
+    }
+  }
+
+  "error node in expression tree" should {
+    "generate inline error message comment for a and bad text" in {
+      ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
+        """a AND /* The following issues were detected:
+         |
+         |   some error message
+         |    bad text
+         | */""".stripMargin
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.generators.GeneratorTestCommon
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {

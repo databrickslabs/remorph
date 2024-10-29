@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -12,8 +12,7 @@ class SnowflakeCommandBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeCommandBuilder =
-    new SnowflakeCommandBuilder
+  override protected def astBuilder: SnowflakeCommandBuilder = vc.commandBuilder
 
   "translate Declare to CreateVariable Expression" should {
     "X NUMBER DEFAULT 0;" in {
@@ -47,9 +46,7 @@ class SnowflakeCommandBuilderSpec
           dataType = StructType(Seq()),
           defaultExpr = Some(
             ScalarSubquery(
-              Project(
-                NamedTable("some_table", Map(), is_streaming = false),
-                Seq(Column(None, Id("col1", caseSensitive = false)))))),
+              Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false))))),
           replace = false))
     }
   }
@@ -58,9 +55,9 @@ class SnowflakeCommandBuilderSpec
     "LET X := 1;" in {
       example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(1)))
     }
-    "select_statement := 'SELECT * FROM table WHERE id = ' || id;" in {
+    "LET select_statement := 'SELECT * FROM table WHERE id = ' || id;" in {
       example(
-        "select_statement := 'SELECT * FROM table WHERE id = ' || id;",
+        "LET select_statement := 'SELECT * FROM table WHERE id = ' || id;",
         _.let(),
         SetVariable(
           name = Id("select_statement"),
@@ -87,9 +84,7 @@ class SnowflakeCommandBuilderSpec
           name = Id("query_statement"),
           dataType = Some(StructType(Seq(StructField("col1", UnresolvedType)))),
           value = ScalarSubquery(
-            Project(
-              NamedTable("some_table", Map(), is_streaming = false),
-              Seq(Column(None, Id("col1", caseSensitive = false)))))))
+            Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false))))))
     }
   }
 

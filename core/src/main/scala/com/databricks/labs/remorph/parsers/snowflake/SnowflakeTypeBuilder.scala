@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.DataTypeContext
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 import scala.collection.JavaConverters._
 
@@ -52,7 +52,7 @@ class SnowflakeTypeBuilder {
       case "TIMESTAMP_TZ" => ir.TimestampType
       case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
-      case "VARIANT" => ir.UnparsedType("VARIANT") // TODO: get more examples
+      case "VARIANT" => ir.VariantType
 
       // and everything else
       case _ => ir.UnparsedType(typeDef)

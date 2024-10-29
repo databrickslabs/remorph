@@ -1,64 +1,97 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
+class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
 
-  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = vc.expressionBuilder.visitId(ctx.id())
-    // Column list can be empty if the select specifies distinct column names
-    val columns =
-      Option(ctx.columnNameList())
-        .map(_.id().asScala.map(vc.expressionBuilder.visitId))
-        .getOrElse(Seq.empty)
-    val query = ctx.selectStatement().accept(this)
-    ir.SubqueryAlias(query, tableName, columns)
+  // The default result is returned when there is no visitor implemented, and we produce an unresolved
+  // object to represent the input that we have no visitor for.
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
+
+  // Concrete visitors
+
+  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = vc.expressionBuilder.buildId(ctx.id())
+      // Column list can be empty if the select specifies distinct column names
+      val columns =
+        Option(ctx.columnNameList())
+          .map(_.id().asScala.map(vc.expressionBuilder.buildId))
+          .getOrElse(Seq.empty)
+      val query = ctx.selectStatement().accept(this)
+      ir.SubqueryAlias(query, tableName, columns)
   }
 
-  override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.LogicalPlan = {
-    val query = ctx.selectStatement().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, query)
+  override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.LogicalPlan =
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val query = ctx.selectStatement().accept(this)
+        Option(ctx.withExpression())
+          .map { withExpression =>
+            val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+            ir.WithCTE(ctes, query)
+          }
+          .getOrElse(query)
+    }
+
+  override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      // TODO: The FOR clause of TSQL is not supported in Databricks SQL as XML and JSON are not supported
+      //       we need to create an UnresolvedRelation for it
+
+      // We visit the OptionClause because in the future, we may be able to glean information from it
+      // as an aid to migration, however the clause is not used in the AST or translation.
+      val query = ctx.queryExpression.accept(this)
+      Option(ctx.optionClause) match {
+        case Some(optionClause) => ir.WithOptions(query, optionClause.accept(vc.expressionBuilder))
+        case None => query
       }
-      .getOrElse(query)
   }
 
-  override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.LogicalPlan = {
-    // TODO: The FOR clause of TSQL is not supported in Databricks SQL as XML and JSON are not supported
-    //       we need to create an UnresolvedRelation for it
-
-    // We visit the OptionClause because in the future, we may be able to glean information from it
-    // as an aid to migration, however the clause is not used in the AST or translation.
-    val query = ctx.queryExpression.accept(this)
-    Option(ctx.optionClause) match {
-      case Some(optionClause) => ir.WithOptions(query, optionClause.accept(vc.expressionBuilder))
-      case None => query
-    }
+  override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
+        case _ =>
+          // TODO: Implement this style of UNION
+          ir.UnresolvedRelation(
+            ruleText = contextText(ctx),
+            message = s"This style of UNION specification is as yet supported",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)))
+      }
   }
 
-  override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = {
+  override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = errorCheck(
+    ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      // TODO: Check the logic here for all the elements of a query specification
+      val select = ctx.selectOptionalClauses().accept(this)
 
-    // TODO: Check the logic here for all the elements of a query specification
-    val select = ctx.selectOptionalClauses().accept(this)
-
-    val columns =
-      ctx.selectListElem().asScala.map(_.accept(vc.expressionBuilder))
-    // Note that ALL is the default so we don't need to check for it
-    ctx match {
-      case c if c.DISTINCT() != null =>
-        ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns)
-      case _ =>
-        ir.Project(buildTop(Option(ctx.topClause()), select), columns)
-    }
+      // A single column definition could also hold an ErrorNode that it recovered from so we collect all of them
+      val columns: Seq[ir.Expression] =
+        ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
+      // Note that ALL is the default so we don't need to check for it
+      ctx match {
+        case c if c.DISTINCT() != null =>
+          ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns)
+        case _ =>
+          ir.Project(buildTop(Option(ctx.topClause()), select), columns)
+      }
   }
 
   private[tsql] def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
@@ -71,11 +104,13 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
       }
     }
 
-  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
-    val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
-    buildOrderBy(
-      ctx.selectOrderByClause(),
-      buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))
+  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      buildOrderBy(
+        ctx.selectOrderByClause(),
+        buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))
   }
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
@@ -128,15 +163,17 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     }
   }
 
-  override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = {
-    val tableSources = ctx.tableSources().tableSource().asScala.map(_.accept(this))
-    // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
-    tableSources match {
-      case Seq(tableSource) => tableSource
-      case sources =>
-        sources.reduce(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
+  override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableSources = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+      // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
+      tableSources match {
+        case Seq(tableSource) => tableSource
+        case sources =>
+          sources.reduce(
+            ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      }
   }
 
   private def buildDistinct(from: ir.LogicalPlan, columns: Seq[ir.Expression]): ir.LogicalPlan = {
@@ -148,44 +185,50 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
   }
 
-  override def visitTableName(ctx: TableNameContext): ir.NamedTable = {
-    val linkedServer = Option(ctx.linkedServer).map(_.getText)
-    val ids = ctx.ids.asScala.map(_.getText).mkString(".")
-    val fullName = linkedServer.fold(ids)(ls => s"$ls..$ids")
-    ir.NamedTable(fullName, Map.empty, is_streaming = false)
+  override def visitTableName(ctx: TableNameContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val linkedServer = Option(ctx.linkedServer).map(_.getText)
+      val ids = ctx.ids.asScala.map(_.getText).mkString(".")
+      val fullName = linkedServer.fold(ids)(ls => s"$ls..$ids")
+      ir.NamedTable(fullName, Map.empty, is_streaming = false)
   }
 
-  override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = {
-    val left = ctx.tableSourceItem().accept(this)
-    ctx match {
-      case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoinPart)
-    }
-  }
-
-  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.LogicalPlan = {
-    val tsiElement = ctx.tsiElement().accept(this)
-
-    // Assemble any table hints, though we do nothing with them for now
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-
-    // If we have column aliases, they are applied here first
-    val tsiElementWithAliases = Option(ctx.columnAliasList())
-      .map { aliasList =>
-        val aliases = aliasList.columnAlias().asScala.map(id => buildColumnAlias(id))
-        ColumnAliases(tsiElement, aliases)
+  override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val left = ctx.tableSourceItem().accept(this)
+      ctx match {
+        case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoinPart)
       }
-      .getOrElse(tsiElement)
+  }
 
-    val relation = if (hints.nonEmpty) {
-      ir.TableWithHints(tsiElementWithAliases, hints)
-    } else {
-      tsiElementWithAliases
-    }
+  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tsiElement = ctx.tsiElement().accept(this)
 
-    // Then any table alias is applied to the source
-    Option(ctx.asTableAlias())
-      .map(alias => ir.TableAlias(relation, alias.id.getText))
-      .getOrElse(relation)
+      // Assemble any table hints, though we do nothing with them for now
+      val hints = buildTableHints(Option(ctx.withTableHints()))
+
+      // If we have column aliases, they are applied here first
+      val tsiElementWithAliases = Option(ctx.columnAliasList())
+        .map { aliasList =>
+          val aliases = aliasList.columnAlias().asScala.map(id => buildColumnAlias(id))
+          ColumnAliases(tsiElement, aliases)
+        }
+        .getOrElse(tsiElement)
+
+      val relation = if (hints.nonEmpty) {
+        ir.TableWithHints(tsiElementWithAliases, hints)
+      } else {
+        tsiElementWithAliases
+      }
+
+      // Then any table alias is applied to the source
+      Option(ctx.asTableAlias())
+        .map(alias => ir.TableAlias(relation, alias.id.getText))
+        .getOrElse(relation)
   }
 
   // Table hints arrive syntactically as a () delimited list of options and, in the
@@ -218,86 +261,96 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
 
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
-      case c if c.id() != null => vc.expressionBuilder.visitId(c.id())
+      case c if c.id() != null => vc.expressionBuilder.buildId(c.id())
       case _ => ir.Id(vc.expressionBuilder.removeQuotes(ctx.getText))
     }
   }
 
-  override def visitTsiNamedTable(ctx: TsiNamedTableContext): ir.LogicalPlan =
-    ctx.tableName().accept(this)
-
-  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.LogicalPlan = {
-    ctx.derivedTable().accept(this)
+  override def visitTsiNamedTable(ctx: TsiNamedTableContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx.tableName().accept(this)
   }
 
-  override def visitDerivedTable(ctx: DerivedTableContext): ir.LogicalPlan = {
-    val result = if (ctx.tableValueConstructor() != null) {
-      ctx.tableValueConstructor().accept(this)
-    } else {
-      ctx.selectStatement().accept(this)
-    }
-    result
+  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx.derivedTable().accept(this)
   }
 
-  override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = {
-    val rows = ctx.tableValueRow().asScala.map(buildValueRow)
-    DerivedRows(rows)
+  override def visitDerivedTable(ctx: DerivedTableContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val result = if (ctx.tableValueConstructor() != null) {
+        ctx.tableValueConstructor().accept(this)
+      } else {
+        ctx.selectStatement().accept(this)
+      }
+      result
+  }
+
+  override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val rows = ctx.tableValueRow().asScala.map(buildValueRow)
+      DerivedRows(rows)
   }
 
   private def buildValueRow(ctx: TableValueRowContext): Seq[ir.Expression] = {
     ctx.expressionList().expression().asScala.map(_.accept(vc.expressionBuilder))
   }
 
-  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
+  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val targetPlan = ctx.ddlObject().accept(this)
+      val hints = buildTableHints(Option(ctx.withTableHints()))
+      val finalTarget = if (hints.nonEmpty) {
+        ir.TableWithHints(targetPlan, hints)
+      } else {
+        targetPlan
+      }
 
-    val targetPlan = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(targetPlan, hints)
-    } else {
-      targetPlan
-    }
+      val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
+      val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+      val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
+        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
-    val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
-    val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
-    val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
-      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
+      // and lean and determine which of the three types of action we have in the whenMatch method based on
+      // the presence or absence of syntactical elements NOT and SOURCE as SOURCE can only be used with NOT
+      val (matchedActions, notMatchedActions, notMatchedBySourceActions) = Option(ctx.whenMatch())
+        .map(_.asScala.foldLeft((List.empty[ir.MergeAction], List.empty[ir.MergeAction], List.empty[ir.MergeAction])) {
+          case ((matched, notMatched, notMatchedBySource), m) =>
+            val action = buildWhenMatch(m)
+            (m.NOT(), m.SOURCE()) match {
+              case (null, _) => (action :: matched, notMatched, notMatchedBySource)
+              case (_, null) => (matched, action :: notMatched, notMatchedBySource)
+              case _ => (matched, notMatched, action :: notMatchedBySource)
+            }
+        })
+        .getOrElse((List.empty, List.empty, List.empty))
 
-    // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
-    // and lean and determine which of the three types of action we have in the whenMatch method based on
-    // the presence or absence of syntactical elements NOT and SOURCE as SOURCE can only be used with NOT
-    val (matchedActions, notMatchedActions, notMatchedBySourceActions) = Option(ctx.whenMatch())
-      .map(_.asScala.foldLeft((List.empty[ir.MergeAction], List.empty[ir.MergeAction], List.empty[ir.MergeAction])) {
-        case ((matched, notMatched, notMatchedBySource), m) =>
-          val action = buildWhenMatch(m)
-          (m.NOT(), m.SOURCE()) match {
-            case (null, _) => (action :: matched, notMatched, notMatchedBySource)
-            case (_, null) => (matched, action :: notMatched, notMatchedBySource)
-            case _ => (matched, notMatched, action :: notMatchedBySource)
-          }
-      })
-      .getOrElse((List.empty, List.empty, List.empty))
+      val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
+      val outputClause = Option(ctx.outputClause()).map(_.accept(this))
 
-    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
-    val outputClause = Option(ctx.outputClause()).map(_.accept(this))
+      val mergeIntoTable = ir.MergeIntoTable(
+        finalTarget,
+        sourcePlan,
+        mergeCondition,
+        matchedActions,
+        notMatchedActions,
+        notMatchedBySourceActions)
 
-    val mergeIntoTable = ir.MergeIntoTable(
-      finalTarget,
-      sourcePlan,
-      mergeCondition,
-      matchedActions,
-      notMatchedActions,
-      notMatchedBySourceActions)
+      val withOptions = optionClause match {
+        case Some(option) => ir.WithOptions(mergeIntoTable, option)
+        case None => mergeIntoTable
+      }
 
-    val withOptions = optionClause match {
-      case Some(option) => ir.WithOptions(mergeIntoTable, option)
-      case None => mergeIntoTable
-    }
-
-    outputClause match {
-      case Some(output) => WithOutputClause(withOptions, output)
-      case None => withOptions
-    }
+      outputClause match {
+        case Some(output) => WithOutputClause(withOptions, output)
+        case None => withOptions
+      }
   }
 
   private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
@@ -335,97 +388,116 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     ir.UpdateAction(condition, setElements)
   }
 
-  override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val hintTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
+  override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val target = ctx.ddlObject().accept(this)
+      val hints = buildTableHints(Option(ctx.withTableHints()))
+      val hintTarget = if (hints.nonEmpty) {
+        ir.TableWithHints(target, hints)
+      } else {
+        target
+      }
 
-    val finalTarget = buildTop(Option(ctx.topClause()), hintTarget)
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
+      val finalTarget = buildTop(Option(ctx.topClause()), hintTarget)
+      val output = Option(ctx.outputClause()).map(_.accept(this))
+      val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map { tableSources =>
-      tableSources.tail.foldLeft(tableSources.head)(
-        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
+      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+      val sourceRelation = tableSourcesOption.map { tableSources =>
+        tableSources.tail.foldLeft(tableSources.head)(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      }
 
-    val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
-    ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
+      val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
+      val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
+      ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
   }
 
-  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
+  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val target = ctx.ddlObject().accept(this)
+      val hints = buildTableHints(Option(ctx.withTableHints()))
+      val finalTarget = if (hints.nonEmpty) {
+        ir.TableWithHints(target, hints)
+      } else {
+        target
+      }
 
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map { tableSources =>
-      tableSources.tail.foldLeft(tableSources.head)(
-        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
+      val output = Option(ctx.outputClause()).map(_.accept(this))
+      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+      val sourceRelation = tableSourcesOption.map { tableSources =>
+        tableSources.tail.foldLeft(tableSources.head)(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      }
 
-    val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
-    ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
+      val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
+      val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
+      ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
   }
 
-  override def visitInsert(ctx: InsertContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
+  override def visitInsert(ctx: InsertContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val target = ctx.ddlObject().accept(this)
+      val hints = buildTableHints(Option(ctx.withTableHints()))
+      val finalTarget = if (hints.nonEmpty) {
+        ir.TableWithHints(target, hints)
+      } else {
+        target
+      }
 
-    val columns = Option(ctx.expressionList())
-      .map(_.expression().asScala.map(_.accept(vc.expressionBuilder)).collect { case col: ir.Column => col.columnName })
+      val columns = Option(ctx.expressionList())
+        .map(_.expression().asScala.map(_.accept(vc.expressionBuilder)).collect { case col: ir.Column =>
+          col.columnName
+        })
 
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val values = ctx.insertStatementValue().accept(this)
-    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
-    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
+      val output = Option(ctx.outputClause()).map(_.accept(this))
+      val values = ctx.insertStatementValue().accept(this)
+      val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
+      ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
   }
 
-  override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
-    Option(ctx) match {
-      case Some(context) if context.derivedTable() != null => context.derivedTable().accept(this)
-      case Some(context) if context.VALUES() != null => DefaultValues()
-      case Some(context) => context.executeStatement().accept(this)
-    }
+  override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      Option(ctx) match {
+        case Some(context) if context.derivedTable() != null => context.derivedTable().accept(this)
+        case Some(context) if context.VALUES() != null => DefaultValues()
+        case Some(context) => context.executeStatement().accept(this)
+      }
   }
 
-  override def visitOutputClause(ctx: OutputClauseContext): ir.LogicalPlan = {
-    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(vc.expressionBuilder))
-    val target = Option(ctx.ddlObject()).map(_.accept(this))
-    val columns =
-      Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.visitId(id))))
+  override def visitOutputClause(ctx: OutputClauseContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val outputs = ctx.outputDmlListElem().asScala.map(_.accept(vc.expressionBuilder))
+      val target = Option(ctx.ddlObject()).map(_.accept(this))
+      val columns =
+        Option(ctx.columnNameList())
+          .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.buildId(id))))
 
-    // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
-    // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
-    // is executed
-    Output(target, outputs, columns)
+      // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
+      // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
+      // is executed
+      Output(target, outputs, columns)
   }
 
-  override def visitDdlObject(ctx: DdlObjectContext): ir.LogicalPlan = {
-    ctx match {
-      case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
-      case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
-      // TODO: OPENROWSET and OPENQUERY
-      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
-    }
+  override def visitDdlObject(ctx: DdlObjectContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
+        case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
+        // TODO: OPENROWSET and OPENQUERY
+        case _ =>
+          ir.UnresolvedRelation(
+            ruleText = contextText(ctx),
+            message = s"Unknown DDL object type ${ctx.getStart.getText} in TSqlRelationBuilder.visitDdlObject",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)))
+      }
   }
 
   private def buildJoinPart(left: ir.LogicalPlan, ctx: JoinPartContext): ir.LogicalPlan = {
@@ -445,8 +517,8 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
       .fullColumnName()
       .asScala
       .map(_.accept(vc.expressionBuilder))
-    val variableColumnName = vc.expressionBuilder.visitId(ctx.unpivotClause().id(0))
-    val valueColumnName = vc.expressionBuilder.visitId(ctx.unpivotClause().id(1))
+    val variableColumnName = vc.expressionBuilder.buildId(ctx.unpivotClause().id(0))
+    val valueColumnName = vc.expressionBuilder.buildId(ctx.unpivotClause().id(1))
     ir.Unpivot(
       child = left,
       ids = unpivotColumns,

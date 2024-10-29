@@ -9,11 +9,8 @@ from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-
-
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
-from databricks.sdk.service.catalog import Privilege
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -124,6 +121,7 @@ class WorkspaceInstaller:
         if not default_config.skip_validation:
             catalog_name = self._configure_catalog()
             schema_name = self._configure_schema(catalog_name, "transpile")
+            self._has_necessary_access(catalog_name, schema_name)
             runtime_config = self._configure_runtime()
 
         config = dataclasses.replace(
@@ -154,29 +152,17 @@ class WorkspaceInstaller:
 
     def _configure_catalog(
         self,
-        required_privileges: tuple[set[Privilege], ...] = (
-            {Privilege.ALL_PRIVILEGES},
-            {Privilege.USE_CATALOG},
-        ),
-        max_attempts: int = 3,
     ) -> str:
-        return self._resource_configurator.prompt_for_catalog_setup(required_privileges, max_attempts)
+        return self._resource_configurator.prompt_for_catalog_setup()
 
     def _configure_schema(
         self,
         catalog: str,
         default_schema_name: str,
-        required_privileges: tuple[set[Privilege], ...] = (
-            {Privilege.ALL_PRIVILEGES},
-            {Privilege.USE_SCHEMA},
-        ),
-        max_attempts: int = 3,
     ) -> str:
         return self._resource_configurator.prompt_for_schema_setup(
             catalog,
             default_schema_name,
-            required_privileges,
-            max_attempts,
         )
 
     def _configure_runtime(self) -> dict[str, str]:
@@ -266,12 +252,9 @@ class WorkspaceInstaller:
         schema = self._configure_schema(
             catalog,
             "reconcile",
-            required_privileges=(
-                {Privilege.ALL_PRIVILEGES},
-                {Privilege.USE_SCHEMA, Privilege.CREATE_VOLUME},
-            ),
         )
         volume = self._configure_volume(catalog, schema, "reconcile_volume")
+        self._has_necessary_access(catalog, schema, volume)
         return ReconcileMetadataConfig(catalog=catalog, schema=schema, volume=volume)
 
     def _configure_volume(
@@ -279,18 +262,11 @@ class WorkspaceInstaller:
         catalog: str,
         schema: str,
         default_volume_name: str,
-        required_privileges: tuple[set[Privilege], ...] = (
-            {Privilege.ALL_PRIVILEGES},
-            {Privilege.READ_VOLUME, Privilege.WRITE_VOLUME},
-        ),
-        max_attempts: int = 3,
     ) -> str:
         return self._resource_configurator.prompt_for_volume_setup(
             catalog,
             schema,
             default_volume_name,
-            required_privileges,
-            max_attempts,
         )
 
     def _save_config(self, config: MorphConfig | ReconcileConfig):
@@ -299,6 +275,9 @@ class WorkspaceInstaller:
         ws_file_url = self._installation.workspace_link(config.__file__)
         if self._prompts.confirm(f"Open config file {ws_file_url} in the browser?"):
             webbrowser.open(ws_file_url)
+
+    def _has_necessary_access(self, catalog_name: str, schema_name: str, volume_name: str | None = None):
+        self._resource_configurator.has_necessary_access(catalog_name, schema_name, volume_name)
 
 
 if __name__ == "__main__":

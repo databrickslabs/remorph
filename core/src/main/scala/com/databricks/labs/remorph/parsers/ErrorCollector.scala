@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.intermediate.ParsingError
 import org.antlr.v4.runtime._
 import org.apache.logging.log4j.{LogManager, Logger}
 import upickle.default._
@@ -15,17 +16,6 @@ sealed trait ErrorCollector extends BaseErrorListener {
 }
 
 class EmptyErrorCollector extends ErrorCollector
-
-case class ErrorDetail(
-    line: Int,
-    charPositionInLine: Int,
-    msg: String,
-    offendingTokenWidth: Int,
-    offendingTokenText: String)
-
-object ErrorDetail {
-  implicit val errorDetailRW: ReadWriter[ErrorDetail] = macroRW
-}
 
 class DefaultErrorCollector extends ErrorCollector {
 
@@ -48,7 +38,7 @@ class DefaultErrorCollector extends ErrorCollector {
 }
 
 class ProductionErrorCollector(sourceCode: String, fileName: String) extends ErrorCollector {
-  val errors: ListBuffer[ErrorDetail] = ListBuffer()
+  val errors: ListBuffer[ParsingError] = ListBuffer()
   val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 
   override def syntaxError(
@@ -61,8 +51,8 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
     val errorDetail = offendingSymbol match {
       case t: Token =>
         val width = t.getStopIndex - t.getStartIndex + 1
-        ErrorDetail(line, charPositionInLine, msg, width, t.getText)
-      case _ => ErrorDetail(line, charPositionInLine, msg, 0, "")
+        ParsingError(line, charPositionInLine, msg, width, t.getText, tokenName(recognizer, t), ruleName(recognizer, e))
+      case _ => ParsingError(line, charPositionInLine, msg, 0, "", "missing", ruleName(recognizer, e))
     }
     errors += errorDetail
   }
@@ -75,6 +65,20 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
       s"${error.msg}\nFile: $fileName, Line: ${error.line}, Token: ${error.offendingTokenText}\n$errorText"
     }
   }
+
+  private[parsers] def tokenName(recognizer: Recognizer[_, _], token: Token): String = token match {
+    case t: Token =>
+      Option(recognizer)
+        .map(_.getVocabulary.getSymbolicName(t.getType))
+        .getOrElse("unresolved token name")
+    case _ => "missing"
+  }
+
+  private[parsers] def ruleName(recognizer: Recognizer[_, _], e: RecognitionException): String =
+    (Option(recognizer), Option(e)) match {
+      case (Some(rec), Some(exc)) => rec.getRuleNames()(exc.getCtx.getRuleIndex)
+      case _ => "unresolved rule name"
+    }
 
   private[parsers] def formatError(
       errorLine: String,
