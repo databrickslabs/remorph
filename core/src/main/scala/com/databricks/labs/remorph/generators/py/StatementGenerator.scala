@@ -1,118 +1,93 @@
 package com.databricks.labs.remorph.generators.py
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.OkResult
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.intermediate.{Expression, Name}
+import com.databricks.labs.remorph.intermediate.Expression
 
-class StatementGenerator(val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
-  override def generate(ctx: GeneratorContext, tree: Statement): Python = tree match {
-    case Module(children) => py"${children map generate(ctx, _)}"
+class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
+  override def generate(ctx: GeneratorContext, tree: Statement): Python = py"${ctx.ws}${statement(ctx, tree)}"
+
+  private def statement(ctx: GeneratorContext, tree: Statement): Python = tree match {
+    case Module(children) => lines(ctx, children)
+    case Alias(name, None) => e(ctx, name)
     case FunctionDef(name, args, children, decorators) =>
-      functionDef(ctx, name, args, children, decorators)
+      py"${decorate(ctx, decorators)}def ${name.name}(${exprs.arguments(ctx, args)}):\n${lines(ctx.nest, children)}"
     case ClassDef(name, bases, children, decorators) =>
-      classDef(ctx, name, bases, children, decorators)
-    case Assign(targets, value) => py"${exprs.many(ctx, targets)} = ${exprs.generate(ctx, value)}"
+      py"${decorate(ctx, decorators)}class ${name.name}${parents(ctx, bases)}:\n${lines(ctx.nest, children)}"
+    case Alias(name, Some(alias)) =>
+      py"${e(ctx, name)} as ${e(ctx, alias)}"
+    case Import(names) =>
+      py"import ${commas(ctx, names)}"
+    case ImportFrom(Some(module), names, _) =>
+      py"from ${e(ctx, module)} import ${commas(ctx, names)}"
+    case Assign(targets, value) =>
+      py"${exprs.commas(ctx, targets)} = ${e(ctx, value)}"
+    case Decorator(expr) =>
+      py"@${e(ctx, expr)}"
     case For(target, iter, body, orElse) =>
-      forStmt(ctx, target, iter, body, orElse)
+      py"for ${e(ctx, target)} in ${e(ctx, iter)}:\n${lines(ctx.nest, body)}${elseB(ctx, orElse)}"
     case While(test, body, orElse) =>
-      whileStmt(ctx, test, body, orElse)
+      py"while ${e(ctx, test)}:\n${lines(ctx.nest, body)}${elseB(ctx, orElse)}"
     case If(test, body, orElse) =>
-      ifStmt(ctx, test, body, orElse)
-    case With(context, vars, children) =>
-      withStmt(ctx, context, vars, children)
-    case TryExcept(body, handlers, orElse) =>
-      tryExcept(ctx, body, handlers, orElse)
-    case ExceptHandler(expr, name, children) =>
-      exceptHandler(ctx, expr, name, children)
-    case Return(value) => py"return ${value map exprs.generate(ctx, _)}"
-    case Delete(targets) => py"del ${exprs.many(ctx, targets)}"
+      py"if ${e(ctx, test)}:\n${lines(ctx.nest, body)}${elseB(ctx, orElse)}"
+    case With(context, body) =>
+      py"with ${commas(ctx, context)}:\n${lines(ctx.nest, body)}"
+    case Raise(None, None) =>
+      py"raise"
+    case Raise(Some(exc), None) =>
+      py"raise ${e(ctx, exc)}"
+    case Raise(Some(exc), Some(cause)) =>
+      py"raise ${e(ctx, exc)} from ${e(ctx, cause)}"
+    case Try(body, handlers, orElse, orFinally) =>
+      py"try:\n${lines(ctx.nest, body)}${lines(ctx, handlers)}${elseB(ctx, orElse)}${elseB(ctx, orFinally, "finally")}"
+    case Except(None, children) =>
+      py"except:\n${lines(ctx.nest, children, finish = "")}"
+    case Except(Some(alias), children) =>
+      py"except ${generate(ctx, alias)}:\n${lines(ctx.nest, children, finish = "")}"
+    case Assert(test, None) =>
+      py"assert ${e(ctx, test)}"
+    case Assert(test, Some(msg)) =>
+      py"assert ${e(ctx, test)}, ${e(ctx, msg)}"
+    case Return(None) => py"return"
+    case Return(Some(value)) => py"return ${e(ctx, value)}"
+    case Delete(targets) => py"del ${exprs.commas(ctx, targets)}"
     case Pass => py"pass"
     case Break => py"break"
     case Continue => py"continue"
     case _ => partialResult(tree)
   }
 
-  private def exceptHandler(
-      ctx: GeneratorContext,
-      expr: Option[Expression],
-      name: Option[Name],
-      children: Seq[Statement]): Python = {
-    val exprStr = expr.map(exprs.generate(ctx, _)).mkString
-    val nameStr = name.map(exprs.generate(ctx, _)).mkString
-    val childrenStr = children map generate(ctx.nest, _)
-    py"except $exprStr as $nameStr:\n$childrenStr"
+  private def e(ctx: GeneratorContext, expr: Expression): Python = exprs.generate(ctx, expr)
+
+  private def lines(ctx: GeneratorContext, statements: Seq[Statement], finish: String = "\n"): Python = {
+    if (statements.isEmpty) {
+      py""
+    } else {
+      val body = statements.map(generate(ctx, _))
+      val separatedItems = body.tail.foldLeft[Python](body.head) {
+        case (agg, item) => py"$agg\n$item"
+      }
+      py"$separatedItems$finish"
+    }
   }
 
-  private def tryExcept(
-      ctx: GeneratorContext,
-      body: Seq[Statement],
-      handlers: Seq[ExceptHandler],
-      orElse: Seq[Statement]): Python = {
-    val bodyStr = body map generate(ctx.nest, _)
-    val handlersStr = handlers map generate(ctx.nest, _)
-    val orElseStr = orElse map generate(ctx.nest, _)
-    py"try:\n$bodyStr\n$handlersStr\n$orElseStr"
+  // decorators need their leading whitespace trimmed and get followed by a trailing whitespace
+  private def decorate(ctx: GeneratorContext, decorators: Seq[Decorator]): Python = {
+    lines(ctx, decorators) match {
+      case OkResult(output) => output match {
+        case "" => OkResult("")
+        case some => OkResult(s"${some.trim}\n${ctx.ws}")
+      }
+      case nok: Python => nok
+    }
   }
 
-  private def withStmt(
-      ctx: GeneratorContext,
-      context: Expression,
-      vars: Option[Expression],
-      children: Seq[Statement]): Python = {
-    val varsStr = vars.map(exprs.generate(ctx, _)).mkString
-    val childrenStr = children map generate(ctx.nest, _)
-    py"with ${exprs.generate(ctx, context)}$varsStr:\n$childrenStr"
+  private def elseB(ctx: GeneratorContext, orElse: Seq[Statement], branch: String = "else"): Python = orElse match {
+    case Nil => py""
+    case some => py"${ctx.ws}$branch:\n${lines(ctx.nest, some)}"
   }
 
-  private def ifStmt(ctx: GeneratorContext, test: Expression, body: Seq[Statement], orElse: Seq[Statement]): Python = {
-    val bodyStr = body map generate(ctx.nest, _)
-    val orElseStr = orElse map generate(ctx.nest, _)
-    py"if ${exprs.generate(ctx, test)}:\n$bodyStr\n$orElseStr"
-  }
-
-  private def whileStmt(
-      ctx: GeneratorContext,
-      test: Expression,
-      body: Seq[Statement],
-      orElse: Seq[Statement]): Python = {
-    val bodyStr = body map generate(ctx.nest, _)
-    val orElseStr = orElse map generate(ctx.nest, _)
-    py"while ${exprs.generate(ctx, test)}:\n$bodyStr\n$orElseStr"
-  }
-
-  private def forStmt(
-      ctx: GeneratorContext,
-      target: Expression,
-      iter: Expression,
-      body: Seq[Statement],
-      orElse: Seq[Statement]): Python = {
-    val bodyStr = body map generate(ctx.nest, _)
-    val orElseStr = orElse map generate(ctx.nest, _)
-    py"for ${exprs.generate(ctx, target)} in ${exprs.generate(ctx, iter)}:\n$bodyStr\n$orElseStr"
-  }
-
-  private def classDef(
-      ctx: GeneratorContext,
-      name: ir.Name,
-      bases: Seq[ir.Expression],
-      children: Seq[Statement],
-      deco: Seq[ir.Expression]): Python = {
-    val extend = bases.map(exprs.generate(ctx, _)).maybeMkPython("(", ", ", ")")
-    val members = children map generate(ctx.nest, _)
-    py"${decorators(ctx, deco)}class $name$extend:\n$members"
-  }
-
-  private def functionDef(
-      ctx: GeneratorContext,
-      name: ir.Name,
-      args: Arguments,
-      children: Seq[Statement],
-      deco: Seq[ir.Expression]): Python = {
-    val decoratorsStr = decorators(ctx, deco)
-    val childrenStr = children map py"${generate(ctx.nest, _)}"
-    py"${decoratorsStr}def $name(${exprs.arguments(ctx, args)}):\n$childrenStr"
-  }
-
-  private def decorators(ctx: GeneratorContext, decorators: Seq[Expression]): Python = {
-    decorators map py"@${exprs.generate(ctx, _)}\n"
+  private def parents(ctx: GeneratorContext, names: Seq[Expression]): Python = names match {
+    case Nil => py""
+    case some => py"(${exprs.commas(ctx, some)})"
   }
 }

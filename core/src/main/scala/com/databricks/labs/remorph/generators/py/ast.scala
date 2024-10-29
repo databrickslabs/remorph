@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.py
 
-import com.databricks.labs.remorph.intermediate.{Binary, DataType, Expression, Name, Plan, StringType, TreeNode, UnresolvedType, Attribute => IRAttribute}
+import com.databricks.labs.remorph.intermediate.{Binary, DataType, Expression, Name, Plan, StringType, UnresolvedType, Attribute => IRAttribute}
 
 // this is a subset of https://docs.python.org/3/library/ast.html
 
@@ -12,6 +12,7 @@ abstract class LeafStatement extends Statement {
   override final def children: Seq[Statement] = Nil
 }
 
+// see https://docs.python.org/3/library/ast.html#ast.Module
 case class Module(children: Seq[Statement]) extends Statement
 
 case class Arguments(
@@ -27,60 +28,78 @@ case class Keyword(arg: Name, value: Expression) extends Binary(arg, value) {
   override def dataType: DataType = UnresolvedType
 }
 
-case class FunctionDef(name: Name, args: Arguments, children: Seq[Statement], decorators: Seq[Expression] = Seq.empty)
+case class Decorator(expr: Expression) extends LeafStatement
+
+// see https://docs.python.org/3/library/ast.html#ast.FunctionDef
+case class FunctionDef(name: Name, args: Arguments, children: Seq[Statement], decorators: Seq[Decorator] = Seq.empty)
     extends Statement
 
+// see https://docs.python.org/3/library/ast.html#ast.ClassDef
 case class ClassDef(
     name: Name,
     bases: Seq[Expression] = Seq.empty,
     children: Seq[Statement] = Seq.empty,
-    decorators: Seq[Expression] = Seq.empty)
+    decorators: Seq[Decorator] = Seq.empty)
     extends Statement
 
 case class Return(value: Option[Expression] = None) extends LeafStatement
 case class Delete(targets: Seq[Expression]) extends LeafStatement
 case class Assign(targets: Seq[Expression], value: Expression) extends LeafStatement
 
-case class For(target: Expression, iter: Expression, body: Seq[Statement], orElse: Seq[Statement] = Seq.empty)
-    extends Statement {
+// see https://docs.python.org/3/library/ast.html#ast.For
+case class For(
+    target: Expression,
+    iter: Expression,
+    body: Seq[Statement],
+    orElse: Seq[Statement] = Seq.empty
+) extends Statement {
   override def children: Seq[Statement] = body ++ orElse
 }
 
+// see https://docs.python.org/3/library/ast.html#ast.While
 case class While(test: Expression, body: Seq[Statement], orElse: Seq[Statement] = Seq.empty) extends Statement {
   override def children: Seq[Statement] = body ++ orElse
 }
 
+// see https://docs.python.org/3/library/ast.html#ast.If
 case class If(test: Expression, body: Seq[Statement], orElse: Seq[Statement] = Seq.empty) extends Statement {
   override def children: Seq[Statement] = body ++ orElse
 }
 
-case class With(context: Expression, vars: Option[Expression] = None, children: Seq[Statement]) extends Statement
-
-case class Raise(
-    typeName: Option[Expression] = None,
-    instance: Option[Expression] = None,
-    traceback: Option[Expression] = None)
-    extends LeafStatement
-
-case class TryExcept(body: Seq[Statement], handlers: Seq[ExceptHandler], orElse: Seq[Statement] = Seq.empty)
-    extends Statement {
-  override def children: Seq[Statement] = body ++ handlers ++ orElse
+// see https://docs.python.org/3/library/ast.html#ast.With
+case class With(context: Seq[Alias], body: Seq[Statement]) extends Statement {
+  override def children: Seq[Statement] = context ++ body
 }
 
-case class ExceptHandler(expr: Option[Expression] = None, name: Option[Name] = None, children: Seq[Statement])
-    extends Statement
+// see https://docs.python.org/3/library/ast.html#ast.Raise
+case class Raise(exc: Option[Expression] = None, cause: Option[Expression] = None) extends LeafStatement
 
-case class TryFinally(body: Seq[Statement], finallyBody: Seq[Statement]) extends Statement {
-  override def children: Seq[Statement] = body ++ finallyBody
+// see https://docs.python.org/3/library/ast.html#ast.Try
+case class Try(
+  body: Seq[Statement],
+  handlers: Seq[Except] = Seq.empty,
+  orElse: Seq[Statement] = Seq.empty,
+  orFinally: Seq[Statement] = Seq.empty
+) extends Statement {
+  override def children: Seq[Statement] = body ++ handlers ++ orElse ++ orFinally
 }
 
+// see https://docs.python.org/3/library/ast.html#ast.ExceptHandler
+case class Except(exception: Option[Alias] = None, children: Seq[Statement]) extends Statement
+
+// see https://docs.python.org/3/library/ast.html#ast.Assert
 case class Assert(test: Expression, msg: Option[Expression] = None) extends LeafStatement
 
-case class ImportAlias(name: Name, alias: Option[Name] = None)
-case class Import(names: Seq[ImportAlias]) extends LeafStatement
-case class ImportFrom(module: Option[Name], names: Seq[ImportAlias] = Seq.empty, level: Option[Int] = None)
+case class Alias(name: Expression, alias: Option[Name] = None) extends LeafStatement
+
+// see https://docs.python.org/3/library/ast.html#ast.Import
+case class Import(names: Seq[Alias]) extends LeafStatement
+
+// see https://docs.python.org/3/library/ast.html#ast.ImportFrom
+case class ImportFrom(module: Option[Name], names: Seq[Alias] = Seq.empty, level: Option[Int] = None)
     extends LeafStatement
 
+// see https://docs.python.org/3/library/ast.html#ast.Global
 case class Global(names: Seq[Name]) extends LeafStatement
 
 case object Pass extends LeafStatement

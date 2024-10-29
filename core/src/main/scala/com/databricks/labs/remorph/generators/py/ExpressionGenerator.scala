@@ -4,14 +4,7 @@ import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.intermediate.Expression
 import com.databricks.labs.remorph.{OkResult, intermediate => ir}
 
-import java.util.Locale
-
 class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
-
-  def many(ctx: GeneratorContext, expressions: Seq[ir.Expression]): Python = {
-    expressions.map(generate(ctx, _)).mkPython(", ")
-  }
-
   override def generate(ctx: GeneratorContext, tree: Expression): Python = expression(ctx, tree)
 
   private def expression(ctx: GeneratorContext, expr: ir.Expression): Python = expr match {
@@ -22,62 +15,78 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     case c: Call => call(ctx, c)
     case d: Dict => dict(ctx, d)
     case s: Slice => slice(ctx, s)
-    case GeneratorExp(elt, generators) => comp(ctx, expression(ctx, elt), generators)
-    case ListComp(elt, generators) => py"[${comp(ctx, expression(ctx, elt), generators)}]"
-    case SetComp(elt, generators) => py"{${comp(ctx, expression(ctx, elt), generators)}}"
-    case DictComp(key, value, generators) =>
-      py"{${comp(ctx, py"${generate(ctx, key)} : ${generate(ctx, value)}", generators)}}"
+    case Comprehension(target, iter, ifs) => comprehension(ctx, target, iter, ifs)
+    case GeneratorExp(elt, gens) => py"${expression(ctx, elt)} ${spaces(ctx, gens)}"
+    case ListComp(elt, gens) => py"[${expression(ctx, elt)} ${spaces(ctx, gens)}]"
+    case SetComp(elt, gens) => py"{${expression(ctx, elt)} ${spaces(ctx, gens)}}"
+    case DictComp(key, value, gens) => py"{${generate(ctx, key)}: ${generate(ctx, value)} ${spaces(ctx, gens)}}"
     case IfExp(test, body, orElse) => ifExpr(ctx, test, body, orElse)
     case Lambda(args, body) => py"lambda ${arguments(ctx, args)}: ${expression(ctx, body)}"
-    case Tuple(elements, _) => py"(${elements.map(expression(ctx, _)).mkPython(", ")},)"
-    case Attribute(value, attr, _) => py"${expression(ctx, value)}.$attr"
+    case Tuple(elements, _) => py"(${commas(ctx, elements)},)"
+    case Attribute(value, ir.Name(attr), _) => py"${expression(ctx, value)}.$attr"
     case Subscript(value, index, _) => py"${expression(ctx, value)}[${expression(ctx, index)}]"
-    case List(elements, _) => py"[${elements.map(expression(ctx, _)).mkPython(", ")}]"
-    case Set(elements) => py"{${elements.map(expression(ctx, _)).mkPython(", ")}}"
+    case List(elements, _) => py"[${commas(ctx, elements)}]"
+    case Set(Nil) => py"set()"
+    case Set(elements) => py"{${commas(ctx, elements)}}"
     case _ => partialResult(expr)
   }
 
-  private def comp(ctx: GeneratorContext, elt: Python, generators: Seq[Comprehension]): Python = {
-    val comps = generators.map { comp =>
-      val ifs = comp.ifs.map(expression(ctx, _)).mkPython(" and ")
-      py"for ${expression(ctx, comp.target)} in ${expression(ctx, comp.iter)} if $ifs"
-    }
-    py"$elt for ${comps.mkPython(", ")}"
+  def spaces(ctx: GeneratorContext, expressions: Seq[ir.Expression]): Python = {
+    expressions.map(expression(ctx, _)).mkPython(" ")
   }
 
-  private def ifExpr(ctx: GeneratorContext, test: Expression, body: Expression, orelse: Expression) = {
+  private def comprehension(
+     ctx: GeneratorContext,
+     target: Expression,
+     iter: Expression,
+     ifs: Seq[Expression]
+  ): Python = {
+    val ifsExpr = ifs.map(expression(ctx, _)).mkPython(" and ")
+    val base = py"for ${expression(ctx, target)} in ${expression(ctx, iter)}"
+    if (ifsExpr.isEmpty) {
+      base
+    } else {
+      py"$base if $ifsExpr"
+    }
+  }
+
+  private def ifExpr(ctx: GeneratorContext, test: Expression, body: Expression, orelse: Expression): Python = {
     py"${expression(ctx, body)} if ${expression(ctx, test)} else ${expression(ctx, orelse)}"
   }
 
   def arguments(ctx: GeneratorContext, arguments: Arguments): Python = {
-    OkResult(
-      Seq( // TODO: add support for defaults
-        Some(arguments.args.map(generate(ctx, _)).mkPython(", ")),
-        arguments.vararg map py"*${generate(ctx, _)}",
-        arguments.kwargs map py"**${generate(ctx, _)}").filter(_.nonEmpty).mkString(", "))
+    // TODO: add support for defaults
+    val positional = arguments.args match {
+      case Nil => None
+      case some => Some(commas(ctx, some))
+    }
+    val args = arguments.vararg map { case ir.Name(name) => py"*$name" }
+    val kwargs = arguments.kwargs map { case ir.Name(name) => py"**$name" }
+    val argumentLists = Seq(positional, args, kwargs).filter(_.nonEmpty).map(_.get)
+    argumentLists.mkPython(", ")
   }
 
-  private def slice(ctx: GeneratorContext, s: Slice) = s match {
+  private def slice(ctx: GeneratorContext, s: Slice): Python = s match {
     case Slice(None, None, None) => py":"
     case Slice(Some(lower), None, None) => py"${expression(ctx, lower)}:"
     case Slice(None, Some(upper), None) => py":${expression(ctx, upper)}"
     case Slice(Some(lower), Some(upper), None) => py"${expression(ctx, lower)}:${expression(ctx, upper)}"
-    case Slice(None, None, Some(step)) => py"::$step"
-    case Slice(Some(lower), None, Some(step)) => py"${expression(ctx, lower)}::$step"
-    case Slice(None, Some(upper), Some(step)) => py":${expression(ctx, upper)}:$step"
-    case Slice(Some(lower), Some(upper), Some(step)) => py"${expression(ctx, lower)}:${expression(ctx, upper)}:$step"
+    case Slice(None, None, Some(step)) => py"::${expression(ctx, step)}"
+    case Slice(Some(lower), None, Some(step)) => py"${expression(ctx, lower)}::${expression(ctx, step)}"
+    case Slice(None, Some(upper), Some(step)) => py":${expression(ctx, upper)}:${expression(ctx, step)}"
+    case Slice(Some(lower), Some(upper), Some(step)) =>
+      py"${expression(ctx, lower)}:${expression(ctx, upper)}:${expression(ctx, step)}"
   }
 
-  private def dict(ctx: GeneratorContext, d: Dict) = {
-    val pairs = d.keys.zip(d.values).map { case (k, v) =>
+  private def dict(ctx: GeneratorContext, d: Dict): Python = {
+    d.keys.zip(d.values).map { case (k, v) =>
       py"${expression(ctx, k)}: ${expression(ctx, v)}"
-    }
-    py"{${pairs.mkPython(", ")}}"
+    } mkPython("{", ", ", "}")
   }
 
-  private def call(ctx: GeneratorContext, c: Call) = {
+  private def call(ctx: GeneratorContext, c: Call): Python = {
     val args = c.args.map(expression(ctx, _))
-    val kwargs = c.keywords.map { case Keyword(k, v) => py"$k=${expression(ctx, v)}" }
+    val kwargs = c.keywords.map { case Keyword(k, v) => py"${expression(ctx, k)}=${expression(ctx, v)}" }
     py"${expression(ctx, c.func)}(${(args ++ kwargs).mkPython(", ")})"
   }
 
@@ -91,10 +100,12 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     case ir.Subtract(left, right) => py"${expression(ctx, left)} - ${expression(ctx, right)}"
   }
 
-  // TODO: ir.And && ir.Or should be in PySparkExpressions
+  // see com.databricks.labs.remorph.generators.py.rules.AndOrToBitwise
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): Python = expr match {
-    case ir.And(left, right) => py"${expression(ctx, left)} & ${expression(ctx, right)}"
-    case ir.Or(left, right) => py"${expression(ctx, left)} | ${expression(ctx, right)}"
+    case ir.BitwiseOr(left, right) => py"${expression(ctx, left)} | ${expression(ctx, right)}"
+    case ir.BitwiseAnd(left, right) => py"${expression(ctx, left)} & ${expression(ctx, right)}"
+    case ir.And(left, right) => py"${expression(ctx, left)} and ${expression(ctx, right)}"
+    case ir.Or(left, right) => py"${expression(ctx, left)} or ${expression(ctx, right)}"
     case ir.Not(child) => py"~(${expression(ctx, child)})"
     case ir.Equals(left, right) => py"${expression(ctx, left)} == ${expression(ctx, right)}"
     case ir.NotEquals(left, right) => py"${expression(ctx, left)} != ${expression(ctx, right)}"
@@ -108,7 +119,8 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
   private def literal(ctx: GeneratorContext, l: ir.Literal): Python = l match {
     case ir.Literal(_, ir.NullType) => py"None"
     case ir.Literal(bytes: Array[Byte], ir.BinaryType) => OkResult(bytes.map("%02X" format _).mkString)
-    case ir.Literal(value, ir.BooleanType) => OkResult(value.toString.toLowerCase(Locale.getDefault))
+    case ir.Literal(true, ir.BooleanType) => py"True"
+    case ir.Literal(false, ir.BooleanType) => py"False"
     case ir.Literal(value, ir.ShortType) => OkResult(value.toString)
     case ir.IntLiteral(value) => OkResult(value.toString)
     case ir.Literal(value, ir.LongType) => OkResult(value.toString)

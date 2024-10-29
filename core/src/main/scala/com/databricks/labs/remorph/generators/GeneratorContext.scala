@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.generators
 import com.databricks.labs.remorph.{intermediate => ir}
 
 case class GeneratorContext(
+    // needed for sql"EXISTS (${ctx.logical.generate(ctx, subquery)})" in SQLGenerator
     logical: Generator[ir.LogicalPlan, String],
     maxLineWidth: Int = 120,
     private val indent: Int = 0,

@@ -23,10 +23,10 @@ class ImportClasses extends ir.Rule[py.Statement] {
       children map { statement =>
         statement transformAllExpressions {
           case ImportAliasSideEffect(expr, module, alias) =>
-            imports = imports :+ py.Import(Seq(py.ImportAlias(ir.Name(module), alias.map(ir.Name))))
+            imports = imports :+ py.Import(Seq(py.Alias(ir.Name(module), alias.map(ir.Name))))
             expr
           case ImportClassSideEffect(expr, module, klass) =>
-            importsFrom = importsFrom :+ py.ImportFrom(Some(ir.Name(module)), Seq(py.ImportAlias(ir.Name(klass))))
+            importsFrom = importsFrom :+ py.ImportFrom(Some(ir.Name(module)), Seq(py.Alias(ir.Name(klass))))
             expr
         }
       }

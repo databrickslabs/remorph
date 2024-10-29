@@ -2,29 +2,34 @@ package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.{KoResult, WorkflowStage}
 import com.databricks.labs.remorph.generators.GeneratorContext
-import org.json4s.{Formats, NoTypeHints}
-import org.json4s.jackson.Serialization
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.generators.py
-import com.databricks.labs.remorph.generators.py.{ExpressionGenerator, Python, StatementGenerator}
-import com.databricks.labs.remorph.generators.py.rules.{ImportClasses, PySparkExpressions, PySparkStatements}
+import com.databricks.labs.remorph.generators.py.rules.{AndOrToBitwise, ImportClasses, PySparkExpressions, PySparkStatements}
+import org.json4s.{Formats, NoTypeHints}
+import org.json4s.jackson.Serialization
 
 import scala.util.control.NonFatal
 
 class PySparkGenerator {
-  private val exprGenerator = new ExpressionGenerator
-  private val generator = new StatementGenerator
+  private val exprGenerator = new py.ExpressionGenerator
+  private val stmtGenerator = new py.StatementGenerator(exprGenerator)
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  private def optimizer: ir.Rules[ir.LogicalPlan] = {
-    val expressions = new PySparkExpressions
-    ir.Rules(expressions, new PySparkStatements(expressions), new ImportClasses)
-  }
+  private val pySparkExpressions = new PySparkExpressions
 
-  def generate(optimizedLogicalPlan: ir.LogicalPlan): Python = {
+  private val expressionRules = ir.Rules(pySparkExpressions, new AndOrToBitwise)
+  private val statementRules = ir.Rules(new PySparkStatements(pySparkExpressions), new ImportClasses)
+
+  def generate(optimizedLogicalPlan: ir.LogicalPlan): py.Python = {
     try {
-      generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
+      val generatorContext = GeneratorContext(new py.LogicalPlanGenerator)
+      val withShims = PySparkStatements(optimizedLogicalPlan)
+      val withExpressions = withShims transformAllExpressions {
+        case expr: ir.Expression => expressionRules(expr)
+      }
+      val statements = statementRules(withExpressions)
+      stmtGenerator.generate(generatorContext, statements)
     } catch {
       case NonFatal(e) =>
         KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e))

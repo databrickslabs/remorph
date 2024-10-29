@@ -49,12 +49,13 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
   }
 
   private def sortOrder(order: ir.SortOrder): ir.Expression = order match {
-    case ir.SortOrder(col, ir.Ascending, ir.SortNullsUnspecified) => methodOf(apply(col), "asc", Seq())
     case ir.SortOrder(col, ir.Ascending, ir.NullsFirst) => methodOf(apply(col), "asc_nulls_first", Seq())
     case ir.SortOrder(col, ir.Ascending, ir.NullsLast) => methodOf(apply(col), "asc_nulls_last", Seq())
-    case ir.SortOrder(col, ir.Descending, ir.SortNullsUnspecified) => methodOf(apply(col), "desc", Seq())
+    case ir.SortOrder(col, ir.Ascending, _) => methodOf(apply(col), "asc", Seq())
     case ir.SortOrder(col, ir.Descending, ir.NullsFirst) => methodOf(apply(col), "desc_nulls_first", Seq())
     case ir.SortOrder(col, ir.Descending, ir.NullsLast) => methodOf(apply(col), "desc_nulls_last", Seq())
+    case ir.SortOrder(col, ir.Descending, _) => methodOf(apply(col), "desc", Seq())
+    case ir.SortOrder(col, _, _) => apply(col)
   }
 
   private def window(w: ir.Window): ir.Expression = {
@@ -74,14 +75,12 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
     ImportClassSideEffect(windowSpec, module = "pyspark.sql.window", klass = "Window")
   }
 
-  private def windowFrame(windowSpec: ir.Expression, frame: ir.WindowFrame) = {
-    frame match {
-      case ir.WindowFrame(ir.UndefinedFrame, _, _) => windowSpec
-      case ir.WindowFrame(ir.RangeFrame, left, right) =>
-        methodOf(windowSpec, "rangeBetween", Seq(frameBoundary(left), frameBoundary(right)))
-      case ir.WindowFrame(ir.RowsFrame, left, right) =>
-        methodOf(windowSpec, "rowsBetween", Seq(frameBoundary(left), frameBoundary(right)))
-    }
+  private def windowFrame(windowSpec: ir.Expression, frame: ir.WindowFrame): ir.Expression = frame match {
+    case ir.WindowFrame(ir.RangeFrame, left, right) =>
+      methodOf(windowSpec, "rangeBetween", Seq(frameBoundary(left), frameBoundary(right)))
+    case ir.WindowFrame(ir.RowsFrame, left, right) =>
+      methodOf(windowSpec, "rowsBetween", Seq(frameBoundary(left), frameBoundary(right)))
+    case _ => windowSpec
   }
 
   private def frameBoundary(boundary: ir.FrameBoundary): ir.Expression = boundary match {
