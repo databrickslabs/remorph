@@ -239,12 +239,12 @@ class LogicalPlanGenerator(
     }
 
     // Don't put commas after unresolved expressions as they are error comments only
-    val generatedExpressions = proj.expressions.map { exp: ir.Expression => expr.generate(ctx, exp) -> exp }
-    val sqlParts = generatedExpressions
+    val sqlParts = proj.expressions
       .map {
-        case (OkResult(sqlStr), exp) if !exp.isInstanceOf[ir.Unresolved[_]] => s"$sqlStr, "
-        case (OkResult(sqlStr), _) => sqlStr
+        case u: ir.Unresolved[_] => expr.generate(ctx, u)
+        case exp: ir.Expression => expr.generate(ctx, exp).map(_ + ", ")
       }
+      .collect { case OkResult(sqlStr) => sqlStr }
       .mkString
       .stripSuffix(", ")
 
