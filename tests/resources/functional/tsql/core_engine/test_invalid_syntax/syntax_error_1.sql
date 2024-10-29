@@ -6,7 +6,7 @@ select col1,, col2 from table_name;
 
 -- databricks sql:
 SELECT
-    col1,
+  col1,
 /* The following issues were detected:
 
    Unparsed input - ErrorNode encountered
@@ -14,5 +14,6 @@ SELECT
     expecting one of: $Currency, 'String', @@Reference, @Local, Float, Identifier, Integer, Operator, Real, '$ACTION', '$NODE_ID', '$PARTITION'...
     Unparsable text: ,
  */
+  col2
 FROM
     table_name;
