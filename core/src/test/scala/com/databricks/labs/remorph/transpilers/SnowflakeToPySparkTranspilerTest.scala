@@ -9,7 +9,8 @@ class SnowflakeToPySparkTranspilerTest extends AnyWordSpec with TranspilerTestCo
   private val formatter = new RuffFormatter
   override def format(input: String): String = formatter.format(input) match {
     case OkResult(formatted) => formatted
-    case KoResult(_, error) => throw new RuntimeException(error.msg)
+    case KoResult(_, error) => fail(error.msg)
+    case PartialResult(output, error) => fail(s"Partial result: $output, error: $error")
   }
 
   "Snowflake SQL" should {

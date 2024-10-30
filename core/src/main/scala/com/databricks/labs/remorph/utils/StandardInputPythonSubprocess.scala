@@ -47,7 +47,7 @@ class StandardInputPythonSubprocess(passArgs: String) {
   private def getEffectivePythonBin: String = {
     sys.env.getOrElse(
       "PYTHON_BIN", {
-        val projectRoot = findLabsYmlFolderIn(new File("."))
+        val projectRoot = findLabsYmlFolderIn(new File(System.getProperty("user.dir")))
         val venvPython = new File(projectRoot, ".venv/bin/python")
         venvPython.getAbsolutePath
       })
