@@ -8,6 +8,7 @@ object WorkflowStage {
   case object PLAN extends WorkflowStage
   case object OPTIMIZE extends WorkflowStage
   case object GENERATE extends WorkflowStage
+  case object FORMAT extends WorkflowStage
 }
 
 sealed trait Result[+A] {

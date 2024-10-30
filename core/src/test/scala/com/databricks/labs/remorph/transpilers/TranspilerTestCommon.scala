@@ -9,14 +9,10 @@ trait TranspilerTestCommon extends Matchers with Formatter {
 
   protected def transpiler: Transpiler
 
-  protected def reformat = true
-
-  private def formatResult(result: String): String = if (reformat) format(result) else result
-
   implicit class TranspilerTestOps(input: String) {
     def transpilesTo(expectedOutput: String): Assertion = {
       transpiler.transpile(SourceCode(input)) match {
-        case OkResult(output) => formatResult(output) shouldBe formatResult(expectedOutput)
+        case OkResult(output) => format(output) shouldBe format(expectedOutput)
         case PartialResult(_, err) => fail(write(err))
         case KoResult(_, err) => fail(write(err))
       }
