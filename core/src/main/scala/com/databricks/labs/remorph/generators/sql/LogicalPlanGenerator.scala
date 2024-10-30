@@ -60,10 +60,12 @@ class LogicalPlanGenerator(
   private def batch(ctx: GeneratorContext, b: ir.Batch): TBA[RemorphContext, String] = {
     val seqSql = b.children.map(generate(ctx, _)).sequence
     seqSql.map { seq =>
-      seq.map { elem =>
-        if (!elem.endsWith("*/")) s"$elem;"
-        else elem
-      }.mkString("\n")
+      seq
+        .map { elem =>
+          if (!elem.endsWith("*/")) s"$elem;"
+          else elem
+        }
+        .mkString("\n")
     }
   }
 

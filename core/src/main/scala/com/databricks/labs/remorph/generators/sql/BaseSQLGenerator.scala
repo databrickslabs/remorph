@@ -6,8 +6,9 @@ import com.databricks.labs.remorph.{PartialResult, intermediate => ir}
 
 abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String] {
   def partialResult(tree: In): SQL = partialResult(tree, UnexpectedNode(tree.toString))
-  def partialResult(trees: Seq[Any], err: RemorphError): SQL = PartialResult(s"!!! ${trees.mkString(" | ")} !!!", err)
-  def partialResult(tree: Any, err: RemorphError): SQL = PartialResult(s"!!! $tree !!!", err)
+  def partialResult(trees: Seq[Any], err: RemorphError): SQL = lift(
+    PartialResult(s"!!! ${trees.mkString(" | ")} !!!", err))
+  def partialResult(tree: Any, err: RemorphError): SQL = lift(PartialResult(s"!!! $tree !!!", err))
 
   /**
    * Generate an inline comment that describes the error that was detected in the unresolved relation,
@@ -37,7 +38,6 @@ abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String
           }
           .mkString("   ", "\n    ", "")
 
-    val x = sql"/* The following issues were detected:\n\n$message\n$ruleText\n */"
-    x
+    sql"/* The following issues were detected:\n\n$message\n$ruleText\n */"
   }
 }

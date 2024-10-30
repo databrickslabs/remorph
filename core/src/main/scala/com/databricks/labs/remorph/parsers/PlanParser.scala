@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
 import com.databricks.labs.remorph.transpilers.SourceCode
-import com.databricks.labs.remorph.{KoResult, OkResult, Optimized, Parsed, Sources, RemorphContext, TBA, TBAS, Ast, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{Ast, KoResult, OkResult, Optimized, Parsed, PartialResult, RemorphContext, Sources, TBA, TBAS, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
