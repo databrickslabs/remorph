@@ -14,7 +14,7 @@ class SnowflakeToPySparkTranspilerTest extends AnyWordSpec with TranspilerTestCo
          |FROM t1;""".stripMargin transpilesTo
         """import pyspark.sql.functions as F
           |from pyspark.sql.window import Window
-          |spark.table('t1').select(Window.partitionBy(F.col('t1.c2')).orderBy(F.col('t1.c3').desc_nulls_first()).rangeBetween(Window.unboundedPreceding, Window.currentRow).alias('dc4'))
+          |spark.table('t1').select(F.last(F.col('c1')).over(Window.partitionBy(F.col('t1.c2')).orderBy(F.col('t1.c3').desc_nulls_first()).rangeBetween(Window.unboundedPreceding, Window.currentRow)).alias('dc4'))
           |""".stripMargin
     }
   }
