@@ -821,14 +821,14 @@ class Reconciliation:
                 table=table_conf.source_name,
                 query=source_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).first()[0]
             target_count = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
                 query=target_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).first()[0]
 
             return ReconcileRecordCount(source=int(source_count), target=int(target_count))
         return ReconcileRecordCount()
@@ -840,7 +840,6 @@ def _get_schema(
     table_conf: Table,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
-
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,
@@ -851,9 +850,7 @@ def _get_schema(
         schema=database_config.target_schema,
         table=table_conf.target_name,
     )
-    logger.info(f"Source Schema {src_schema}")
 
-    logger.info(f"Target Schema {tgt_schema}")
     return src_schema, tgt_schema
 
 
