@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
+import com.databricks.labs.remorph.generators.GeneratorTestCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 

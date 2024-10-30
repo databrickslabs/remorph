@@ -55,9 +55,9 @@ class SnowflakeCommandBuilderSpec
     "LET X := 1;" in {
       example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(1)))
     }
-    "select_statement := 'SELECT * FROM table WHERE id = ' || id;" in {
+    "LET select_statement := 'SELECT * FROM table WHERE id = ' || id;" in {
       example(
-        "select_statement := 'SELECT * FROM table WHERE id = ' || id;",
+        "LET select_statement := 'SELECT * FROM table WHERE id = ' || id;",
         _.let(),
         SetVariable(
           name = Id("select_statement"),

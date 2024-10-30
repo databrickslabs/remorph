@@ -35,10 +35,10 @@ options {
     tokenVocab = SnowflakeLexer;
 }
 
-snowflakeFile: batch? EOF
+snowflakeFile: SEMI* batch? EOF
     ;
 
-batch: sqlCommand (SEMI* sqlCommand)* SEMI*
+batch: (sqlCommand SEMI*)+
     ;
 
 sqlCommand
@@ -235,8 +235,8 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
 
 let
     // variable and resultset are covered under the same visitor since expr is common
-    : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
-    | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
+    : LET id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
+    | LET id CURSOR FOR (selectStatement | id) SEMI               # letCursor
     ;
 
 returnStatement: RETURN expr SEMI

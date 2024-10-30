@@ -20,22 +20,6 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
 
   // Concrete visitors..
 
-  override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case c if c.asterisk() != null => c.asterisk().accept(this)
-        case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
-        case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
-        case _ =>
-          ir.UnresolvedExpression(
-            ruleText = contextText(ctx),
-            message = s"Unsupported select list element",
-            ruleName = "expression",
-            tokenName = Some(tokenName(ctx.getStart)))
-      }
-  }
-
   override def visitOptionClause(ctx: TSqlParser.OptionClauseContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
@@ -76,6 +60,27 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
       ctx.searchCondition().accept(this)
     // TODO: TSQL also supports updates via cursor traversal, which is not supported in Databricks SQL
     //       generate UnresolvedExpression
+  }
+
+  private[tsql] def buildSelectListElem(ctx: TSqlParser.SelectListElemContext): Seq[ir.Expression] = {
+
+    // If this node has an error such as an extra comma, then don't discard it, prefix it with the errorNode
+    val errors = errorCheck(ctx)
+    val elem = ctx match {
+      case c if c.asterisk() != null => c.asterisk().accept(this)
+      case c if c.LOCAL_ID() != null => vc.expressionBuilder.buildLocalAssign(ctx)
+      case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
+      case _ =>
+        ir.UnresolvedExpression(
+          ruleText = contextText(ctx),
+          message = s"Unsupported select list element",
+          ruleName = "expression",
+          tokenName = Some(tokenName(ctx.getStart)))
+    }
+    errors match {
+      case Some(errorResult) => Seq(errorResult, elem)
+      case None => Seq(elem)
+    }
   }
 
   /**
