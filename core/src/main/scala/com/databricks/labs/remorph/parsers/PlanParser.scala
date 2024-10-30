@@ -1,16 +1,14 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
-import com.databricks.labs.remorph.transpilers.SourceCode
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Result, WorkflowStage, intermediate => ir}
-import com.databricks.labs.remorph.transpilers.SourceCode
+import com.databricks.labs.remorph.{Ast, KoResult, OkResult, Optimized, Parsed, PartialResult, Phase, SourceCode, Transformation, TransformationConstructors, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 
-trait PlanParser[P <: Parser] {
+trait PlanParser[P <: Parser] extends TransformationConstructors[Phase] {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
@@ -29,7 +27,7 @@ trait PlanParser[P <: Parser] {
    * @param input The source code with filename
    * @return Returns a parse tree on success otherwise a description of the errors
    */
-  def parse(input: SourceCode): Result[ParserRuleContext] = {
+  def parse(input: SourceCode): Transformation[Phase, ParserRuleContext] = {
     val inputString = CharStreams.fromString(input.source)
     val lexer = createLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -38,12 +36,21 @@ trait PlanParser[P <: Parser] {
     val errListener = new ProductionErrorCollector(input.source, input.filename)
     parser.removeErrorListeners()
     parser.addErrorListener(errListener)
-    val tree = createTree(parser)
-    if (errListener.errorCount > 0) {
-      PartialResult(tree, ParsingErrors(errListener.errors))
-    } else {
-      OkResult(tree)
-    }
+
+    for {
+      t <- {
+        val tree = createTree(parser)
+        if (errListener.errorCount > 0) {
+          lift(PartialResult(tree, ParsingErrors(errListener.errors)))
+        } else {
+          lift(OkResult(tree))
+        }
+      }
+      _ <- update { case r: SourceCode =>
+        Parsed(t, Some(r))
+      }
+    } yield t
+
   }
 
   /**
@@ -51,13 +58,17 @@ trait PlanParser[P <: Parser] {
    * @param tree The parse tree
    * @return Returns a logical plan on success otherwise a description of the errors
    */
-  def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
+  def visit(tree: ParserRuleContext): Transformation[Phase, ir.LogicalPlan] = {
     try {
-      val plan = createPlan(tree)
-      OkResult(plan)
+      for {
+        plan <- ok(createPlan(tree))
+        _ <- update { case p: Parsed =>
+          Ast(plan, Some(p))
+        }
+      } yield plan
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e))
+        lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
     }
   }
 
@@ -68,13 +79,17 @@ trait PlanParser[P <: Parser] {
    * @param logicalPlan The logical plan
    * @return Returns an optimized logical plan on success otherwise a description of the errors
    */
-  def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
+  def optimize(logicalPlan: ir.LogicalPlan): Transformation[Phase, ir.LogicalPlan] = {
     try {
-      val plan = createOptimizer.apply(logicalPlan)
-      OkResult(plan)
+      for {
+        plan <- ok(createOptimizer.apply(logicalPlan))
+        _ <- update { case a: Ast =>
+          Optimized(plan, Some(a))
+        }
+      } yield plan
     } catch {
       case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e))
+        lift(KoResult(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e)))
     }
   }
 }

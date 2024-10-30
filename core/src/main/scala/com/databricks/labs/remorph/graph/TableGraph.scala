@@ -2,9 +2,8 @@ package com.databricks.labs.remorph.graph
 
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, TableDefinition}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.transpilers.SourceCode
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, SourceCode, intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table
@@ -108,17 +107,17 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       try {
-        val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
+        val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(SourceCode(query.source))
         plan match {
           case KoResult(_, error) =>
             logger.warn(s"Failed to produce plan from query: ${query.id}")
             logger.debug(s"Error: ${error.msg}")
-          case PartialResult(p, error) =>
+          case PartialResult((_, p), error) =>
             logger.warn(s"Errors occurred while producing plan from query ${query.id}")
             logger.debug(s"Error: ${error.msg}")
             buildNode(p, tableDefinition, query)
             generateEdges(p, tableDefinition, query.id)
-          case OkResult(p) =>
+          case OkResult((_, p)) =>
             buildNode(p, tableDefinition, query)
             generateEdges(p, tableDefinition, query.id)
         }

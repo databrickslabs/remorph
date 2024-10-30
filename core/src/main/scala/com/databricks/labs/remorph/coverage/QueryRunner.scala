@@ -3,8 +3,10 @@ package com.databricks.labs.remorph.coverage
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.{RemorphError, UnexpectedOutput}
 import com.databricks.labs.remorph.queries.ExampleQuery
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, SourceCode}
+import com.databricks.labs.remorph.WorkflowStage.PARSE
+import com.databricks.labs.remorph.intermediate.UnexpectedOutput
 import com.databricks.labs.remorph.transpilers._
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult}
 
 trait QueryRunner extends Formatter {
   def runQuery(exampleQuery: ExampleQuery): ReportEntryReport
@@ -30,8 +32,7 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
   }
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
-    val x = transpiler.transpile(SourceCode(exampleQuery.query))
-    x match {
+    transpiler.transpile(SourceCode(exampleQuery.query)).runAndDiscardState(SourceCode(exampleQuery.query)) match {
       case KoResult(PARSE, error) => ReportEntryReport(statements = 1, parsing_error = Some(error))
       case KoResult(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly
