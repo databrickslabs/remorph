@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, GeneratorTestCommon}
+import com.databricks.labs.remorph.generators.GeneratorTestCommon
+import com.databricks.labs.remorph.generators.sql.ExpressionGenerator
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
