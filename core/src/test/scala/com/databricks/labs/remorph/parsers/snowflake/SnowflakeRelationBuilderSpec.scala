@@ -248,7 +248,7 @@ class SnowflakeRelationBuilderSpec
               window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Id("p")),
               sort_order = Seq(SortOrder(Id("o"), Ascending, NullsLast)),
-              frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))),
+              frame_spec = None),
             Literal(1))))
     }
 
