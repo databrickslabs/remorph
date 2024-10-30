@@ -257,9 +257,7 @@ Dialect_hash_algo_mapping: dict[Dialect, HashAlgoMapping] = {
         target=sha256_partial,
     ),
     get_dialect("oracle"): HashAlgoMapping(
-        source=partial(
-            anonymous, func="RAWTOHEX(DBMS_CRYPTO.HASH(UTL_RAW.CAST_TO_RAW({}), DBMS_CRYPTO.HASH_MD5))", is_expr=True
-        ),
+        source=partial(anonymous, func="DBMS_CRYPTO.HASH(RAWTOHEX({}), 2)", is_expr=True),
         target=md5_partial,
     ),
     get_dialect("databricks"): HashAlgoMapping(
