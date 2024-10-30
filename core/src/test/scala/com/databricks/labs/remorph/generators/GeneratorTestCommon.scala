@@ -1,9 +1,9 @@
-package com.databricks.labs.remorph.generators.sql
+package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
 import com.databricks.labs.remorph.{OkResult, intermediate => ir}
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.Assertion
+import org.scalatest.matchers.should.Matchers
 
 trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
 

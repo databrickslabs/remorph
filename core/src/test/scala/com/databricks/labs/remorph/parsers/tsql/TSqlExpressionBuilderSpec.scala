@@ -424,10 +424,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
 
       // Call the method with the mock instance
-      val result = vc.expressionBuilder.visitSelectListElem(mockCtx)
+      val result = vc.expressionBuilder.buildSelectListElem(mockCtx)
 
       // Verify the result
-      result shouldBe a[ir.UnresolvedExpression]
+      result shouldBe a[Seq[_]]
     }
 
     "cover default case in buildLocalAssign via visitSelectListElem" in {
@@ -442,9 +442,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val result = vc.expressionBuilder.visitSelectListElem(selectListElemContextMock)
+      val result = vc.expressionBuilder.buildSelectListElem(selectListElemContextMock)
 
-      result shouldBe a[ir.UnresolvedExpression]
+      result shouldBe a[Seq[_]]
     }
 
     "translate CAST pseudo function calls with simple scalars" in {

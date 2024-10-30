@@ -50,7 +50,7 @@ trait Formatter {
 abstract class BaseTranspiler extends Transpiler with Formatter {
 
   protected val planParser: PlanParser[_]
-  protected val generator = new SqlGenerator
+  private val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
