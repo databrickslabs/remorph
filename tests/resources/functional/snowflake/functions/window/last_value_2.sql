@@ -19,7 +19,7 @@ FROM
 SELECT
   taba.col_a,
   taba.col_b,
-  LAST_VALUE(
+  LAST(
     CASE
       WHEN taba.col_c IN ('xyz', 'abc') THEN taba.col_d
     END

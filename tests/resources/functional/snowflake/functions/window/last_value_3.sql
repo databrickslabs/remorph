@@ -6,6 +6,6 @@ FROM
 
 -- databricks sql:
 SELECT
-  LAST_VALUE(col1) AS last_value_col1
+  LAST(col1) AS last_value_col1
 FROM
   tabl;
