@@ -33,6 +33,12 @@ def sha2(expr: exp.Expression, num_bits: str, is_expr: bool = False) -> exp.Expr
     return _apply_func_expr(expr, exp.SHA2, length=exp.Literal(this=num_bits, is_string=False))
 
 
+def md5(expr: exp.Expression, is_expr: bool = False) -> exp.Expression:
+    if is_expr:
+        return exp.MD5(this=expr)
+    return _apply_func_expr(expr, exp.MD5)
+
+
 def lower(expr: exp.Expression, is_expr: bool = False) -> exp.Expression:
     if is_expr:
         return exp.Lower(this=expr)
@@ -244,14 +250,17 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
 }
 
 sha256_partial = partial(sha2, num_bits="256", is_expr=True)
+md5_partial = partial(md5, is_expr=True)
 Dialect_hash_algo_mapping: dict[Dialect, HashAlgoMapping] = {
     get_dialect("snowflake"): HashAlgoMapping(
         source=sha256_partial,
         target=sha256_partial,
     ),
     get_dialect("oracle"): HashAlgoMapping(
-        source=partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True),
-        target=sha256_partial,
+        source=partial(
+            anonymous, func="RAWTOHEX(DBMS_CRYPTO.HASH(UTL_RAW.CAST_TO_RAW({}), DBMS_CRYPTO.HASH_MD5))", is_expr=True
+        ),
+        target=md5_partial,
     ),
     get_dialect("databricks"): HashAlgoMapping(
         source=sha256_partial,
