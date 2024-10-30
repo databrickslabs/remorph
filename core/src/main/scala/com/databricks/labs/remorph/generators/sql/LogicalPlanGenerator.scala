@@ -110,7 +110,7 @@ class LogicalPlanGenerator(
 
       case ctas: ir.CreateTableAsSelect => sql"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
       case rtas: ir.ReplaceTableAsSelect =>
-        sql"CREATE OR REPLACE TABLE${rtas.table_name} AS ${generate(ctx, rtas.query)}"
+        sql"CREATE OR REPLACE TABLE ${rtas.table_name} AS ${generate(ctx, rtas.query)}"
     }
   }
 
