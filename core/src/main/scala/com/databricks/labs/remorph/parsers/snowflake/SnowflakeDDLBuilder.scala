@@ -160,9 +160,12 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           .columnDeclItemList()
           .columnDeclItem()
           .asScala)
-      val replace = if (ctx.orReplace() != null) true else false
+      if (ctx.orReplace() != null) {
+        ir.ReplaceTableCommand(tableName, columns, true)
+      } else {
+        ir.CreateTableCommand(tableName, columns)
+      }
 
-      ir.CreateTableCommand(tableName, columns, replace)
   }
 
   override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = errorCheck(ctx) match {
@@ -171,7 +174,11 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       val tableName = ctx.objectName().getText
       val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
       // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
-      val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      val create = if (ctx.orReplace() != null) {
+        ir.ReplaceTableAsSelect(tableName, selectStatement, Map.empty[String, String], true, false)
+      } else {
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
       val colConstraints = Map.empty[String, Seq[ir.Constraint]]

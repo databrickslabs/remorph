@@ -35,6 +35,7 @@ class LogicalPlanGenerator(
     case i: ir.InsertIntoTable => insert(ctx, i)
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case c: ir.CreateTableCommand => createTable(ctx, c)
+    case r: ir.ReplaceTableCommand => replaceTable(ctx, r)
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
@@ -108,6 +109,8 @@ class LogicalPlanGenerator(
         sql"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
 
       case ctas: ir.CreateTableAsSelect => sql"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
+      case rtas: ir.ReplaceTableAsSelect =>
+        sql"CREATE OR REPLACE TABLE${rtas.table_name} AS ${generate(ctx, rtas.query)}"
     }
   }
 
@@ -184,11 +187,18 @@ class LogicalPlanGenerator(
         val constraints = col.constraints.map(constraint(ctx, _)).mkSql(" ")
         sql"${col.name} $dataType $constraints"
       }
-    if (createTable.replace) {
-      sql"CREATE OR REPLACE TABLE ${createTable.name} (${columns.mkSql(", ")})"
-    } else {
-      sql"CREATE TABLE ${createTable.name} (${columns.mkSql(", ")})"
-    }
+    sql"CREATE TABLE ${createTable.name} (${columns.mkSql(", ")})"
+
+  }
+
+  private def replaceTable(ctx: GeneratorContext, createTable: ir.ReplaceTableCommand): SQL = {
+    val columns = createTable.columns
+      .map { col =>
+        val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
+        val constraints = col.constraints.map(constraint(ctx, _)).mkSql(" ")
+        sql"${col.name} $dataType $constraints"
+      }
+    sql"CREATE OR REPLACE TABLE ${createTable.name} (${columns.mkSql(", ")})"
   }
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): SQL = c match {
