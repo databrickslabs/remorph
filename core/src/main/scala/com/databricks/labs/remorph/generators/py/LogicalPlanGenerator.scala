@@ -5,5 +5,5 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 class LogicalPlanGenerator extends BasePythonGenerator[ir.LogicalPlan] {
   // TODO: see if com.databricks.labs.remorph.generators.GeneratorContext.logical is still needed
-  override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): Python = tba"..."
+  override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): Python = code"..."
 }

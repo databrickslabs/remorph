@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.generators._
 import com.databricks.labs.remorph.intermediate.{RemorphError, TreeNode, UnexpectedNode}
 import com.databricks.labs.remorph.{PartialResult, intermediate => ir}
 
-abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String] {
+abstract class BaseSQLGenerator[In <: TreeNode[In]] extends CodeGenerator[In] {
   def partialResult(tree: In): SQL = partialResult(tree, UnexpectedNode(tree.toString))
   def partialResult(trees: Seq[Any], err: RemorphError): SQL = lift(
     PartialResult(s"!!! ${trees.mkString(" | ")} !!!", err))
@@ -38,6 +38,6 @@ abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String
           }
           .mkString("   ", "\n    ", "")
 
-    tba"/* The following issues were detected:\n\n$message\n$ruleText\n */"
+    code"/* The following issues were detected:\n\n$message\n$ruleText\n */"
   }
 }

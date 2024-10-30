@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.queries
 
-import com.databricks.labs.remorph.{OkResult, RemorphContext, TBAS}
+import com.databricks.labs.remorph.{OkResult, Phase, TransformationConstructors}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate.NoopNode
 import org.antlr.v4.runtime.ParserRuleContext
@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
-class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar with TBAS[RemorphContext] {
+class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar with TransformationConstructors[Phase] {
   "ExampleDebugger" should {
     "work" in {
       val buf = new StringBuilder

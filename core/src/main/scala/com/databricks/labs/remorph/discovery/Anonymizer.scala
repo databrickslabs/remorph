@@ -2,8 +2,7 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Sources, WorkflowStage}
-import com.databricks.labs.remorph.transpilers.SourceCode
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, SourceCode, WorkflowStage}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
 
@@ -71,7 +70,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(Sources(query.source)) match {
+    parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(SourceCode(query.source)) match {
       case KoResult(WorkflowStage.PARSE, error) =>
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
         Fingerprint(

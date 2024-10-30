@@ -6,12 +6,12 @@ import scala.util.control.NonFatal
 
 package object generators {
 
-  implicit class TBAInterpolator(sc: StringContext) extends TBAS[RemorphContext] {
-    def tba(args: Any*): TBA[RemorphContext, String] = {
+  implicit class TBAInterpolator(sc: StringContext) extends TransformationConstructors[Phase] {
+    def code(args: Any*): Transformation[Phase, String] = {
 
       args
         .map {
-          case tba: TBA[_, _] => tba.asInstanceOf[TBA[RemorphContext, String]]
+          case tba: Transformation[_, _] => tba.asInstanceOf[Transformation[Phase, String]]
           case x => ok(x.toString)
         }
         .sequence
@@ -34,22 +34,30 @@ package object generators {
     }
   }
 
-  implicit class TBAOps(sql: TBA[RemorphContext, String]) {
-    def nonEmpty: TBA[RemorphContext, Boolean] = sql.map(_.nonEmpty)
-    def isEmpty: TBA[RemorphContext, Boolean] = sql.map(_.isEmpty)
+  implicit class TBAOps(sql: Transformation[Phase, String]) {
+    def nonEmpty: Transformation[Phase, Boolean] = sql.map(_.nonEmpty)
+    def isEmpty: Transformation[Phase, Boolean] = sql.map(_.isEmpty)
   }
 
-  implicit class TBASeqOps(tbas: Seq[TBA[RemorphContext, String]]) extends TBAS[RemorphContext] {
+  implicit class TBASeqOps(tbas: Seq[Transformation[Phase, String]]) extends TransformationConstructors[Phase] {
 
-    def mkTba: TBA[RemorphContext, String] = mkTba("", "", "")
+    def mkCode: Transformation[Phase, String] = mkCode("", "", "")
 
-    def mkTba(sep: String): TBA[RemorphContext, String] = mkTba("", sep, "")
+    def mkCode(sep: String): Transformation[Phase, String] = mkCode("", sep, "")
 
-    def mkTba(start: String, sep: String, end: String): TBA[RemorphContext, String] = {
+    def mkCode(start: String, sep: String, end: String): Transformation[Phase, String] = {
       tbas.sequence.map(_.mkString(start, sep, end))
     }
 
-    def sequence: TBA[RemorphContext, Seq[String]] =
+    /**
+     * Combine multiple Transformation[RemorphContext, String] into a Transformation[ RemorphContext, Seq[String] ].
+     * The resulting Transformation will run each individual Transformation in sequence, accumulating all the effects
+     * along the way.
+     *
+     * For example, when a Transformation in the input Seq modifies the state, TBAs that come after it in the input
+     * Seq will see the modified state.
+     */
+    def sequence: Transformation[Phase, Seq[String]] =
       tbas.foldLeft(ok(Seq.empty[String])) { case (agg, item) =>
         for {
           aggSeq <- agg

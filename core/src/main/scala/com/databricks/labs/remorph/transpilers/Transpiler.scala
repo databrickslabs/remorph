@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{RemorphContext, TBA, intermediate => ir}
+import com.databricks.labs.remorph.{Phase, SourceCode, Transformation, TransformationConstructors, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -12,7 +12,7 @@ import org.json4s.{Formats, NoTypeHints}
 import scala.util.matching.Regex
 
 trait Transpiler {
-  def transpile(input: SourceCode): TBA[RemorphContext, String]
+  def transpile(input: SourceCode): Transformation[Phase, String]
 }
 
 class Sed(rules: (String, String)*) {
@@ -47,27 +47,27 @@ trait Formatter {
   }
 }
 
-abstract class BaseTranspiler extends Transpiler with Formatter {
+abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors[Phase] {
 
   protected val planParser: PlanParser[_]
   private val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def parse(input: SourceCode): TBA[RemorphContext, ParserRuleContext] = planParser.parse(input)
+  protected def parse(input: SourceCode): Transformation[Phase, ParserRuleContext] = planParser.parse(input)
 
-  protected def visit(tree: ParserRuleContext): TBA[RemorphContext, ir.LogicalPlan] = planParser.visit(tree)
+  protected def visit(tree: ParserRuleContext): Transformation[Phase, ir.LogicalPlan] = planParser.visit(tree)
 
   // TODO: optimizer really should be its own thing and not part of PlanParser
   // I have put it here for now until we discuss^h^h^h^h^h^h^hSerge dictates where it should go ;)
-  protected def optimize(logicalPlan: ir.LogicalPlan): TBA[RemorphContext, ir.LogicalPlan] =
+  protected def optimize(logicalPlan: ir.LogicalPlan): Transformation[Phase, ir.LogicalPlan] =
     planParser.optimize(logicalPlan)
 
-  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): TBA[RemorphContext, String] = {
+  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Transformation[Phase, String] = {
     generator.generate(optimizedLogicalPlan)
   }
 
-  override def transpile(input: SourceCode): TBA[RemorphContext, String] = {
-    parse(input).flatMap(visit).flatMap(optimize).flatMap(generate)
+  override def transpile(input: SourceCode): Transformation[Phase, String] = {
+    set(input).flatMap(_ => parse(input)).flatMap(visit).flatMap(optimize).flatMap(generate)
   }
 }

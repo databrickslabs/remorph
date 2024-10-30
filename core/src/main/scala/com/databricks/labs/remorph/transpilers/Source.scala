@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph.transpilers
 
+import com.databricks.labs.remorph.SourceCode
+
 import java.nio.file.{Files, Path, Paths}
 import scala.io.Source.fromFile
 import scala.collection.JavaConverters._
-
-case class SourceCode(source: String, filename: String = "-- test source --")
 
 trait Source extends Iterator[SourceCode]
 

@@ -8,19 +8,19 @@ class OptionGenerator(expr: ExpressionGenerator) {
   def generateOption(ctx: GeneratorContext, option: ir.GenericOption): SQL =
     option match {
       case ir.OptionExpression(id, value, supplement) =>
-        tba"$id = ${expr.generate(ctx, value)} ${supplement.map(s => s" $s").getOrElse("")}"
+        code"$id = ${expr.generate(ctx, value)} ${supplement.map(s => s" $s").getOrElse("")}"
       case ir.OptionString(id, value) =>
-        tba"$id = '$value'"
+        code"$id = '$value'"
       case ir.OptionOn(id) =>
-        tba"$id = ON"
+        code"$id = ON"
       case ir.OptionOff(id) =>
-        tba"$id = OFF"
+        code"$id = OFF"
       case ir.OptionAuto(id) =>
-        tba"$id = AUTO"
+        code"$id = AUTO"
       case ir.OptionDefault(id) =>
-        tba"$id = DEFAULT"
+        code"$id = DEFAULT"
       case ir.OptionUnresolved(text) =>
-        tba"$text"
+        code"$text"
     }
 
   def generateOptionList(ctx: GeneratorContext, options: Seq[ir.GenericOption]): String =

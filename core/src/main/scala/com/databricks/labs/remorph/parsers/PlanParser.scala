@@ -1,15 +1,14 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
-import com.databricks.labs.remorph.transpilers.SourceCode
-import com.databricks.labs.remorph.{Ast, KoResult, OkResult, Optimized, Parsed, PartialResult, RemorphContext, Sources, TBA, TBAS, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{Ast, KoResult, OkResult, Optimized, Parsed, PartialResult, Phase, SourceCode, Transformation, TransformationConstructors, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 
-trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
+trait PlanParser[P <: Parser] extends TransformationConstructors[Phase] {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
@@ -28,7 +27,7 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
    * @param input The source code with filename
    * @return Returns a parse tree on success otherwise a description of the errors
    */
-  def parse(input: SourceCode): TBA[RemorphContext, ParserRuleContext] = {
+  def parse(input: SourceCode): Transformation[Phase, ParserRuleContext] = {
     val inputString = CharStreams.fromString(input.source)
     val lexer = createLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -47,7 +46,7 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
           lift(OkResult(tree))
         }
       }
-      _ <- update { case r: Sources =>
+      _ <- update { case r: SourceCode =>
         Parsed(t, Some(r))
       }
     } yield t
@@ -59,7 +58,7 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
    * @param tree The parse tree
    * @return Returns a logical plan on success otherwise a description of the errors
    */
-  def visit(tree: ParserRuleContext): TBA[RemorphContext, ir.LogicalPlan] = {
+  def visit(tree: ParserRuleContext): Transformation[Phase, ir.LogicalPlan] = {
     try {
       for {
         plan <- ok(createPlan(tree))
@@ -80,7 +79,7 @@ trait PlanParser[P <: Parser] extends TBAS[RemorphContext] {
    * @param logicalPlan The logical plan
    * @return Returns an optimized logical plan on success otherwise a description of the errors
    */
-  def optimize(logicalPlan: ir.LogicalPlan): TBA[RemorphContext, ir.LogicalPlan] = {
+  def optimize(logicalPlan: ir.LogicalPlan): Transformation[Phase, ir.LogicalPlan] = {
     try {
       for {
         plan <- ok(createOptimizer.apply(logicalPlan))

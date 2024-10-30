@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{OkResult, PartialResult, RemorphContext, TBAS, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, Phase, TransformationConstructors, intermediate => ir}
 
 /**
  * @see
  *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
  */
-object DataTypeGenerator extends TBAS[RemorphContext] {
+object DataTypeGenerator extends TransformationConstructors[Phase] {
 
   def generateDataType(ctx: GeneratorContext, dt: ir.DataType): SQL = dt match {
     case ir.NullType => lift(OkResult("VOID"))
@@ -24,26 +24,26 @@ object DataTypeGenerator extends TBAS[RemorphContext] {
       if (arguments.isEmpty) {
         lift(OkResult("DECIMAL"))
       } else {
-        tba"DECIMAL${arguments.mkString("(", ", ", ")")}"
+        code"DECIMAL${arguments.mkString("(", ", ", ")")}"
       }
     case ir.StringType => lift(OkResult("STRING"))
     case ir.DateType => lift(OkResult("DATE"))
     case ir.TimestampType => lift(OkResult("TIMESTAMP"))
     case ir.TimestampNTZType => lift(OkResult("TIMESTAMP_NTZ"))
-    case ir.ArrayType(elementType) => tba"ARRAY<${generateDataType(ctx, elementType)}>"
+    case ir.ArrayType(elementType) => code"ARRAY<${generateDataType(ctx, elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
         .map { case ir.StructField(name, dataType, nullable, _) =>
           val isNullable = if (nullable) "" else " NOT NULL"
-          tba"$name:${generateDataType(ctx, dataType)}$isNullable"
+          code"$name:${generateDataType(ctx, dataType)}$isNullable"
         }
-        .mkTba(",")
-      tba"STRUCT<$fieldTypes>"
+        .mkCode(",")
+      code"STRUCT<$fieldTypes>"
     case ir.MapType(keyType, valueType) =>
-      tba"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
-    case ir.VarcharType(size) => tba"VARCHAR${maybeSize(size)}"
-    case ir.CharType(size) => tba"CHAR${maybeSize(size)}"
-    case ir.VariantType => tba"VARIANT"
+      code"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
+    case ir.VarcharType(size) => code"VARCHAR${maybeSize(size)}"
+    case ir.CharType(size) => code"CHAR${maybeSize(size)}"
+    case ir.VariantType => code"VARIANT"
     case _ => lift(PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString)))
   }
 

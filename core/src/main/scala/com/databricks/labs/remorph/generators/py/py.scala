@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.{TBA, RemorphContext}
+import com.databricks.labs.remorph.{Transformation, Phase}
 
 package object py {
 
-  type Python = TBA[RemorphContext, String]
+  type Python = Transformation[Phase, String]
 }

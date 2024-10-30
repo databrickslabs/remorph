@@ -1,30 +1,30 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{Generating, OkResult, RemorphContext, TBA, TBAS, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, Phase, Transformation, TransformationConstructors, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
     val optGen: OptionGenerator,
     val explicitDistinct: Boolean = false)
     extends BaseSQLGenerator[ir.LogicalPlan]
-    with TBAS[RemorphContext] {
+    with TransformationConstructors[Phase] {
 
-  override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): TBA[RemorphContext, String] = {
+  override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): Transformation[Phase, String] = {
 
-    val sql: TBA[RemorphContext, String] = tree match {
+    val sql: Transformation[Phase, String] = tree match {
       case b: ir.Batch => batch(ctx, b)
       case w: ir.WithCTE => cte(ctx, w)
       case p: ir.Project => project(ctx, p)
       case ir.NamedTable(id, _, _) => lift(OkResult(id))
       case ir.Filter(input, condition) =>
-        tba"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
+        code"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
       case ir.Limit(input, limit) =>
-        tba"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
+        code"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
       case ir.Offset(child, offset) =>
-        tba"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
+        code"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
       case ir.Values(data) =>
-        tba"VALUES ${data.map(_.map(expr.generate(ctx, _)).mkTba("(", ",", ")")).mkTba(", ")}"
+        code"VALUES ${data.map(_.map(expr.generate(ctx, _)).mkCode("(", ",", ")")).mkCode(", ")}"
       case agg: ir.Aggregate => aggregate(ctx, agg)
       case sort: ir.Sort => orderBy(ctx, sort)
       case join: ir.Join => generateJoin(ctx, join)
@@ -46,9 +46,9 @@ class LogicalPlanGenerator(
       // when something went wrong with IR generation, or when we have a visitor but it is not
       // yet implemented.
       case u: ir.Unresolved[_] => describeError(u)
-      case ir.NoopNode => tba""
+      case ir.NoopNode => code""
 
-      case null => tba"" // don't fail transpilation if the plan is null
+      case null => code"" // don't fail transpilation if the plan is null
       case x => partialResult(x)
     }
 
@@ -57,7 +57,7 @@ class LogicalPlanGenerator(
     }.flatMap(_ => sql)
   }
 
-  private def batch(ctx: GeneratorContext, b: ir.Batch): TBA[RemorphContext, String] = {
+  private def batch(ctx: GeneratorContext, b: ir.Batch): Transformation[Phase, String] = {
     val seqSql = b.children.map(generate(ctx, _)).sequence
     seqSql.map { seq =>
       seq
@@ -69,7 +69,7 @@ class LogicalPlanGenerator(
     }
   }
 
-  private def createTableParams(ctx: GeneratorContext, crp: ir.CreateTableParams): TBA[RemorphContext, String] = {
+  private def createTableParams(ctx: GeneratorContext, crp: ir.CreateTableParams): Transformation[Phase, String] = {
 
     // We build the overall table creation statement differently depending on whether the primitive is
     // a CREATE TABLE or a CREATE TABLE AS (SELECT ...)
@@ -85,27 +85,27 @@ class LogicalPlanGenerator(
                 val options = crp.colOptions.getOrElse(col.name, Seq.empty)
                 genColumnDecl(ctx, col, constraints, options)
               }
-              .mkTba(", ")
+              .mkCode(", ")
         }
 
         // We now generate any table level constraints
-        val tableConstraintStr = crp.constraints.map(constraint(ctx, _)).mkTba(", ")
+        val tableConstraintStr = crp.constraints.map(constraint(ctx, _)).mkCode(", ")
         val tableConstraintStrWithComma =
-          tableConstraintStr.nonEmpty.flatMap(nonEmpty => if (nonEmpty) tba", $tableConstraintStr" else tba"")
+          tableConstraintStr.nonEmpty.flatMap(nonEmpty => if (nonEmpty) code", $tableConstraintStr" else code"")
 
         // record any table level options
-        val tableOptions = crp.options.map(_.map(optGen.generateOption(ctx, _)).mkTba("\n   ")).getOrElse(tba"")
+        val tableOptions = crp.options.map(_.map(optGen.generateOption(ctx, _)).mkCode("\n   ")).getOrElse(code"")
 
         val tableOptionsComment = {
           tableOptions.isEmpty.flatMap { isEmpty =>
-            if (isEmpty) tba"" else tba"   The following options are unsupported:\n\n   $tableOptions\n"
+            if (isEmpty) code"" else code"   The following options are unsupported:\n\n   $tableOptions\n"
           }
         }
-        val indicesStr = crp.indices.map(constraint(ctx, _)).mkTba("   \n")
+        val indicesStr = crp.indices.map(constraint(ctx, _)).mkCode("   \n")
         val indicesComment =
           indicesStr.isEmpty.flatMap { isEmpty =>
-            if (isEmpty) tba""
-            else tba"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
+            if (isEmpty) code""
+            else code"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
           }
         val leadingComment = {
           for {
@@ -119,9 +119,9 @@ class LogicalPlanGenerator(
           }
         }
 
-        tba"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
+        code"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
 
-      case ctas: ir.CreateTableAsSelect => tba"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
+      case ctas: ir.CreateTableAsSelect => code"CREATE TABLE ${ctas.table_name} AS ${generate(ctx, ctas.query)}"
     }
   }
 
@@ -129,24 +129,26 @@ class LogicalPlanGenerator(
       ctx: GeneratorContext,
       col: ir.StructField,
       constraints: Seq[ir.Constraint],
-      options: Seq[ir.GenericOption]): TBA[RemorphContext, String] = {
+      options: Seq[ir.GenericOption]): Transformation[Phase, String] = {
     val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
-    val dataTypeStr = if (!col.nullable) tba"$dataType NOT NULL" else dataType
-    val constraintsStr = constraints.map(constraint(ctx, _)).mkTba(" ")
-    val constraintsGen = constraintsStr.nonEmpty.flatMap { nonEmpty => if (nonEmpty) tba" $constraintsStr" else tba"" }
-    val optionsStr = options.map(optGen.generateOption(ctx, _)).mkTba(" ")
-    val optionsComment = optionsStr.nonEmpty.flatMap { nonEmpty => if (nonEmpty) tba" /* $optionsStr */" else tba"" }
-    tba"${col.name} ${dataTypeStr}${constraintsGen}${optionsComment}"
+    val dataTypeStr = if (!col.nullable) code"$dataType NOT NULL" else dataType
+    val constraintsStr = constraints.map(constraint(ctx, _)).mkCode(" ")
+    val constraintsGen = constraintsStr.nonEmpty.flatMap { nonEmpty =>
+      if (nonEmpty) code" $constraintsStr" else code""
+    }
+    val optionsStr = options.map(optGen.generateOption(ctx, _)).mkCode(" ")
+    val optionsComment = optionsStr.nonEmpty.flatMap { nonEmpty => if (nonEmpty) code" /* $optionsStr */" else code"" }
+    code"${col.name} ${dataTypeStr}${constraintsGen}${optionsComment}"
   }
 
-  private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): TBA[RemorphContext, String] = {
+  private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): Transformation[Phase, String] = {
     val operation = buildTableAlteration(ctx, a.alterations)
-    tba"ALTER TABLE  ${a.tableName} $operation"
+    code"ALTER TABLE  ${a.tableName} $operation"
   }
 
   private def buildTableAlteration(
       ctx: GeneratorContext,
-      alterations: Seq[ir.TableAlteration]): TBA[RemorphContext, String] = {
+      alterations: Seq[ir.TableAlteration]): Transformation[Phase, String] = {
     // docs:https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-alter-table.html#parameters
     // docs:https://learn.microsoft.com/en-us/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table#syntax
     // ADD COLUMN can be Seq[ir.TableAlteration]
@@ -155,67 +157,70 @@ class LogicalPlanGenerator(
     // RENAME COLUMN/ RENAME CONSTRAINTS Always be ir.TableAlteration
     // ALTER COLUMN IS A Seq[ir.TableAlternations] Data Type Change, Constraint Changes etc
     alterations map {
-      case ir.AddColumn(columns) => tba"ADD COLUMN ${buildAddColumn(ctx, columns)}"
-      case ir.DropColumns(columns) => tba"DROP COLUMN ${columns.mkString(", ")}"
-      case ir.DropConstraintByName(constraints) => tba"DROP CONSTRAINT ${constraints}"
-      case ir.RenameColumn(oldName, newName) => tba"RENAME COLUMN ${oldName} to ${newName}"
+      case ir.AddColumn(columns) => code"ADD COLUMN ${buildAddColumn(ctx, columns)}"
+      case ir.DropColumns(columns) => code"DROP COLUMN ${columns.mkString(", ")}"
+      case ir.DropConstraintByName(constraints) => code"DROP CONSTRAINT ${constraints}"
+      case ir.RenameColumn(oldName, newName) => code"RENAME COLUMN ${oldName} to ${newName}"
       case x => partialResult(x, ir.UnexpectedTableAlteration(x.toString))
-    } mkTba ", "
+    } mkCode ", "
   }
 
-  private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.ColumnDeclaration]): TBA[RemorphContext, String] = {
+  private def buildAddColumn(
+      ctx: GeneratorContext,
+      columns: Seq[ir.ColumnDeclaration]): Transformation[Phase, String] = {
     columns
       .map { c =>
         val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
-        val constraints = c.constraints.map(constraint(ctx, _)).mkTba(" ")
-        tba"${c.name} $dataType $constraints"
+        val constraints = c.constraints.map(constraint(ctx, _)).mkCode(" ")
+        code"${c.name} $dataType $constraints"
       }
-      .mkTba(", ")
+      .mkCode(", ")
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
-  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): TBA[RemorphContext, String] = lateral match {
-    case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
-      val outer = if (isOuter) " OUTER" else ""
-      val view = if (isView) " VIEW" else ""
-      tba"LATERAL$view$outer ${expr.generate(ctx, fn)}"
-    case _ => partialResult(lateral)
-  }
+  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): Transformation[Phase, String] =
+    lateral match {
+      case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
+        val outer = if (isOuter) " OUTER" else ""
+        val view = if (isView) " VIEW" else ""
+        code"LATERAL$view$outer ${expr.generate(ctx, fn)}"
+      case _ => partialResult(lateral)
+    }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
-  private def tableSample(ctx: GeneratorContext, t: ir.TableSample): TBA[RemorphContext, String] = {
+  private def tableSample(ctx: GeneratorContext, t: ir.TableSample): Transformation[Phase, String] = {
     val sampling = t.samplingMethod match {
       case ir.RowSamplingProbabilistic(probability) => s"$probability PERCENT"
       case ir.RowSamplingFixedAmount(amount) => s"$amount ROWS"
       case ir.BlockSampling(probability) => s"BUCKET $probability OUT OF 1"
     }
     val seed = t.seed.map(s => s" REPEATABLE ($s)").getOrElse("")
-    tba"(${generate(ctx, t.child)}) TABLESAMPLE ($sampling)$seed"
+    code"(${generate(ctx, t.child)}) TABLESAMPLE ($sampling)$seed"
   }
 
-  private def createTable(ctx: GeneratorContext, createTable: ir.CreateTableCommand): TBA[RemorphContext, String] = {
+  private def createTable(ctx: GeneratorContext, createTable: ir.CreateTableCommand): Transformation[Phase, String] = {
     val columns = createTable.columns
       .map { col =>
         val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
-        val constraints = col.constraints.map(constraint(ctx, _)).mkTba(" ")
-        tba"${col.name} $dataType $constraints"
+        val constraints = col.constraints.map(constraint(ctx, _)).mkCode(" ")
+        code"${col.name} $dataType $constraints"
       }
-    tba"CREATE TABLE ${createTable.name} (${columns.mkTba(", ")})"
+    code"CREATE TABLE ${createTable.name} (${columns.mkCode(", ")})"
   }
 
-  private def constraint(ctx: GeneratorContext, c: ir.Constraint): TBA[RemorphContext, String] = c match {
+  private def constraint(ctx: GeneratorContext, c: ir.Constraint): Transformation[Phase, String] = c match {
     case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
     case ir.Nullability(nullable) => lift(OkResult(if (nullable) "NULL" else "NOT NULL"))
     case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
     case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
-    case ir.NamedConstraint(name, unnamed) => tba"CONSTRAINT $name ${constraint(ctx, unnamed)}"
-    case ir.UnresolvedConstraint(inputText) => tba"/** $inputText **/"
-    case ir.CheckConstraint(e) => tba"CHECK (${expr.generate(ctx, e)})"
-    case ir.DefaultValueConstraint(value) => tba"DEFAULT ${expr.generate(ctx, value)}"
-    case ir.IdentityConstraint(seed, step) => tba"IDENTITY ($seed, $step)"
+    case ir.NamedConstraint(name, unnamed) => code"CONSTRAINT $name ${constraint(ctx, unnamed)}"
+    case ir.UnresolvedConstraint(inputText) => code"/** $inputText **/"
+    case ir.CheckConstraint(e) => code"CHECK (${expr.generate(ctx, e)})"
+    case ir.DefaultValueConstraint(value) => code"DEFAULT ${expr.generate(ctx, value)}"
+    case ir.IdentityConstraint(seed, step) => code"IDENTITY ($seed, $step)"
   }
 
-  private def generateForeignKey(ctx: GeneratorContext, fk: ir.ForeignKey): TBA[RemorphContext, String] = {
+  private def generateForeignKey(ctx: GeneratorContext, fk: ir.ForeignKey): Transformation[Phase, String] = {
     val colNames = fk.tableCols match {
       case "" => ""
       case cols => s"(${cols}) "
@@ -224,34 +229,34 @@ class LogicalPlanGenerator(
       case "" => ""
       case options => s" /* Unsupported:  $options */"
     }
-    tba"FOREIGN KEY ${colNames}REFERENCES ${fk.refObject}(${fk.refCols})$commentOptions"
+    code"FOREIGN KEY ${colNames}REFERENCES ${fk.refObject}(${fk.refCols})$commentOptions"
   }
 
-  private def generatePrimaryKey(context: GeneratorContext, key: ir.PrimaryKey): TBA[RemorphContext, String] = {
+  private def generatePrimaryKey(context: GeneratorContext, key: ir.PrimaryKey): Transformation[Phase, String] = {
     val columns = key.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
     val commentOptions = optGen.generateOptionList(context, key.options) match {
       case "" => ""
       case options => s" /* $options */"
     }
     val columnsStr = if (columns.isEmpty) "" else s" $columns"
-    tba"PRIMARY KEY${columnsStr}${commentOptions}"
+    code"PRIMARY KEY${columnsStr}${commentOptions}"
   }
 
-  private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): TBA[RemorphContext, String] = {
+  private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): Transformation[Phase, String] = {
     val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
     val columnStr = if (columns.isEmpty) "" else s" $columns"
     val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
       case "" => ""
       case options => s" /* $options */"
     }
-    tba"UNIQUE${columnStr}${commentOptions}"
+    code"UNIQUE${columnStr}${commentOptions}"
   }
 
-  private def project(ctx: GeneratorContext, proj: ir.Project): TBA[RemorphContext, String] = {
+  private def project(ctx: GeneratorContext, proj: ir.Project): Transformation[Phase, String] = {
     val fromClause = if (proj.input != ir.NoTable()) {
-      tba" FROM ${generate(ctx, proj.input)}"
+      code" FROM ${generate(ctx, proj.input)}"
     } else {
-      tba""
+      code""
     }
 
     // Don't put commas after unresolved expressions as they are error comments only
@@ -263,20 +268,20 @@ class LogicalPlanGenerator(
       .sequence
       .map(_.mkString.stripSuffix(", "))
 
-    tba"SELECT $sqlParts$fromClause"
+    code"SELECT $sqlParts$fromClause"
   }
 
-  private def orderBy(ctx: GeneratorContext, sort: ir.Sort): TBA[RemorphContext, String] = {
+  private def orderBy(ctx: GeneratorContext, sort: ir.Sort): Transformation[Phase, String] = {
     val orderStr = sort.order
       .map { case ir.SortOrder(child, direction, nulls) =>
         val dir = direction match {
           case ir.Ascending => ""
           case ir.Descending => " DESC"
         }
-        tba"${expr.generate(ctx, child)}$dir ${nulls.sql}"
+        code"${expr.generate(ctx, child)}$dir ${nulls.sql}"
       }
 
-    tba"${generate(ctx, sort.child)} ORDER BY ${orderStr.mkTba(", ")}"
+    code"${generate(ctx, sort.child)} ORDER BY ${orderStr.mkCode(", ")}"
   }
 
   private def isLateralView(lp: ir.LogicalPlan): Boolean = {
@@ -286,14 +291,14 @@ class LogicalPlanGenerator(
     }.isDefined
   }
 
-  private def generateJoin(ctx: GeneratorContext, join: ir.Join): TBA[RemorphContext, String] = {
+  private def generateJoin(ctx: GeneratorContext, join: ir.Join): Transformation[Phase, String] = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
       if (isLateralView(join.right)) {
-        tba"$left $right"
+        code"$left $right"
       } else {
-        tba"$left, $right"
+        code"$left, $right"
       }
     } else {
       val joinType = generateJoinType(join.join_type)
@@ -301,9 +306,9 @@ class LogicalPlanGenerator(
       else { joinType + " JOIN" }
       val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
       val condition = join.join_condition match {
-        case None => tba""
-        case Some(_: ir.And) | Some(_: ir.Or) => tba"ON (${conditionOpt.get})"
-        case Some(_) => tba"ON ${conditionOpt.get}"
+        case None => code""
+        case Some(_: ir.And) | Some(_: ir.Or) => code"ON (${conditionOpt.get})"
+        case Some(_) => code"ON ${conditionOpt.get}"
       }
       val usingColumns = join.using_columns.mkString(", ")
       val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
@@ -330,7 +335,7 @@ class LogicalPlanGenerator(
     case ir.UnspecifiedJoin => ""
   }
 
-  private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): TBA[RemorphContext, String] = {
+  private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): Transformation[Phase, String] = {
     if (setOp.allow_missing_columns) {
       return partialResult(setOp)
     }
@@ -344,60 +349,60 @@ class LogicalPlanGenerator(
       case _ => return partialResult(setOp)
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
-    tba"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
+    code"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-dml-insert-into.html
-  private def insert(ctx: GeneratorContext, insert: ir.InsertIntoTable): TBA[RemorphContext, String] = {
+  private def insert(ctx: GeneratorContext, insert: ir.InsertIntoTable): Transformation[Phase, String] = {
     val target = generate(ctx, insert.target)
     val columns =
-      insert.columns.map(cols => cols.map(expr.generate(ctx, _)).mkTba("(", ", ", ")")).getOrElse(tba"")
+      insert.columns.map(cols => cols.map(expr.generate(ctx, _)).mkCode("(", ", ", ")")).getOrElse(code"")
     val values = generate(ctx, insert.values)
-    val output = insert.outputRelation.map(generate(ctx, _)).getOrElse(tba"")
-    val options = insert.options.map(expr.generate(ctx, _)).getOrElse(tba"")
+    val output = insert.outputRelation.map(generate(ctx, _)).getOrElse(code"")
+    val options = insert.options.map(expr.generate(ctx, _)).getOrElse(code"")
     val overwrite = if (insert.overwrite) "OVERWRITE TABLE" else "INTO"
-    tba"INSERT $overwrite $target $columns $values$output$options"
+    code"INSERT $overwrite $target $columns $values$output$options"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/delta-update.html
-  private def update(ctx: GeneratorContext, update: ir.UpdateTable): TBA[RemorphContext, String] = {
+  private def update(ctx: GeneratorContext, update: ir.UpdateTable): Transformation[Phase, String] = {
     val target = generate(ctx, update.target)
-    val set = update.set.map(expr.generate(ctx, _)).mkTba(", ")
-    val where = update.where.map(cond => tba" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
-    tba"UPDATE $target SET $set$where"
+    val set = expr.commas(ctx, update.set)
+    val where = update.where.map(cond => code" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
+    code"UPDATE $target SET $set$where"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/delta-delete-from.html
   private def delete(
       ctx: GeneratorContext,
       target: ir.LogicalPlan,
-      where: Option[ir.Expression]): TBA[RemorphContext, String] = {
-    val whereStr = where.map(cond => tba" WHERE ${expr.generate(ctx, cond)}").getOrElse(tba"")
-    tba"DELETE FROM ${generate(ctx, target)}$whereStr"
+      where: Option[ir.Expression]): Transformation[Phase, String] = {
+    val whereStr = where.map(cond => code" WHERE ${expr.generate(ctx, cond)}").getOrElse(code"")
+    code"DELETE FROM ${generate(ctx, target)}$whereStr"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/delta-merge-into.html
-  private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): TBA[RemorphContext, String] = {
+  private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): Transformation[Phase, String] = {
     val target = generate(ctx, mergeIntoTable.targetTable)
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
     val matchedActions =
       mergeIntoTable.matchedActions.map { action =>
-        val conditionText = action.condition.map(cond => tba" AND ${expr.generate(ctx, cond)}").getOrElse(tba"")
-        tba" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
-      }.mkTba
+        val conditionText = action.condition.map(cond => code" AND ${expr.generate(ctx, cond)}").getOrElse(code"")
+        code" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+      }.mkCode
 
     val notMatchedActions =
       mergeIntoTable.notMatchedActions.map { action =>
-        val conditionText = action.condition.map(cond => tba" AND ${expr.generate(ctx, cond)}").getOrElse(tba"")
-        tba" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
-      }.mkTba
+        val conditionText = action.condition.map(cond => code" AND ${expr.generate(ctx, cond)}").getOrElse(code"")
+        code" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+      }.mkCode
     val notMatchedBySourceActions =
       mergeIntoTable.notMatchedBySourceActions.map { action =>
-        val conditionText = action.condition.map(cond => tba" AND ${expr.generate(ctx, cond)}").getOrElse(tba"")
-        tba" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
-      }.mkTba
-    tba"""MERGE INTO $target
+        val conditionText = action.condition.map(cond => code" AND ${expr.generate(ctx, cond)}").getOrElse(code"")
+        code" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
+      }.mkCode
+    code"""MERGE INTO $target
        |USING $source
        |ON $condition
        |$matchedActions
@@ -406,50 +411,50 @@ class LogicalPlanGenerator(
        |""".map(_.stripMargin)
   }
 
-  private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): TBA[RemorphContext, String] = {
+  private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): Transformation[Phase, String] = {
     val child = generate(ctx, aggregate.child)
-    val expressions = aggregate.grouping_expressions.map(expr.generate(ctx, _)).mkTba(", ")
+    val expressions = expr.commas(ctx, aggregate.grouping_expressions)
     aggregate.group_type match {
       case ir.GroupBy =>
-        tba"$child GROUP BY $expressions"
+        code"$child GROUP BY $expressions"
       case ir.Pivot if aggregate.pivot.isDefined =>
         val pivot = aggregate.pivot.get
         val col = expr.generate(ctx, pivot.col)
-        val values = pivot.values.map(expr.generate(ctx, _)).mkTba(" IN(", ", ", ")")
-        tba"$child PIVOT($expressions FOR $col$values)"
+        val values = pivot.values.map(expr.generate(ctx, _)).mkCode(" IN(", ", ", ")")
+        code"$child PIVOT($expressions FOR $col$values)"
       case a => partialResult(a, ir.UnsupportedGroupType(a.toString))
     }
   }
-  private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): TBA[RemorphContext, String] = {
+  private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): Transformation[Phase, String] = {
     val optionComments = expr.generate(ctx, withOptions.options)
     val plan = generate(ctx, withOptions.input)
-    tba"${optionComments}${plan}"
+    code"${optionComments}${plan}"
   }
 
-  private def cte(ctx: GeneratorContext, withCte: ir.WithCTE): TBA[RemorphContext, String] = {
+  private def cte(ctx: GeneratorContext, withCte: ir.WithCTE): Transformation[Phase, String] = {
     val ctes = withCte.ctes
       .map {
         case ir.SubqueryAlias(child, alias, cols) =>
-          val columns = cols.map(expr.generate(ctx, _)).mkTba("(", ", ", ")")
-          val columnsStr = if (cols.isEmpty) tba"" else tba" $columns"
+          val columns = cols.map(expr.generate(ctx, _)).mkCode("(", ", ", ")")
+          val columnsStr = if (cols.isEmpty) code"" else code" $columns"
           val id = expr.generate(ctx, alias)
           val sub = generate(ctx, child)
-          tba"$id$columnsStr AS ($sub)"
+          code"$id$columnsStr AS ($sub)"
         case x => generate(ctx, x)
       }
     val query = generate(ctx, withCte.query)
-    tba"WITH ${ctes.mkTba(", ")} $query"
+    code"WITH ${ctes.mkCode(", ")} $query"
   }
 
-  private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): TBA[RemorphContext, String] = {
+  private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): Transformation[Phase, String] = {
     val subquery = subQAlias.child match {
       case l: ir.Lateral => lateral(ctx, l)
-      case _ => tba"(${generate(ctx, subQAlias.child)})"
+      case _ => code"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)
     val table =
       if (subQAlias.columnNames.isEmpty) {
-        tba"AS $tableName"
+        code"AS $tableName"
       } else {
         // Added this to handle the case for POS Explode
         // We have added two columns index and value as an alias for pos explode default columns (pos, col)
@@ -458,30 +463,30 @@ class LogicalPlanGenerator(
           case Seq(ir.Id("value", _), ir.Id("index", _)) =>
             val columnNamesStr =
               subQAlias.columnNames.sortBy(_.nodeName).reverse.map(expr.generate(ctx, _))
-            tba"$tableName AS ${columnNamesStr.mkTba(", ")}"
+            code"$tableName AS ${columnNamesStr.mkCode(", ")}"
           case _ =>
             val columnNamesStr = subQAlias.columnNames.map(expr.generate(ctx, _))
-            tba"AS $tableName${columnNamesStr.mkTba("(", ", ", ")")}"
+            code"AS $tableName${columnNamesStr.mkCode("(", ", ", ")")}"
         }
       }
-    tba"$subquery $table"
+    code"$subquery $table"
   }
 
-  private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): TBA[RemorphContext, String] = {
+  private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): Transformation[Phase, String] = {
     val target = generate(ctx, alias.child)
-    val columns = if (alias.columns.isEmpty) { tba"" }
+    val columns = if (alias.columns.isEmpty) { code"" }
     else {
-      alias.columns.map(expr.generate(ctx, _)).mkTba("(", ", ", ")")
+      expr.commas(ctx, alias.columns).map("(" + _ + ")")
     }
-    tba"$target AS ${alias.alias}$columns"
+    code"$target AS ${alias.alias}$columns"
   }
 
-  private def deduplicate(ctx: GeneratorContext, dedup: ir.Deduplicate): TBA[RemorphContext, String] = {
+  private def deduplicate(ctx: GeneratorContext, dedup: ir.Deduplicate): Transformation[Phase, String] = {
     val table = generate(ctx, dedup.child)
-    val columns = if (dedup.all_columns_as_keys) { tba"*" }
+    val columns = if (dedup.all_columns_as_keys) { code"*" }
     else {
-      dedup.column_names.map(expr.generate(ctx, _)).mkTba(", ")
+      expr.commas(ctx, dedup.column_names)
     }
-    tba"SELECT DISTINCT $columns FROM $table"
+    code"SELECT DISTINCT $columns FROM $table"
   }
 }

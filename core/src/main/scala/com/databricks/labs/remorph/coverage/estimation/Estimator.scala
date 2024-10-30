@@ -5,8 +5,8 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{KoResult, OkResult, Sources, Ast}
-import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
+import com.databricks.labs.remorph.{KoResult, OkResult, SourceCode, Ast}
+import com.databricks.labs.remorph.transpilers.SqlGenerator
 import com.typesafe.scalalogging.LazyLogging
 
 class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
@@ -35,7 +35,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer,
       parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
 
-    val initialState = Sources(query.source)
+    val initialState = SourceCode(query.source)
 
     // Skip entries that have already been seen as text but for which we were unable to parse or
     // produce a plan for
