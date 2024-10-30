@@ -133,6 +133,13 @@ jobs:
           distribution: corretto
           java-version: 11
 
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          cache: 'pip'
+          cache-dependency-path: '**/pyproject.toml'
+          python-version: '3.10'
+
       # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
       # See https://github.com/actions/setup-java/issues/255
       # See https://github.com/actions/setup-java/issues/577
@@ -141,6 +148,9 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
+
+      - name: Initialize Python virtual environment for StandardInputPythonSubprocess
+        run: make dev
 
       - name: Run Unit Tests with Maven
         run: mvn --update-snapshots scoverage:report --file pom.xml --fail-at-end

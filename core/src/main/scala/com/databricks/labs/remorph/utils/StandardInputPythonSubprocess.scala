@@ -6,17 +6,26 @@ import com.databricks.labs.remorph.{KoResult, OkResult, Result, WorkflowStage}
 import java.io._
 import scala.annotation.tailrec
 import scala.sys.process.{Process, ProcessIO}
+import scala.util.control.NonFatal
 
 class StandardInputPythonSubprocess(passArgs: String) {
   def apply(input: String): Result[String] = {
     val process = Process(s"$getEffectivePythonBin -m $passArgs", None)
     val output = new StringBuilder
     val error = new StringBuilder
-    val result = process.run(createIO(input, output, error)).exitValue()
-    if (result != 0) {
-      KoResult(WorkflowStage.FORMAT, new TranspileFailure(new IOException(error.toString)))
-    } else {
-      OkResult(output.toString)
+    try {
+      val result = process.run(createIO(input, output, error)).exitValue()
+      if (result != 0) {
+        KoResult(WorkflowStage.FORMAT, new TranspileFailure(new IOException(error.toString)))
+      } else {
+        OkResult(output.toString)
+      }
+    } catch {
+      case e: IOException if e.getMessage.contains("Cannot run") =>
+        val failure = new TranspileFailure(new IOException("Invalid $PYTHON_BIN environment variable"))
+        KoResult(WorkflowStage.FORMAT, failure)
+      case NonFatal(e) =>
+        KoResult(WorkflowStage.FORMAT, new TranspileFailure(e))
     }
   }
 
