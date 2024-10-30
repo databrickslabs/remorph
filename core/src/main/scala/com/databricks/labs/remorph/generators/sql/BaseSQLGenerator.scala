@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.Generator
+import com.databricks.labs.remorph.generators._
 import com.databricks.labs.remorph.intermediate.{RemorphError, TreeNode, UnexpectedNode}
 import com.databricks.labs.remorph.{PartialResult, intermediate => ir}
 
@@ -38,6 +38,6 @@ abstract class BaseSQLGenerator[In <: TreeNode[In]] extends Generator[In, String
           }
           .mkString("   ", "\n    ", "")
 
-    sql"/* The following issues were detected:\n\n$message\n$ruleText\n */"
+    tba"/* The following issues were detected:\n\n$message\n$ruleText\n */"
   }
 }

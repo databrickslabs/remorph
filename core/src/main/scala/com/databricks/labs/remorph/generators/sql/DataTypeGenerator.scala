@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.generators._
 import com.databricks.labs.remorph.{OkResult, PartialResult, RemorphContext, TBAS, intermediate => ir}
 
 /**
@@ -24,26 +24,26 @@ object DataTypeGenerator extends TBAS[RemorphContext] {
       if (arguments.isEmpty) {
         lift(OkResult("DECIMAL"))
       } else {
-        sql"DECIMAL${arguments.mkString("(", ", ", ")")}"
+        tba"DECIMAL${arguments.mkString("(", ", ", ")")}"
       }
     case ir.StringType => lift(OkResult("STRING"))
     case ir.DateType => lift(OkResult("DATE"))
     case ir.TimestampType => lift(OkResult("TIMESTAMP"))
     case ir.TimestampNTZType => lift(OkResult("TIMESTAMP_NTZ"))
-    case ir.ArrayType(elementType) => sql"ARRAY<${generateDataType(ctx, elementType)}>"
+    case ir.ArrayType(elementType) => tba"ARRAY<${generateDataType(ctx, elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
         .map { case ir.StructField(name, dataType, nullable, _) =>
           val isNullable = if (nullable) "" else " NOT NULL"
-          sql"$name:${generateDataType(ctx, dataType)}$isNullable"
+          tba"$name:${generateDataType(ctx, dataType)}$isNullable"
         }
-        .mkSql(",")
-      sql"STRUCT<$fieldTypes>"
+        .mkTba(",")
+      tba"STRUCT<$fieldTypes>"
     case ir.MapType(keyType, valueType) =>
-      sql"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
-    case ir.VarcharType(size) => sql"VARCHAR${maybeSize(size)}"
-    case ir.CharType(size) => sql"CHAR${maybeSize(size)}"
-    case ir.VariantType => sql"VARIANT"
+      tba"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
+    case ir.VarcharType(size) => tba"VARCHAR${maybeSize(size)}"
+    case ir.CharType(size) => tba"CHAR${maybeSize(size)}"
+    case ir.VariantType => tba"VARIANT"
     case _ => lift(PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString)))
   }
 

@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.{KoResult, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, RemorphContext, TBAS, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.generators.py
 import com.databricks.labs.remorph.generators.py.rules.{AndOrToBitwise, DotToFCol, ImportClasses, PySparkExpressions, PySparkStatements}
 import org.json4s.{Formats, NoTypeHints}
@@ -10,7 +9,7 @@ import org.json4s.jackson.Serialization
 
 import scala.util.control.NonFatal
 
-class PySparkGenerator {
+class PySparkGenerator extends TBAS[RemorphContext] {
   private val exprGenerator = new py.ExpressionGenerator
   private val stmtGenerator = new py.StatementGenerator(exprGenerator)
 
@@ -27,7 +26,7 @@ class PySparkGenerator {
       stmtGenerator.generate(generatorContext, statements)
     } catch {
       case NonFatal(e) =>
-        KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e))
+        lift(KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e)))
     }
   }
 }
