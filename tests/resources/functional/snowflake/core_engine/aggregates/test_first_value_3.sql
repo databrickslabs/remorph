@@ -20,7 +20,7 @@ FROM
 SELECT
   tabb.col_a,
   tabb.col_b,
-  FIRST_VALUE(
+  FIRST(
     CASE
       WHEN tabb.col_c IN ('xyz', 'abc') THEN tabb.col_d
     END
