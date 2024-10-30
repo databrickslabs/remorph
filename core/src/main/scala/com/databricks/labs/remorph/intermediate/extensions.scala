@@ -6,8 +6,12 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst
+// TODO: (nfx) refactor to align more with catalyst, replace with Name
 case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
+
+case class Name(name: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
 
 // TODO: (nfx) refactor to align more with catalyst
 case class ObjectReference(head: Id, tail: Id*) extends ToRefactor

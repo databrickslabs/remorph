@@ -9,7 +9,7 @@ import org.json4s.{Formats, NoTypeHints}
 import scala.util.control.NonFatal
 
 // TODO: This should not be under transpilers but we have not refactored generation out of the transpiler yet
-//       and it may need changes before it is consider finished anyway, such as implementing a trait
+//       and it may need changes before it is considered finished anyway, such as implementing a trait
 class SqlGenerator {
 
   private val exprGenerator = new ExpressionGenerator

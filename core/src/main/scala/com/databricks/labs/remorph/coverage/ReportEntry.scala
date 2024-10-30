@@ -18,7 +18,11 @@ case class ReportEntryReport(
     transpiled_statements: Int = 0, // number of statements transpiled
     transpilation_error: Option[RemorphError] = None) {
   def isSuccess: Boolean = parsing_error.isEmpty && transpilation_error.isEmpty
-  def errorMessage: Option[String] = parsing_error.orElse(transpilation_error).map(_.msg)
+  def failedParseOnly: Boolean = parsing_error.isDefined && transpilation_error.isEmpty
+
+  // Transpilation error takes precedence over parsing error as parsing errors will be
+  // shown in the output. If there is a transpilation error, we should therefore show that instead.
+  def errorMessage: Option[String] = transpilation_error.orElse(parsing_error).map(_.msg)
 }
 
 case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport) {

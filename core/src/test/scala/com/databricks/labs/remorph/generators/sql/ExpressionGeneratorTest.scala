@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
+import com.databricks.labs.remorph.generators.GeneratorTestCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -1725,6 +1726,17 @@ class ExpressionGeneratorTest
           ir.JsonAccess(ir.Dot(ir.Id("demo"), ir.Id("level_key")), ir.Literal("level_1_key")),
           ir.Literal("level_2_key")),
         ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
+    }
+  }
+
+  "error node in expression tree" should {
+    "generate inline error message comment for a and bad text" in {
+      ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
+        """a AND /* The following issues were detected:
+         |
+         |   some error message
+         |    bad text
+         | */""".stripMargin
     }
   }
 }

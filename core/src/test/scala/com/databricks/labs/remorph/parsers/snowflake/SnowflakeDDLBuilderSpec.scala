@@ -365,7 +365,6 @@ class SnowflakeDDLBuilderSpec
       verifyNoMoreInteractions(inlineConstraint)
     }
   }
-
   "SnowflakeDDLBuilder.visitAlter_table" should {
     "handle unexpected child" in {
       val tableName = parseString("s.t1", _.objectName())
@@ -376,7 +375,7 @@ class SnowflakeDDLBuilderSpec
       when(alterTable.getStop).thenReturn(startTok)
       when(alterTable.getRuleIndex).thenReturn(SnowflakeParser.RULE_alterTable)
       val result = vc.ddlBuilder.visitAlterTable(alterTable)
-      result shouldBe UnresolvedCatalog(
+      result shouldBe UnresolvedCommand(
         ruleText = "Mocked string",
         message = "Unknown ALTER TABLE variant",
         ruleName = "alterTable",
@@ -388,7 +387,6 @@ class SnowflakeDDLBuilderSpec
       verify(alterTable, times(3)).getStart
       verify(alterTable).getStop
       verifyNoMoreInteractions(alterTable)
-
     }
   }
 
