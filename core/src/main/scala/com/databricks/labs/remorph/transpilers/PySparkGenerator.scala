@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.{KoResult, Phase, TransformationConstructors, WorkflowStage, intermediate => ir}
-import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.py
 import com.databricks.labs.remorph.generators.py.rules.{AndOrToBitwise, DotToFCol, ImportClasses, PySparkExpressions, PySparkStatements}
 import org.json4s.{Formats, NoTypeHints}
@@ -20,10 +19,9 @@ class PySparkGenerator extends TransformationConstructors[Phase] {
 
   def generate(optimizedLogicalPlan: ir.LogicalPlan): py.Python = {
     try {
-      val generatorContext = GeneratorContext(new py.LogicalPlanGenerator)
       val withShims = PySparkStatements(optimizedLogicalPlan)
       val statements = statementRules(withShims)
-      stmtGenerator.generate(generatorContext, statements)
+      stmtGenerator.generate(statements)
     } catch {
       case NonFatal(e) =>
         lift(KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e)))

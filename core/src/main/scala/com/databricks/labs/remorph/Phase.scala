@@ -1,23 +1,30 @@
 package com.databricks.labs.remorph
 
+import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, TreeNode}
 import org.antlr.v4.runtime.ParserRuleContext
 
-sealed trait Phase
+sealed trait Phase {
+  def previousPhase: Option[Phase]
+}
 
-case object Init extends Phase
+case object Init extends Phase {
+  override val previousPhase: Option[Phase] = None
+}
 
-case class SourceCode(source: String, filename: String = "-- test source --") extends Phase
+case class Parsing(source: String, filename: String = "-- test source --") extends Phase {
+  override val previousPhase: Option[Phase] = Some(Init)
+}
 
-case class Parsed(tree: ParserRuleContext, sources: Option[SourceCode] = None) extends Phase
+case class BuildingAst(tree: ParserRuleContext, previousPhase: Option[Parsing] = None) extends Phase
 
-case class Ast(unoptimizedPlan: LogicalPlan, parsed: Option[Parsed] = None) extends Phase
-
-case class Optimized(optimizedPlan: TreeNode[_], ast: Option[Ast] = None) extends Phase
+case class Optimizing(unoptimizedPlan: LogicalPlan, previousPhase: Option[BuildingAst] = None) extends Phase
 
 case class Generating(
+    optimizedPlan: LogicalPlan,
     currentNode: TreeNode[_],
     totalStatements: Int = 0,
     transpiledStatements: Int = 0,
-    optimized: Option[Optimized] = None)
+    ctx: GeneratorContext,
+    previousPhase: Option[Optimizing] = None)
     extends Phase

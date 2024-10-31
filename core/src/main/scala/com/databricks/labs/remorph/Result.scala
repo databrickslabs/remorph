@@ -38,7 +38,7 @@ final class Transformation[State, +Out](val runF: Result[State => Result[(State,
   def runAndDiscardState(initialState: State): Result[Out] = run(initialState).map(_._2)
 }
 
-trait TransformationConstructors[S] {
+trait TransformationConstructors[S <: Phase] {
   def ok[A](a: A): Transformation[S, A] = new Transformation(OkResult(s => OkResult((s, a))))
   def ko(stage: WorkflowStage, err: RemorphError): Transformation[S, Nothing] = new Transformation(
     OkResult(s => KoResult(stage, err)))

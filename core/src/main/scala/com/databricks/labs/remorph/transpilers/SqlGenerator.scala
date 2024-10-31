@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.{KoResult, Phase, TransformationConstructors, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.{KoResult, Phase, TransformationConstructors, WorkflowStage, intermediate => ir}
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator, SQL}
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
@@ -16,11 +16,13 @@ class SqlGenerator extends TransformationConstructors[Phase] {
   private val optionGenerator = new OptionGenerator(exprGenerator)
   private val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
 
+  def initialGeneratorContext: GeneratorContext = GeneratorContext(generator)
+
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
   def generate(optimizedLogicalPlan: ir.LogicalPlan): SQL = {
     try {
-      generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
+      generator.generate(optimizedLogicalPlan)
     } catch {
       case NonFatal(e) =>
         lift(KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e)))

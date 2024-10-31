@@ -13,6 +13,14 @@ case class GeneratorContext(
   def nest: GeneratorContext =
     GeneratorContext(logical, maxLineWidth = maxLineWidth, joins = joins, layer = layer, indent = indent + 1)
 
+  def unnest: GeneratorContext =
+    GeneratorContext(
+      logical,
+      maxLineWidth = maxLineWidth,
+      joins = joins,
+      layer = layer,
+      indent = Math.max(0, indent - 1))
+
   def ws: String = "  " * indent
 
   def subQuery: GeneratorContext =
