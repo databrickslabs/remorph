@@ -54,7 +54,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case w: ir.Window => window(w)
       case o: ir.SortOrder => sortOrder(o)
       case ir.Exists(subquery) =>
-        withGenCtx.flatMap(ctx => code"EXISTS (${ctx.logical.generate(subquery)})")
+        withGenCtx(ctx => code"EXISTS (${ctx.logical.generate(subquery)})")
       case a: ir.ArrayAccess => arrayAccess(a)
       case j: ir.JsonAccess => jsonAccess(j)
       case l: ir.LambdaFunction => lambdaFunction(l)
@@ -373,7 +373,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   }
 
   private def scalarSubquery(subquery: ir.ScalarSubquery): SQL = {
-    withGenCtx.flatMap(ctx => ctx.logical.generate(subquery.relation))
+    withGenCtx(ctx => ctx.logical.generate(subquery.relation))
   }
 
   private def window(window: ir.Window): SQL = {

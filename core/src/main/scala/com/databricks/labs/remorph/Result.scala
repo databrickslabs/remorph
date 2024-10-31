@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph
 
-import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.intermediate.{IncoherentState, RemorphError}
+import com.databricks.labs.remorph.intermediate.RemorphError
 
 sealed trait WorkflowStage
 object WorkflowStage {
@@ -48,30 +47,6 @@ trait TransformationConstructors[S <: Phase] {
   def set(newState: S): Transformation[S, Unit] = new Transformation(OkResult(_ => OkResult((newState, ()))))
   def update[T](f: PartialFunction[S, S]): Transformation[S, Unit] = new Transformation(
     OkResult(s => OkResult((f.applyOrElse(s, identity[S]), ()))))
-
-  def updateGenCtx(f: GeneratorContext => GeneratorContext): Transformation[Phase, Unit] = new Transformation(OkResult {
-    case g: Generating => OkResult((g.copy(ctx = f(g.ctx)), ()))
-    case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
-  })
-
-  def nest: Transformation[Phase, Unit] = updateGenCtx(_.nest)
-
-  def unnest: Transformation[Phase, Unit] = updateGenCtx(_.unnest)
-
-  def withIndentedBlock(
-      header: Transformation[Phase, String],
-      body: Transformation[Phase, String]): Transformation[Phase, String] =
-    for {
-      h <- header
-      _ <- nest
-      b <- body
-      _ <- unnest
-    } yield h + "\n" + b
-
-  def withGenCtx: Transformation[Phase, GeneratorContext] = new Transformation(OkResult {
-    case g: Generating => OkResult((g, g.ctx))
-    case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
-  })
 }
 
 sealed trait Result[+A] {

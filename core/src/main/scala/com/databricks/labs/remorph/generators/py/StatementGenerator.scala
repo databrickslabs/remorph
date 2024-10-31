@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.intermediate.Expression
 
 class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
   override def generate(tree: Statement): Python = {
-    withGenCtx.flatMap { ctx =>
+    withGenCtx { ctx =>
       code"${ctx.ws}${statement(tree)}"
     }
   }
@@ -80,7 +80,7 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
 
   // decorators need their leading whitespace trimmed and get followed by a trailing whitespace
   private def decorate(decorators: Seq[Decorator]): Python = {
-    withGenCtx.flatMap { ctx =>
+    withGenCtx { ctx =>
       lines(decorators).map {
         case "" => ""
         case some => s"${some.trim}\n${ctx.ws}"
@@ -91,7 +91,7 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
   private def elseB(orElse: Seq[Statement], branch: String = "else"): Python = orElse match {
     case Nil => code""
     case some =>
-      withGenCtx.flatMap { ctx =>
+      withGenCtx { ctx =>
         withIndentedBlock(code"${ctx.ws}$branch:", lines(some))
       }
   }
