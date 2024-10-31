@@ -9,12 +9,11 @@ import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
 
-
 class FileSetGenerator(
     private val parser: PlanParser[_],
     private val sqlGen: SqlGenerator,
-    private val pyGen: PySparkGenerator,
-) extends Generator[JobNode, FileSet] {
+    private val pyGen: PySparkGenerator)
+    extends Generator[JobNode, FileSet] {
   val rules = Rules(
     new QueryHistoryToQueryNodes(parser),
     new TryGenerateSQL(sqlGen),
@@ -22,8 +21,7 @@ class FileSetGenerator(
     new TrySummarizeFailures(),
     new ReformatCode(),
     new DefineJob(),
-    new GenerateBundleFile(),
-  )
+    new GenerateBundleFile())
 
   override def generate(tree: JobNode): Transformation[Phase, FileSet] = {
     val fileSet = new FileSet()

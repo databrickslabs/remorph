@@ -28,7 +28,3 @@ case class Generating(
     ctx: GeneratorContext,
     previousPhase: Option[Optimizing] = None)
     extends Phase
-
-case class TBA() extends Phase {
-  override val previousPhase: Option[Phase] = None
-}

@@ -14,10 +14,11 @@ class ReformatCode extends Rule[JobNode] {
 
   override def apply(tree: JobNode): JobNode = tree transformUp {
     case SuccessSQL(name, code) => SuccessSQL(name, sqlf.format(code))
-    case SuccessPy(name, code) => ruff.format(code) match {
-      case OkResult(output) => SuccessPy(name, output)
-      case PartialResult(output, _) => SuccessPy(name, output)
-      case KoResult(_, _) => SuccessPy(name, code)
-    }
+    case SuccessPy(name, code) =>
+      ruff.format(code) match {
+        case OkResult(output) => SuccessPy(name, output)
+        case PartialResult(output, _) => SuccessPy(name, output)
+        case KoResult(_, _) => SuccessPy(name, code)
+      }
   }
 }

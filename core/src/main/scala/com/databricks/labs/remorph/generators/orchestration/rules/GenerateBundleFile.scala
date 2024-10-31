@@ -9,10 +9,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 
 class GenerateBundleFile extends Rule[JobNode] {
   private val mapper = new ObjectMapper(new YAMLFactory());
-  override def apply(tree: JobNode): JobNode = tree transform {
-    case j: JobSettings =>
-      // TODO: this is nowhere near a valid bundle file, but we need to start somewhere
-      val yml = mapper.writeValueAsString(j.toCreate)
-      InformationFile("databricks.yml", yml)
+  override def apply(tree: JobNode): JobNode = tree transform { case j: JobSettings =>
+    // TODO: this is nowhere near a valid bundle file, but we need to start somewhere
+    val yml = mapper.writeValueAsString(j.toCreate)
+    InformationFile("databricks.yml", yml)
   }
 }

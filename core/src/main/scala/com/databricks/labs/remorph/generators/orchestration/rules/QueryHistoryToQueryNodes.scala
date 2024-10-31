@@ -7,8 +7,6 @@ import com.databricks.labs.remorph.intermediate.Rule
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
 
-
-
 class QueryHistoryToQueryNodes(val parser: PlanParser[_]) extends Rule[JobNode] {
   override def apply(plan: JobNode): JobNode = plan match {
     case RawMigration(QueryHistory(queries)) => Migration(queries.map(executedQuery))

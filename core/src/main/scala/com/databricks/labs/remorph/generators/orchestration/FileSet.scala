@@ -12,11 +12,11 @@ class FileSet {
   }
 
   def getFile(name: String): Option[String] = {
-      files.get(name)
+    files.get(name)
   }
 
   def removeFile(name: String): Unit = {
-      files.remove(name)
+    files.remove(name)
   }
 
   def persist(path: File): Unit = {
