@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.py
 
-import com.databricks.labs.remorph.generators.GeneratorTestCommon
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -12,6 +12,11 @@ class ExpressionGeneratorTest
     with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
+
+  private val logical = new LogicalPlanGenerator
+
+  override def initialState(expr: ir.Expression): Generating =
+    Generating(optimizedPlan = ir.Batch(Seq.empty), currentNode = expr, ctx = GeneratorContext(logical))
 
   "name" in {
     ir.Name("a") generates "a"

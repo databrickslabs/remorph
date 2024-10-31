@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.{Init, OkResult, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
@@ -41,12 +40,8 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
 
   "DataTypeGenerator" should {
     "generate proper SQL data types" in {
-      val exprGenerator = new ExpressionGenerator()
-      val optionGenerator = new OptionGenerator(exprGenerator)
-      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
       forAll(translations) { (dt, expected) =>
-        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt).runAndDiscardState(Init) shouldBe OkResult(
-          expected)
+        DataTypeGenerator.generateDataType(dt).runAndDiscardState(Init) shouldBe OkResult(expected)
       }
     }
   }

@@ -5,39 +5,35 @@ import com.databricks.labs.remorph.intermediate.Expression
 import com.databricks.labs.remorph.{intermediate => ir}
 
 class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
-  override def generate(ctx: GeneratorContext, tree: Expression): Python = expression(ctx, tree)
+  override def generate(tree: Expression): Python = expression(tree)
 
-  private def expression(ctx: GeneratorContext, expr: ir.Expression): Python = expr match {
+  private def expression(expr: ir.Expression): Python = expr match {
     case ir.Name(name) => code"$name"
-    case _: ir.Arithmetic => arithmetic(ctx, expr)
-    case _: ir.Predicate => predicate(ctx, expr)
-    case l: ir.Literal => literal(ctx, l)
-    case c: Call => call(ctx, c)
-    case d: Dict => dict(ctx, d)
-    case s: Slice => slice(ctx, s)
-    case Comprehension(target, iter, ifs) => comprehension(ctx, target, iter, ifs)
-    case GeneratorExp(elt, gens) => code"${expression(ctx, elt)} ${spaces(ctx, gens)}"
-    case ListComp(elt, gens) => code"[${expression(ctx, elt)} ${spaces(ctx, gens)}]"
-    case SetComp(elt, gens) => code"{${expression(ctx, elt)} ${spaces(ctx, gens)}}"
-    case DictComp(key, value, gens) => code"{${generate(ctx, key)}: ${generate(ctx, value)} ${spaces(ctx, gens)}}"
-    case IfExp(test, body, orElse) => ifExpr(ctx, test, body, orElse)
-    case Lambda(args, body) => code"lambda ${arguments(ctx, args)}: ${expression(ctx, body)}"
-    case Tuple(elements, _) => code"(${commas(ctx, elements)},)"
-    case Attribute(value, attr, _) => code"${expression(ctx, value)}.${expression(ctx, attr)}"
-    case Subscript(value, index, _) => code"${expression(ctx, value)}[${expression(ctx, index)}]"
-    case List(elements, _) => code"[${commas(ctx, elements)}]"
+    case _: ir.Arithmetic => arithmetic(expr)
+    case _: ir.Predicate => predicate(expr)
+    case l: ir.Literal => literal(l)
+    case c: Call => call(c)
+    case d: Dict => dict(d)
+    case s: Slice => slice(s)
+    case Comprehension(target, iter, ifs) => comprehension(target, iter, ifs)
+    case GeneratorExp(elt, gens) => code"${expression(elt)} ${spaces(gens)}"
+    case ListComp(elt, gens) => code"[${expression(elt)} ${spaces(gens)}]"
+    case SetComp(elt, gens) => code"{${expression(elt)} ${spaces(gens)}}"
+    case DictComp(key, value, gens) => code"{${generate(key)}: ${generate(value)} ${spaces(gens)}}"
+    case IfExp(test, body, orElse) => ifExpr(test, body, orElse)
+    case Lambda(args, body) => code"lambda ${arguments(args)}: ${expression(body)}"
+    case Tuple(elements, _) => code"(${commas(elements)},)"
+    case Attribute(value, attr, _) => code"${expression(value)}.${expression(attr)}"
+    case Subscript(value, index, _) => code"${expression(value)}[${expression(index)}]"
+    case List(elements, _) => code"[${commas(elements)}]"
     case Set(Nil) => code"set()"
-    case Set(elements) => code"{${commas(ctx, elements)}}"
+    case Set(elements) => code"{${commas(elements)}}"
     case _ => partialResult(expr)
   }
 
-  private def comprehension(
-      ctx: GeneratorContext,
-      target: Expression,
-      iter: Expression,
-      ifs: Seq[Expression]): Python = {
-    val ifsExpr = ifs.map(expression(ctx, _)).mkCode(" and ")
-    val base = code"for ${expression(ctx, target)} in ${expression(ctx, iter)}"
+  private def comprehension(target: Expression, iter: Expression, ifs: Seq[Expression]): Python = {
+    val ifsExpr = ifs.map(expression(_)).mkCode(" and ")
+    val base = code"for ${expression(target)} in ${expression(iter)}"
     ifsExpr.isEmpty.flatMap { isEmpty =>
       if (isEmpty) {
         base
@@ -47,15 +43,15 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     }
   }
 
-  private def ifExpr(ctx: GeneratorContext, test: Expression, body: Expression, orelse: Expression): Python = {
-    code"${expression(ctx, body)} if ${expression(ctx, test)} else ${expression(ctx, orelse)}"
+  private def ifExpr(test: Expression, body: Expression, orelse: Expression): Python = {
+    code"${expression(body)} if ${expression(test)} else ${expression(orelse)}"
   }
 
-  def arguments(ctx: GeneratorContext, arguments: Arguments): Python = {
+  def arguments(arguments: Arguments): Python = {
     // TODO: add support for defaults
     val positional = arguments.args match {
       case Nil => None
-      case some => Some(commas(ctx, some))
+      case some => Some(commas(some))
     }
     val args = arguments.vararg map { case ir.Name(name) => code"*$name" }
     val kwargs = arguments.kwargs map { case ir.Name(name) => code"**$name" }
@@ -63,57 +59,57 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     argumentLists.mkCode(", ")
   }
 
-  private def slice(ctx: GeneratorContext, s: Slice): Python = s match {
+  private def slice(s: Slice): Python = s match {
     case Slice(None, None, None) => code":"
-    case Slice(Some(lower), None, None) => code"${expression(ctx, lower)}:"
-    case Slice(None, Some(upper), None) => code":${expression(ctx, upper)}"
-    case Slice(Some(lower), Some(upper), None) => code"${expression(ctx, lower)}:${expression(ctx, upper)}"
-    case Slice(None, None, Some(step)) => code"::${expression(ctx, step)}"
-    case Slice(Some(lower), None, Some(step)) => code"${expression(ctx, lower)}::${expression(ctx, step)}"
-    case Slice(None, Some(upper), Some(step)) => code":${expression(ctx, upper)}:${expression(ctx, step)}"
+    case Slice(Some(lower), None, None) => code"${expression(lower)}:"
+    case Slice(None, Some(upper), None) => code":${expression(upper)}"
+    case Slice(Some(lower), Some(upper), None) => code"${expression(lower)}:${expression(upper)}"
+    case Slice(None, None, Some(step)) => code"::${expression(step)}"
+    case Slice(Some(lower), None, Some(step)) => code"${expression(lower)}::${expression(step)}"
+    case Slice(None, Some(upper), Some(step)) => code":${expression(upper)}:${expression(step)}"
     case Slice(Some(lower), Some(upper), Some(step)) =>
-      code"${expression(ctx, lower)}:${expression(ctx, upper)}:${expression(ctx, step)}"
+      code"${expression(lower)}:${expression(upper)}:${expression(step)}"
   }
 
-  private def dict(ctx: GeneratorContext, d: Dict): Python = {
+  private def dict(d: Dict): Python = {
     d.keys.zip(d.values).map { case (k, v) =>
-      code"${expression(ctx, k)}: ${expression(ctx, v)}"
+      code"${expression(k)}: ${expression(v)}"
     } mkCode ("{", ", ", "}")
   }
 
-  private def call(ctx: GeneratorContext, c: Call): Python = {
-    val args = c.args.map(expression(ctx, _))
-    val kwargs = c.keywords.map { case Keyword(k, v) => code"${expression(ctx, k)}=${expression(ctx, v)}" }
-    code"${expression(ctx, c.func)}(${(args ++ kwargs).mkCode(", ")})"
+  private def call(c: Call): Python = {
+    val args = c.args.map(expression(_))
+    val kwargs = c.keywords.map { case Keyword(k, v) => code"${expression(k)}=${expression(v)}" }
+    code"${expression(c.func)}(${(args ++ kwargs).mkCode(", ")})"
   }
 
-  private def arithmetic(ctx: GeneratorContext, expr: ir.Expression): Python = expr match {
-    case ir.UMinus(child) => code"-${expression(ctx, child)}"
-    case ir.UPlus(child) => code"+${expression(ctx, child)}"
-    case ir.Multiply(left, right) => code"${expression(ctx, left)} * ${expression(ctx, right)}"
-    case ir.Divide(left, right) => code"${expression(ctx, left)} / ${expression(ctx, right)}"
-    case ir.Mod(left, right) => code"${expression(ctx, left)} % ${expression(ctx, right)}"
-    case ir.Add(left, right) => code"${expression(ctx, left)} + ${expression(ctx, right)}"
-    case ir.Subtract(left, right) => code"${expression(ctx, left)} - ${expression(ctx, right)}"
+  private def arithmetic(expr: ir.Expression): Python = expr match {
+    case ir.UMinus(child) => code"-${expression(child)}"
+    case ir.UPlus(child) => code"+${expression(child)}"
+    case ir.Multiply(left, right) => code"${expression(left)} * ${expression(right)}"
+    case ir.Divide(left, right) => code"${expression(left)} / ${expression(right)}"
+    case ir.Mod(left, right) => code"${expression(left)} % ${expression(right)}"
+    case ir.Add(left, right) => code"${expression(left)} + ${expression(right)}"
+    case ir.Subtract(left, right) => code"${expression(left)} - ${expression(right)}"
   }
 
   // see com.databricks.labs.remorph.generators.py.rules.AndOrToBitwise
-  private def predicate(ctx: GeneratorContext, expr: ir.Expression): Python = expr match {
-    case ir.BitwiseOr(left, right) => code"${expression(ctx, left)} | ${expression(ctx, right)}"
-    case ir.BitwiseAnd(left, right) => code"${expression(ctx, left)} & ${expression(ctx, right)}"
-    case ir.And(left, right) => code"${expression(ctx, left)} and ${expression(ctx, right)}"
-    case ir.Or(left, right) => code"${expression(ctx, left)} or ${expression(ctx, right)}"
-    case ir.Not(child) => code"~(${expression(ctx, child)})"
-    case ir.Equals(left, right) => code"${expression(ctx, left)} == ${expression(ctx, right)}"
-    case ir.NotEquals(left, right) => code"${expression(ctx, left)} != ${expression(ctx, right)}"
-    case ir.LessThan(left, right) => code"${expression(ctx, left)} < ${expression(ctx, right)}"
-    case ir.LessThanOrEqual(left, right) => code"${expression(ctx, left)} <= ${expression(ctx, right)}"
-    case ir.GreaterThan(left, right) => code"${expression(ctx, left)} > ${expression(ctx, right)}"
-    case ir.GreaterThanOrEqual(left, right) => code"${expression(ctx, left)} >= ${expression(ctx, right)}"
+  private def predicate(expr: ir.Expression): Python = expr match {
+    case ir.BitwiseOr(left, right) => code"${expression(left)} | ${expression(right)}"
+    case ir.BitwiseAnd(left, right) => code"${expression(left)} & ${expression(right)}"
+    case ir.And(left, right) => code"${expression(left)} and ${expression(right)}"
+    case ir.Or(left, right) => code"${expression(left)} or ${expression(right)}"
+    case ir.Not(child) => code"~(${expression(child)})"
+    case ir.Equals(left, right) => code"${expression(left)} == ${expression(right)}"
+    case ir.NotEquals(left, right) => code"${expression(left)} != ${expression(right)}"
+    case ir.LessThan(left, right) => code"${expression(left)} < ${expression(right)}"
+    case ir.LessThanOrEqual(left, right) => code"${expression(left)} <= ${expression(right)}"
+    case ir.GreaterThan(left, right) => code"${expression(left)} > ${expression(right)}"
+    case ir.GreaterThanOrEqual(left, right) => code"${expression(left)} >= ${expression(right)}"
     case _ => partialResult(expr)
   }
 
-  private def literal(ctx: GeneratorContext, l: ir.Literal): Python = l match {
+  private def literal(l: ir.Literal): Python = l match {
     case ir.Literal(_, ir.NullType) => code"None"
     case ir.Literal(bytes: Array[Byte], ir.BinaryType) => ok(bytes.map("%02X" format _).mkString)
     case ir.Literal(true, ir.BooleanType) => code"True"
