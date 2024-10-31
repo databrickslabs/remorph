@@ -251,6 +251,4 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(
         dialect=get_dialect("teradata"), algo=[partial(anonymous, func="thirty_day_tables.hash_sha256({})", is_expr=True)],
     ),
-    # DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(anonymous, func="({})", is_expr=True)],),
-    # DialectHashConfig(dialect=get_dialect("teradata"), algo=[partial(anonymous, func="({})", is_expr=True)],),
 ]
