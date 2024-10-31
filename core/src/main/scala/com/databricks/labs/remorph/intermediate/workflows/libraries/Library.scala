@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.intermediate.workflows.libraries
 
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
+import com.databricks.labs.remorph.intermediate.workflows.tasks.CodeAsset
 import com.databricks.sdk.service.compute
 
 case class Library(
@@ -11,10 +12,15 @@ case class Library(
     pypi: Option[PythonPyPiLibrary] = None,
     requirements: Option[String] = None,
     whl: Option[String] = None)
-    extends JobNode {
+    extends JobNode
+    with CodeAsset {
   override def children: Seq[JobNode] = Seq() ++ cran ++ maven ++ pypi
-  def toSDK: compute.Library = {
-    val raw = new compute.Library()
-    raw
-  }
+  def toSDK: compute.Library = new compute.Library()
+    .setCran(cran.map(_.toSDK).orNull)
+    .setEgg(egg.orNull)
+    .setJar(jar.orNull)
+    .setMaven(maven.map(_.toSDK).orNull)
+    .setPypi(pypi.map(_.toSDK).orNull)
+    .setRequirements(requirements.orNull)
+    .setWhl(whl.orNull)
 }

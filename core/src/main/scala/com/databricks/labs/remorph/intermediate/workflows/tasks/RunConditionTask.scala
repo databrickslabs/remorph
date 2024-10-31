@@ -1,14 +1,14 @@
 package com.databricks.labs.remorph.intermediate.workflows.tasks
 
-import com.databricks.labs.remorph.intermediate.workflows.JobNode
+import com.databricks.labs.remorph.intermediate.workflows.LeafJobNode
 import com.databricks.sdk.service.jobs
 import com.databricks.sdk.service.jobs.ConditionTaskOp
 
 case class RunConditionTask(op: ConditionTaskOp, left: String, right: String, outcome: Option[String] = None)
-    extends JobNode {
-  override def children: Seq[JobNode] = Seq()
-  def toSDK: jobs.RunConditionTask = {
-    val raw = new jobs.RunConditionTask()
-    raw
-  }
+    extends LeafJobNode {
+  def toSDK: jobs.RunConditionTask = new jobs.RunConditionTask()
+    .setOp(op)
+    .setLeft(left)
+    .setRight(right)
+    .setOutcome(outcome.orNull)
 }
