@@ -176,8 +176,8 @@ case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = 
   override def output: Seq[Attribute] = expr.output
 }
 
-case class Comment(text: String) extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 }
 
 case class Options(

@@ -6,12 +6,12 @@ abstract class Rule[T <: TreeNode[_]] {
     if (className endsWith "$") className.dropRight(1) else className
   }
 
-  def apply(plan: T): T
+  def apply(tree: T): T
 }
 
 case class Rules[T <: TreeNode[_]](rules: Rule[T]*) extends Rule[T] {
-  def apply(plan: T): T = {
-    rules.foldLeft(plan) { case (p, rule) => rule(p) }
+  def apply(tree: T): T = {
+    rules.foldLeft(tree) { case (p, rule) => rule(p) }
   }
 }
 

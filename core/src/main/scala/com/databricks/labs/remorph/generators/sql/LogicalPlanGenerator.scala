@@ -25,6 +25,7 @@ class LogicalPlanGenerator(
         code"${generate(child)} OFFSET ${expr.generate(offset)}"
       case ir.Values(data) =>
         code"VALUES ${data.map(_.map(expr.generate(_)).mkCode("(", ",", ")")).mkCode(", ")}"
+      case ir.PlanComment(child, text) => code"/* $text */\n${generate(child)}"
       case agg: ir.Aggregate => aggregate(agg)
       case sort: ir.Sort => orderBy(sort)
       case join: ir.Join => generateJoin(join)
