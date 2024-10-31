@@ -12,8 +12,10 @@ case class TriggerSettings(
     tableUpdate: Option[TableUpdateTriggerConfiguration] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq() ++ fileArrival ++ periodic ++ table ++ tableUpdate
-  def toSDK: jobs.TriggerSettings = {
-    val raw = new jobs.TriggerSettings()
-    raw
-  }
+  def toSDK: jobs.TriggerSettings = new jobs.TriggerSettings()
+    .setFileArrival(fileArrival.map(_.toSDK).orNull)
+    .setPauseStatus(pauseStatus.orNull)
+    .setPeriodic(periodic.map(_.toSDK).orNull)
+    .setTable(table.map(_.toSDK).orNull)
+    .setTableUpdate(tableUpdate.map(_.toSDK).orNull)
 }

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.intermediate.workflows.tasks
 
-import com.databricks.labs.remorph.intermediate.workflows.JobNode
+import scala.collection.JavaConverters._
+import com.databricks.labs.remorph.intermediate.workflows.LeafJobNode
 import com.databricks.sdk.service.jobs
 
 case class TaskEmailNotifications(
@@ -10,10 +11,12 @@ case class TaskEmailNotifications(
     onStart: Seq[String] = Seq.empty,
     onStreamingBacklogExceeded: Seq[String] = Seq.empty,
     onSuccess: Seq[String] = Seq.empty)
-    extends JobNode {
-  override def children: Seq[JobNode] = Seq()
-  def toSDK: jobs.TaskEmailNotifications = {
-    val raw = new jobs.TaskEmailNotifications()
-    raw
-  }
+    extends LeafJobNode {
+  def toSDK: jobs.TaskEmailNotifications = new jobs.TaskEmailNotifications()
+    .setNoAlertForSkippedRuns(noAlertForSkippedRuns)
+    .setOnDurationWarningThresholdExceeded(onDurationWarningThresholdExceeded.asJava)
+    .setOnFailure(onFailure.asJava)
+    .setOnStart(onStart.asJava)
+    .setOnStreamingBacklogExceeded(onStreamingBacklogExceeded.asJava)
+    .setOnSuccess(onSuccess.asJava)
 }
