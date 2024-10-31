@@ -64,6 +64,11 @@
       <version>${databricks-sdk-java.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.14.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-connect</artifactId>
       <version>${databricks-connect.version}</version>

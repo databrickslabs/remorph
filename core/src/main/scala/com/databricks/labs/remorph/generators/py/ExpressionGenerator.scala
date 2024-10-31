@@ -15,6 +15,7 @@ class ExpressionGenerator extends BasePythonGenerator[ir.Expression] {
     case c: Call => call(c)
     case d: Dict => dict(d)
     case s: Slice => slice(s)
+    case Comment(child, text) => withGenCtx(ctx => code"# $text\n${ctx.ws}${expression(child)}")
     case Comprehension(target, iter, ifs) => comprehension(target, iter, ifs)
     case GeneratorExp(elt, gens) => code"${expression(elt)} ${spaces(gens)}"
     case ListComp(elt, gens) => code"[${expression(elt)} ${spaces(gens)}]"
