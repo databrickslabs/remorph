@@ -70,13 +70,13 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
           optimizedPlan = optimizedLogicalPlan,
           currentNode = optimizedLogicalPlan,
           ctx = generator.initialGeneratorContext,
-          optimized = Some(o))
+          previousPhase = Some(o))
       case _ =>
         Generating(
           optimizedPlan = optimizedLogicalPlan,
           currentNode = optimizedLogicalPlan,
           ctx = generator.initialGeneratorContext,
-          optimized = None)
+          previousPhase = None)
     }.flatMap { _ =>
       generator.generate(optimizedLogicalPlan)
     }

@@ -14,7 +14,7 @@ class SnowflakeToPySparkTranspiler extends SnowflakeToDatabricksTranspiler {
           optimizedPlan = optimized,
           currentNode = optimized,
           ctx = GeneratorContext(new LogicalPlanGenerator),
-          optimized = Some(o))
+          previousPhase = Some(o))
       case _ =>
         Generating(optimizedPlan = optimized, currentNode = optimized, ctx = GeneratorContext(new LogicalPlanGenerator))
     }.flatMap(_ => generator.generate(optimized))
