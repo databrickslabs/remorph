@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.orchestration.rules
 
 import com.databricks.labs.remorph.discovery.ExecutedQuery
-import com.databricks.labs.remorph.generators.orchestration.rules.converted.InformationFile
+import com.databricks.labs.remorph.generators.orchestration.rules.converted.CreatedFile
 import com.databricks.labs.remorph.generators.orchestration.rules.history.{FailedQuery, Migration, PartialQuery}
 import com.databricks.labs.remorph.intermediate.Rule
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
@@ -27,8 +27,8 @@ class TrySummarizeFailures extends Rule[JobNode] {
     }
   }
 
-  private def failedQueryInfo(failedQueries: Seq[FailedQuery]): InformationFile = {
-    InformationFile(
+  private def failedQueryInfo(failedQueries: Seq[FailedQuery]): CreatedFile = {
+    CreatedFile(
       "failed_queries.md",
       failedQueries map { case FailedQuery(query, message, stage) =>
         s"""
@@ -42,8 +42,8 @@ class TrySummarizeFailures extends Rule[JobNode] {
       } mkString "\n")
   }
 
-  private def partialQueryInfo(partials: Seq[(ExecutedQuery, String)]): InformationFile = {
-    InformationFile(
+  private def partialQueryInfo(partials: Seq[(ExecutedQuery, String)]): CreatedFile = {
+    CreatedFile(
       "partial_failures.md",
       partials map { case (query, message) =>
         s"""

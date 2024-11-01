@@ -7,6 +7,8 @@ import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.intermediate.workflows.webhooks.WebhookNotifications
 import com.databricks.sdk.service.jobs
 
+import java.util.Locale
+
 case class JobSettings(
     name: String,
     tasks: Seq[Task],
@@ -29,12 +31,13 @@ case class JobSettings(
   override def children: Seq[JobNode] = Seq() ++ continuous ++ emailNotifications ++
     health ++ notificationSettings ++ runAs ++ schedule ++ trigger ++ webhookNotifications
 
+  def resourceName: String = name.toLowerCase(Locale.ROOT).replaceAll("[^A-Za-z0-9]", "_")
+
   def toUpdate: jobs.JobSettings = new jobs.JobSettings()
     .setContinuous(continuous.map(_.toSDK).orNull)
     .setDescription(description.orNull)
     .setEmailNotifications(emailNotifications.map(_.toSDK).orNull)
     .setEnvironments(environments.map(_.toSDK).asJava)
-    .setFormat(jobs.Format.MULTI_TASK)
     .setHealth(health.map(_.toSDK).orNull)
     .setJobClusters(jobClusters.map(_.toSDK).asJava)
     // .setMaxConcurrentRuns(maxConcurrentRuns.orNull)
@@ -54,7 +57,6 @@ case class JobSettings(
     .setDescription(description.orNull)
     .setEmailNotifications(emailNotifications.map(_.toSDK).orNull)
     .setEnvironments(environments.map(_.toSDK).asJava)
-    .setFormat(jobs.Format.MULTI_TASK)
     .setHealth(health.map(_.toSDK).orNull)
     .setJobClusters(jobClusters.map(_.toSDK).asJava)
     // .setMaxConcurrentRuns(maxConcurrentRuns.orNull)
