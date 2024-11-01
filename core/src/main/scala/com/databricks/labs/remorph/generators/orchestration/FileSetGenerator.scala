@@ -8,7 +8,6 @@ import com.databricks.labs.remorph.intermediate.Rules
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
-import com.databricks.labs.remorph.{Phase, Transformation}
 
 class FileSetGenerator(
     private val parser: PlanParser[_],
