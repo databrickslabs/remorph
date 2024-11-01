@@ -1,14 +1,14 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{Generating, OkResult, Phase, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, TransformationConstructors, intermediate => ir}
 
 class LogicalPlanGenerator(
     val expr: ExpressionGenerator,
     val optGen: OptionGenerator,
     val explicitDistinct: Boolean = false)
     extends BaseSQLGenerator[ir.LogicalPlan]
-    with TransformationConstructors[Phase] {
+    with TransformationConstructors {
 
   override def generate(tree: ir.LogicalPlan): SQL = {
 

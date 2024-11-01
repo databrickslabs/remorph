@@ -21,7 +21,9 @@ trait TranspilerTestCommon extends Matchers with Formatter {
       transpiler.transpile(Parsing(input)).runAndDiscardState(Init) match {
         case KoResult(_, _) => succeed
         case PartialResult(_, _) => succeed
-        case _ => fail("query was expected to fail transpilation but didn't")
+        case x =>
+          println(x)
+          fail(s"query was expected to fail transpilation but didn't: $x")
       }
     }
   }
