@@ -81,7 +81,7 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    *   A transformation that uses the current GeneratorContext if the current Phase is Generating and fails otherwise.
    */
   def withGenCtx(transfoUsingCtx: GeneratorContext => Transformation[String]): Transformation[String] =
-    new Transformation[GeneratorContext]( {
+    new Transformation[GeneratorContext]({
       case g: Generating => OkResult((g, g.ctx))
       case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
     }).flatMap(transfoUsingCtx)

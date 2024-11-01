@@ -39,7 +39,7 @@ final class Transformation[+Output](val run: Phase => Result[(Phase, Output)]) {
    */
   def flatMap[B](f: Output => Transformation[B]): Transformation[B] = new Transformation(run.andThen {
     case OkResult((s, a)) => f(a).run(s)
-    case p @ PartialResult((s, a), err) => p.flatMap{_ => f(a).run(s.recordError(err))}
+    case p @ PartialResult((s, a), err) => p.flatMap { _ => f(a).run(s.recordError(err)) }
     case ko: KoResult => ko
   })
 
@@ -129,4 +129,3 @@ case class KoResult(stage: WorkflowStage, error: RemorphError) extends Result[No
   override def withNonBlockingError(newError: RemorphError): Result[Nothing] =
     KoResult(stage, RemorphError.merge(error, newError))
 }
-
