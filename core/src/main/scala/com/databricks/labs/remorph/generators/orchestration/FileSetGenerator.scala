@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.orchestration
 
-import com.databricks.labs.remorph.{Phase, Transformation}
 import com.databricks.labs.remorph.generators.Generator
-import com.databricks.labs.remorph.generators.orchestration.rules.converted.{InformationFile, SuccessPy, SuccessSQL}
-import com.databricks.labs.remorph.generators.orchestration.rules.{GenerateBundleFile, DefineJob, QueryHistoryToQueryNodes, ReformatCode, TryGeneratePythonNotebook, TryGenerateSQL, TrySummarizeFailures}
+import com.databricks.labs.remorph.generators.orchestration.rules.converted.CreatedFile
+import com.databricks.labs.remorph.generators.orchestration.rules._
 import com.databricks.labs.remorph.intermediate.Rules
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
+import com.databricks.labs.remorph.{Phase, Transformation}
 
 class FileSetGenerator(
     private val parser: PlanParser[_],
@@ -16,6 +16,8 @@ class FileSetGenerator(
     extends Generator[JobNode, FileSet] {
   val rules = Rules(
     new QueryHistoryToQueryNodes(parser),
+    new DefineSchemas(),
+    new ExtractVariables(),
     new TryGenerateSQL(sqlGen),
     new TryGeneratePythonNotebook(pyGen),
     new TrySummarizeFailures(),
@@ -26,13 +28,9 @@ class FileSetGenerator(
   override def generate(tree: JobNode): Transformation[Phase, FileSet] = {
     val fileSet = new FileSet()
     rules(tree) foreachUp {
-      case SuccessPy(name, code) =>
-        fileSet.withFile(s"$name.py", code)
-      case SuccessSQL(name, code) =>
-        fileSet.withFile(s"$name.sql", code)
-      case InformationFile(name, code) =>
+      case CreatedFile(name, code) =>
         fileSet.withFile(name, code)
-      case _ =>
+      case _ => // noop
     }
     ok(fileSet)
   }

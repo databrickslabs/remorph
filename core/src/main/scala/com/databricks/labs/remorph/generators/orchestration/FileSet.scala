@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.orchestration
 
 import java.io.File
+import java.nio.file.Files
 import scala.collection.mutable
 
 class FileSet {
@@ -28,9 +29,7 @@ class FileSet {
       if (!file.exists()) {
         file.createNewFile()
       }
-      val writer = new java.io.PrintWriter(file)
-      writer.write(content)
-      writer.close()
+      Files.write(file.toPath, content.getBytes)
     }
   }
 }
