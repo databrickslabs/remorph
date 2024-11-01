@@ -416,6 +416,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentDate: _current_date,
             exp.Not: _not_sql,
             local_expression.ToArray: to_array,
+            local_expression.ArrayExists: rename_func("EXISTS"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:

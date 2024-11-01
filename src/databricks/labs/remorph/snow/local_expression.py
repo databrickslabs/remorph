@@ -172,3 +172,11 @@ class AliasInfo:
     name: str
     expression: exp.Expression
     is_same_name_as_column: bool
+
+
+class MapKeys(Func):
+    arg_types = {"this": True}
+
+
+class ArrayExists(Func):
+    arg_types = {"this": True, "expression": True}
