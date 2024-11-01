@@ -14,7 +14,7 @@ class FileSetGenerator(
     private val sqlGen: SqlGenerator,
     private val pyGen: PySparkGenerator)
     extends Generator[JobNode, FileSet] {
-  val rules = Rules(
+  private val rules = Rules(
     new QueryHistoryToQueryNodes(parser),
     new DefineSchemas(),
     new ExtractVariables(),
