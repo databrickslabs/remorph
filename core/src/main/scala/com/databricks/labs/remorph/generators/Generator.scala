@@ -15,18 +15,56 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
     trees.map(generate).sequence.map(_.mkString(separator))
   }
 
+  /**
+   * Apply the generator to the input nodes and join the results with commas.
+   */
   def commas(trees: Seq[In]): Transformation[Phase, String] = generateAndJoin(trees, ", ")
+
+  /**
+   * Apply the generator to the input nodes and join the results with whitespaces.
+   */
   def spaces(trees: Seq[In]): Transformation[Phase, String] = generateAndJoin(trees, " ")
 
+  /**
+   * When the current Phase is Generating, update its GeneratorContext with the provided function.
+   * @param f
+   *   A function for updating a GeneratorContext.
+   * @return
+   *   A transformation that:
+   *     - updates the state according to f and produces no meaningful output when the current Phase is Generating.
+   *     - fails if the current Phase is different from Generating.
+   */
   def updateGenCtx(f: GeneratorContext => GeneratorContext): Transformation[Phase, Unit] = new Transformation(OkResult {
     case g: Generating => OkResult((g.copy(ctx = f(g.ctx)), ()))
     case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
   })
 
+  /**
+   * When the current Phase is Generating, update the GeneratorContext by incrementing the indentation level.
+   * @return
+   *   A tranformation that increases the indentation level when the current Phase is Generating and fails otherwise.
+   */
   def nest: Transformation[Phase, Unit] = updateGenCtx(_.nest)
 
+  /**
+   * When the current Phase is Generating, update the GeneratorContext by decrementing the indentation level.
+   * @return
+   *    A tranformation that decreases the indentation level when the current Phase is Generating and fails otherwise.
+   */
   def unnest: Transformation[Phase, Unit] = updateGenCtx(_.unnest)
 
+  /**
+   * When the current Phase is Generating, produce a block of code where the provided body is nested under the header.
+   * @param header
+   *   A transformation that produces the header, which will remain unindented. Could be a function signature,
+   *   a class definition, etc.
+   * @param body
+   *   A transformation that produces the body, which will be indented one level under the header.
+   * @return
+   *   A transformation that produces the header followed by the indented body (separated by a newline) and restores
+   *   the indentation level to its original value. Said transformation will fail if the current Phase isn't
+   *   Generating.
+   */
   def withIndentedBlock(
       header: Transformation[Phase, String],
       body: Transformation[Phase, String]): Transformation[Phase, String] =
@@ -37,9 +75,16 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
       _ <- unnest
     } yield h + "\n" + b
 
-  def withGenCtx(transformation: GeneratorContext => Transformation[Phase, String]): Transformation[Phase, String] =
+  /**
+   * When the current Phase is Generating, allows for building transformations that use the current GeneratorContext.
+   * @param transfoUsingCtx
+   *   A function that will receive the current GeneratorContext and produce a Transformation.
+   * @return
+   *   A transformation that uses the current GeneratorContext if the current Phase is Generating and fails otherwise.
+   */
+  def withGenCtx(transfoUsingCtx: GeneratorContext => Transformation[Phase, String]): Transformation[Phase, String] =
     new Transformation[Phase, GeneratorContext](OkResult {
       case g: Generating => OkResult((g, g.ctx))
       case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
-    }).flatMap(transformation)
+    }).flatMap(transfoUsingCtx)
 }
