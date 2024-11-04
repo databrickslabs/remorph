@@ -1,5 +1,5 @@
 package com.databricks.labs.remorph.generators.py
-import com.databricks.labs.remorph.generators.{TBAInterpolator, TBASeqOps}
+import com.databricks.labs.remorph.generators.{CodeInterpolator, TBASeqOps}
 import com.databricks.labs.remorph.intermediate.Expression
 
 class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {

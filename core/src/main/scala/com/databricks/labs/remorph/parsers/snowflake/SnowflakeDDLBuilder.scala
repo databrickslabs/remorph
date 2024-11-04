@@ -160,8 +160,12 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           .columnDeclItemList()
           .columnDeclItem()
           .asScala)
+      if (ctx.orReplace() != null) {
+        ir.ReplaceTableCommand(tableName, columns, true)
+      } else {
+        ir.CreateTableCommand(tableName, columns)
+      }
 
-      ir.CreateTableCommand(tableName, columns)
   }
 
   override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = errorCheck(ctx) match {
@@ -170,7 +174,11 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       val tableName = ctx.objectName().getText
       val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
       // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
-      val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      val create = if (ctx.orReplace() != null) {
+        ir.ReplaceTableAsSelect(tableName, selectStatement, Map.empty[String, String], true, false)
+      } else {
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
       val colConstraints = Map.empty[String, Seq[ir.Constraint]]
@@ -222,13 +230,32 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     val name = ctx.colDecl().columnName().getText
     val dataType = vc.typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
+    val identityConstraints = if (ctx.defaultValue() != null) {
+      ctx.defaultValue().asScala.map(buildDefaultValue(_))
+    } else {
+      Seq()
+    }
     val nullability = if (ctx.nullNotNull().isEmpty) {
       Seq()
     } else {
       Seq(ir.Nullability(!ctx.nullNotNull().asScala.exists(_.NOT() != null)))
     }
-    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
+    ir.ColumnDeclaration(
+      name,
+      dataType,
+      virtualColumnDeclaration = None,
+      nullability ++ constraints ++ identityConstraints)
   }
+
+  private def buildDefaultValue(ctx: DefaultValueContext): ir.Constraint = {
+    ctx match {
+      case c if c.DEFAULT() != null => ir.GeneratedAlways(c.expr().accept(vc.expressionBuilder))
+      case c if c.AUTOINCREMENT() != null => ir.IdentityConstraint(None, None, true, false)
+      case c if c.IDENTITY() != null =>
+        ir.IdentityConstraint(Some(ctx.startWith().getText), Some(ctx.incrementBy().getText), false, true)
+    }
+  }
+
   private[snowflake] def buildOutOfLineConstraints(ctx: OutOfLineConstraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.columnListInParentheses(0).columnList().columnName().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)

@@ -5,7 +5,7 @@ import com.databricks.labs.remorph._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TBAInterpolatorSpec extends AnyWordSpec with Matchers with TransformationConstructors[Phase] {
+class CodeInterpolatorSpec extends AnyWordSpec with Matchers with TransformationConstructors {
 
   "SQLInterpolator" should {
 

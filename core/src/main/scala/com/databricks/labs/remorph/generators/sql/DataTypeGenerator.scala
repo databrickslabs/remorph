@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{OkResult, PartialResult, Phase, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, TransformationConstructors, intermediate => ir}
 
 /**
  * @see
  *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
  */
-object DataTypeGenerator extends TransformationConstructors[Phase] {
+object DataTypeGenerator extends TransformationConstructors {
 
   def generateDataType(dt: ir.DataType): SQL = dt match {
     case ir.NullType => lift(OkResult("VOID"))

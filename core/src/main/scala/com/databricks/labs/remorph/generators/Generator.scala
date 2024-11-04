@@ -1,29 +1,29 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.{Generating, KoResult, OkResult, Phase, Transformation, TransformationConstructors, WorkflowStage}
+import com.databricks.labs.remorph.{Generating, KoResult, OkResult, Transformation, TransformationConstructors, WorkflowStage}
 import com.databricks.labs.remorph.intermediate.{IncoherentState, TreeNode, UnexpectedNode}
 
-trait Generator[In <: TreeNode[In], Out] extends TransformationConstructors[Phase] {
-  def generate(tree: In): Transformation[Phase, Out]
-  def unknown(tree: In): Transformation[Phase, Nothing] =
+trait Generator[In <: TreeNode[In], Out] extends TransformationConstructors {
+  def generate(tree: In): Transformation[Out]
+  def unknown(tree: In): Transformation[Nothing] =
     ko(WorkflowStage.GENERATE, UnexpectedNode(tree.getClass.getSimpleName))
 }
 
 trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
 
-  private def generateAndJoin(trees: Seq[In], separator: String): Transformation[Phase, String] = {
+  private def generateAndJoin(trees: Seq[In], separator: String): Transformation[String] = {
     trees.map(generate).sequence.map(_.mkString(separator))
   }
 
   /**
    * Apply the generator to the input nodes and join the results with commas.
    */
-  def commas(trees: Seq[In]): Transformation[Phase, String] = generateAndJoin(trees, ", ")
+  def commas(trees: Seq[In]): Transformation[String] = generateAndJoin(trees, ", ")
 
   /**
    * Apply the generator to the input nodes and join the results with whitespaces.
    */
-  def spaces(trees: Seq[In]): Transformation[Phase, String] = generateAndJoin(trees, " ")
+  def spaces(trees: Seq[In]): Transformation[String] = generateAndJoin(trees, " ")
 
   /**
    * When the current Phase is Generating, update its GeneratorContext with the provided function.
@@ -34,7 +34,7 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    *     - updates the state according to f and produces no meaningful output when the current Phase is Generating.
    *     - fails if the current Phase is different from Generating.
    */
-  def updateGenCtx(f: GeneratorContext => GeneratorContext): Transformation[Phase, Unit] = new Transformation(OkResult {
+  def updateGenCtx(f: GeneratorContext => GeneratorContext): Transformation[Unit] = new Transformation({
     case g: Generating => OkResult((g.copy(ctx = f(g.ctx)), ()))
     case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
   })
@@ -44,14 +44,14 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    * @return
    *   A tranformation that increases the indentation level when the current Phase is Generating and fails otherwise.
    */
-  def nest: Transformation[Phase, Unit] = updateGenCtx(_.nest)
+  def nest: Transformation[Unit] = updateGenCtx(_.nest)
 
   /**
    * When the current Phase is Generating, update the GeneratorContext by decrementing the indentation level.
    * @return
    *    A tranformation that decreases the indentation level when the current Phase is Generating and fails otherwise.
    */
-  def unnest: Transformation[Phase, Unit] = updateGenCtx(_.unnest)
+  def unnest: Transformation[Unit] = updateGenCtx(_.unnest)
 
   /**
    * When the current Phase is Generating, produce a block of code where the provided body is nested under the header.
@@ -65,9 +65,7 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    *   the indentation level to its original value. Said transformation will fail if the current Phase isn't
    *   Generating.
    */
-  def withIndentedBlock(
-      header: Transformation[Phase, String],
-      body: Transformation[Phase, String]): Transformation[Phase, String] =
+  def withIndentedBlock(header: Transformation[String], body: Transformation[String]): Transformation[String] =
     for {
       h <- header
       _ <- nest
@@ -82,8 +80,8 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    * @return
    *   A transformation that uses the current GeneratorContext if the current Phase is Generating and fails otherwise.
    */
-  def withGenCtx(transfoUsingCtx: GeneratorContext => Transformation[Phase, String]): Transformation[Phase, String] =
-    new Transformation[Phase, GeneratorContext](OkResult {
+  def withGenCtx(transfoUsingCtx: GeneratorContext => Transformation[String]): Transformation[String] =
+    new Transformation[GeneratorContext]({
       case g: Generating => OkResult((g, g.ctx))
       case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
     }).flatMap(transfoUsingCtx)

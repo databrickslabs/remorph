@@ -9,7 +9,7 @@ import com.databricks.labs.remorph.transpilers.SqlGenerator
 
 class TryGenerateSQL(generator: SqlGenerator) extends Rule[JobNode] {
   override def apply(tree: JobNode): JobNode = tree transformDown { case n @ QueryPlan(plan, query) =>
-    val state = Generating(plan, n, 0, 0, generator.initialGeneratorContext)
+    val state = Generating(plan, n, generator.initialGeneratorContext)
     generator.generate(plan).run(state) match {
       case OkResult((_, sql)) => SuccessSQL(query.id, sql)
       case PartialResult((_, sql), error) => PartialQuery(query, error.msg, SuccessSQL(query.id, sql))
