@@ -1,8 +1,9 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.generators.GeneratorTestCommon
-import com.databricks.labs.remorph.generators.sql.ExpressionGenerator
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
+import com.databricks.labs.remorph.intermediate.{Batch, Expression}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -17,4 +18,10 @@ class TSqlExpressionGeneratorTest
 
   override protected val generator = new ExpressionGenerator()
 
+  private val optionGenerator = new OptionGenerator(generator)
+
+  private val logical = new LogicalPlanGenerator(generator, optionGenerator)
+
+  override protected def initialState(t: Expression): Generating =
+    Generating(optimizedPlan = Batch(Seq.empty), currentNode = t, ctx = GeneratorContext(logical))
 }

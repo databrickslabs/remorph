@@ -12,6 +12,11 @@ abstract class LeafStatement extends Statement {
   override final def children: Seq[Statement] = Nil
 }
 
+case class Comment(child: Expression, text: String) extends Expression {
+  override def children: Seq[Expression] = Seq(child)
+  override def dataType: DataType = child.dataType
+}
+
 // see https://docs.python.org/3/library/ast.html#ast.Module
 case class Module(children: Seq[Statement]) extends Statement
 

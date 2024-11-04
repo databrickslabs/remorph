@@ -1,27 +1,24 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
-import com.databricks.labs.remorph.{OkResult, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, intermediate => ir}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 
 trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
 
   protected def generator: Generator[T, String]
+  protected def initialState(t: T): Generating
 
   implicit class TestOps(t: T) {
     def generates(expectedOutput: String): Assertion = {
-      val exprGenerator = new ExpressionGenerator()
-      val optionGenerator = new OptionGenerator(exprGenerator)
-      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
-      generator.generate(GeneratorContext(logical), t) shouldBe OkResult(expectedOutput)
+      generator.generate(t).runAndDiscardState(initialState(t)) shouldBe OkResult(expectedOutput)
     }
 
     def doesNotTranspile: Assertion = {
-      val exprGenerator = new ExpressionGenerator()
-      val optionGenerator = new OptionGenerator(exprGenerator)
-      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
-      generator.generate(GeneratorContext(logical), t).isInstanceOf[OkResult[_]] shouldBe false
+      generator
+        .generate(t)
+        .runAndDiscardState(initialState(t))
+        .isInstanceOf[OkResult[_]] shouldBe false
     }
   }
 }

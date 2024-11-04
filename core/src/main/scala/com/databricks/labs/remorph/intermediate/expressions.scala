@@ -148,7 +148,7 @@ case class Window(
     partition_spec: Seq[Expression] = Seq.empty,
     sort_order: Seq[SortOrder] = Seq.empty,
     frame_spec: Option[WindowFrame] = None,
-    ignore_nulls: Boolean = false) // This Translates to Databricks Default Respect Nulls
+    ignore_nulls: Boolean = false) // TODO: this is a property of Last(), not Window
     extends Expression {
   override def children: Seq[Expression] = Seq(window_function) ++ partition_spec ++ sort_order
   override def dataType: DataType = window_function.dataType
