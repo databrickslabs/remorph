@@ -33,8 +33,7 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
         transpiled = if (parsed == 1) 1 else 0,
         statements = 1,
         transpiled_statements = 1,
-        parsing_error = error
-      )
+        parsing_error = error)
     }
   }
 
