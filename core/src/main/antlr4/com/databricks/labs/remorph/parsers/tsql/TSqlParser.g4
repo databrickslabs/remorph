@@ -35,9 +35,21 @@ THE SOFTWARE.
 
 parser grammar TSqlParser;
 
+import procedure;
+
 options {
     tokenVocab = TSqlLexer;
 }
+
+// ============== Dialect compatibiltiy rules ==============
+// The following rules provide substitutes for grammar rules referenced in the procedure.g4 grammar, that
+// we do not have real equivalents for in this gramamr.
+// Over time, as we homogonize more and more of the dialect grammars, these rules will be removed.
+string: STRING
+    ;
+
+// ================= TSQL Specific Rules ========================================
+
 
 tSqlFile: SEMI* batch? EOF
     ;
@@ -1619,18 +1631,6 @@ createNonclusteredColumnstoreIndex
     )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
-createOrAlterProcedure
-    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) dotIdentifier (SEMI INT)? (
-        LPAREN? procedureParam (COMMA procedureParam)* RPAREN?
-    )? (WITH procedureOption (COMMA procedureOption)*)? (FOR REPLICATION)? AS (
-        asExternalName
-        | sqlClauses*
-    )
-    ;
-
-asExternalName: EXTERNAL NAME dotIdentifier
-    ;
-
 createOrAlterTrigger: createOrAlterDmlTrigger | createOrAlterDdlTrigger
     ;
 
@@ -1642,7 +1642,7 @@ createOrAlterDmlTrigger
     )? AS sqlClauses+
     ;
 
-dmlTriggerOption: ENCRYPTION | executeClause
+dmlTriggerOption: ENCRYPTION | executeAs
     ;
 
 dmlTriggerOperation: (INSERT | UPDATE | DELETE)
@@ -1667,45 +1667,32 @@ createOrAlterFunction
 
 funcBodyReturnsSelect
     : RETURNS TABLE (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | RETURN (LPAREN selectStatementStandalone RPAREN | selectStatementStandalone)
     )
     ;
 
 funcBodyReturnsTable
     : RETURNS LOCAL_ID tableTypeDefinition (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | BEGIN sqlClauses* RETURN SEMI? END SEMI?
     )
     ;
 
 funcBodyReturnsScalar
     : RETURNS dataType (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | BEGIN sqlClauses* RETURN expression SEMI? END
     )
     ;
 
-procedureParamDefaultValue: NULL | DEFAULT | constant | LOCAL_ID
-    ;
-
-procedureParam
-    : LOCAL_ID AS? (id DOT)? dataType VARYING? (EQ procedureParamDefaultValue)? (
-        OUT
-        | OUTPUT
-        | READONLY
-    )?
-    ;
-
-procedureOption: executeClause | genericOption
-    ;
 
 functionOption
     : ENCRYPTION
     | SCHEMABINDING
     | RETURNS NULL ON NULL INPUT
     | CALLED ON NULL INPUT
-    | executeClause
+    | executeAs
     ;
 
 createStatistics
@@ -2114,10 +2101,6 @@ dropRelationalOrXmlOrSpatialIndex: id ON tableName
 dropBackwardCompatibleIndex: dotIdentifier
     ;
 
-dropProcedure
-    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
-    ;
-
 dropTrigger: dropDmlTrigger | dropDdlTrigger
     ;
 
@@ -2250,7 +2233,7 @@ executeVarString
     ;
 
 securityStatement
-    : executeClause SEMI?
+    : executeAs SEMI?
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
@@ -2524,7 +2507,7 @@ dbccClause
     )
     ;
 
-executeClause: EXECUTE AS clause = (CALLER | SELF | OWNER | STRING)
+executeAs: EXECUTE AS (CALLER | SELF | OWNER | STRING)
     ;
 
 declareLocal: LOCAL_ID AS? dataType (EQ expression)?
@@ -3201,6 +3184,9 @@ sendConversation
     ;
 
 dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+    ;
+
+dataTypeList: dataType (COMMA dataType)*
     ;
 
 dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
