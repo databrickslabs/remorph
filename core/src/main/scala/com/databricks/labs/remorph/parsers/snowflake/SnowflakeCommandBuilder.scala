@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.intermediate.procedures.SetVariable
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -61,7 +62,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
           case s: ir.ScalarSubquery => Some(s.dataType)
           case _ => Option(ctx.dataType()).flatMap(dt => Some(vc.typeBuilder.buildDataType(dt)))
         }
-        ir.SetVariable(variableName, variableValue, variableDataType)
+        SetVariable(variableName, variableValue, variableDataType)
     }
 
   override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
