@@ -270,6 +270,10 @@ def _to_number(self, expression: local_expression.ToNumber):
         if precision:
             return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
         return func_expr
+    if not precision:
+        precision = 38
+    if not scale:
+        scale = 0
     if not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
