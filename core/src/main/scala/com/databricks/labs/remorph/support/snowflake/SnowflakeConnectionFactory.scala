@@ -1,6 +1,7 @@
-package com.databricks.labs.remorph.coverage.connections
+package com.databricks.labs.remorph.support.snowflake
 
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
+import com.databricks.labs.remorph.support.ConnectionFactory
 import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import java.security.spec.PKCS8EncodedKeySpec
@@ -10,7 +11,7 @@ import java.util.{Base64, Properties}
 
 // TODO: This is not how we will handle connections in the future
 
-class SnowflakeConnectionFactory(env: EnvGetter) {
+class SnowflakeConnectionFactory(env: EnvGetter) extends ConnectionFactory {
   // scalastyle:off
   Class.forName("net.snowflake.client.jdbc.SnowflakeDriver")
   // scalastyle:on

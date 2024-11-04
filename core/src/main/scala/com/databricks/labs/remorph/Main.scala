@@ -10,25 +10,24 @@ object Main extends App with ApplicationContext {
   // scalastyle:off println
   route match {
     case Payload("debug-script", args) =>
-      exampleDebugger.debugExample(args("name"), args.get("dialect"))
+      exampleDebugger.debugExample(args("name"))
     case Payload("debug-me", _) =>
       prettyPrinter(workspaceClient.currentUser().me())
     case Payload("debug-coverage", args) =>
       coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"))
     case Payload("debug-estimate", args) =>
-      val report = estimator(args("source-dialect")).run()
+      val report = estimator.run()
       jsonEstimationReporter(
         os.Path(args("dst")) / s"${now.getEpochSecond}",
-        args("preserve-queries").toBoolean,
+        args.get("preserve-queries").exists(_.toBoolean),
         report).report()
       args("console-output") match {
         case "true" => consoleEstimationReporter(os.Path(args("dst")) / s"${now.getEpochSecond}", report).report()
       }
     case Payload("debug-bundle", args) =>
       val dst = new File(args("dst"))
-      val bundleGenerator = fileSetGenerator(args("dialect"))
-      val queryHistory = folderQueryHistoryProvider(args("src")).history()
-      bundleGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(Init) match {
+      val queryHistory = queryHistoryProvider.history()
+      fileSetGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(Init) match {
         case OkResult(output) => output.persist(dst)
         case PartialResult(output, error) =>
           prettyPrinter(error)
@@ -40,11 +39,17 @@ object Main extends App with ApplicationContext {
       println(s"Unknown command: $command")
   }
 
+  // make CLI flags available for ApplicationContext
+  def flags: Map[String, String] = cliFlags
+
+  // placeholder for global CLI flags
+  private var cliFlags: Map[String, String] = Map.empty
+
   // parse json from the last CLI argument
   private def route: Payload = {
     val payload = ujson.read(args.last).obj
     val command = payload("command").str
-    val flags = payload("flags").obj.mapValues(_.str).toMap
+    cliFlags = payload("flags").obj.mapValues(_.str).toMap
     Payload(command, flags)
   }
 }

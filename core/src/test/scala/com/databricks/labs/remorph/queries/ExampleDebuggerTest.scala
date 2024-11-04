@@ -18,10 +18,10 @@ class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar wi
       when(parser.parse(any())).thenReturn(lift(OkResult(ParserRuleContext.EMPTY)))
       when(parser.visit(any())).thenReturn(lift(OkResult(NoopNode)))
 
-      val debugger = new ExampleDebugger(_ => parser, x => buf.append(x))
+      val debugger = new ExampleDebugger(parser, x => buf.append(x), "snowflake")
       val name = s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake/nested_query_with_json_1.sql"
 
-      debugger.debugExample(name, None)
+      debugger.debugExample(name)
 
       buf.toString() should equal("NoopNode$\n")
     }
