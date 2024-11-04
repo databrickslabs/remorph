@@ -27,6 +27,7 @@ def raise_validation_exception(msg: str) -> Exception:
 proxy_command(remorph, "debug-script")
 proxy_command(remorph, "debug-me")
 proxy_command(remorph, "debug-coverage")
+proxy_command(remorph, "debug-estimate")
 proxy_command(remorph, "debug-bundle")
 
 
