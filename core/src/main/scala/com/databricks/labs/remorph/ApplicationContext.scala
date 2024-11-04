@@ -6,6 +6,7 @@ import com.databricks.labs.remorph.coverage.runners.EnvGetter
 import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
 import com.databricks.labs.remorph.discovery.{FileQueryHistory, QueryHistoryProvider, SnowflakeQueryHistory}
 import com.databricks.labs.remorph.generators.orchestration.FileSetGenerator
+import com.databricks.labs.remorph.graph.TableGraph
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
@@ -16,6 +17,7 @@ import com.databricks.sdk.core.DatabricksConfig
 
 import java.io.File
 import java.time.Instant
+import java.nio.file.{Files, Paths}
 
 trait ApplicationContext {
   private def snowflakePlanParser: SnowflakePlanParser = new SnowflakePlanParser
@@ -70,4 +72,23 @@ trait ApplicationContext {
 
   def fileSetGenerator(dialect: String): FileSetGenerator =
     new FileSetGenerator(planParser(dialect), sqlGenerator, pySparkGenerator)
+
+  def generateDotFile(tableGraph: TableGraph, dstFile: File): Unit = {
+    val dotContent = new StringBuilder
+    dotContent.append("digraph lineage {\n")
+
+    tableGraph.getNodes.foreach { node =>
+      dotContent.append(s"""  "${node.tableDefinition.table}" [label="${node.tableDefinition.table}"];\n""")
+    }
+
+    tableGraph.getEdges.foreach { edge =>
+      edge.to.foreach { toNode =>
+        dotContent.append(s"""  "${edge.from.tableDefinition.table}" -> "${toNode.tableDefinition.table}";\n""")
+      }
+    }
+
+    dotContent.append("}\n")
+
+    Files.write(Paths.get(dstFile.getPath), dotContent.toString().getBytes)
+  }
 }

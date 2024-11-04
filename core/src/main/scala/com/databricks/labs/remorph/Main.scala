@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph
 
+import com.databricks.labs.remorph.discovery.TableDefinition
 import com.databricks.labs.remorph.generators.orchestration.rules.history.RawMigration
+import com.databricks.labs.remorph.graph.TableGraph
 
 import java.io.File
 
@@ -36,6 +38,15 @@ object Main extends App with ApplicationContext {
         case nok: KoResult =>
           prettyPrinter(nok)
       }
+
+    case Payload("debug-lineage", args) =>
+      val dst = new File(args("dst"))
+      val queryHistory = folderQueryHistoryProvider(args("src")).history()
+      val dependencyGraph = new TableGraph(planParser(args("dialect")))
+      dependencyGraph.buildDependency(queryHistory, Set.empty[TableDefinition])
+
+      generateDotFile(dependencyGraph, dst)
+
     case Payload(command, _) =>
       println(s"Unknown command: $command")
   }

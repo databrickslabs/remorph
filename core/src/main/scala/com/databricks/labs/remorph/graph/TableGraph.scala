@@ -13,6 +13,9 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   private val nodes = scala.collection.mutable.Set.empty[Node]
   private val edges = scala.collection.mutable.Set.empty[Edge]
 
+  def getNodes: Set[Node] = nodes.toSet
+  def getEdges: Set[Edge] = edges.toSet
+
   override protected def addNode(id: TableDefinition, metadata: Map[String, Set[String]]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
     // for Example if a table is used in multiple queries, we need to consolidate the metadata
