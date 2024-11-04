@@ -67,7 +67,7 @@ def _format_create_sql(self, expression: exp.Create) -> str:
 
     # Remove modifiers in order to simplify the schema.  For example, this removes things like "IF NOT EXISTS"
     # from "CREATE TABLE foo IF NOT EXISTS".
-    args_to_delete = ["temporary", "transient", "external", "replace", "exists", "unique", "materialized", "properties"]
+    args_to_delete = ["temporary", "transient", "external", "exists", "unique", "materialized", "properties"]
     for arg_to_delete in args_to_delete:
         if expression.args.get(arg_to_delete):
             del expression.args[arg_to_delete]
@@ -384,6 +384,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
             exp.FromBase64: rename_func("UNBASE64"),
+            exp.AutoIncrementColumnConstraint: lambda *_: "GENERATED ALWAYS AS IDENTITY",
             local_expression.Parameter: _parm_sfx,
             local_expression.ToBoolean: _to_boolean,
             local_expression.Bracket: _lateral_bracket_sql,
