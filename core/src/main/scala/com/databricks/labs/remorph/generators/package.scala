@@ -18,8 +18,14 @@ package object generators {
         .flatMap { a =>
           val stringParts = sc.parts.iterator
           val arguments = a.iterator
-          val sb = new StringBuilder(StringContext.treatEscapes(stringParts.next()))
           var failureOpt: Option[Transformation[String]] = None
+          val sb = new StringBuilder()
+          try {
+            sb.append(StringContext.treatEscapes(stringParts.next()))
+          } catch {
+            case NonFatal(e) =>
+              failureOpt = Some(lift(KoResult(WorkflowStage.GENERATE, UncaughtException(e))))
+          }
           while (failureOpt.isEmpty && arguments.hasNext) {
             try {
               sb.append(StringContext.treatEscapes(arguments.next()))

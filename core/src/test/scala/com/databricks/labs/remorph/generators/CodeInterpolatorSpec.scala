@@ -83,5 +83,9 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
         val aftermath = ok("everything exploded")
         a[RuntimeException] should be thrownBy code"$three...$two...$one...${boom()}...$aftermath"
       }
+
+    "wrap 'normal' exception, such as invalid escapes, in a failure" in {
+      code"\D".runAndDiscardState(Init) shouldBe an[KoResult]
+    }
   }
 }
