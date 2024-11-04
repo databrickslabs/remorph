@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.generators.orchestration
 
+import com.databricks.labs.remorph.Transformation
 import com.databricks.labs.remorph.generators.Generator
 import com.databricks.labs.remorph.generators.orchestration.rules.converted.CreatedFile
 import com.databricks.labs.remorph.generators.orchestration.rules._
@@ -7,7 +8,6 @@ import com.databricks.labs.remorph.intermediate.Rules
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
-import com.databricks.labs.remorph.{Phase, Transformation}
 
 class FileSetGenerator(
     private val parser: PlanParser[_],
@@ -25,7 +25,7 @@ class FileSetGenerator(
     new DefineJob(),
     new GenerateBundleFile())
 
-  override def generate(tree: JobNode): Transformation[Phase, FileSet] = {
+  override def generate(tree: JobNode): Transformation[FileSet] = {
     val fileSet = new FileSet()
     rules(tree) foreachUp {
       case CreatedFile(name, code) =>

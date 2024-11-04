@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{Generating, OkResult, Phase, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, TransformationConstructors, intermediate => ir}
 
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TransformationConstructors[Phase] {
+class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TransformationConstructors {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
