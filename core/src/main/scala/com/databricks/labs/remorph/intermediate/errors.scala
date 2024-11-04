@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.Phase
 import com.databricks.labs.remorph.utils.Strings
 import upickle.default._
 
@@ -203,4 +204,18 @@ case class UnexpectedOutput(expected: String, actual: String) extends RemorphErr
 
 object UnexpectedOutput {
   implicit val rw: ReadWriter[UnexpectedOutput] = macroRW
+}
+
+case class IncoherentState(currentPhase: Phase, expectedPhase: Class[_]) extends RemorphError with SingleError {
+  override def msg: String =
+    s"Incoherent state: current phase is ${currentPhase.getClass.getSimpleName} but should be ${expectedPhase.getSimpleName}"
+}
+
+object IncoherentState {
+  implicit val rw: ReadWriter[IncoherentState] = upickle.default
+    .readwriter[ujson.Value]
+    .bimap[IncoherentState](
+      is => ujson.Str(is.msg),
+      _ => null.asInstanceOf[IncoherentState] // Deserialize to null, we don't expect to deserialize errors
+    )
 }

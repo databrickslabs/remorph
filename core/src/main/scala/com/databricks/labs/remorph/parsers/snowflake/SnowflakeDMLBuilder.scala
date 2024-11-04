@@ -29,6 +29,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
         case u if u.updateStatement() != null => u.updateStatement().accept(this)
         case d if d.deleteStatement() != null => d.deleteStatement().accept(this)
         case m if m.mergeStatement() != null => m.mergeStatement().accept(this)
+        case _ => unresolved("dmlCommand", "everything is null")
       }
   }
 

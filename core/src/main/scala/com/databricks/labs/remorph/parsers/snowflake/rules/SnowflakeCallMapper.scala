@@ -42,12 +42,14 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("DIV0", args) => div0(args)
       case ir.CallFunction("DIV0NULL", args) => div0null(args)
       case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1), args.lift(2))
+      case ir.CallFunction("FIRST_VALUE", args) => ir.First(args.head, args.lift(1))
       case ir.CallFunction("FLATTEN", args) =>
         // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
         ir.Explode(args.head)
       case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
       case ir.CallFunction("IS_INTEGER", args) => isInteger(args)
       case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
+      case ir.CallFunction("LAST_VALUE", args) => ir.Last(args.head, args.lift(1))
       case ir.CallFunction("LEN", args) => ir.Length(args.head)
       case ir.CallFunction("LISTAGG", args) =>
         ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None)
