@@ -147,7 +147,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   private def toNumber(args: Seq[ir.Expression]): ir.Expression = {
     val getArg: Int => Option[ir.Expression] = args.lift
     if (args.size < 2) {
-      throw TranspileException(ir.WrongNumberOfArguments("TO_NUMBER", args.size, "at least 2"))
+      ir.Cast(args.head, ir.DecimalType(38, 0))
     } else if (args.size == 2) {
       ir.ToNumber(args.head, args(1))
     } else {
