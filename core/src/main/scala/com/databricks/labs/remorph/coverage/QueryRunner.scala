@@ -20,14 +20,21 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
       output: String,
       error: Option[RemorphError] = None): ReportEntryReport = {
     val expected = exampleQuery.expectedTranslation.getOrElse("")
+    val parsed = if (error.isEmpty) 1 else 0
     if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
       ReportEntryReport(
-        parsed = 1,
+        parsed = parsed,
         statements = 1,
         transpilation_error = Some(UnexpectedOutput(format(expected), format(output))),
         parsing_error = error)
     } else {
-      ReportEntryReport(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1, parsing_error = error)
+      ReportEntryReport(
+        parsed = parsed,
+        transpiled = if (parsed == 1) 1 else 0,
+        statements = 1,
+        transpiled_statements = 1,
+        parsing_error = error
+      )
     }
   }
 
