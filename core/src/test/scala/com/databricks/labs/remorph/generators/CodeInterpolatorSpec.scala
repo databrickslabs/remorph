@@ -77,7 +77,15 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
     "unfortunately, if evaluating one of the arguments throws an exception, " +
       "it cannot be caught by the interpolator because arguments are evaluated eagerly" in {
         def boom(): Unit = throw new RuntimeException("boom")
-        a[RuntimeException] should be thrownBy code"3...2...1...${boom()}"
+        val three = ok("3")
+        val two = ok("2")
+        val one = ok("1")
+        val aftermath = ok("everything exploded")
+        a[RuntimeException] should be thrownBy code"$three...$two...$one...${boom()}...$aftermath"
       }
+
+    "wrap 'normal' exception, such as invalid escapes, in a failure" in {
+      code"\D".runAndDiscardState(Init) shouldBe an[KoResult]
+    }
   }
 }
