@@ -3,14 +3,9 @@ package com.databricks.labs.remorph
 import com.databricks.labs.remorph.coverage.estimation.{EstimationAnalyzer, Estimator, JsonEstimationReporter, SummaryEstimationReporter}
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
 import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
-import com.databricks.labs.remorph.discovery.{FileQueryHistory, QueryHistoryProvider}
+import com.databricks.labs.remorph.discovery.{FileQueryHistory, QueryHistory, QueryHistoryProvider}
 import com.databricks.labs.remorph.generators.orchestration.FileSetGenerator
-
 import com.databricks.labs.remorph.graph.TableGraph
-import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
-import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
-
 import com.databricks.labs.remorph.queries.ExampleDebugger
 import com.databricks.labs.remorph.support.SupportContext
 import com.databricks.labs.remorph.support.snowflake.SnowflakeContext
@@ -68,8 +63,14 @@ trait ApplicationContext {
 
   private def pySparkGenerator: PySparkGenerator = new PySparkGenerator
 
-  def fileSetGenerator(dialect: String): FileSetGenerator =
-    new FileSetGenerator(planParser(dialect), sqlGenerator, pySparkGenerator)
+  def fileSetGenerator: FileSetGenerator =
+    new FileSetGenerator(supportContext.planParser, sqlGenerator, pySparkGenerator)
+
+  def getTableGraph(queryHistory: QueryHistory): TableGraph = {
+    val dependencyGraph = new TableGraph(supportContext.planParser)
+    dependencyGraph.buildDependency(queryHistory, Set.empty)
+    dependencyGraph
+  }
 
   def generateDotFile(tableGraph: TableGraph, dstFile: File): Unit = {
     val dotContent = new StringBuilder
@@ -89,8 +90,5 @@ trait ApplicationContext {
 
     Files.write(Paths.get(dstFile.getPath), dotContent.toString().getBytes)
   }
-
-  def fileSetGenerator: FileSetGenerator =
-    new FileSetGenerator(supportContext.planParser, sqlGenerator, pySparkGenerator)
 
 }

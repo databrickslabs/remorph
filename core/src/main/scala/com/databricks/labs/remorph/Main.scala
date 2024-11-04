@@ -40,10 +40,8 @@ object Main extends App with ApplicationContext {
 
     case Payload("debug-lineage", args) =>
       val dst = new File(args("dst"))
-      val queryHistory = folderQueryHistoryProvider(args("src")).history()
-      val dependencyGraph = new TableGraph(planParser(args("dialect")))
-      dependencyGraph.buildDependency(queryHistory, Set.empty[TableDefinition])
-
+      val queryHistory = queryHistoryProvider.history()
+      val dependencyGraph = getTableGraph(queryHistory)
       generateDotFile(dependencyGraph, dst)
 
     case Payload(command, _) =>
