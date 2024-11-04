@@ -1,18 +1,20 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.coverage.connections.SnowflakeConnectionFactory
-import com.databricks.labs.remorph.coverage.estimation.{SummaryEstimationReporter, EstimationAnalyzer, Estimator, JsonEstimationReporter}
+import com.databricks.labs.remorph.coverage.estimation.{EstimationAnalyzer, Estimator, JsonEstimationReporter, SummaryEstimationReporter}
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
 import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
-import com.databricks.labs.remorph.discovery.SnowflakeQueryHistory
+import com.databricks.labs.remorph.discovery.{FileQueryHistory, QueryHistoryProvider, SnowflakeQueryHistory}
+import com.databricks.labs.remorph.generators.orchestration.FileSetGenerator
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
 import com.databricks.labs.remorph.queries.ExampleDebugger
-import com.databricks.labs.remorph.transpilers.{BaseTranspiler, SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler}
+import com.databricks.labs.remorph.transpilers._
 import com.databricks.sdk.WorkspaceClient
 import com.databricks.sdk.core.DatabricksConfig
 
+import java.io.File
 import java.time.Instant
 
 trait ApplicationContext {
@@ -59,4 +61,13 @@ trait ApplicationContext {
 
   def consoleEstimationReporter(outputDir: os.Path, estimate: EstimationReport): SummaryEstimationReporter =
     new SummaryEstimationReporter(outputDir, estimate)
+
+  def folderQueryHistoryProvider(folder: String): QueryHistoryProvider = new FileQueryHistory(new File(folder).toPath)
+
+  def sqlGenerator: SqlGenerator = new SqlGenerator
+
+  def pySparkGenerator: PySparkGenerator = new PySparkGenerator
+
+  def fileSetGenerator(dialect: String): FileSetGenerator =
+    new FileSetGenerator(planParser(dialect), sqlGenerator, pySparkGenerator)
 }

@@ -11,6 +11,7 @@ case class SQL(query: String, named_arguments: Map[String, Expression], pos_argu
 
 abstract class Read(is_streaming: Boolean) extends LeafNode
 
+// TODO: replace it with TableIdentifier with catalog and schema filled
 // TODO: replace most (if not all) occurrences with UnresolvedRelation
 case class NamedTable(unparsed_identifier: String, options: Map[String, String], is_streaming: Boolean)
     extends Read(is_streaming) {
