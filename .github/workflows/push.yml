@@ -220,6 +220,9 @@ jobs:
           cache-dependency-path: '**/pyproject.toml'
           python-version: '3.10'
 
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
       - name: Initialize Python virtual environment for StandardInputPythonSubprocess
         run: make dev
 
