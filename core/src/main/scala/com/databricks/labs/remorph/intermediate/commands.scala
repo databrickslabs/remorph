@@ -88,9 +88,8 @@ case class WriteStreamOperationStart(
     extends LeafNode
     with Command
 
+// TODO: align snowflake and common IR implementations for `CreateVariable`
 case class CreateVariable(name: Id, dataType: DataType, defaultExpr: Option[Expression] = None, replace: Boolean)
     extends LeafNode
     with Command
-
-case class SetVariable(name: Id, value: Expression, dataType: Option[DataType] = None) extends LeafNode with Command
 
