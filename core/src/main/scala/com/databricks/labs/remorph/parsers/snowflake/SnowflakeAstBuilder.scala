@@ -94,15 +94,10 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
           val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
           ir.WithCTE(ctes, relation)
         } else {
-          ir.UnresolvedCommand(
-            ruleText = contextText(ctx),
-            message = "*** WITH RECURSIVE IS NOT SUPPORTED ***",
-            ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))
+          val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
+          ir.WithRecursiveCTE(ctes, relation)
         }
-
     }
-
   }
 
   private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
