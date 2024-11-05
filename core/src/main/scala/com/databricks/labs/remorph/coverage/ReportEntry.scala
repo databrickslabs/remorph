@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.coverage
 import com.databricks.labs.remorph.intermediate.RemorphError
 import io.circe.Encoder
 
-
 case class ReportEntryHeader(
     project: String,
     commit_hash: Option[String],
@@ -32,7 +31,7 @@ case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport)
 object ReportEntry extends ErrorEncoders {
   import io.circe.generic.auto._
   import io.circe.syntax._
-  implicit val reportEntryEncoder: Encoder[ReportEntry] = Encoder.instance{entry =>
+  implicit val reportEntryEncoder: Encoder[ReportEntry] = Encoder.instance { entry =>
     val header = entry.header.asJson
     val report = entry.report.asJson
     header.deepMerge(report)
