@@ -9,6 +9,7 @@ import pytest
 import pytz
 
 from databricks.labs.remorph.coverage.commons import (
+    ErrorPayload,
     ReportEntry,
     collect_transpilation_stats,
     get_current_commit_hash,
@@ -171,7 +172,7 @@ def test_stats_collection_with_parse_error(io_dir_pair):
             source_dialect="Snow",
             target_dialect="Databricks",
             file="input/test.sql",
-            parsing_error="Some parse error",
+            failures=[ErrorPayload("Exception", "Exception('Some parse error')")],
         )
         retrieved_report_entry = ReportEntry(**json.loads(report_files[0].read_text()))
         assert retrieved_report_entry == expected_report_entry
@@ -214,7 +215,7 @@ def test_stats_collection_with_transpile_error(io_dir_pair):
             file="input/test.sql",
             parsed=1,
             statements=1,
-            transpilation_error="Some transpilation error",
+            failures=[ErrorPayload("Exception", "Exception('Some transpilation error')")],
         )
         retrieved_report_entry = ReportEntry(**json.loads(report_files[0].read_text()))
         assert retrieved_report_entry == expected_report_entry
