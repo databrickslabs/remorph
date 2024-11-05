@@ -494,5 +494,56 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Project(Filter(namedTable("a"), Equals(Id("b"), Id("$ids"))), Seq(Star())))
       }
     }
+
+    "translate with recursive" should {
+      """WITH RECURSIVE employee_hierarchy""".stripMargin in {
+        singleQueryExample(
+          """WITH RECURSIVE employee_hierarchy AS (
+                             |    SELECT
+                             |        employee_id,
+                             |        manager_id,
+                             |        employee_name,
+                             |        1 AS level
+                             |    FROM
+                             |        employees
+                             |    WHERE
+                             |        manager_id IS NULL
+                             |    UNION ALL
+                             |    SELECT
+                             |        e.employee_id,
+                             |        e.manager_id,
+                             |        e.employee_name,
+                             |        eh.level + 1 AS level
+                             |    FROM
+                             |        employees e
+                             |    INNER JOIN
+                             |        employee_hierarchy eh ON e.manager_id = eh.employee_id
+                             |)
+                             |SELECT *
+                             |FROM employee_hierarchy
+                             |ORDER BY level, employee_id;""".stripMargin,
+          WithRecursiveCTE(
+            Seq(
+              SubqueryAlias(
+                Project(
+                  Filter(NamedTable("employees", Map.empty, false), IsNull(Id("manager_id", false))),
+                  Seq(
+                    Id("employee_id", false),
+                    Id("manager_id", false),
+                    Id("employee_name", false),
+                    Alias(Literal(1, IntegerType), Id("level", false)))),
+                Id("employee_hierarchy", false),
+                Seq.empty)),
+            Project(
+              Sort(
+                NamedTable("employee_hierarchy", Map.empty, false),
+                Seq(
+                  SortOrder(Id("level", false), Ascending, NullsLast),
+                  SortOrder(Id("employee_id", false), Ascending, NullsLast)),
+                false),
+              Seq(Star(None)))))
+      }
+
+    }
   }
 }

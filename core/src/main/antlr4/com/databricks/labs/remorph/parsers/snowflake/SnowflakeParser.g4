@@ -3329,14 +3329,11 @@ switchSection: WHEN expr THEN expr
 queryStatement: withExpression? selectStatement setOperators*
     ;
 
-withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
+withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN (
-        (selectStatement setOperators*)
-        | expr
-    ) R_PAREN
+    : tableName = id (L_PAREN columnList R_PAREN)? AS L_PAREN ((selectStatement setOperators*) | expr) R_PAREN
     ;
 
 selectStatement

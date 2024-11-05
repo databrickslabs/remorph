@@ -37,6 +37,11 @@ case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationC
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
 
+case class WithRecursiveCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = query.output
+  override def children: Seq[LogicalPlan] = ctes :+ query
+}
+
 // TODO: (nfx) refactor to align more with catalyst, rename to UnresolvedStar
 case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression with StarOrAlias {
   override def dataType: DataType = UnresolvedType
