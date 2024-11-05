@@ -45,11 +45,23 @@ options {
 // The following rules provide substitutes for grammar rules referenced in the procedure.g4 grammar, that
 // we do not have real equivalents for in this gramamr.
 // Over time, as we homogonize more and more of the dialect grammars, these rules will be removed.
+// Note that these rules will not be visited by the TSQL transpiler, as they are not part of
+// TSQL and we are expecting syntacticly and semanticly sound input.
+
+// string and stringList will eventually expand to composite token sequences for macro substitution, so they
+// are not redundant here.
 string: STRING
     ;
+stringList: string (COMMA string)*
+    ;
+
+// expr is just an alias for expression, for Snowflake compatibility
+// TODO: Change Snowflake to use the rule anme expression instead of expr as this is what the Spark parser uses
+expr: expression
+    ;
+// ======================================================
 
 // ================= TSQL Specific Rules ========================================
-
 
 tSqlFile: SEMI* batch? EOF
     ;
@@ -278,9 +290,6 @@ continueStatement: CONTINUE SEMI?
     ;
 
 gotoStatement: GOTO id COLON? SEMI?
-    ;
-
-returnStatement: RETURN expression? SEMI?
     ;
 
 ifStatement: IF searchCondition sqlClauses (ELSE sqlClauses)? SEMI?
@@ -1686,7 +1695,6 @@ funcBodyReturnsScalar
     )
     ;
 
-
 functionOption
     : ENCRYPTION
     | SCHEMABINDING
@@ -1729,6 +1737,9 @@ createExternal
     : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN (
         AS selectStatementStandalone
     ) SEMI?
+    ;
+
+table: TABLE tableName (LPAREN columnDefTableConstraints? COMMA? RPAREN)?
     ;
 
 createTableAs
@@ -2206,22 +2217,18 @@ executeBodyBatch: dotIdentifier (executeStatementArg (COMMA executeStatementArg)
     ;
 
 executeBody
-    : (LOCAL_ID EQ)? (dotIdentifier | executeVarString) executeStatementArg?
+    : (LOCAL_ID EQ)? (dotIdentifier | executeVarString) (
+        executeStatementArg (COMMA executeStatementArg)*
+    )?
     | LPAREN executeVarString (COMMA executeVarString)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
         AT_KEYWORD id
     )?
     | AS ( (LOGIN | USER) EQ STRING | CALLER)
     ;
 
-executeStatementArg
-    : executeStatementArgUnnamed (COMMA executeStatementArg)*
-    | executeStatementArgNamed (COMMA executeStatementArgNamed)*
-    ;
-
-executeStatementArgNamed: LOCAL_ID EQ executeParameter
-    ;
-
-executeStatementArgUnnamed: executeParameter
+// In practice unnamed arguments must precede named arguments, but we assume the input is syntactically valid
+// and accept them in any order to simplitfy the grammar
+executeStatementArg: (LOCAL_ID EQ)? executeParameter
     ;
 
 executeParameter: ( constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL)
@@ -3271,7 +3278,7 @@ keyword
     | BEFORE
     | BEGIN_DIALOG
     | BIGINT
-    | BINARY_KEYWORD
+    | BINARY
     | BINDING
     | BLOB_STORAGE
     | BLOCK
@@ -3795,7 +3802,7 @@ keyword
     | SIGNATURE
     | SINGLE_USER
     | SIZE
-    | SKIP_KEYWORD
+    | KWSKIP
     | SMALLINT
     | SNAPSHOT
     | SOFTNUMA
@@ -4038,5 +4045,5 @@ xmlIndexOptions: WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
 xmlIndexOption: ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF) | genericOption
     ;
 
-xmlCommonDirectives: COMMA ( BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
+xmlCommonDirectives: COMMA ( BINARY BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;

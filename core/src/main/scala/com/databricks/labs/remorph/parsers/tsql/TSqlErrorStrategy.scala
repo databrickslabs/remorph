@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.SqlErrorStrategy
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{StringContext => _, _}
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.IntervalSet
 
@@ -333,7 +333,7 @@ object TSqlErrorStrategy {
     BEFORE,
     BEGIN_DIALOG,
     BIGINT,
-    BINARY_KEYWORD,
+    BINARY,
     BINDING,
     BLOB_STORAGE,
     BLOCK,
@@ -855,7 +855,7 @@ object TSqlErrorStrategy {
     SIGNATURE,
     SINGLE_USER,
     SIZE,
-    SKIP_KEYWORD,
+    KWSKIP,
     SMALLINT,
     SNAPSHOT,
     SOFTNUMA,

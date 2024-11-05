@@ -74,8 +74,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       // It is not wrong for the id rule to hold the AMP ID alt, but ideally it would produce
       // an ir.Variable and we would process that at generation time instead of concatenating into strings :(
       ir.Id(s"$$${v.ID().getText}")
-    case d if d.ID2() != null =>
-      ir.Id(s"$$${d.ID2().getText.drop(1)}")
+    case d if d.LOCAL_ID() != null =>
+      ir.Id(s"$$${d.LOCAL_ID().getText.drop(1)}")
     case id => ir.Id(id.getText)
   }
 
@@ -102,7 +102,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val objectNameIds = Option(ctx.objectName()).map(_.id().asScala.map(buildId)).getOrElse(Seq())
+      val objectNameIds = Option(ctx.dotIdentifier()).map(_.id().asScala.map(buildId)).getOrElse(Seq())
       val columnIds = ctx.columnName().id().asScala.map(buildId)
       val fqn = objectNameIds ++ columnIds
       val objectRefIds = fqn.take(fqn.size - 1)
@@ -114,7 +114,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Column(objectRef, fqn.last)
   }
 
-  override def visitObjectName(ctx: ObjectNameContext): ir.ObjectReference = {
+  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.ObjectReference = {
     val ids = ctx.id().asScala.map(buildId)
     ir.ObjectReference(ids.head, ids.tail: _*)
   }
@@ -122,7 +122,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      ir.Star(Option(ctx.objectName()).map { on =>
+      ir.Star(Option(ctx.dotIdentifier()).map { on =>
         val objectNameIds = on.id().asScala.map(buildId)
         ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
       })
@@ -179,7 +179,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
             .map(ir.Literal(_))
             .getOrElse(ir.Literal.Null)
         case c if c.string() != null => c.string.accept(this)
-        case c if c.DECIMAL() != null => ir.NumericLiteral(sign + c.DECIMAL().getText)
+        case c if c.INT() != null => ir.NumericLiteral(sign + c.INT().getText)
         case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
         case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
         case c if c.NULL() != null => ir.Literal.Null
@@ -297,7 +297,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      NextValue(ctx.objectName().getText)
+      NextValue(ctx.dotIdentifier().getText)
   }
 
   override def visitExprDot(ctx: ExprDotContext): ir.Expression = errorCheck(ctx) match {

@@ -1,75 +1,127 @@
 /*
 Universal grammar for SQL stored procedure declarations
  */
+
+
+
+
 parser grammar procedure;
 
+// Snowflake specific
+// TODO: Reconcile with TSQL and SQL/PSM
 
-// Snowflake
+alterProcedure:
+    ALTER PROCEDURE (IF EXISTS)? id LPAREN dataTypeList? RPAREN RENAME TO id
+    | ALTER PROCEDURE (IF EXISTS)? id LPAREN dataTypeList? RPAREN SET (
+        COMMENT EQ string
+    )
+    | ALTER PROCEDURE (IF EXISTS)? id LPAREN dataTypeList? RPAREN UNSET COMMENT
+    | ALTER PROCEDURE (IF EXISTS)? id LPAREN dataTypeList? RPAREN EXECUTE AS (
+        CALLER
+        | OWNER
+    )
+;
 
-alterProcedure
-    : ALTER PROCEDURE (IF EXISTS)? id L_PAREN dataTypeList? R_PAREN RENAME TO id
-    | ALTER PROCEDURE (IF EXISTS)? id L_PAREN dataTypeList? R_PAREN SET (COMMENT EQ string)
-    | ALTER PROCEDURE (IF EXISTS)? id L_PAREN dataTypeList? R_PAREN UNSET COMMENT
-    | ALTER PROCEDURE (IF EXISTS)? id L_PAREN dataTypeList? R_PAREN EXECUTE AS (CALLER | OWNER)
-    ;
-
-createProcedure
-    : CREATE (OR REPLACE)? PROCEDURE dotIdentifier L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType
-        | table_
-    ) notNull? LANGUAGE SQL (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
-        VOLATILE
-        | IMMUTABLE
-    )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    (COMMENT EQ string)? executaAs? AS procedureDefinition
-    | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
+createProcedure:
+    CREATE (OR REPLACE)? PROCEDURE dotIdentifier LPAREN (
+        procArgDecl (COMMA procArgDecl)*
+    )? RPAREN RETURNS (dataType | table) (NOT? NULL)? LANGUAGE SQL (
         CALLED ON NULL INPUT
         | RETURNS NULL ON NULL INPUT
         | STRICT
     )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
-    (COMMENT EQ string)? executaAs? AS procedureDefinition
-    | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType notNull?
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
+    (COMMENT EQ string)? executeAs? AS procedureDefinition
+    | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier LPAREN (
+        procArgDecl (COMMA procArgDecl)*
+    )? RPAREN RETURNS dataType (NOT? NULL)? LANGUAGE JAVASCRIPT (
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
+        | STRICT
+    )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
+    (COMMENT EQ string)? executeAs? AS procedureDefinition
+    | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier LPAREN (
+        procArgDecl (COMMA procArgDecl)*
+    )? RPAREN RETURNS (dataType (NOT? NULL)? | table) LANGUAGE PYTHON RUNTIME_VERSION EQ string (
+        IMPORTS EQ LPAREN stringList RPAREN
+    )? PACKAGES EQ LPAREN stringList RPAREN HANDLER EQ string
     //            ( CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT )?
     //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    (COMMENT EQ string)? executaAs? AS procedureDefinition
-    ;
+    (COMMENT EQ string)? executeAs? AS procedureDefinition
+;
 
-dropProcedure: DROP PROCEDURE (IF EXISTS)? dotIdentifier argTypes
-    ;
+procArgDecl: id dataType (DEFAULT expr)?;
 
-procedureDefinition: DOLLAR_STRING | declareCommand? BEGIN procStatement+ END SEMI
-    ;
+dropProcedure:
+    DROP PROCEDURE (IF EXISTS)? dotIdentifier LPAREN (
+        dataType (COMMA dataType)*
+    )? RPAREN
+;
 
+procedureDefinition:
+    DOLLAR_STRING
+    | declareCommand? BEGIN procStatement* END SEMI?
+;
+
+assign:
+    LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # assignVariable
+    | LET? id CURSOR FOR (selectStatement | id) SEMI             # assignCursor
+;
 
 // TSQL
 
-createOrAlterProcedure
-    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) dotIdentifier (SEMI INT)? (
+createOrAlterProcedure: (
+        (CREATE (OR (ALTER | REPLACE))?)
+        | ALTER
+    ) PROCEDURE dotIdentifier (SEMI INT)? (
         LPAREN? procedureParam (COMMA procedureParam)* RPAREN?
-    )? (WITH procedureOption (COMMA procedureOption)*)? (FOR REPLICATION)? AS (
-          EXTERNAL NAME dotIdentifier
-        | sqlClauses*
-    )
-    ;
+    )? (WITH procedureOption (COMMA procedureOption)*)? (
+        FOR REPLICATION
+    )? AS (EXTERNAL NAME dotIdentifier | sqlClauses*)
+;
 
+procedureParamDefaultValue:
+    NULL
+    | DEFAULT
+    | constant
+    | LOCAL_ID
+;
 
-procedureParamDefaultValue: NULL | DEFAULT | constant | LOCAL_ID
-    ;
+procedureParam:
+    LOCAL_ID AS? (id DOT)? dataType VARYING? (
+        EQ procedureParamDefaultValue
+    )? (OUT | OUTPUT | READONLY)?
+;
 
-procedureParam
-    : LOCAL_ID AS? (id DOT)? dataType VARYING? (EQ procedureParamDefaultValue)? (
-        OUT
-        | OUTPUT
-        | READONLY
-    )?
-    ;
+procedureOption: executeAs | genericOption;
 
-procedureOption: executeClause | genericOption
-    ;
+dropProcedure:
+    DROP PROCEDURE (IF EXISTS)? dotIdentifier (
+        COMMA dotIdentifier
+    )* SEMI?
+;
 
-dropProcedure
-    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
-    ;
+procStatement:
+    declareCommand
+    | assign
+    | returnStatement
+    | sqlClauses
+;
+
+// -----------------------------------------------------------
+// SQL/PSM is for Spark, GoogleSQL, mySQL, Teradata, DB2
+// The SQL/PSM standard is extended here to cover TSQL, Snowflake and other dialects in the future
+
+returnStatement: RETURN expr SEMI;
+
+// see https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
+declareCommand: DECLARE declareElement+;
+
+declareElement:
+    id dataType SEMI                                   # declareSimple
+    | id dataType (DEFAULT | EQ) expr SEMI             # declareWithDefault
+    | id CURSOR FOR expr SEMI                          # declareCursorElement
+    | id RESULTSET ((ASSIGN | DEFAULT) expr)? SEMI     # declareResultSet
+    | id EXCEPTION LPAREN INT COMMA string RPAREN SEMI # declareException
+;
+
+// TODO: Complete definition of SQL/PSM rules

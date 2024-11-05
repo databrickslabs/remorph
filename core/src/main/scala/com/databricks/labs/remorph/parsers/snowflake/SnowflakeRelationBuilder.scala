@@ -188,13 +188,13 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
+      buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.dotIdentifier().accept(this)))
   }
 
   override def visitTableRef(ctx: TableRefContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val table = ctx.objectName().accept(this)
+      val table = ctx.dotIdentifier().accept(this)
       Option(ctx.asAlias())
         .map { a =>
           ir.TableAlias(table, a.alias().getText, Seq())
@@ -202,7 +202,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
         .getOrElse(table)
   }
 
-  override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.id().asScala.map(vc.expressionBuilder.buildId).map(_.id).mkString(".")

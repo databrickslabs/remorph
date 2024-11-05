@@ -459,7 +459,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).DATE()
       verify(literal).TIMESTAMP()
       verify(literal).string()
-      verify(literal).DECIMAL()
+      verify(literal).INT()
       verify(literal).FLOAT()
       verify(literal).REAL()
       verify(literal).trueFalse()
