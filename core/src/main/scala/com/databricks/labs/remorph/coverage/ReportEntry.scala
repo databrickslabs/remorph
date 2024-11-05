@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.intermediate.RemorphError
+import com.databricks.labs.remorph.intermediate.{MultipleErrors, ParsingError, RemorphError}
 import io.circe.Encoder
 
 case class ReportEntryHeader(
@@ -14,16 +14,19 @@ case class ReportEntryHeader(
 case class ReportEntryReport(
     parsed: Int = 0, // 1 for success, 0 for failure
     statements: Int = 0, // number of statements parsed
-    parsing_error: Option[RemorphError] = None,
     transpiled: Int = 0, // 1 for success, 0 for failure
     transpiled_statements: Int = 0, // number of statements transpiled
-    transpilation_error: Option[RemorphError] = None) {
-  def isSuccess: Boolean = parsing_error.isEmpty && transpilation_error.isEmpty
-  def failedParseOnly: Boolean = parsing_error.isDefined && transpilation_error.isEmpty
+    failures: Option[RemorphError] = None) {
+  def isSuccess: Boolean = failures.isEmpty
+  def failedParseOnly: Boolean = failures.forall {
+    case _: ParsingError => true
+    case m: MultipleErrors => m.errors.forall(_.isInstanceOf[ParsingError])
+    case _ => true
+  }
 
   // Transpilation error takes precedence over parsing error as parsing errors will be
   // shown in the output. If there is a transpilation error, we should therefore show that instead.
-  def errorMessage: Option[String] = transpilation_error.orElse(parsing_error).map(_.msg)
+  def errorMessage: Option[String] = failures.map(_.msg)
 }
 
 case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport)
