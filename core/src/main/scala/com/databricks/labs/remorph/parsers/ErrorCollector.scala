@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.coverage.ErrorEncoders
-import com.databricks.labs.remorph.intermediate.ParsingError
+import com.databricks.labs.remorph.intermediate.{ParsingError, RemorphError}
 import org.antlr.v4.runtime._
 import org.apache.logging.log4j.{LogManager, Logger}
 
@@ -121,7 +121,7 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
     }
   }
 
-  override def errorsAsJson: String = errors.toList.asJson.noSpaces
+  override def errorsAsJson: String = errors.toList.map(_.asInstanceOf[RemorphError]).asJson.noSpaces
 
   override def errorCount: Int = errors.size
 

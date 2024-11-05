@@ -8,48 +8,21 @@ import io.circe.generic.extras.semiauto._
 import io.circe.generic.extras.Configuration
 import io.circe.syntax._
 
-import java.io.{PrintWriter, StringWriter}
 import java.sql.Timestamp
 import java.time.Duration
 
 trait ErrorEncoders {
 
   implicit val codecConfiguration: Configuration =
-    Configuration.default.withDiscriminator("$type").withSnakeCaseMemberNames
+    Configuration.default.withSnakeCaseMemberNames
 
-  implicit val throwableEncoder: Encoder[Throwable] = Encoder.instance { t =>
-    val sw = new StringWriter()
-    t.printStackTrace(new PrintWriter(sw))
-    Json.obj(
-      "class" -> t.getClass.getSimpleName.asJson,
-      "message" -> Option(t.getMessage).asJson,
-      "stack_trace" -> sw.toString.asJson)
+  implicit val singleErrorEncoder: Encoder[SingleError] = Encoder.instance { err =>
+    Json.obj("error_code" -> err.getClass.getSimpleName.asJson, "error_message" -> err.msg.asJson)
   }
-
-  implicit val expressionEncoder: Encoder[Expression] = Encoder.instance(e => e.getClass.getSimpleName.asJson)
-  implicit val parsingErrorEncoder: Encoder[ParsingError] = deriveConfiguredEncoder
-  implicit val parsingErrorsEncoder: Encoder[ParsingErrors] = deriveConfiguredEncoder
-  implicit val unexpectedNodeEncoder: Encoder[UnexpectedNode] = deriveConfiguredEncoder
-  implicit val unexpectedTableAlterationEncoder: Encoder[UnexpectedTableAlteration] = deriveConfiguredEncoder
-  implicit val unsupportedGroupTypeEncoder: Encoder[UnsupportedGroupType] = deriveConfiguredEncoder
-  implicit val unsupportedDataTypeEncoder: Encoder[UnsupportedDataType] = deriveConfiguredEncoder
-  implicit val wrongNumberOfArgumentsEncoder: Encoder[WrongNumberOfArguments] = deriveConfiguredEncoder
-  implicit val unsupportedArgumentsEncoder: Encoder[UnsupportedArguments] = deriveConfiguredEncoder
-  implicit val unsupportedDateTimePartEncoder: Encoder[UnsupportedDateTimePart] = deriveConfiguredEncoder
-  implicit val planGenerationFailureEncoder: Encoder[PlanGenerationFailure] = deriveConfiguredEncoder
-  implicit val transpileFailureEncoder: Encoder[TranspileFailure] = deriveConfiguredEncoder
-  implicit val uncaughtExceptionEncoder: Encoder[UncaughtException] = deriveConfiguredEncoder
-  implicit val unexpectedOutputEncoder: Encoder[UnexpectedOutput] = deriveConfiguredEncoder
-  implicit val incoherentStateEncoder: Encoder[IncoherentState] = Encoder.instance { is =>
-    Json.obj(
-      "$type" -> "IncoherentState".asJson,
-      "current_phase" -> is.currentPhase.getClass.getSimpleName.asJson,
-      "expected_phase" -> is.expectedPhase.getSimpleName.asJson)
+  implicit val remorphErrorEncoder: Encoder[RemorphError] = Encoder.instance {
+    case s: SingleError => Json.arr(s.asJson)
+    case m: MultipleErrors => Json.arr(m.errors.map(_.msg.asJson): _*)
   }
-  implicit val singleErrorEncoder: Encoder[SingleError] = deriveConfiguredEncoder
-  implicit val remorphErrorsEncoder: Encoder[RemorphErrors] = deriveConfiguredEncoder
-  implicit val multipleErrorsEncoder: Encoder[MultipleErrors] = deriveConfiguredEncoder
-  implicit val remorphErrorEncoder: Encoder[RemorphError] = deriveConfiguredEncoder
 
 }
 

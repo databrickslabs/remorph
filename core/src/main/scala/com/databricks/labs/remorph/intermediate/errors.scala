@@ -29,13 +29,17 @@ case class RemorphErrors(errors: Seq[SingleError]) extends RemorphError with Mul
 case class ParsingError(
     line: Int,
     charPositionInLine: Int,
-    msg: String,
+    message: String,
     offendingTokenWidth: Int,
     offendingTokenText: String,
     offendingTokenName: String,
     ruleName: String)
     extends RemorphError
-    with SingleError
+    with SingleError {
+  override def msg: String =
+    s"Parsing error starting at $line:$charPositionInLine involving rule '$ruleName' and" +
+      s" token '$offendingTokenText'($offendingTokenName): $message"
+}
 
 case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError with MultipleErrors {
   override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
