@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.intermediate.{MultipleErrors, RemorphError, SingleError}
+import com.databricks.labs.remorph.intermediate.RemorphError
 
 case class ReportEntryHeader(
     project: String,
@@ -25,34 +25,4 @@ case class ReportEntryReport(
   def errorMessage: Option[String] = transpilation_error.orElse(parsing_error).map(_.msg)
 }
 
-case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport) {
-
-  def singleErrorJson(error: SingleError): ujson.Value.Value =
-    ujson.Obj("error_type" -> error.getClass.getSimpleName, "error_message" -> error.msg)
-
-  def errorJson(errOpt: Option[RemorphError]): ujson.Value.Value = {
-    errOpt
-      .map {
-        case s: SingleError => singleErrorJson(s)
-        case m: MultipleErrors => ujson.Arr(m.errors.map(singleErrorJson))
-      }
-      .getOrElse(ujson.Null)
-  }
-
-  def asJson: ujson.Value.Value = {
-    ujson.Obj(
-      "project" -> ujson.Str(header.project),
-      "commit_hash" -> header.commit_hash.map(ujson.Str).getOrElse(ujson.Null),
-      "version" -> ujson.Str(header.version),
-      "timestamp" -> ujson.Str(header.timestamp),
-      "source_dialect" -> ujson.Str(header.source_dialect),
-      "target_dialect" -> ujson.Str(header.target_dialect),
-      "file" -> ujson.Str(header.file),
-      "parsed" -> ujson.Num(report.parsed),
-      "statements" -> ujson.Num(report.statements),
-      "parsing_error" -> errorJson(report.parsing_error),
-      "transpiled" -> ujson.Num(report.transpiled),
-      "transpiled_statements" -> ujson.Num(report.transpiled_statements),
-      "transpilation_error" -> errorJson(report.transpilation_error))
-  }
-}
+case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport)

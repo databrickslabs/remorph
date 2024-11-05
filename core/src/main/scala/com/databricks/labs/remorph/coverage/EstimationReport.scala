@@ -3,9 +3,7 @@ package com.databricks.labs.remorph.coverage
 import com.databricks.labs.remorph.coverage.estimation.{EstimationStatistics, RuleScore, SqlComplexity}
 import com.databricks.labs.remorph.discovery.Fingerprint
 import com.databricks.labs.remorph.intermediate.RemorphError
-import upickle.default.{ReadWriter, macroRW}
 
-@upickle.implicits.serializeDefaults(true)
 case class EstimationReport(
     overallComplexity: EstimationStatistics,
     dialect: String, // What dialect of SQL is this a report for?
@@ -21,11 +19,6 @@ case class EstimationReport(
   }
 }
 
-object EstimationReport {
-  implicit val rw: ReadWriter[EstimationReport] = macroRW
-}
-
-@upickle.implicits.serializeDefaults(true)
 case class EstimationReportRecord(
     transpilationReport: EstimationTranspilationReport,
     analysisReport: EstimationAnalysisReport) {
@@ -34,11 +27,6 @@ case class EstimationReportRecord(
   }
 }
 
-object EstimationReportRecord {
-  implicit val rw: ReadWriter[EstimationReportRecord] = macroRW
-}
-
-@upickle.implicits.serializeDefaults(true)
 case class EstimationTranspilationReport(
     query: Option[String] = None,
     output: Option[String] = None,
@@ -54,16 +42,7 @@ case class EstimationTranspilationReport(
   }
 }
 
-object EstimationTranspilationReport {
-  implicit val rw: ReadWriter[EstimationTranspilationReport] = macroRW
-}
-
-@upickle.implicits.serializeDefaults(true)
 case class EstimationAnalysisReport(
     fingerprint: Option[Fingerprint] = None,
     complexity: SqlComplexity = SqlComplexity.LOW,
     score: RuleScore)
-
-object EstimationAnalysisReport {
-  implicit val rw: ReadWriter[EstimationAnalysisReport] = macroRW
-}

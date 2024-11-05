@@ -87,5 +87,11 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
     "wrap 'normal' exception, such as invalid escapes, in a failure" in {
       code"\D".runAndDiscardState(Init) shouldBe an[KoResult]
     }
+
+    "foo" in {
+      val foo = RemorphError
+      println(foo)
+      succeed
+    }
   }
 }
