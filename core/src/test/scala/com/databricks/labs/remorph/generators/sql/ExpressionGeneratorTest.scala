@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -13,6 +14,13 @@ class ExpressionGeneratorTest
     with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
+
+  private val optionGenerator = new OptionGenerator(generator)
+
+  private val logical = new LogicalPlanGenerator(generator, optionGenerator)
+
+  override protected def initialState(expr: ir.Expression) =
+    Generating(optimizedPlan = ir.Batch(Seq.empty), currentNode = expr, ctx = GeneratorContext(logical))
 
   "options" in {
     ir.Options(

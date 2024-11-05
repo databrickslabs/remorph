@@ -5,8 +5,8 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{KoResult, OkResult}
-import com.databricks.labs.remorph.transpilers.{SourceCode, SqlGenerator}
+import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, Optimizing}
+import com.databricks.labs.remorph.transpilers.SqlGenerator
 import com.typesafe.scalalogging.LazyLogging
 
 class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
@@ -35,14 +35,17 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer,
       parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
 
+    val initialState = Parsing(query.source)
+
     // Skip entries that have already been seen as text but for which we were unable to parse or
     // produce a plan for
     val fingerprint = anonymizer(query.source)
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
       planParser
-        .parse(SourceCode(query.source, query.user.getOrElse("unknown") + "_" + query.id))
-        .flatMap(planParser.visit) match {
+        .parse(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
+        .flatMap(planParser.visit)
+        .run(initialState) match {
         case KoResult(PARSE, error) =>
           Some(
             EstimationReportRecord(
@@ -60,13 +63,13 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
         case OkResult(plan) =>
-          val queryHash = anonymizer(plan)
-          val score = analyzer.evaluateTree(plan)
+          val queryHash = anonymizer(plan._2)
+          val score = analyzer.evaluateTree(plan._2)
           // Note that the plan hash will generally be more accurate than the query hash, hence we check here
           // as well as against the plain text
           if (!parsedSet.contains(queryHash)) {
             parsedSet += queryHash
-            Some(generateReportRecord(query, plan, score, anonymizer))
+            Some(generateReportRecord(query, plan._2, score, anonymizer))
           } else {
             None
           }
@@ -93,7 +96,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       ruleScore: RuleScore,
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
-    planParser.optimize(plan).flatMap(generator.generate) match {
+    val initialState = Optimizing(plan, None)
+    planParser.optimize(plan).flatMap(generator.generate).run(initialState) match {
       case KoResult(_, error) =>
         // KoResult to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
@@ -109,7 +113,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             score = tfr,
             complexity = SqlComplexity.fromScore(tfr.rule.score)))
 
-      case OkResult(output: String) =>
+      case OkResult((_, output: String)) =>
         val newScore =
           RuleScore(SuccessfulTranspileRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(

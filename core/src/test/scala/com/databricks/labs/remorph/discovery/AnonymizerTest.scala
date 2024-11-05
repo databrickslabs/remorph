@@ -62,7 +62,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
         Fingerprint(
           "id",
           new Timestamp(1725032011000L),
-          "974439bac46683c40b4925d1bfc199a4c211d322",
+          "8fa557010667ff17cb2acfd5065a2ac0f9b7a620",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,

@@ -6,8 +6,12 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst
+// TODO: (nfx) refactor to align more with catalyst, replace with Name
 case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
+
+case class Name(name: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
 
 // TODO: (nfx) refactor to align more with catalyst
 case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
@@ -172,8 +176,8 @@ case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = 
   override def output: Seq[Attribute] = expr.output
 }
 
-case class Comment(text: String) extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 }
 
 case class Options(
