@@ -15,21 +15,27 @@ package object generators {
           case x => ok(x.toString)
         }
         .sequence
-        .map { a =>
+        .flatMap { a =>
           val stringParts = sc.parts.iterator
           val arguments = a.iterator
-          val sb = new StringBuilder(StringContext.treatEscapes(stringParts.next()))
-          while (arguments.hasNext) {
+          var failureOpt: Option[Transformation[String]] = None
+          val sb = new StringBuilder()
+          try {
+            sb.append(StringContext.treatEscapes(stringParts.next()))
+          } catch {
+            case NonFatal(e) =>
+              failureOpt = Some(lift(KoResult(WorkflowStage.GENERATE, UncaughtException(e))))
+          }
+          while (failureOpt.isEmpty && arguments.hasNext) {
             try {
               sb.append(StringContext.treatEscapes(arguments.next()))
               sb.append(StringContext.treatEscapes(stringParts.next()))
             } catch {
               case NonFatal(e) =>
-                return lift(KoResult(WorkflowStage.GENERATE, UncaughtException(e)))
+                failureOpt = Some(lift(KoResult(WorkflowStage.GENERATE, UncaughtException(e))))
             }
           }
-          sb.toString()
-
+          failureOpt.getOrElse(ok(sb.toString()))
         }
     }
   }
