@@ -4,6 +4,7 @@ import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.{intermediate => ir}
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     extends SnowflakeParserBaseVisitor[ir.Catalog]
@@ -92,7 +93,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val runtime = Option(ctx.LANGUAGE()).map(_.getText.toLowerCase).getOrElse("sql")
+      val runtime = Option(ctx.id()).map(_.getText.toLowerCase(Locale.ROOT)).getOrElse("sql")
       val runtimeInfo =
         runtime match {
           case r if r == "java" => buildJavaUDF(ctx)
@@ -106,7 +107,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       val parameters = ctx.argDecl().asScala.map(buildParameter)
       val acceptsNullParameters = ctx.CALLED() != null
       val body = buildFunctionBody(ctx.functionDefinition())
-      val comment = Option(ctx.string()).flatMap(_.asScala.headOption).map(extractString)
+      val comment = Option(ctx.com).map(extractString)
       ir.CreateInlineUDF(name, returnType, parameters, runtimeInfo, acceptsNullParameters, comment, body)
   }
 

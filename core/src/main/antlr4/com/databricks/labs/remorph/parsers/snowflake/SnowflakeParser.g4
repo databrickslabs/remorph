@@ -1561,14 +1561,14 @@ createFunction
         RUNTIME_VERSION EQ (string | FLOAT)
     )? (IMPORTS EQ LPAREN stringList RPAREN)? (PACKAGES EQ LPAREN stringList RPAREN)? (
         HANDLER EQ string
-    )? (NOT? NULL)? (COMMENT EQ string)? AS functionDefinition
+    )? (NOT? NULL)? (COMMENT EQ com = string)? AS functionDefinition
     | CREATE (OR REPLACE)? SECURE? FUNCTION dotIdentifier LPAREN (argDecl (COMMA argDecl)*)? RPAREN RETURNS (
         dataType
         | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN
     ) (NOT? NULL)? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
-    )? MEMOIZABLE? (COMMENT EQ string)? AS functionDefinition
+    )? MEMOIZABLE? (COMMENT EQ com = string)? AS functionDefinition
     ;
 
 createManagedAccount

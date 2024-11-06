@@ -52,9 +52,9 @@ createProcedure:
 procArgDecl: id dataType (DEFAULT expr)?;
 
 dropProcedure:
-    DROP PROCEDURE (IF EXISTS)? dotIdentifier LPAREN (
-        dataType (COMMA dataType)*
-    )? RPAREN
+    DROP PROCEDURE (IF EXISTS)? dotIdentifier (
+        COMMA dotIdentifier
+    )* (LPAREN ( dataType (COMMA dataType)*)? RPAREN)? SEMI?
 ;
 
 procedureDefinition:
@@ -93,12 +93,6 @@ procedureParam:
 ;
 
 procedureOption: executeAs | genericOption;
-
-dropProcedure:
-    DROP PROCEDURE (IF EXISTS)? dotIdentifier (
-        COMMA dotIdentifier
-    )* SEMI?
-;
 
 procStatement:
     declareCommand
