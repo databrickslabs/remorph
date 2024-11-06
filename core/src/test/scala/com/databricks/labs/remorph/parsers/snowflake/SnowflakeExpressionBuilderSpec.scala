@@ -456,7 +456,7 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       vc.expressionBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
-      verify(literal).DATE()
+      verify(literal).id()
       verify(literal).TIMESTAMP()
       verify(literal).string()
       verify(literal).INT()

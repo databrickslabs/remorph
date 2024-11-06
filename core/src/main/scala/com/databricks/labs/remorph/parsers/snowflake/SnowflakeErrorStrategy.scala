@@ -112,6 +112,7 @@ object SnowflakeErrorStrategy {
   private val tokenTranslation: Map[Int, String] = Map(
     DOUBLE_QUOTE_ID -> "Identifier",
     FLOAT -> "Float",
+    INT -> "Integer",
     ID -> "Identifier",
     LOCAL_ID -> "$Identifier",
     REAL -> "Real",
@@ -120,9 +121,6 @@ object SnowflakeErrorStrategy {
     VAR_COMPLEX -> "&{Variable} reference",
     STRING_CONTENT -> "'String'",
     STRING_END -> "'String'",
-    DECIMAL -> "Decimal integer",
-    FLOAT -> "Floating point number",
-    REAL -> "Real number",
     -1 -> "End of batch",
 
     // When the next thing we expect can be every statement, we just say "statement"
@@ -228,7 +226,6 @@ object SnowflakeErrorStrategy {
     CONFIGURATION,
     COPY_OPTIONS_,
     DATA,
-    DATE,
     DATE_FORMAT,
     DEFINITION,
     DELTA,
@@ -308,7 +305,6 @@ object SnowflakeErrorStrategy {
     TAGS,
     TARGET_LAG,
     TEMP,
-    TIME,
     TIMESTAMP,
     TIMEZONE,
     TYPE,

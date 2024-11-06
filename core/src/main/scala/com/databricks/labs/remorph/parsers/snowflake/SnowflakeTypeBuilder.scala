@@ -19,15 +19,15 @@ class SnowflakeTypeBuilder {
     if (ctx == null) {
       return ir.UnresolvedType
     }
-    val typeDef = ctx.getText.toUpperCase()
+    val typeDef = ctx.id.getText.toUpperCase()
     typeDef match {
       // precision types - loosing precision except for decimal
-      case _ if ctx.charAlias != null => ir.StringType
-      case _ if ctx.varcharAlias != null => ir.StringType
-      case _ if ctx.numberAlias != null => decimal(ctx)
-      case _ if ctx.TIMESTAMP() != null => ir.TimestampType
-      case _ if ctx.TIMESTAMP_LTZ() != null => ir.TimestampType
-      case _ if ctx.TIMESTAMP_NTZ() != null => ir.TimestampNTZType
+      case "CHAR" | "NCHAR" | "CHARACTER" => ir.StringType // character types
+      case "CHAR_VARYING" | "NCHAR_VARYING" | "NVARCHAR2" | "NVARCHAR" | "STRING" | "TEXT" | "VARCHAR" =>
+        ir.StringType // VARCHAR is string type in Databricks
+      case "NUMBER" | "NUMERIC" | "DECIMAL" => decimal(ctx)
+      case "TIMESTAMP" | "TIMESTAMP_LTZ" | "TIMESTAMP_TZ" | "TIMESTAMPTZ" => ir.TimestampType
+      case "TIMESTAMP_NTZ" => ir.TimestampNTZType
 
       // non-precision types
       case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
@@ -46,21 +46,21 @@ class SnowflakeTypeBuilder {
       case "OBJECT" => ir.UnparsedType("OBJECT") // TODO: get more examples
       case "REAL" => ir.DoubleType
       case "SMALLINT" => defaultNumber
-      case "STRING" => ir.StringType
-      case "TEXT" => ir.StringType
       case "TIME" => ir.TimestampType
-      case "TIMESTAMP_TZ" => ir.TimestampType
       case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
       case "VARIANT" => ir.VariantType
 
-      // and everything else
+      // TODO: GEOGRAPHY is not yet catered for in Snowflake type builder
+      // TODO: GEOMETRY is not yet catered for in Snowflake type builder
+
+      // and everything else must be an input error or a type we don't know about yet
       case _ => ir.UnparsedType(typeDef)
     }
   }
 
   private def decimal(c: DataTypeContext) = {
-    val nums = c.num().asScala
+    val nums = c.INT().asScala
     // https://docs.snowflake.com/en/sql-reference/data-types-numeric#number
     // Per Docs defaulting the precision to 38 and scale to 0
     val precision = nums.headOption.map(_.getText.toInt).getOrElse(38)

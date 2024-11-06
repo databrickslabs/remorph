@@ -338,20 +338,16 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   }
 
-  private def buildNum(ctx: NumContext): BigDecimal = {
-    BigDecimal(ctx.getText)
-  }
-
   private def buildSampleMethod(ctx: SampleMethodContext): ir.SamplingMethod = ctx match {
-    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(buildNum(c.num()))
-    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(buildNum(c.num()))
-    case c: SampleMethodBlockContext => ir.BlockSampling(buildNum(c.num()))
+    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(BigDecimal(c.INT().getText))
+    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(BigDecimal(c.INT().getText))
+    case c: SampleMethodBlockContext => ir.BlockSampling(BigDecimal(c.INT().getText))
   }
 
   private def buildSample(ctx: SampleContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx)
       .map { sampleCtx =>
-        val seed = Option(sampleCtx.sampleSeed()).map(s => buildNum(s.num()))
+        val seed = Option(sampleCtx.sampleSeed()).map(s => BigDecimal(s.INT().getText))
         val sampleMethod = buildSampleMethod(sampleCtx.sampleMethod())
         ir.TableSample(input, sampleMethod, seed)
       }

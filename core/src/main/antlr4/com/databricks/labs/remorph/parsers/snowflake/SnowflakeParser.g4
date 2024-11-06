@@ -44,7 +44,7 @@ options {
 
 // TODO: We will move genericOption into a parsercommon.g4 and reference it in all dialects for common option processing
 // For now, this rule is not used within the Snowflake rules, but it will be
-genericOption: ID EQ (string | num | trueFalse | jsonLiteral)
+genericOption: ID EQ (string | INT | trueFalse | jsonLiteral)
     ;
 
 // ======================================================
@@ -259,10 +259,10 @@ executeImmediate
 executeTask: EXECUTE TASK dotIdentifier
     ;
 
-explain: EXPLAIN (USING (TABULAR | JSON | TEXT))? sqlClauses
+explain: EXPLAIN (USING (TABULAR | JSON | id))? sqlClauses
     ;
 
-parallel: PARALLEL EQ num
+parallel: PARALLEL EQ INT
     ;
 
 getDml: GET (namedStage | userStage | tableStage) string parallel? pattern?
@@ -431,7 +431,7 @@ stagePath: DIVIDE (ID (DIVIDE ID)* DIVIDE?)?
     ;
 
 put
-    : PUT string (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
+    : PUT string (tableStage | userStage | namedStage) (PARALLEL EQ INT)? (
         AUTO_COMPRESS EQ trueFalse
     )? (
         SOURCE_COMPRESSION EQ (
@@ -545,10 +545,10 @@ alterCommand
 
 accountParams
     : ALLOW_ID_TOKEN EQ trueFalse
-    | CLIENT_ENCRYPTION_KEY_SIZE EQ num
+    | CLIENT_ENCRYPTION_KEY_SIZE EQ INT
     | ENFORCE_SESSION_POLICY EQ trueFalse
     | EXTERNAL_OAUTH_ADD_PRIVILEGED_ROLES_TO_BLOCKED_LIST EQ trueFalse
-    | INITIAL_REPLICATION_SIZE_LIMIT_IN_TB EQ num
+    | INITIAL_REPLICATION_SIZE_LIMIT_IN_TB EQ INT
     | NETWORK_POLICY EQ string
     | PERIODIC_DATA_REKEYING EQ trueFalse
     | PREVENT_UNLOAD_TO_INLINE_URL EQ trueFalse
@@ -561,15 +561,15 @@ accountParams
     ;
 
 objectParams
-    : DATA_RETENTION_TIME_IN_DAYS EQ num
-    | MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
+    : DATA_RETENTION_TIME_IN_DAYS EQ INT
+    | MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT
     | defaultDdlCollation
-    | MAX_CONCURRENCY_LEVEL EQ num
+    | MAX_CONCURRENCY_LEVEL EQ INT
     | NETWORK_POLICY EQ string
     | PIPE_EXECUTION_PAUSED EQ trueFalse
     | SESSION_POLICY EQ string
-    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ num
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num
+    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ INT
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT
     ;
 
 defaultDdlCollation: DEFAULT_DDL_COLLATION_ EQ string
@@ -585,13 +585,13 @@ objectProperties
     | EMAIL EQ string
     | MUST_CHANGE_PASSWORD EQ trueFalse
     | DISABLED EQ trueFalse
-    | DAYS_TO_EXPIRY EQ num
-    | MINS_TO_UNLOCK EQ num
+    | DAYS_TO_EXPIRY EQ INT
+    | MINS_TO_UNLOCK EQ INT
     | DEFAULT_WAREHOUSE EQ string
     | DEFAULT_NAMESPACE EQ string
     | DEFAULT_ROLE EQ string
     //| DEFAULT_SECONDARY_ROLES EQ LPAREN 'ALL' RPAREN
-    | MINS_TO_BYPASS_MFA EQ num
+    | MINS_TO_BYPASS_MFA EQ INT
     | RSA_PUBLIC_KEY EQ string
     | RSA_PUBLIC_KEY_2 EQ string
     | (COMMENT EQ string)
@@ -606,12 +606,12 @@ sessionParams
     | DATE_OUTPUT_FORMAT EQ string
     | ERROR_ON_NONDETERMINISTIC_MERGE EQ trueFalse
     | ERROR_ON_NONDETERMINISTIC_UPDATE EQ trueFalse
-    | JSON_INDENT EQ num
-    | LOCK_TIMEOUT EQ num
+    | JSON_INDENT EQ INT
+    | LOCK_TIMEOUT EQ INT
     | QUERY_TAG EQ string
-    | ROWS_PER_RESULTSET EQ num
+    | ROWS_PER_RESULTSET EQ INT
     | SIMULATED_DATA_SHARING_CONSUMER EQ string
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT
     | STRICT_JSON_OUTPUT EQ trueFalse
     | TIMESTAMP_DAY_IS_ALWAYS_24H EQ trueFalse
     | TIMESTAMP_INPUT_FORMAT EQ string
@@ -624,11 +624,11 @@ sessionParams
     | TIME_INPUT_FORMAT EQ string
     | TIME_OUTPUT_FORMAT EQ string
     | TRANSACTION_DEFAULT_ISOLATION_LEVEL EQ string
-    | TWO_DIGIT_CENTURY_START EQ num
+    | TWO_DIGIT_CENTURY_START EQ INT
     | UNSUPPORTED_DDL_ACTION EQ string
     | USE_CACHED_RESULT EQ trueFalse
-    | WEEK_OF_YEAR_POLICY EQ num
-    | WEEK_START EQ num
+    | WEEK_OF_YEAR_POLICY EQ INT
+    | WEEK_START EQ INT
     ;
 
 alterAccount: ALTER ACCOUNT alterAccountOpts
@@ -678,8 +678,8 @@ alterConnection: ALTER CONNECTION alterConnectionOpts
 alterDatabase
     : ALTER DATABASE (IF EXISTS)? id RENAME TO id
     | ALTER DATABASE (IF EXISTS)? id SWAP WITH id
-    | ALTER DATABASE (IF EXISTS)? id SET (DATA_RETENTION_TIME_IN_DAYS EQ num)? (
-        MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
+    | ALTER DATABASE (IF EXISTS)? id SET (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (
+        MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT
     )? defaultDdlCollation? (COMMENT EQ string)?
     | ALTER DATABASE id setTags
     | ALTER DATABASE id unsetTags
@@ -767,7 +767,7 @@ alterFunction
     | alterFunctionSignature SET API_INTEGRATION EQ id
     | alterFunctionSignature SET HEADERS EQ LPAREN headerDecl* RPAREN
     | alterFunctionSignature SET CONTEXT_HEADERS EQ LPAREN id* RPAREN
-    | alterFunctionSignature SET MAX_BATCH_ROWS EQ num
+    | alterFunctionSignature SET MAX_BATCH_ROWS EQ INT
     | alterFunctionSignature SET COMPRESSION EQ compressionType
     | alterFunctionSignature SET (REQUEST_TRANSLATOR | RESPONSE_TRANSLATOR) EQ id
     | alterFunctionSignature UNSET (
@@ -853,7 +853,7 @@ alterReplicationGroup
     | ALTER REPLICATION GROUP (IF EXISTS)? id RESUME
     ;
 
-creditQuota: CREDIT_QUOTA EQ num
+creditQuota: CREDIT_QUOTA EQ INT
     ;
 
 frequency: FREQUENCY EQ (MONTHLY | DAILY | WEEKLY | YEARLY | NEVER)
@@ -862,7 +862,7 @@ frequency: FREQUENCY EQ (MONTHLY | DAILY | WEEKLY | YEARLY | NEVER)
 notifyUsers: NOTIFY_USERS EQ LPAREN id (COMMA id)* RPAREN
     ;
 
-triggerDefinition: ON num PERCENT DO (SUSPEND | SUSPEND_IMMEDIATE | NOTIFY)
+triggerDefinition: ON INT PERCENT DO (SUSPEND | SUSPEND_IMMEDIATE | NOTIFY)
     ;
 
 alterResourceMonitor
@@ -891,7 +891,7 @@ alterSchema
     : ALTER SCHEMA (IF EXISTS)? schemaName RENAME TO schemaName
     | ALTER SCHEMA (IF EXISTS)? schemaName SWAP WITH schemaName
     | ALTER SCHEMA (IF EXISTS)? schemaName SET (
-        (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? (
+        (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? (
             COMMENT EQ string
         )?
     )
@@ -910,7 +910,7 @@ schemaProperty
 
 alterSequence
     : ALTER SEQUENCE (IF EXISTS)? dotIdentifier RENAME TO dotIdentifier
-    | ALTER SEQUENCE (IF EXISTS)? dotIdentifier SET? ( INCREMENT BY? EQ? num)?
+    | ALTER SEQUENCE (IF EXISTS)? dotIdentifier SET? ( INCREMENT BY? EQ? INT)?
     | ALTER SEQUENCE (IF EXISTS)? dotIdentifier SET (
         orderNoorder? (COMMENT EQ string)
         | orderNoorder
@@ -1009,8 +1009,8 @@ alterSession: ALTER SESSION SET sessionParams | ALTER SESSION UNSET id (COMMA id
     ;
 
 alterSessionPolicy
-    : ALTER SESSION POLICY (IF EXISTS)? id (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
-        SESSION_UI_IDLE_TIMEOUT_MINS EQ num
+    : ALTER SESSION POLICY (IF EXISTS)? id (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ INT)? (
+        SESSION_UI_IDLE_TIMEOUT_MINS EQ INT
     )? (COMMENT EQ string)?
     | ALTER SESSION POLICY (IF EXISTS)? id RENAME TO id
     ;
@@ -1059,7 +1059,7 @@ alterTable
     | ALTER TABLE (IF EXISTS)? dotIdentifier searchOptimizationAction
     | ALTER TABLE (IF EXISTS)? dotIdentifier SET stageFileFormat? (
         STAGE_COPY_OPTIONS EQ LPAREN copyOptions RPAREN
-    )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? (
+    )? (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? (
         CHANGE_TRACKING EQ trueFalse
     )? defaultDdlCollation? (COMMENT EQ string)?
     | ALTER TABLE (IF EXISTS)? dotIdentifier setTags
@@ -1081,7 +1081,7 @@ alterTable
 
 clusteringAction
     : CLUSTER BY LPAREN exprList RPAREN
-    | RECLUSTER ( MAX_SIZE EQ num)? ( WHERE expr)?
+    | RECLUSTER ( MAX_SIZE EQ INT)? ( WHERE expr)?
     | resumeSuspend RECLUSTER
     | DROP CLUSTERING KEY
     ;
@@ -1439,8 +1439,8 @@ createConnection
 
 createDatabase
     : CREATE (OR REPLACE)? TRANSIENT? DATABASE (IF NOT EXISTS)? id cloneAtBefore? (
-        DATA_RETENTION_TIME_IN_DAYS EQ num
-    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? withTags? (COMMENT EQ string)?
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? withTags? (COMMENT EQ string)?
     ;
 
 cloneAtBefore
@@ -1467,8 +1467,8 @@ createDynamicTable
 
 createEventTable
     : CREATE (OR REPLACE)? EVENT TABLE (IF NOT EXISTS)? id clusterBy? (
-        DATA_RETENTION_TIME_IN_DAYS EQ num
-    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? changeTracking? (DEFAULT_DDL_COLLATION_ EQ string)? copyGrants? withRowAccessPolicy? withTags? (
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? changeTracking? (DEFAULT_DDL_COLLATION_ EQ string)? copyGrants? withRowAccessPolicy? withTags? (
         WITH? (COMMENT EQ string)
     )?
     ;
@@ -1481,7 +1481,7 @@ createExternalFunction
         | ((RETURNS NULL ON NULL INPUT) | STRICT)
     )? (VOLATILE | IMMUTABLE)? (COMMENT EQ string)? API_INTEGRATION EQ id (
         HEADERS EQ LPAREN headerDecl (COMMA headerDecl)* RPAREN
-    )? (CONTEXT_HEADERS EQ LPAREN id (COMMA id)* RPAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
+    )? (CONTEXT_HEADERS EQ LPAREN id (COMMA id)* RPAREN)? (MAX_BATCH_ROWS EQ INT)? compression? (
         REQUEST_TRANSLATOR EQ id
     )? (RESPONSE_TRANSLATOR EQ id)? AS string
     ;
@@ -1660,7 +1660,7 @@ createRole: CREATE (OR REPLACE)? ROLE (IF NOT EXISTS)? id withTags? (COMMENT EQ 
     ;
 
 createRowAccessPolicy
-    : CREATE (OR REPLACE)? ROW ACCESS POLICY (IF NOT EXISTS)? id AS LPAREN argDecl (COMMA argDecl)* RPAREN RETURNS BOOLEAN ARROW expr (
+    : CREATE (OR REPLACE)? ROW ACCESS POLICY (IF NOT EXISTS)? id AS LPAREN argDecl (COMMA argDecl)* RPAREN RETURNS id /* BOOLEAN */ ARROW expr (
         COMMENT EQ string
     )?
     ;
@@ -1668,7 +1668,7 @@ createRowAccessPolicy
 createSchema
     : CREATE (OR REPLACE)? TRANSIENT? SCHEMA (IF NOT EXISTS)? schemaName cloneAtBefore? (
         WITH MANAGED ACCESS
-    )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? withTags? (
+    )? (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? withTags? (
         COMMENT EQ string
     )?
     ;
@@ -1702,7 +1702,7 @@ createSecurityIntegrationSnowflakeOauth
     : CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? id TYPE EQ OAUTH OAUTH_CLIENT EQ partnerApplication OAUTH_REDIRECT_URI EQ string
     //Required when OAUTH_CLIENTEQLOOKER
     enabledTrueFalse? (OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse)? (
-        OAUTH_REFRESH_TOKEN_VALIDITY EQ num
+        OAUTH_REFRESH_TOKEN_VALIDITY EQ INT
     )? (OAUTH_USE_SECONDARY_ROLES EQ implicitNone)? (
         BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN
     )? (COMMENT EQ string)?
@@ -1714,7 +1714,7 @@ createSecurityIntegrationSnowflakeOauth
     )? (OAUTH_USE_SECONDARY_ROLES EQ implicitNone)? (
         PRE_AUTHORIZED_ROLES_LIST EQ LPAREN stringList RPAREN
     )? (BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN)? (OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse)? (
-        OAUTH_REFRESH_TOKEN_VALIDITY EQ num
+        OAUTH_REFRESH_TOKEN_VALIDITY EQ INT
     )? networkPolicy? (OAUTH_CLIENT_RSA_PUBLIC_KEY EQ string)? (
         OAUTH_CLIENT_RSA_PUBLIC_KEY_2 EQ string
     )? (COMMENT EQ string)?
@@ -1743,10 +1743,10 @@ networkPolicy: NETWORK_POLICY EQ string
 partnerApplication: TABLEAU_DESKTOP | TABLEAU_SERVER | LOOKER
     ;
 
-startWith: START WITH? EQ? num
+startWith: START WITH? EQ? INT
     ;
 
-incrementBy: INCREMENT BY? EQ? num
+incrementBy: INCREMENT BY? EQ? INT
     ;
 
 createSequence
@@ -1756,8 +1756,8 @@ createSequence
     ;
 
 createSessionPolicy
-    : CREATE (OR REPLACE)? SESSION POLICY (IF EXISTS)? id (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
-        SESSION_UI_IDLE_TIMEOUT_MINS EQ num
+    : CREATE (OR REPLACE)? SESSION POLICY (IF EXISTS)? id (SESSION_IDLE_TIMEOUT_MINS EQ INT)? (
+        SESSION_UI_IDLE_TIMEOUT_MINS EQ INT
     )? (COMMENT EQ string)?
     ;
 
@@ -1770,7 +1770,7 @@ formatTypeOptions
     | RECORD_DELIMITER EQ ( string | NONE)
     | FIELD_DELIMITER EQ ( string | NONE)
     | FILE_EXTENSION EQ string
-    | SKIP_HEADER EQ num
+    | SKIP_HEADER EQ INT
     | SKIP_BLANK_LINES EQ trueFalse
     | DATE_FORMAT EQ (string | AUTO)
     | TIME_FORMAT EQ (string | AUTO)
@@ -1837,7 +1837,7 @@ formatTypeOptions
 
 copyOptions
     : ON_ERROR EQ (CONTINUE | SKIP_FILE | SKIP_FILE_N | SKIP_FILE_N ABORT_STATEMENT)
-    | SIZE_LIMIT EQ num
+    | SIZE_LIMIT EQ INT
     | PURGE EQ trueFalse
     | RETURN_FAILED_ONLY EQ trueFalse
     | MATCH_BY_COLUMN_NAME EQ CASE_SENSITIVE
@@ -2025,7 +2025,7 @@ orderNoorder: ORDER | NOORDER
 defaultValue
     : DEFAULT expr
     | (AUTOINCREMENT | IDENTITY) (
-        LPAREN num COMMA num RPAREN
+        LPAREN INT COMMA INT RPAREN
         | startWith
         | incrementBy
         | startWith incrementBy
@@ -2073,8 +2073,8 @@ createTableClause
         columnDeclItemListParen clusterBy?
         | clusterBy? (COMMENT EQ string)? columnDeclItemListParen
     ) stageFileFormat? (STAGE_COPY_OPTIONS EQ LPAREN copyOptions RPAREN)? (
-        DATA_RETENTION_TIME_IN_DAYS EQ num
-    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? changeTracking? defaultDdlCollation? copyGrants? (
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? changeTracking? defaultDdlCollation? copyGrants? (
         COMMENT EQ string
     )? withRowAccessPolicy? withTags?
     ;
@@ -2213,10 +2213,10 @@ taskCompute
 taskSchedule: SCHEDULE EQ string
     ;
 
-taskTimeout: USER_TASK_TIMEOUT_MS EQ num
+taskTimeout: USER_TASK_TIMEOUT_MS EQ INT
     ;
 
-taskSuspendAfterFailureNumber: SUSPEND_TASK_AFTER_NUM_FAILURES EQ num
+taskSuspendAfterFailureNumber: SUSPEND_TASK_AFTER_NUM_FAILURES EQ INT
     ;
 
 taskErrorIntegration: ERROR_INTEGRATION EQ id
@@ -2258,23 +2258,23 @@ whExtraSize: XXXLARGE | X4LARGE | X5LARGE | X6LARGE
 whProperties
     : WAREHOUSE_SIZE EQ (whCommonSize | whExtraSize | LOCAL_ID)
     | WAREHOUSE_TYPE EQ (STANDARD | string)
-    | MAX_CLUSTER_COUNT EQ num
-    | MIN_CLUSTER_COUNT EQ num
+    | MAX_CLUSTER_COUNT EQ INT
+    | MIN_CLUSTER_COUNT EQ INT
     | SCALING_POLICY EQ (STANDARD | ECONOMY)
-    | AUTO_SUSPEND (EQ num | NULL)
+    | AUTO_SUSPEND (EQ INT | NULL)
     | AUTO_RESUME EQ trueFalse
     | INITIALLY_SUSPENDED EQ trueFalse
     | RESOURCE_MONITOR EQ id
     | (COMMENT EQ string)
     | ENABLE_QUERY_ACCELERATION EQ trueFalse
-    | QUERY_ACCELERATION_MAX_SCALE_FACTOR EQ num
-    | MAX_CONCURRENCY_LEVEL EQ num
+    | QUERY_ACCELERATION_MAX_SCALE_FACTOR EQ INT
+    | MAX_CONCURRENCY_LEVEL EQ INT
     ;
 
 whParams
-    : MAX_CONCURRENCY_LEVEL EQ num
-    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ num
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num withTags?
+    : MAX_CONCURRENCY_LEVEL EQ INT
+    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ INT
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT withTags?
     ;
 
 objectTypeName
@@ -2589,7 +2589,7 @@ describeTable: DESCRIBE TABLE dotIdentifier (TYPE EQ (COLUMNS | STAGE))?
 describeTask: DESCRIBE TASK dotIdentifier
     ;
 
-describeTransaction: DESCRIBE TRANSACTION num
+describeTransaction: DESCRIBE TRANSACTION INT
     ;
 
 describeUser: DESCRIBE USER id
@@ -2688,7 +2688,7 @@ showConnections: SHOW CONNECTIONS likePattern?
 startsWith: STARTS WITH string
     ;
 
-limitRows: LIMIT num (FROM string)?
+limitRows: LIMIT INT (FROM string)?
     ;
 
 showDatabases: SHOW TERSE? DATABASES HISTORY? likePattern? startsWith? limitRows?
@@ -2872,7 +2872,7 @@ showTransactions: SHOW TRANSACTIONS (IN ACCOUNT)?
 showUserFunctions: SHOW USER FUNCTIONS likePattern? inObj?
     ;
 
-showUsers: SHOW TERSE? USERS likePattern? (STARTS WITH string)? (LIMIT num)? (FROM string)?
+showUsers: SHOW TERSE? USERS likePattern? (STARTS WITH string)? (LIMIT INT)? (FROM string)?
     ;
 
 showVariables: SHOW VARIABLES likePattern?
@@ -2961,9 +2961,6 @@ dotIdentifier: id (DOT id)*
 dotIdentifierOrIdent: dotIdentifier | IDENTIFIER LPAREN string RPAREN
     ;
 
-num: INT
-    ;
-
 /*** expressions ***/
 exprList: expr (COMMA expr)*
     ;
@@ -3022,37 +3019,10 @@ kvPair: key = string COLON literal
 arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
     ;
 
-dataTypeSize: LPAREN num RPAREN
-    ;
-
 dataType
-    : intAlias = (KWINT | INTEGER | SMALLINT | TINYINT | BYTEINT | BIGINT)
-    | numberAlias = (NUMBER | NUMERIC | DECIMAL) (LPAREN num (COMMA num)? RPAREN)?
-    | floatAlias = (FLOAT_ | FLOAT4 | FLOAT8 | DOUBLE | DOUBLE_PRECISION | REAL_)
-    | BOOLEAN
-    | DATE
-    | DATETIME dataTypeSize?
-    | TIME dataTypeSize?
-    | TIMESTAMP dataTypeSize?
-    | TIMESTAMP_LTZ dataTypeSize?
-    | TIMESTAMP_NTZ dataTypeSize?
-    | TIMESTAMP_TZ dataTypeSize?
-    | charAlias = ( CHAR | NCHAR | CHARACTER) dataTypeSize?
-    | varcharAlias = (
-        CHAR_VARYING
-        | NCHAR_VARYING
-        | NVARCHAR2
-        | NVARCHAR
-        | STRING_
-        | TEXT
-        | VARCHAR
-    ) dataTypeSize?
-    | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
-    | VARIANT
-    | OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
+    : OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
     | ARRAY (LPAREN dataType RPAREN)?
-    | GEOGRAPHY
-    | GEOMETRY
+    | id VARYING? (LPAREN INT (COMMA INT)? RPAREN)?
     ;
 
 objectField: id dataType
@@ -3060,7 +3030,7 @@ objectField: id dataType
 
 primitiveExpression
     : DEFAULT           # primExprDefault //?
-    | id LSB num RSB    # primArrayAccess
+    | id LSB INT RSB    # primArrayAccess
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
@@ -3079,7 +3049,7 @@ rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
 windowFrameExtent: BETWEEN windowFrameBound AND windowFrameBound
     ;
 
-windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING) | CURRENT ROW
+windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
 functionCall: builtinFunction | standardFunction | rankingWindowedFunction | aggregateFunction
@@ -3130,7 +3100,7 @@ aggregateFunction
     ;
 
 literal
-    : DATE string
+    : id string
     | TIMESTAMP string
     | string
     | sign? INT
@@ -3218,7 +3188,7 @@ asAlias: AS? alias
 expressionElem: searchCondition | expr
     ;
 
-columnPosition: num
+columnPosition: INT
     ;
 
 allDistinct: ALL | DISTINCT
@@ -3355,15 +3325,15 @@ valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*
     ;
 
 sampleMethod
-    : (SYSTEM | BLOCK) LPAREN num RPAREN        # sampleMethodBlock
-    | (BERNOULLI | ROW)? LPAREN num ROWS RPAREN # sampleMethodRowFixed
-    | (BERNOULLI | ROW)? LPAREN num RPAREN      # sampleMethodRowProba
+    : (SYSTEM | BLOCK) LPAREN INT RPAREN        # sampleMethodBlock
+    | (BERNOULLI | ROW)? LPAREN INT ROWS RPAREN # sampleMethodRowFixed
+    | (BERNOULLI | ROW)? LPAREN INT RPAREN      # sampleMethodRowProba
     ;
 
 sample: (SAMPLE | TABLESAMPLE) sampleMethod sampleSeed?
     ;
 
-sampleSeed: (REPEATABLE | SEED) LPAREN num RPAREN
+sampleSeed: (REPEATABLE | SEED) LPAREN INT RPAREN
     ;
 
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
@@ -3396,7 +3366,7 @@ predicate
 whereClause: WHERE searchCondition
     ;
 
-groupByElem: columnElem | num | expressionElem
+groupByElem: columnElem | INT | expressionElem
     ;
 
 groupByList: groupByElem (COMMA groupByElem)*

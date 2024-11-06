@@ -93,7 +93,6 @@ keyword
     | BASE64
     | BEFORE
     | BEGIN_DIALOG
-    | BIGINT
     | BINARY
     | BINDING
     | BLOB_STORAGE
@@ -185,7 +184,6 @@ keyword
     | DATA_SOURCE
     | DATABASE_MIRRORING
     | DATASPACE
-    | DATE
     | DATE_CORRELATION_OPTIMIZATION
     | DATE_FORMAT
     | DAYS
@@ -371,7 +369,6 @@ keyword
     | KEYS
     | KEYS
     | KEYSET
-    | KWINT
     | KWSKIP
     | LANGUAGE
     | LANGUAGE
@@ -491,7 +488,6 @@ keyword
     | NTILE
     | NTLM
     | NUMANODE
-    | NUMBER
     | NUMERIC_ROUNDABORT
     | OBJECT
     | OFF
@@ -701,7 +697,6 @@ keyword
     | SIGNATURE
     | SINGLE_USER
     | SIZE
-    | SMALLINT
     | SNAPSHOT
     | SOFTNUMA
     | SORT_IN_TEMPDB
@@ -766,12 +761,10 @@ keyword
     | TEXTIMAGE_ON
     | THROW
     | TIES
-    | TIME
     | TIMEOUT
     | TIMER
     | TIMESTAMP
     | TIMEZONE
-    | TINYINT
     | TORN_PAGE_DETECTION
     | TOSTRING
     | TRACE

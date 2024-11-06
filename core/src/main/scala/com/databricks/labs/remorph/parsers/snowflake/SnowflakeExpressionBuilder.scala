@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.Token
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -47,7 +48,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case None =>
       ctx match {
         case c if c.columnElem() != null => c.columnElem().accept(this)
-        case n if n.num() != null => n.num().accept(this)
+        case n if n.INT() != null => ir.NumericLiteral(n.INT().getText)
         case e if e.expressionElem() != null => e.expressionElem().accept(this)
       }
   }
@@ -167,7 +168,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case None =>
       val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
       ctx match {
-        case c if c.DATE() != null =>
+        case c if Option(c.id()).exists(_.getText.toLowerCase(Locale.ROOT) == "date") =>
           val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
           Try(java.time.LocalDate.parse(dateStr))
             .map(ir.Literal(_))
@@ -242,12 +243,6 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
           }
           ir.StringLiteral(str)
       }
-  }
-
-  override def visitNum(ctx: NumContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.NumericLiteral(ctx.getText)
   }
 
   private def removeQuotes(str: String): String = {
@@ -435,7 +430,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      ir.ArrayAccess(ctx.id().accept(this), ctx.num().accept(this))
+      ir.ArrayAccess(ctx.id().accept(this), ir.NumericLiteral(ctx.INT().getText))
   }
 
   override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = errorCheck(ctx) match {
@@ -582,8 +577,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def buildFrameBound(ctx: WindowFrameBoundContext): ir.FrameBoundary = ctx match {
     case c if c.UNBOUNDED() != null && c.PRECEDING != null => ir.UnboundedPreceding
     case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
-    case c if c.num() != null && c.PRECEDING() != null => ir.PrecedingN(c.num().accept(this))
-    case c if c.num() != null && c.FOLLOWING() != null => ir.FollowingN(c.num().accept(this))
+    case c if c.INT() != null && c.PRECEDING() != null => ir.PrecedingN(ir.NumericLiteral(c.INT.getText))
+    case c if c.INT() != null && c.FOLLOWING() != null => ir.FollowingN(ir.NumericLiteral(c.getText))
     case c if c.CURRENT() != null => ir.CurrentRow
   }
 
