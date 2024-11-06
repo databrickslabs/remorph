@@ -90,8 +90,14 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
-        val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
-        ir.WithCTE(ctes, relation)
+        if (ctx.RECURSIVE() == null) {
+          val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
+          ir.WithCTE(ctes, relation)
+        } else {
+          // TODO With Recursive CTE are not support by default, will require a custom implementation IR to be redefined
+          val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
+          ir.WithRecursiveCTE(ctes, relation)
+        }
     }
   }
 
