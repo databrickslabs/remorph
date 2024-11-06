@@ -128,17 +128,17 @@
     </dependency>
     <dependency>
       <groupId>io.circe</groupId>
-      <artifactId>circe-generic_2.12</artifactId>
+      <artifactId>circe-generic_${scala.binary.version}</artifactId>
       <version>${circe.version}</version>
     </dependency>
     <dependency>
       <groupId>io.circe</groupId>
-      <artifactId>circe-generic-extras_2.12</artifactId>
+      <artifactId>circe-generic-extras_${scala.binary.version}</artifactId>
       <version>${circe.version}</version>
     </dependency>
     <dependency>
       <groupId>io.circe</groupId>
-      <artifactId>circe-jackson215_2.12</artifactId>
+      <artifactId>circe-jackson215_${scala.binary.version}</artifactId>
       <version>${circe.version}</version>
     </dependency>
     <dependency>
