@@ -28,7 +28,7 @@ package object generators {
           }
           while (failureOpt.isEmpty && arguments.hasNext) {
             try {
-              sb.append(StringContext.treatEscapes(arguments.next()))
+              sb.append(arguments.next())
               sb.append(StringContext.treatEscapes(stringParts.next()))
             } catch {
               case NonFatal(e) =>
