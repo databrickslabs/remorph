@@ -21,12 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class ErrorPayload:
-    error_code: str | None = None
-    error_message: str | None = None
-
-
-@dataclasses.dataclass
 class ReportEntry:
     project: str
     commit_hash: str | None
@@ -39,7 +33,7 @@ class ReportEntry:
     statements: int = 0  # number of statements parsed
     transpiled: int = 0  # 1 for success, 0 for failure
     transpiled_statements: int = 0  # number of statements transpiled
-    failures: List[ErrorPayload] = dataclasses.field(default_factory= lambda : [])
+    failures: List[dict] = dataclasses.field(default_factory=lambda: [])
 
 
 def sqlglot_run_coverage(dialect, subfolder):
@@ -184,7 +178,7 @@ def _prepare_report_entry(
         report_entry.parsed = 1
         report_entry.statements = len(expressions)
     except Exception as pe:
-        report_entry.failures.append(ErrorPayload(error_code=type(pe).__name__, error_message=repr(pe)))
+        report_entry.failures.append({'error_code': type(pe).__name__, 'error_message': repr(pe)})
         return report_entry
 
     try:
@@ -192,7 +186,7 @@ def _prepare_report_entry(
         report_entry.transpiled = 1
         report_entry.transpiled_statements = len([sql for sql in generated_sqls if sql.strip()])
     except Exception as te:
-        report_entry.failures.append(ErrorPayload(type(te).__name__, repr(te)))
+        report_entry.failures.append({'error_code': type(te).__name__, 'error_message': repr(te)})
 
     return report_entry
 
