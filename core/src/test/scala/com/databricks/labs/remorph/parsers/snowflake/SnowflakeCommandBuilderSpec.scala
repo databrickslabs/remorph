@@ -25,13 +25,13 @@ class SnowflakeCommandBuilderSpec
     "select_statement VARCHAR;" in {
       example(
         "select_statement VARCHAR;",
-        _.declareCommand(),
+        _.declareElement(),
         CreateVariable(name = Id("select_statement"), dataType = StringType, defaultExpr = None, replace = false))
     }
     "price NUMBER(13,2) DEFAULT 111.50;" in {
       example(
         "price NUMBER(13,2) DEFAULT 111.50;",
-        _.declareCommand(),
+        _.declareElement(),
         CreateVariable(
           name = Id("price"),
           dataType = DecimalType(Some(13), Some(2)),
@@ -41,7 +41,7 @@ class SnowflakeCommandBuilderSpec
     "query_statement RESULTSET := (SELECT col1 FROM some_table);" in {
       example(
         "query_statement RESULTSET := (SELECT col1 FROM some_table);",
-        _.declareCommand(),
+        _.declareElement(),
         CreateVariable(
           name = Id("query_statement"),
           dataType = StructType(Seq()),
