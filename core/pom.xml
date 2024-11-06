@@ -123,7 +123,7 @@
     </dependency>
     <dependency>
       <groupId>io.circe</groupId>
-      <artifactId>circe-core_2.12</artifactId>
+      <artifactId>circe-core_${scala.binary.version}</artifactId>
       <version>${circe.version}</version>
     </dependency>
     <dependency>
