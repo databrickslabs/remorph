@@ -19,7 +19,7 @@ class SnowflakeCommandBuilderSpec
     "X NUMBER DEFAULT 0;" in {
       example(
         "X NUMBER DEFAULT 0;",
-        _.declareCommand(),
+        _.declareElement(),
         CreateVariable(name = Id("X"), dataType = DecimalType(38, 0), defaultExpr = Some(Literal(0)), replace = false))
     }
     "select_statement VARCHAR;" in {
