@@ -291,7 +291,6 @@ object SnowflakeErrorStrategy {
     RESULT,
     RLIKE,
     ROLE,
-    ROLLUP,
     SECURITYADMIN,
     SHARES,
     SOURCE,

@@ -147,6 +147,7 @@ keyword
     | CONFIGURATION
     | CONNECT
     | CONNECTION
+    | CONTAINS
     | CONTAINMENT
     | CONTENT
     | CONTEXT
@@ -216,6 +217,7 @@ keyword
     | DROP_EXISTING
     | DROPCLEANBUFFERS
     | DTC_SUPPORT
+    | DUMMY
     | DYNAMIC
     | EDITION
     | ELEMENTS
@@ -518,7 +520,6 @@ keyword
     | POOL
     | PORT
     | PRECEDING
-    | PRECISION
     | PREDICATE
     | PRIMARY_ROLE
     | PRIOR
@@ -599,7 +600,6 @@ keyword
     | REWIND
     | RLIKE
     | ROLE
-    | ROLLUP
     | ROOT
     | ROUND_ROBIN
     | ROUTE

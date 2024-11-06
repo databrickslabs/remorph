@@ -19,6 +19,10 @@
 // =================================================================================
 lexer grammar commonlex;
 
+DUMMY:
+    'DUMMY'
+; // Dummy is not a keyword but rules reference it in unfinished Snowflake grammar - need to get rid
+
 ABORT                                    : 'ABORT';
 ABORT_AFTER_WAIT                         : 'ABORT_AFTER_WAIT';
 ABORT_DETACHED_QUERY                     : 'ABORT_DETACHED_QUERY';
@@ -275,7 +279,6 @@ CREDIT_QUOTA                             : 'CREDIT_QUOTA';
 CROSS                                    : 'CROSS';
 CRYPTOGRAPHIC                            : 'CRYPTOGRAPHIC';
 CSV                                      : 'CSV';
-CUBE                                     : 'CUBE';
 CURRENT                                  : 'CURRENT';
 CURRENT_DATE                             : 'CURRENT_DATE';
 CURRENT_TIME                             : 'CURRENT_TIME';
@@ -872,7 +875,6 @@ POOL                                     : 'POOL';
 PORT                                     : 'PORT';
 PRE_AUTHORIZED_ROLES_LIST                : 'PRE_AUTHORIZED_ROLES_LIST';
 PRECEDING                                : 'PRECEDING';
-PRECISION                                : 'PRECISION';
 PREDICATE                                : 'PREDICATE';
 PREFIX                                   : 'PREFIX';
 PRESERVE_SPACE                           : 'PRESERVE_SPACE';
@@ -1006,7 +1008,6 @@ RLIKE                                    : 'RLIKE';
 ROLE                                     : 'ROLE';
 ROLES                                    : 'ROLES';
 ROLLBACK                                 : 'ROLLBACK';
-ROLLUP                                   : 'ROLLUP';
 ROOT                                     : 'ROOT';
 ROUND_ROBIN                              : 'ROUND_ROBIN';
 ROUTE                                    : 'ROUTE';

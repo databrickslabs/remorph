@@ -900,6 +900,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
           List.empty))))
   }
+
   "translate MERGE statements with options" in {
     example(
       query = """

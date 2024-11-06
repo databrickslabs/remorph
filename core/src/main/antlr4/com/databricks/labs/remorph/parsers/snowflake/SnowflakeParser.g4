@@ -3022,7 +3022,12 @@ arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
 dataType
     : OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
     | ARRAY (LPAREN dataType RPAREN)?
-    | id VARYING? (LPAREN INT (COMMA INT)? RPAREN)?
+    | id discard? (LPAREN INT (COMMA INT)? RPAREN)?
+    ;
+
+// Caters for things like DOUBLE PRECISION where the PRECISION isn't needed
+// and hrow awaya keywords that are also verbose for no good reason
+discard: VARYING | id
     ;
 
 objectField: id dataType
@@ -3374,7 +3379,7 @@ groupByList: groupByElem (COMMA groupByElem)*
 
 groupByClause
     : GROUP BY groupByList havingClause?
-    | GROUP BY (CUBE | GROUPING SETS | ROLLUP) LPAREN groupByList RPAREN
+    | GROUP BY (GROUPING SETS | id) LPAREN groupByList RPAREN
     | GROUP BY ALL
     ;
 

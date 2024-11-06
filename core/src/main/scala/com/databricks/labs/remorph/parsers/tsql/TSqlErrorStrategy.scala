@@ -714,7 +714,6 @@ object TSqlErrorStrategy {
     POOL,
     PORT,
     PRECEDING,
-    PRECISION,
     PREDICATE,
     PRIMARY_ROLE,
     PRIOR,
