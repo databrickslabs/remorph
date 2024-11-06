@@ -1775,7 +1775,7 @@ formatTypeOptions
     | DATE_FORMAT EQ (string | AUTO)
     | TIME_FORMAT EQ (string | AUTO)
     | TIMESTAMP_FORMAT EQ (string | AUTO)
-    | BINARY_FORMAT EQ (HEX | BASE64 | UTF8)
+    | BINARY_FORMAT EQ id
     | ESCAPE EQ (string | NONE)
     | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE)
     | TRIM_SPACE EQ trueFalse
@@ -1785,13 +1785,13 @@ formatTypeOptions
     | REPLACE_INVALID_CHARACTERS EQ trueFalse
     | EMPTY_FIELD_AS_NULL EQ trueFalse
     | SKIP_BYTE_ORDER_MARK EQ trueFalse
-    | ENCODING EQ (string | UTF8) //by the way other encoding keyword are valid ie WINDOWS1252
+    | ENCODING EQ (string | id) //by the way other encoding keyword are valid ie WINDOWS1252
     //-- If TYPE EQ JSON
     //| COMPRESSION EQ (AUTO | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE)
     //    | DATE_FORMAT EQ string | AUTO
     //    | TIME_FORMAT EQ string | AUTO
     //    | TIMESTAMP_FORMAT EQ string | AUTO
-    //    | BINARY_FORMAT EQ HEX | BASE64 | UTF8
+    //    | BINARY_FORMAT id
     //    | TRIM_SPACE EQ trueFalse
     //    | NULL_IF EQ LR_BRACKET stringList RR_BRACKET
     //    | FILE_EXTENSION EQ string
@@ -3100,8 +3100,7 @@ aggregateFunction
     ;
 
 literal
-    : id string
-    | TIMESTAMP string
+    : TIMESTAMP string
     | string
     | sign? INT
     | sign? (REAL | FLOAT)
@@ -3109,7 +3108,8 @@ literal
     | jsonLiteral
     | arrayLiteral
     | NULL
-    | PARAM // A question mark can be used as a placeholder for a prepared statement that will use binding.
+    | PARAM     // A question mark can be used as a placeholder for a prepared statement that will use binding.
+    | id string // DATE and any other additions
     ;
 
 constant: string | INT | REAL | FLOAT

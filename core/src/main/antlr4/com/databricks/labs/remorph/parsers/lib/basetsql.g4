@@ -47,8 +47,8 @@ STRING options {
     caseInsensitive = false;
 }: 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
+HEX   : '0X' HEX_DIGIT*;
 INT   : DEC_DIGIT+;
-HEX   : '0' 'X' HEX_DIGIT*;
 FLOAT : DEC_DOT_DEC;
 REAL  : (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
 MONEY : '$' (INT | FLOAT);

@@ -359,17 +359,21 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))))
   }
 
-  "Columns specified with dedicated syntax" in {
+  "SELECT NEXT VALUE FOR mySequence As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
       expectedAst = Batch(
         Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+  }
 
+  "SELECT NEXT VALUE FOR var.mySequence As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
       expectedAst = Batch(
         Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+  }
 
+  "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
       expectedAst = Batch(
@@ -382,7 +386,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               List(SortOrder(simplyNamedColumn("myColumn"), UnspecifiedSortDirection, SortNullsUnspecified)),
               None),
             Id("nextVal")))))))
-
   }
 
   "translate CTE select statements" in {

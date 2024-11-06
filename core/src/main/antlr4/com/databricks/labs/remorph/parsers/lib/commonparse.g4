@@ -19,14 +19,11 @@ keyword
     | ACCESS
     | ACCOUNTADMIN
     | ACTION
-    | ACTION
-    | ACTION
     | ACTIVATION
     | ACTIVE
     | ADD // ?
     | ADDRESS
     | ADMINISTER
-    | AES
     | AES
     | AES_128
     | AES_192
@@ -69,7 +66,6 @@ keyword
     | ASYMMETRIC
     | ASYNCHRONOUS_COMMIT
     | AT_KEYWORD
-    | AT_KEYWORD
     | AUDIT
     | AUDIT_GUID
     | AUTHENTICATE
@@ -90,7 +86,6 @@ keyword
     | AVAILABILITY_MODE
     | BACKUP_CLONEDB
     | BACKUP_PRIORITY
-    | BASE64
     | BEFORE
     | BEGIN_DIALOG
     | BINARY
@@ -127,16 +122,13 @@ keyword
     | CHECKDB
     | CHECKFILEGROUP
     | CHECKSUM
-    | CHECKSUM
     | CHECKTABLE
     | CLASSIFIER_FUNCTION
     | CLEANTABLE
     | CLEANUP
     | CLONEDATABASE
     | CLUSTER
-    | CLUSTER
     | COLLATE
-    | COLLECTION
     | COLLECTION
     | COLUMN_ENCRYPTION_KEY
     | COLUMN_MASTER_KEY
@@ -152,7 +144,6 @@ keyword
     | CONCAT
     | CONCAT_NULL_YIELDS_NULL
     | CONDITION
-    | CONFIGURATION
     | CONFIGURATION
     | CONNECT
     | CONNECTION
@@ -178,7 +169,6 @@ keyword
     | CURSOR_DEFAULT
     | CYCLE
     | DATA
-    | DATA
     | DATA_COMPRESSION
     | DATA_PURITY
     | DATA_SOURCE
@@ -199,7 +189,6 @@ keyword
     | DEFAULT_FULLTEXT_LANGUAGE
     | DEFAULT_LANGUAGE
     | DEFAULT_SCHEMA
-    | DEFINITION
     | DEFINITION
     | DELAY
     | DELAYED_DURABILITY
@@ -228,7 +217,6 @@ keyword
     | DROPCLEANBUFFERS
     | DTC_SUPPORT
     | DYNAMIC
-    | DYNAMIC
     | EDITION
     | ELEMENTS
     | EMAIL
@@ -248,14 +236,12 @@ keyword
     | ERROR_BROKER_CONVERSATIONS
     | ESTIMATEONLY
     | EVENT
-    | EVENT
     | EVENT_RETENTION_MODE
     | EXCHANGE
     | EXCLUSIVE
     | EXECUTABLE
     | EXECUTABLE_FILE
     | EXPIREDATE
-    | EXPIRY_DATE
     | EXPIRY_DATE
     | EXPLICIT
     | EXTENDED_LOGICAL_CHECKS
@@ -280,7 +266,6 @@ keyword
     | FILESTREAM_ON
     | FILTER
     | FIRST
-    | FIRST
     | FIRST_NAME
     | FLATTEN
     | FLOOR
@@ -302,10 +287,7 @@ keyword
     | GB
     | GENERATED
     | GET
-    | GET
-    | GET
     | GETROOT
-    | GLOBAL
     | GLOBAL
     | GO
     | GOVERNOR
@@ -323,7 +305,6 @@ keyword
     | HONOR_BROKER_PRIORITY
     | HOURS
     | IDENTIFIER
-    | IDENTITY
     | IDENTITY
     | IDENTITY_VALUE
     | IF
@@ -344,7 +325,6 @@ keyword
     | INFINITE
     | INIT
     | INITIATOR
-    | INPUT
     | INPUT
     | INSENSITIVE
     | INSERT
@@ -367,10 +347,8 @@ keyword
     | KEY_SOURCE
     | KEY_STORE_PROVIDER_NAME
     | KEYS
-    | KEYS
     | KEYSET
     | KWSKIP
-    | LANGUAGE
     | LANGUAGE
     | LAST
     | LAST_NAME
@@ -390,9 +368,7 @@ keyword
     | LISTENER_URL
     | LOB_COMPACTION
     | LOCAL
-    | LOCAL
     | LOCAL_SERVICE_NAME
-    | LOCATION
     | LOCATION
     | LOCK
     | LOCK_ESCALATION
@@ -445,12 +421,10 @@ keyword
     | MIRROR_ADDRESS
     | MIXED_PAGE_ALLOCATION
     | MODE
-    | MODE
     | MODIFY
     | MOVE
     | MULTI_USER
     | MUST_CHANGE
-    | NAME
     | NAME
     | NESTED_TRIGGERS
     | NETWORK
@@ -459,6 +433,7 @@ keyword
     | NEW_PASSWORD
     | NEWNAME
     | NEXT
+    | NEXTVAL
     | NO
     | NO_CHECKSUM
     | NO_COMPRESSION
@@ -493,7 +468,6 @@ keyword
     | OFF
     | OFFLINE
     | OFFSET
-    | OFFSET
     | OLD_ACCOUNT
     | OLD_PASSWORD
     | ON
@@ -524,11 +498,9 @@ keyword
     | PARSEONLY
     | PARTIAL
     | PARTITION
-    | PARTITION
     | PARTITIONS
     | PARTNER
     | PASSWORD
-    | PATH
     | PATH
     | PATTERN
     | PAUSE
@@ -545,7 +517,6 @@ keyword
     | POLICY
     | POOL
     | PORT
-    | PORT
     | PRECEDING
     | PRECISION
     | PREDICATE
@@ -558,12 +529,9 @@ keyword
     | PRIVILEGES
     | PROCCACHE
     | PROCEDURE_NAME
-    | PROCEDURE_NAME
     | PROCESS
     | PROFILE
     | PROPERTY
-    | PROPERTY
-    | PROVIDER
     | PROVIDER
     | PROVIDER_KEY_NAME
     | PUBLIC
@@ -609,7 +577,6 @@ keyword
     | REPEATABLE
     | REPEATABLEREAD
     | REPLACE
-    | REPLACE
     | REPLICA
     | REPLICATE
     | REQUIRED
@@ -617,9 +584,7 @@ keyword
     | RESERVE_DISK_SPACE
     | RESET
     | RESOURCE
-    | RESOURCE
     | RESOURCE_MANAGER_LOCATION
-    | RESOURCES
     | RESOURCES
     | RESPECT
     | RESTART
@@ -633,7 +598,6 @@ keyword
     | RETURNS
     | REWIND
     | RLIKE
-    | ROLE
     | ROLE
     | ROLLUP
     | ROOT
@@ -701,7 +665,6 @@ keyword
     | SOFTNUMA
     | SORT_IN_TEMPDB
     | SOURCE
-    | SOURCE
     | SP_EXECUTESQL
     | SPARSE
     | SPATIAL_WINDOW_MAX_CELLS
@@ -713,16 +676,13 @@ keyword
     | STAGE
     | STANDBY
     | START
-    | START
     | START_DATE
     | STARTED
     | STARTUP_STATE
     | STATE
-    | STATE
     | STATIC
     | STATISTICS_INCREMENTAL
     | STATISTICS_NORECOMPUTE
-    | STATS
     | STATS
     | STATS_STREAM
     | STATUS
@@ -743,7 +703,6 @@ keyword
     | SYNONYM
     | SYSADMIN
     | SYSTEM
-    | TABLE
     | TABLE
     | TABLERESULTS
     | TABLOCK
@@ -781,7 +740,6 @@ keyword
     | TSQL
     | TWO_DIGIT_YEAR_CUTOFF
     | TYPE
-    | TYPE
     | TYPE_WARNING
     | UNBOUNDED
     | UNCHECKED
@@ -793,20 +751,16 @@ keyword
     | UOW
     | UPDLOCK
     | URL
-    | URL
     | USED
     | USER
     | USERADMIN
-    | USING
     | VALID_XML
     | VALIDATION
-    | VALUE
     | VALUE
     | VALUES
     | VAR
     | VERBOSELOGGING
     | VERIFY_CLONEDB
-    | VERSION
     | VERSION
     | VIEW_METADATA
     | VISIBILITY

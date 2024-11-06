@@ -329,7 +329,6 @@ object TSqlErrorStrategy {
     AVAILABILITY_MODE,
     BACKUP_CLONEDB,
     BACKUP_PRIORITY,
-    BASE64,
     BEFORE,
     BEGIN_DIALOG,
     BINARY,

@@ -3329,5 +3329,5 @@ xmlIndexOptions: WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
 xmlIndexOption: ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF) | genericOption
     ;
 
-xmlCommonDirectives: COMMA ( BINARY BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
+xmlCommonDirectives: COMMA ( BINARY id | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;

@@ -578,7 +578,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c if c.UNBOUNDED() != null && c.PRECEDING != null => ir.UnboundedPreceding
     case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
     case c if c.INT() != null && c.PRECEDING() != null => ir.PrecedingN(ir.NumericLiteral(c.INT.getText))
-    case c if c.INT() != null && c.FOLLOWING() != null => ir.FollowingN(ir.NumericLiteral(c.getText))
+    case c if c.INT() != null && c.FOLLOWING() != null => ir.FollowingN(ir.NumericLiteral(c.INT.getText))
     case c if c.CURRENT() != null => ir.CurrentRow
   }
 
