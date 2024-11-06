@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.databricks.labs</groupId>
@@ -24,8 +24,7 @@
     <scala-logging.version>3.9.5</scala-logging.version>
     <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
     <databricks-connect.version>15.1.0</databricks-connect.version>
-    <ujson.version>4.0.0</ujson.version>
-    <upickle.version>4.0.0</upickle.version>
+    <circe.version>0.14.2</circe.version>
     <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
     <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
     <os-lib.version>0.10.1</os-lib.version>
@@ -123,15 +122,24 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>com.lihaoyi</groupId>
-      <artifactId>upickle_2.12</artifactId>
-      <version>${upickle.version}</version>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-core_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.lihaoyi</groupId>
-      <artifactId>ujson_${scala.binary.version}</artifactId>
-      <version>${ujson.version}</version>
-      <scope>compile</scope>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-generic_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-generic-extras_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-jackson215_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
     </dependency>
     <dependency>
       <groupId>com.lihaoyi</groupId>
@@ -255,39 +263,39 @@
             <artifactId>exec-maven-plugin</artifactId>
             <version>3.4.1</version>
             <executions>
-<!--              &lt;!&ndash; npm install antlr-format-cli &ndash;&gt;-->
-<!--              <execution>-->
-<!--                <id>npm install antlr-format antlr-format-cli</id>-->
-<!--                <phase>validate</phase>-->
-<!--                <goals>-->
-<!--                  <goal>exec</goal>-->
-<!--                </goals>-->
-<!--                <configuration>-->
-<!--                  <executable>${project.build.directory}/node/npm</executable>-->
-<!--                  <arguments>-->
-<!--                    <argument>install</argument>-->
-<!--                    <argument>-g</argument>-->
-<!--                    <argument>&#45;&#45;save-dev</argument>-->
-<!--                    <argument>antlr-format</argument>-->
-<!--                    <argument>antlr-format-cli</argument>-->
-<!--                  </arguments>-->
-<!--                </configuration>-->
-<!--              </execution>-->
-<!--              &lt;!&ndash; antlr-fmt &ndash;&gt;-->
-<!--              <execution>-->
-<!--                <id>antlr-fmt</id>-->
-<!--                <phase>validate</phase>-->
-<!--                <goals>-->
-<!--                  <goal>exec</goal>-->
-<!--                </goals>-->
-<!--                <configuration>-->
-<!--                  <executable>${project.build.directory}/bin/antlr-format</executable>-->
-<!--                  <arguments>-->
-<!--                    <argument>-v</argument>-->
-<!--                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>-->
-<!--                  </arguments>-->
-<!--                </configuration>-->
-<!--              </execution>-->
+              <!--              &lt;!&ndash; npm install antlr-format-cli &ndash;&gt;-->
+              <!--              <execution>-->
+              <!--                <id>npm install antlr-format antlr-format-cli</id>-->
+              <!--                <phase>validate</phase>-->
+              <!--                <goals>-->
+              <!--                  <goal>exec</goal>-->
+              <!--                </goals>-->
+              <!--                <configuration>-->
+              <!--                  <executable>${project.build.directory}/node/npm</executable>-->
+              <!--                  <arguments>-->
+              <!--                    <argument>install</argument>-->
+              <!--                    <argument>-g</argument>-->
+              <!--                    <argument>&#45;&#45;save-dev</argument>-->
+              <!--                    <argument>antlr-format</argument>-->
+              <!--                    <argument>antlr-format-cli</argument>-->
+              <!--                  </arguments>-->
+              <!--                </configuration>-->
+              <!--              </execution>-->
+              <!--              &lt;!&ndash; antlr-fmt &ndash;&gt;-->
+              <!--              <execution>-->
+              <!--                <id>antlr-fmt</id>-->
+              <!--                <phase>validate</phase>-->
+              <!--                <goals>-->
+              <!--                  <goal>exec</goal>-->
+              <!--                </goals>-->
+              <!--                <configuration>-->
+              <!--                  <executable>${project.build.directory}/bin/antlr-format</executable>-->
+              <!--                  <arguments>-->
+              <!--                    <argument>-v</argument>-->
+              <!--                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>-->
+              <!--                  </arguments>-->
+              <!--                </configuration>-->
+              <!--              </execution>-->
               <execution>
                 <goals>
                   <goal>java</goal>
