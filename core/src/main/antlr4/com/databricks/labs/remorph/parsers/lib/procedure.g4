@@ -25,7 +25,7 @@ alterProcedure:
 createProcedure:
     CREATE (OR REPLACE)? PROCEDURE dotIdentifier LPAREN (
         procArgDecl (COMMA procArgDecl)*
-    )? RPAREN RETURNS (dataType | table) (NOT? NULL)? LANGUAGE SQL (
+    )? RPAREN RETURNS (dataType | table) (NOT? NULL)? LANGUAGE id (
         CALLED ON NULL INPUT
         | RETURNS NULL ON NULL INPUT
         | STRICT
@@ -33,7 +33,7 @@ createProcedure:
     (COMMENT EQ string)? executeAs? AS procedureDefinition
     | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier LPAREN (
         procArgDecl (COMMA procArgDecl)*
-    )? RPAREN RETURNS dataType (NOT? NULL)? LANGUAGE JAVASCRIPT (
+    )? RPAREN RETURNS dataType (NOT? NULL)? LANGUAGE id (
         CALLED ON NULL INPUT
         | RETURNS NULL ON NULL INPUT
         | STRICT
@@ -41,7 +41,7 @@ createProcedure:
     (COMMENT EQ string)? executeAs? AS procedureDefinition
     | CREATE (OR REPLACE)? SECURE? PROCEDURE dotIdentifier LPAREN (
         procArgDecl (COMMA procArgDecl)*
-    )? RPAREN RETURNS (dataType (NOT? NULL)? | table) LANGUAGE PYTHON RUNTIME_VERSION EQ string (
+    )? RPAREN RETURNS (dataType (NOT? NULL)? | table) LANGUAGE id RUNTIME_VERSION EQ string (
         IMPORTS EQ LPAREN stringList RPAREN
     )? PACKAGES EQ LPAREN stringList RPAREN HANDLER EQ string
     //            ( CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT )?

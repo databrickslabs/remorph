@@ -31,7 +31,7 @@ THE SOFTWARE.
 // =================================================================================
 parser grammar SnowflakeParser;
 
-import procedure;
+import procedure, commonparse;
 
 options {
     tokenVocab = SnowflakeLexer;
@@ -1549,16 +1549,19 @@ virtualColumnDecl: AS LPAREN functionCall RPAREN
 functionDefinition: string
     ;
 
+// TODO: merge these rules to avoid massive lookahead
 createFunction
     : CREATE (OR REPLACE)? SECURE? FUNCTION (IF NOT EXISTS)? dotIdentifier LPAREN (
         argDecl (COMMA argDecl)*
-    )? RPAREN RETURNS (dataType | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN) (
-        LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL)
-    )? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (VOLATILE | IMMUTABLE)? (
-        PACKAGES EQ LPAREN stringList RPAREN
-    )? (RUNTIME_VERSION EQ (string | FLOAT))? (IMPORTS EQ LPAREN stringList RPAREN)? (
-        PACKAGES EQ LPAREN stringList RPAREN
-    )? (HANDLER EQ string)? (NOT? NULL)? (COMMENT EQ string)? AS functionDefinition
+    )? RPAREN RETURNS (dataType | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN) (LANGUAGE id)? (
+        CALLED ON NULL INPUT
+        | RETURNS NULL ON NULL INPUT
+        | STRICT
+    )? (VOLATILE | IMMUTABLE)? (PACKAGES EQ LPAREN stringList RPAREN)? (
+        RUNTIME_VERSION EQ (string | FLOAT)
+    )? (IMPORTS EQ LPAREN stringList RPAREN)? (PACKAGES EQ LPAREN stringList RPAREN)? (
+        HANDLER EQ string
+    )? (NOT? NULL)? (COMMENT EQ string)? AS functionDefinition
     | CREATE (OR REPLACE)? SECURE? FUNCTION dotIdentifier LPAREN (argDecl (COMMA argDecl)*)? RPAREN RETURNS (
         dataType
         | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN
@@ -2933,133 +2936,7 @@ id
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
     | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
-    | nonReservedWords //id is used for object name. Snowflake is very permissive
-    ;
-
-nonReservedWords
-    //List here lexer token referenced by rules which is not a keyword (SnowSQL Meaning) and allowed as object name
-    : ACCOUNTADMIN
-    | ACTION
-    | ACTION
-    | AES
-    | ALERT
-    | ARRAY
-    | ARRAY_AGG
-    | AT_KEYWORD
-    | BODY
-    | CHARACTER
-    | CHECKSUM
-    | CLUSTER
-    | COLLATE
-    | COLLECTION
-    | COMMENT
-    | CONDITION
-    | CONFIGURATION
-    | COPY_OPTIONS_
-    | CURRENT_TIME
-    | DATA
-    | DATE
-    | DATE_FORMAT
-    | DEFINITION
-    | DELTA
-    | DENSE_RANK
-    | DIRECTION
-    | DISABLE_AUTO_CONVERT
-    | DOWNSTREAM
-    | DUMMY
-    | DYNAMIC
-    | EDITION
-    | END
-    | EMAIL
-    | EVENT
-    | EXCHANGE
-    | EXPIRY_DATE
-    | FILE_FORMAT
-    | FIRST
-    | FIRST_NAME
-    | FLATTEN
-    | FLOOR
-    | FREQUENCY
-    | FUNCTION
-    | GET
-    | GET
-    | GLOBAL
-    | IDENTIFIER
-    | IDENTITY
-    | IF
-    | INDEX
-    | INPUT
-    | INSERT
-    | INTERVAL
-    | JAVASCRIPT
-    | KEY
-    | KEYS
-    | LANGUAGE
-    | LAST_NAME
-    | LAST_QUERY_ID
-    | LEAD
-    | LENGTH
-    | LISTAGG
-    | LOCAL
-    | LOCATION
-    | MATCHES
-    | MAX_CONCURRENCY_LEVEL
-    | MODE
-    | NAME
-    | NETWORK
-    | NOORDER
-    | OFFSET
-    | OPTION
-    | ORDER
-    | ORGADMIN
-    | OUTBOUND
-    | OUTER
-    | PARTITION
-    | PATH
-    | PATTERN
-    | PORT
-    | PROCEDURE_NAME
-    | PROPERTY
-    | PROVIDER
-    | PUBLIC
-    | RANK
-    | RECURSIVE
-    | REGION
-    | REPLACE
-    | RESOURCE
-    | RESOURCES
-    | RESPECT
-    | RESTRICT
-    | RESULT
-    | RLIKE
-    | ROLE
-    | ROLLUP
-    | SECURITYADMIN
-    | SHARES
-    | SOURCE
-    | STAGE
-    | START
-    | STATE
-    | STATS
-    | SUBSTRING
-    | SYSADMIN
-    | TABLE
-    | TAG
-    | TAGS
-    | TARGET_LAG
-    | TEMP
-    | TIME
-    | TIMESTAMP
-    | TIMEZONE
-    | TYPE
-    | URL
-    | USER
-    | USERADMIN
-    | VALUE
-    | VALUES
-    | VERSION
-    | WAREHOUSE
-    | WAREHOUSE_TYPE
+    | keyword          // almost any ketword can be used as an id :(
     ;
 
 pattern: PATTERN EQ string

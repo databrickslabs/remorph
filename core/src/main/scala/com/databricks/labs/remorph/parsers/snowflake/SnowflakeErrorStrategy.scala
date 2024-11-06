@@ -256,7 +256,6 @@ object SnowflakeErrorStrategy {
     INDEX,
     INPUT,
     INTERVAL,
-    JAVASCRIPT,
     KEY,
     KEYS,
     LANGUAGE,

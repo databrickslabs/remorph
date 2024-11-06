@@ -92,13 +92,15 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val runtimeInfo = ctx match {
-        case c if c.JAVA() != null => buildJavaUDF(c)
-        case c if c.PYTHON() != null => buildPythonUDF(c)
-        case c if c.JAVASCRIPT() != null => ir.JavaScriptRuntimeInfo
-        case c if c.SCALA() != null => buildScalaUDF(c)
-        case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
-      }
+      val runtime = Option(ctx.LANGUAGE()).map(_.getText.toLowerCase).getOrElse("sql")
+      val runtimeInfo =
+        runtime match {
+          case r if r == "java" => buildJavaUDF(ctx)
+          case r if r == "python" => buildPythonUDF(ctx)
+          case r if r == "javascript" => ir.JavaScriptRuntimeInfo
+          case r if r == "scala" => buildScalaUDF(ctx)
+          case _ => ir.SQLRuntimeInfo(ctx.MEMOIZABLE() != null)
+        }
       val name = ctx.dotIdentifier().getText
       val returnType = vc.typeBuilder.buildDataType(ctx.dataType())
       val parameters = ctx.argDecl().asScala.map(buildParameter)
