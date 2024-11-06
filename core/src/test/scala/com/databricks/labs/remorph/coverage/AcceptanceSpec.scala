@@ -35,7 +35,6 @@ class SnowflakeAcceptanceSuite
             "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql",
-            "core_engine/delete/test_delete_with_not_in.sql",
             "core_engine/delete/test_delete_with_in_subquery_join.sql"),
           shouldFailParse = Set(
             "core_engine/test_invalid_syntax/syntax_error_1.sql",

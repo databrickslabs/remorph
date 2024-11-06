@@ -7,7 +7,7 @@ FROM test_tbl_stg
 
 -- databricks sql:
 DELETE FROM test_tbl
-WHERE NOT EXISTS(
+WHERE NOT EXISTS (
 SELECT 1
 FROM test_tbl_stg
 WHERE test_tbl.version = test_tbl_stg.version1

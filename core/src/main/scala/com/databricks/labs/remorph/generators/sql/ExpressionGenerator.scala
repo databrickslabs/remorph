@@ -248,7 +248,10 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   private def predicate(expr: ir.Expression): SQL = expr match {
     case a: ir.And => andPredicate(a)
     case o: ir.Or => orPredicate(o)
-    case ir.Not(child) => code"NOT (${expression(child)})"
+    // Added if condition to handle NOT EXISTS case
+    case ir.Not(child) =>
+      if (child.isInstanceOf[ir.Exists]) code"NOT ${expression(child)}"
+      else code"NOT (${expression(child)})"
     case ir.Equals(left, right) => code"${expression(left)} = ${expression(right)}"
     case ir.NotEquals(left, right) => code"${expression(left)} != ${expression(right)}"
     case ir.LessThan(left, right) => code"${expression(left)} < ${expression(right)}"
