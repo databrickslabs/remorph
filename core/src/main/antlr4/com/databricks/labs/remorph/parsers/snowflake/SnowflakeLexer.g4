@@ -46,6 +46,10 @@ options {
     caseInsensitive = true;
 }
 
+channels {
+    COMMENT_CHANNEL
+}
+
 tokens {
     STRING_CONTENT
 }
@@ -855,7 +859,7 @@ fragment SPACE:
 WS: SPACE -> channel(HIDDEN);
 
 SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
-LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
+LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(COMMENT_CHANNEL);
 LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
