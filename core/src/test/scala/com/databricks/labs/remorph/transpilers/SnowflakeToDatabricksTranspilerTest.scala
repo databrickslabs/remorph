@@ -39,10 +39,10 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "transpile BANG without semicolon" in {
       "!print Include This Text" transpilesTo
         """/* The following issues were detected:
-        |
-        |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
-        |    !print Include This Text
-        | */""".stripMargin
+          |
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !print Include This Text
+          | */""".stripMargin
     }
     "transpile BANG with options" in {
       "!options catch=true" transpilesTo
@@ -68,7 +68,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |ADD
            |  COLUMN c1 DECIMAL(38, 0);""".stripMargin
-      )
+        )
     }
 
     "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" in {
@@ -84,7 +84,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
         s"""ALTER TABLE
            |  t1 DROP COLUMN c1;""".stripMargin
-      )
+        )
     }
 
     "ALTER TABLE t1 DROP COLUMN c1, c2;" in {
@@ -118,7 +118,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  col1 != 100;""".stripMargin
-      )
+        )
 
       "SELECT * FROM t1;" transpilesTo
         s"""SELECT
@@ -150,9 +150,9 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
       "SELECT JSON_EXTRACT_PATH_TEXT(json_data, path_col) FROM demo1;" transpilesTo
         """SELECT
-           |  GET_JSON_OBJECT(json_data, CONCAT('$.', path_col))
-           |FROM
-           |  demo1;""".stripMargin
+          |  GET_JSON_OBJECT(json_data, CONCAT('$.', path_col))
+          |FROM
+          |  demo1;""".stripMargin
     }
 
     "transpile select distinct query" in {
@@ -166,9 +166,9 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     "transpile window functions" in {
       s"""SELECT LAST_VALUE(c1)
-        |IGNORE NULLS OVER (PARTITION BY t1.c2 ORDER BY t1.c3 DESC
-        |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
-        |FROM t1;""".stripMargin transpilesTo
+         |IGNORE NULLS OVER (PARTITION BY t1.c2 ORDER BY t1.c3 DESC
+         |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
+         |FROM t1;""".stripMargin transpilesTo
         s"""SELECT
            |  LAST(c1) IGNORE NULLS OVER (
            |    PARTITION BY
@@ -186,16 +186,16 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "transpile MONTHS_BETWEEN function" in {
       "SELECT MONTHS_BETWEEN('2021-02-01'::DATE, '2021-01-01'::DATE);" transpilesTo
         """SELECT
-           |  MONTHS_BETWEEN(CAST('2021-02-01' AS DATE), CAST('2021-01-01' AS DATE), TRUE)
-           |  ;""".stripMargin
+          |  MONTHS_BETWEEN(CAST('2021-02-01' AS DATE), CAST('2021-01-01' AS DATE), TRUE)
+          |  ;""".stripMargin
 
       """SELECT
         | MONTHS_BETWEEN('2019-03-01 02:00:00'::TIMESTAMP, '2019-02-15 01:00:00'::TIMESTAMP)
         | AS mb;""".stripMargin transpilesTo
         """SELECT
-           |  MONTHS_BETWEEN(CAST('2019-03-01 02:00:00' AS TIMESTAMP), CAST('2019-02-15 01:00:00'
-           |  AS TIMESTAMP), TRUE) AS mb
-           |  ;""".stripMargin
+          |  MONTHS_BETWEEN(CAST('2019-03-01 02:00:00' AS TIMESTAMP), CAST('2019-02-15 01:00:00'
+          |  AS TIMESTAMP), TRUE) AS mb
+          |  ;""".stripMargin
     }
 
     "transpile ARRAY_REMOVE function" in {
@@ -273,7 +273,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  CURRENT_TIMESTAMP()
            |FROM
            |  t1;""".stripMargin
-      )
+        )
     }
 
     "SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP" in {
@@ -284,7 +284,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-      )
+        )
     }
 
     "SELECT CURRENT_TIME(1) FROM t1 where dt < CURRENT_TIMESTAMP()" in {
@@ -295,7 +295,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-      )
+        )
     }
 
     "SELECT LOCALTIME() FROM t1 where dt < LOCALTIMESTAMP" in {
@@ -306,7 +306,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-      )
+        )
     }
   }
 
@@ -344,6 +344,17 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |WHEN NOT MATCHED THEN
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
+  }
+
+  "line comment" should {
+    "transpiles to line comment" in {
+      """-- some comment
+select * from test_tbl;""" transpilesTo
+        """-- some comment
+SELECT * FROM test_tbl
+;""".stripMargin
+    }
+
   }
 
 }
