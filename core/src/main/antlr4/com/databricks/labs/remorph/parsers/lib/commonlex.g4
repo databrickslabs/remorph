@@ -19,7 +19,6 @@
 // =================================================================================
 lexer grammar commonlex;
 
-
 // TODO: Remove the use of DUMMY for unfinished Snoflake grammar productions
 DUMMY:
     'DUMMY'
@@ -1427,14 +1426,12 @@ REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT: 'REQUIRED_SYNCHRONIZED_SECONDARIES_
 WS: SPACE+ -> skip;
 
 // Comments
-SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/'          -> channel(HIDDEN);
-LINE_COMMENT   : ('--' | '//')  ~[\r\n]*        -> channel(HIDDEN);
+SQL_COMMENT  : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
+LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(HIDDEN);
 
 // Identifiers
-ID: ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
-DOUBLE_QUOTE_ID    : '"' ('""' | ~[\r\n"])* '"';
-
-
+ID              : ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 
 // This lexer rule is needed so that any unknown character in the lexicon does not
 // cause an incomprehensible error message from teh lexer. This rule will allow the parser to issue

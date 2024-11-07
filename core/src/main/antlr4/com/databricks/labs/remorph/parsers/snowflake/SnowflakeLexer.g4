@@ -62,7 +62,6 @@ INT   : [0-9]+;
 FLOAT : DEC_DOT_DEC;
 REAL  : (INT | DEC_DOT_DEC) 'E' [+-]? [0-9]+;
 
-
 BANG  : '!';
 ARROW : '->';
 ASSOC : '=>';
@@ -100,7 +99,6 @@ AMP         : '&';
 // A question mark can be used as a placeholder for a prepared statement that will use binding.
 PARAM: '?';
 
-
 SQLCOMMAND:
     '!' SPACE? (
         'abort'
@@ -125,7 +123,7 @@ SQLCOMMAND:
 ;
 
 // Parameters
-LOCAL_ID : DOLLAR ID;
+LOCAL_ID: DOLLAR ID;
 
 STRING_START: '\'' -> pushMode(stringMode);
 
