@@ -2,6 +2,8 @@ package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
 import com.fasterxml.jackson.annotation.JsonIgnore
+import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
@@ -10,13 +12,25 @@ import scala.util.control.NonFatal
 private class MutableInt(var i: Int)
 
 case class Origin(
-    line: Option[Int] = None,
-    startPosition: Option[Int] = None,
-    startIndex: Option[Int] = None,
-    stopIndex: Option[Int] = None,
-    sqlText: Option[String] = None,
-    objectType: Option[String] = None,
-    objectName: Option[String] = None)
+    startLine: Option[Int] = None,
+    startColumn: Option[Int] = None,
+    endLine: Option[Int] = None,
+    endColumn: Option[Int] = None,
+    startTokenIndex: Option[Int] = None,
+    endTokenIndex: Option[Int] = None)
+
+object Origin {
+  def fromParseRuleContext(ctx: ParserRuleContext): Origin = {
+    Origin(
+      startLine = Option(ctx.start.getLine),
+      startColumn = Option(ctx.start.getCharPositionInLine),
+      endLine = Option(ctx.stop.getLine),
+      endColumn = Option(ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex),
+      startTokenIndex = Option(ctx.start.getTokenIndex),
+      endTokenIndex = Option(ctx.stop.getTokenIndex))
+
+  }
+}
 
 object CurrentOrigin {
   private val value = new ThreadLocal[Origin]() {
@@ -25,16 +39,18 @@ object CurrentOrigin {
 
   def get: Origin = value.get()
 
-  def setPosition(line: Int, start: Int): Unit = {
-    value.set(value.get.copy(line = Some(line), startPosition = Some(start)))
-  }
-
   def withOrigin[A](o: Origin)(f: => A): A = {
     set(o)
     val ret =
       try f
       finally { reset() }
     ret
+  }
+
+  def fromParseTree(tree: ParseTree): Unit = {
+    tree match {
+      case _: ParserRuleContext => set(Origin.fromParseRuleContext(tree.asInstanceOf[ParserRuleContext]))
+    }
   }
 
   def set(o: Origin): Unit = value.set(o)
