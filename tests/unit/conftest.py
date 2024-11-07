@@ -192,14 +192,14 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()
             source_pattern = rf'--\s*{source} sql:\n(.*?)(?=\n--\s*{target} sql:|$)'
-            target_pattern = rf'--\s*{target} sql:\n(SELECT.*?;)(?=\n--|$)'
+            target_pattern = rf'--\s*{target} sql:\n(.*)'
 
             # Extract source and target queries
 
             source_match = re.search(source_pattern, content, re.DOTALL)
             target_match = re.search(target_pattern, content, re.DOTALL)
 
-            source_sql = source_match.group(1).strip() if source_match else ""
+            source_sql = source_match.group(1).strip().rstrip(";") if source_match else ""
             target_sql = target_match.group(1).strip() if target_match else ""
 
             # when multiple sqls are present below target
