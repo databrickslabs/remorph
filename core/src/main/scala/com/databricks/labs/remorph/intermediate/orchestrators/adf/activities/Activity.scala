@@ -9,7 +9,7 @@ case class Activity(
     dependsOn: Seq[ActivityDependency],
     state: Option[ActivityState],
     onInactiveMarkAs: Option[OnInactiveMarkAs],
-    additionalProperties: Seq[AdditionalProperties],
+    additionalProperties: Seq[ActivityProperties],
     userProperties: Seq[UserProperty])
     extends PipelineNode {
   override def children: Seq[PipelineNode] = Seq()
