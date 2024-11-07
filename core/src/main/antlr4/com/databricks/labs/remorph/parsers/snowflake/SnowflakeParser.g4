@@ -2934,7 +2934,6 @@ id
     : ID
     | LOCAL_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
     | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
     | keyword          // almost any ketword can be used as an id :(
     ;

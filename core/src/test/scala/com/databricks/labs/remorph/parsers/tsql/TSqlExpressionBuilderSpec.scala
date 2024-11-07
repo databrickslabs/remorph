@@ -173,15 +173,30 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr("a.b.c", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"), ir.Id("b"))), ir.Id("c")))
     }
 
-    "correctly resolve quoted identifiers" in {
+    "correctly resolve RAW identifiers" in {
       exampleExpr("RAW", _.expression(), simplyNamedColumn("RAW"))
+    }
+
+    "correctly resolve # identifiers" in {
       exampleExpr("#RAW", _.expression(), simplyNamedColumn("#RAW"))
+    }
+
+    "correctly resolve \" quoted identifiers" in {
       exampleExpr("\"a\"", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted identifiers" in {
       exampleExpr("[a]", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted dot identifiers" in {
       exampleExpr(
         "[a].[b]",
         _.expression(),
         ir.Column(Some(ir.ObjectReference(ir.Id("a", caseSensitive = true))), ir.Id("b", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted triple dot identifiers" in {
       exampleExpr(
         "[a].[b].[c]",
         _.expression(),

@@ -44,8 +44,72 @@ THE SOFTWARE.
 // =================================================================================
 lexer grammar TSqlLexer;
 
-import commonlex, basetsql;
+import commonlex;
 
 options {
     caseInsensitive = true;
 }
+
+@members {
+    private static int TSQL_DIALECT = 1;
+    private static int SNOWFLAKE_DIALECT = 2;
+    private static int dialect = SNOWFLAKE_DIALECT;
+}
+
+// Specials for graph nodes
+NODEID: '$NODE_ID';
+
+DOLLAR_ACTION: '$ACTION';
+
+// Functions starting with double at signs
+AAPSEUDO: '@@' ID;
+
+STRING options {
+    caseInsensitive = false;
+}: 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
+
+HEX   : '0X' HexDigit*;
+INT   : [0-9]+;
+FLOAT : DEC_DOT_DEC;
+REAL  : (INT | DEC_DOT_DEC) ('E' [+-]? [0-9]+);
+MONEY : '$' (INT | FLOAT);
+
+EQ         : '=';
+GT         : '>';
+LT         : '<';
+BANG       : '!';
+PE         : '+=';
+ME         : '-=';
+SE         : '*=';
+DE         : '/=';
+MEA        : '%=';
+AND_ASSIGN : '&=';
+XOR_ASSIGN : '^=';
+OR_ASSIGN  : '|=';
+
+DOUBLE_BAR   : '||';
+DOT          : '.';
+AT           : '@';
+DOLLAR       : '$';
+LPAREN       : '(';
+RPAREN       : ')';
+COMMA        : ',';
+SEMI         : ';';
+COLON        : ':';
+DOUBLE_COLON : '::';
+STAR         : '*';
+DIV          : '/';
+MOD          : '%';
+PLUS         : '+';
+MINUS        : '-';
+BIT_NOT      : '~';
+BIT_OR       : '|';
+BIT_AND      : '&';
+BIT_XOR      : '^';
+
+PLACEHOLDER: '?';
+
+// TSQL specific
+SQUARE_BRACKET_ID : '[' (~']' | ']' ']')* ']';
+TEMP_ID           : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
+LOCAL_ID          : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;

@@ -226,6 +226,7 @@
           </includes>
           <excludes>
             <exclude>**/lib/*.g4</exclude> <!-- But exclude the library grammars-->
+            <exclude>**/basesnowflake.g4</exclude>
           </excludes>
         </configuration>
       </plugin>

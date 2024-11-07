@@ -19,6 +19,8 @@
 // =================================================================================
 lexer grammar commonlex;
 
+
+// TODO: Remove the use of DUMMY for unfinished Snoflake grammar productions
 DUMMY:
     'DUMMY'
 ; // Dummy is not a keyword but rules reference it in unfinished Snowflake grammar - need to get rid
@@ -1376,3 +1378,95 @@ ASSIGN: ':=';
 
 // Common symbols
 DOLLAR_STRING: '$$' ('\\$' | '$' ~'$' | ~'$')*? '$$';
+
+// Junky stuff for Snowflake - we will gradually get rid of this
+
+// TODO: Revisit these tokens
+RETURN_N_ROWS : 'RETURN_' [0-9]+ '_ROWS';
+SKIP_FILE_N   : 'SKIP_FILE_' [0-9]+;
+
+// TODO: Replace these long options with genericOption as per TSQL - many others in commonlex also.
+CLIENT_ENABLE_LOG_INFO_STATEMENT_PARAMETERS   : 'CLIENT_ENABLE_LOG_INFO_STATEMENT_PARAMETERS';
+CLIENT_ENCRYPTION_KEY_SIZE                    : 'CLIENT_ENCRYPTION_KEY_SIZE';
+CLIENT_MEMORY_LIMIT                           : 'CLIENT_MEMORY_LIMIT';
+CLIENT_METADATA_REQUEST_USE_CONNECTION_CTX    : 'CLIENT_METADATA_REQUEST_USE_CONNECTION_CTX';
+CLIENT_METADATA_USE_SESSION_DATABASE          : 'CLIENT_METADATA_USE_SESSION_DATABASE';
+CLIENT_PREFETCH_THREADS                       : 'CLIENT_PREFETCH_THREADS';
+CLIENT_RESULT_CHUNK_SIZE                      : 'CLIENT_RESULT_CHUNK_SIZE';
+CLIENT_RESULT_COLUMN_CASE_INSENSITIVE         : 'CLIENT_RESULT_COLUMN_CASE_INSENSITIVE';
+CLIENT_SESSION_KEEP_ALIVE                     : 'CLIENT_SESSION_KEEP_ALIVE';
+CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY : 'CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY';
+CLIENT_TIMESTAMP_TYPE_MAPPING                 : 'CLIENT_TIMESTAMP_TYPE_MAPPING';
+EXTERNAL_OAUTH                                : 'EXTERNAL_OAUTH';
+EXTERNAL_OAUTH_ADD_PRIVILEGED_ROLES_TO_BLOCKED_LIST:
+    'EXTERNAL_OAUTH_ADD_PRIVILEGED_ROLES_TO_BLOCKED_LIST'
+;
+EXTERNAL_OAUTH_ALLOWED_ROLES_LIST : 'EXTERNAL_OAUTH_ALLOWED_ROLES_LIST';
+EXTERNAL_OAUTH_ANY_ROLE_MODE      : 'EXTERNAL_OAUTH_ANY_ROLE_MODE';
+EXTERNAL_OAUTH_AUDIENCE_LIST      : 'EXTERNAL_OAUTH_AUDIENCE_LIST';
+EXTERNAL_OAUTH_BLOCKED_ROLES_LIST : 'EXTERNAL_OAUTH_BLOCKED_ROLES_LIST';
+EXTERNAL_OAUTH_ISSUER             : 'EXTERNAL_OAUTH_ISSUER';
+EXTERNAL_OAUTH_JWS_KEYS_URL       : 'EXTERNAL_OAUTH_JWS_KEYS_URL';
+EXTERNAL_OAUTH_RSA_PUBLIC_KEY     : 'EXTERNAL_OAUTH_RSA_PUBLIC_KEY';
+EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2   : 'EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2';
+EXTERNAL_OAUTH_SCOPE_DELIMITER    : 'EXTERNAL_OAUTH_SCOPE_DELIMITER';
+EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE:
+    'EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE'
+;
+EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM        : 'EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM';
+EXTERNAL_OAUTH_TYPE                            : 'EXTERNAL_OAUTH_TYPE';
+EXTERNAL_STAGE                                 : 'EXTERNAL_STAGE';
+REQUIRE_STORAGE_INTEGRATION_FOR_STAGE_CREATION : 'REQUIRE_STORAGE_INTEGRATION_FOR_STAGE_CREATION';
+REQUIRE_STORAGE_INTEGRATION_FOR_STAGE_OPERATION:
+    'REQUIRE_STORAGE_INTEGRATION_FOR_STAGE_OPERATION'
+;
+// TOOD: Replace usage with genericOption(s)
+REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT: 'REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT';
+
+// Whitespace handling
+WS: SPACE+ -> skip;
+
+// Comments
+SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/'          -> channel(HIDDEN);
+LINE_COMMENT   : ('--' | '//')  ~[\r\n]*        -> channel(HIDDEN);
+
+// Identifiers
+ID: ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+DOUBLE_QUOTE_ID    : '"' ('""' | ~[\r\n"])* '"';
+
+
+
+// This lexer rule is needed so that any unknown character in the lexicon does not
+// cause an incomprehensible error message from teh lexer. This rule will allow the parser to issue
+// something more meaningful and perform error recovery as the lexer CANNOT raise an error - it
+// will alwys match at least one character using this catch-all rule.
+//
+// !IMPORTANT! - Always leave this as the last lexer rule, before the mode definitions
+//BADCHAR: .;
+
+// -------------------------------------------------------
+// Fragments for use in other lexer rules
+fragment LETTER      : [A-Z_];
+fragment HEX_DIGIT   : [0-9A-F];
+fragment DEC_DOT_DEC : [0-9]+ '.' [0-9]+ | [0-9]+ '.' | '.' [0-9]+;
+fragment FullWidthLetter options {
+    caseInsensitive = false;
+}:
+    '\u00c0' ..'\u00d6'
+    | '\u00d8' ..'\u00f6'
+    | '\u00f8' ..'\u00ff'
+    | '\u0100' ..'\u1fff'
+    | '\u2c00' ..'\u2fff'
+    | '\u3040' ..'\u318f'
+    | '\u3300' ..'\u337f'
+    | '\u3400' ..'\u3fff'
+    | '\u4e00' ..'\u9fff'
+    | '\ua000' ..'\ud7ff'
+    | '\uf900' ..'\ufaff'
+    | '\uff00' ..'\ufff0'
+; // | '\u20000'..'\u2FA1F'
+fragment HexDigit  : [0-9a-f];
+fragment HexString : [A-Z0-9|.] [A-Z0-9+\-|.]*;
+fragment SPACE:
+    [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+
+;
