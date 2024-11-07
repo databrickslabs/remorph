@@ -1439,7 +1439,7 @@ DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 // will alwys match at least one character using this catch-all rule.
 //
 // !IMPORTANT! - Always leave this as the last lexer rule, before the mode definitions
-//BADCHAR: .;
+BADCHAR: .;
 
 // -------------------------------------------------------
 // Fragments for use in other lexer rules
