@@ -14,8 +14,12 @@ case class InitScriptInfo(
     workspace: Option[WorkspaceStorageInfo] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq() ++ abfss ++ dbfs ++ file ++ gcs ++ s3 ++ volumes ++ workspace
-  def toSDK: compute.InitScriptInfo = {
-    val raw = new compute.InitScriptInfo()
-    raw
-  }
+  def toSDK: compute.InitScriptInfo = new compute.InitScriptInfo()
+    .setAbfss(abfss.map(_.toSDK).orNull)
+    .setDbfs(dbfs.map(_.toSDK).orNull)
+    .setFile(file.map(_.toSDK).orNull)
+    .setGcs(gcs.map(_.toSDK).orNull)
+    .setS3(s3.map(_.toSDK).orNull)
+    .setVolumes(volumes.map(_.toSDK).orNull)
+    .setWorkspace(workspace.map(_.toSDK).orNull)
 }

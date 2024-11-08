@@ -13,8 +13,11 @@ case class GcpAttributes(
     zoneId: Option[String] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq()
-  def toSDK: compute.GcpAttributes = {
-    val raw = new compute.GcpAttributes()
-    raw
-  }
+  def toSDK: compute.GcpAttributes = new compute.GcpAttributes()
+    .setAvailability(availability.orNull)
+    // .setBootDiskSize(bootDiskSize.getOrElse(null).asInstanceOf[Int])
+    .setGoogleServiceAccount(googleServiceAccount.orNull)
+    // .setLocalSsdCount(localSsdCount.getOrElse(null).asInstanceOf[Int])
+    .setUsePreemptibleExecutors(usePreemptibleExecutors)
+    .setZoneId(zoneId.orNull)
 }
