@@ -73,8 +73,34 @@ Map(log_level -> disabled, name -> foo)
 
 This section provides a step-by-step guide to set up and start working on the project. These steps will help you set up your project environment and dependencies for efficient development.
 
-To begin, run `make dev` to install [Hatch](https://github.com/pypa/hatch), create the default environment and install development dependencies, assuming you've already cloned the github repo.
+To begin, install prerequisites:
 
+`wget` is required by the maven installer
+```shell
+brew install wget
+```
+
+`maven` is the dependency manager for JVM based languages
+```shell
+brew install maven
+```
+
+`jdk11` is the jdk used by remorph
+download it from [OpenJDK11](https://www.openlogic.com/openjdk-downloads?field_java_parent_version_target_id=406&field_operating_system_target_id=431&field_architecture_target_id=391&field_java_package_target_id=396) and install it
+
+`python` is the dependency manager for JVM based languages
+```shell
+brew install maven
+```
+
+`hatch` is a Python project manager
+```shell
+pip install hatch
+```
+
+Then run project-specific install scripts
+
+`make dev` creates the default environment and installs development dependencies, assuming you've already cloned the github repo.
 ```shell
 make dev
 ```
@@ -89,7 +115,13 @@ To ensure your integrated development environment (IDE) uses the newly created v
 hatch run python -c "import sys; print(sys.executable)"
 ```
 
-Configure your IDE to use this Python path so that you work within the virtual environment when developing the project:
+As of writing, we only support IntelliJ IDEA CE 2024.1. Development using more recent versions doesn't work (yet!).
+Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
+
+Configure your IDE to:
+ - use OpenJDK11 as the SDK for the project
+ - install the IntelliJ Scala plugin version 2024.1.25. Do not use more recent versions, they don't work!!! 
+ - use this Python venv path so that you work within the virtual environment when developing the project:
 ![IDE Setup](docs/img/remorph_intellij.gif)
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:
