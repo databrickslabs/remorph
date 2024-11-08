@@ -11,8 +11,8 @@
 lexer grammar Preprocessor;
 
 tokens {
-   STRING,
-   CHAR
+    STRING,
+    CHAR
 }
 
 options {
@@ -81,29 +81,29 @@ options {
     public Config config = new Config();
 
     /**
+     * Our template lexer rules only consume a single character, even when the sequence is longer than
+     * one character. So we we need to advance the input past the matched sequence.
+     */
+    private void scanPast(String str) {
+        int index = _input.index();
+        _input.seek(index + str.length() - 1);
+    }
+
+    /**
      * Called when a single character is matched to see if it and the next sequence of characters
      * match the current configured chracters that start a Ninja statement templage
      */
     private boolean matchAndConsume(String str) {
-        int m = _input.mark();
-        try {
-
-            int index = _input.index();
-            for (int i = 1; i < str.length(); i++) {
-                if (str.charAt(i) != _input.LA(1)) {
-                    _input.seek(index);
-                    return false;
-                }
-                // Move to next character
-                _input.consume();
+        for (int i = 1; i < str.length(); i++) {
+            if (str.charAt(i) != _input.LA(1)) {
+                return false;
             }
-
-            // All characters matched, return true
-            return true;
-
-        } finally {
-            _input.release(m);
+            // Move to next character
+            _input.consume();
         }
+
+        // All characters matched, return true
+        return true;
     }
 
     private boolean isStatement() {
@@ -137,31 +137,48 @@ options {
     }
 }
 
-STATEMENT: .  { isStatement() }? -> pushMode(statementMode );
-EXPRESSION: . { isExpression() }? -> pushMode(expressionMode );
-COMMENT: .    { isComment() }? -> pushMode(commentMode );
-LINESTAT: .  { isLineStat() }? -> pushMode(lineStatMode );
+STATEMENT: . { scanPast(config.statStart); } { isStatement() }? -> pushMode(statementMode )
+    ;
+EXPRESSION: . { scanPast(config.exprStart); } { isExpression() }? -> pushMode(expressionMode )
+    ;
+COMMENT: . { scanPast(config.commentStart); } { isComment() }? -> pushMode(commentMode )
+    ;
+LINESTAT: . { scanPast(config.lineStatStart); } { isLineStat() }? -> pushMode(lineStatMode )
+    ;
 
-C: .;
+C: .
+    ;
 
 mode statementMode;
 
-STATEMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING);
-STATEMENT_END: . { isStatementEnd() }? -> popMode;
-STATMENT_BIT: . -> type(CHAR);
+STATEMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+    ;
+STATEMENT_END: . { scanPast(config.statEnd); } { isStatementEnd() }? -> popMode
+    ;
+STATMENT_BIT: . -> type(CHAR)
+    ;
 
 mode expressionMode;
 
-EXPRESSION_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING);
-EXPRESSION_END: . { isExpresionEnd() }? -> popMode;
-EXPRESSION_BIT: . -> type(CHAR);
+EXPRESSION_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+    ;
+EXPRESSION_END: . { scanPast(config.exprEnd); } { isExpresionEnd() }? -> popMode
+    ;
+EXPRESSION_BIT: . -> type(CHAR)
+    ;
 
 mode commentMode;
-COMMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING);
-COMMENT_END: . { isCommentEnd() }? -> popMode;
-COMMENT_BIT: . -> type(CHAR);
+COMMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+    ;
+COMMENT_END: . { scanPast(config.commentEnd); } { isCommentEnd() }? -> popMode
+    ;
+COMMENT_BIT: . -> type(CHAR)
+    ;
 
 mode lineStatMode;
-LINESTAT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING);
-LINESTAT_END: ( '\r\n' | '\n') -> popMode;
-LINESTAT_BIT: . -> type(CHAR);
+LINESTAT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+    ;
+LINESTAT_END: ( '\r\n' | '\n') -> popMode
+    ;
+LINESTAT_BIT: . -> type(CHAR)
+    ;

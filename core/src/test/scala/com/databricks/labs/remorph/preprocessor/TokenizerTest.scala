@@ -14,11 +14,12 @@ class TokenizerTest extends AnyWordSpec {
       val tokenizer = new Preprocessor(input)
       val token = tokenizer.nextToken()
       assert(token.getType == Preprocessor.STATEMENT)
-      for (i <- 0 to 7) {
+      for (i <- 1 to 7) {
         val token = tokenizer.nextToken()
         assert(token.getType == Preprocessor.CHAR)
       }
-      assert(tokenizer.nextToken().getType == Preprocessor.STATEMENT_END)
+      val token2 = tokenizer.nextToken()
+      assert(token2.getType == Preprocessor.STATEMENT_END)
     }
 
   }
