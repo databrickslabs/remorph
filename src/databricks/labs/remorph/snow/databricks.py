@@ -712,3 +712,9 @@ class Databricks(org_databricks.Databricks):  #
                     if isinstance(ordered_expression, exp.Ordered) and ordered_expression.args.get('desc') is None:
                         ordered_expression.args['desc'] = False
             return super().order_sql(expression, flat)
+
+        def add_column_sql(self, expression: exp.AlterTable) -> str:
+            # Final output contains ADD COLUMN before each column
+            # This function will handle this issue and return the final output
+            columns = self.expressions(expression, key="actions", flat=True)
+            return f"ADD COLUMN {columns}"
