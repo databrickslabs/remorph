@@ -20,6 +20,16 @@ case class Origin(
     endTokenIndex: Option[Int] = None)
 
 object Origin {
+
+  val empty: Origin = Origin()
+
+  def fromParseTree(tree: ParseTree): Origin = {
+    tree match {
+      case parserRuleContext: ParserRuleContext => Origin.fromParseRuleContext(parserRuleContext)
+      case other => Origin.empty
+    }
+  }
+
   def fromParseRuleContext(ctx: ParserRuleContext): Origin = {
     Origin(
       startLine = Option(ctx.start.getLine),
@@ -30,32 +40,6 @@ object Origin {
       endTokenIndex = Option(ctx.stop.getTokenIndex))
 
   }
-}
-
-object CurrentOrigin {
-  private val value = new ThreadLocal[Origin]() {
-    override def initialValue: Origin = Origin()
-  }
-
-  def get: Origin = value.get()
-
-  def withOrigin[A](o: Origin)(f: => A): A = {
-    set(o)
-    val ret =
-      try f
-      finally { reset() }
-    ret
-  }
-
-  def fromParseTree(tree: ParseTree): Unit = {
-    tree match {
-      case _: ParserRuleContext => set(Origin.fromParseRuleContext(tree.asInstanceOf[ParserRuleContext]))
-    }
-  }
-
-  def set(o: Origin): Unit = value.set(o)
-
-  def reset(): Unit = value.set(Origin())
 }
 
 class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, msg: String, cause: Throwable)
@@ -73,14 +57,13 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
+abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Origin) extends Product {
   // scalastyle:on
   self: BaseType =>
 
   @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
-  @JsonIgnore val origin: Origin = CurrentOrigin.get
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild
@@ -289,10 +272,8 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
       .getOrElse(ctors.maxBy(_.getParameterTypes.length)) // fall back to older heuristic
 
     try {
-      CurrentOrigin.withOrigin(origin) {
-        val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
+       val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
         res
-      }
     } catch {
       case e: java.lang.IllegalArgumentException =>
         throw new TreeNodeException(
@@ -384,9 +365,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    *   the function used to transform this nodes children
    */
   def transformDown(rule: PartialFunction[BaseType, BaseType]): BaseType = {
-    val afterRule = CurrentOrigin.withOrigin(origin) {
-      rule.applyOrElse(this, identity[BaseType])
-    }
+    val afterRule = rule.applyOrElse(this, identity[BaseType])
 
     // Check if unchanged and then possibly return old copy to avoid gc churn.
     if (this fastEquals afterRule) {
@@ -407,13 +386,9 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   def transformUp(rule: PartialFunction[BaseType, BaseType]): BaseType = {
     val afterRuleOnChildren = mapChildren(_.transformUp(rule))
     val newNode = if (this fastEquals afterRuleOnChildren) {
-      CurrentOrigin.withOrigin(origin) {
-        rule.applyOrElse(this, identity[BaseType])
-      }
+      rule.applyOrElse(this, identity[BaseType])
     } else {
-      CurrentOrigin.withOrigin(origin) {
-        rule.applyOrElse(afterRuleOnChildren, identity[BaseType])
-      }
+      rule.applyOrElse(afterRuleOnChildren, identity[BaseType])
     }
     // If the transform function replaces this node with a new one, carry over the tags.
     newNode

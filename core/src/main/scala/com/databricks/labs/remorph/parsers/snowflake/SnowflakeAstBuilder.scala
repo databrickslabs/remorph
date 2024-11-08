@@ -20,6 +20,33 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
+  override def visit(tree: ParseTree): ir.LogicalPlan = {
+    CurrentOrigin.fromParseTree(tree)
+    val plan = super.visit(tree)
+    plan
+  }
+
+  override def visitChildren(node: RuleNode): ir.LogicalPlan = {
+    var result = this.defaultResult()
+    val n = node.getChildCount
+    var i = 0
+    while (i < n && this.shouldVisitNextChild(node, result)) {
+      val c = node.getChild(i)
+      CurrentOrigin.fromParseTree(c)
+      val childResult = c.accept(this)
+      result = this.aggregateResult(result, childResult)
+
+      i += 1
+    }
+    result
+  }
+
+  override def visitMany[R <: RuleContext](contexts: java.lang.Iterable[R]): Seq[ir.LogicalPlan] = {
+    contexts.asScala.map(ctx => {
+      CurrentOrigin.fromParseTree(ctx)
+      ctx.accept(this)
+    }).toSeq
+  }
 
   override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan = {
     // This very top level visitor does not ignore any valid statements for the batch, instead
