@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.intermediate.workflows
 
-import com.databricks.labs.remorph.intermediate.TreeNode
+import com.databricks.labs.remorph.intermediate.{Origin, TreeNode}
 
-abstract class JobNode extends TreeNode[JobNode]
+abstract class JobNode(origin: Origin = Origin.empty) extends TreeNode[JobNode](origin)
 
 abstract class LeafJobNode extends JobNode {
   override def children: Seq[JobNode] = Seq()
