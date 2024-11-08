@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -129,7 +130,7 @@ class TSqlRelationBuilderSpec
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),
         ir.SubqueryAlias(
-          ir.Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))),
+          ir.Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")), origin = Origin.empty),
           ir.Id("a"),
           Seq(ir.Id("b"), ir.Id("c"))))
     }
@@ -144,7 +145,7 @@ class TSqlRelationBuilderSpec
             column_names = Seq(ir.Id("a"), ir.Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
+          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb"))), origin = Origin.empty))
     }
 
     "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')" in {
@@ -156,10 +157,11 @@ class TSqlRelationBuilderSpec
             ColumnAliases(
               ir.Project(
                 ir.NamedTable("d", Map(), is_streaming = false),
-                Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+                Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y"))), origin = Origin.empty),
               Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
             "t"),
-          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb")))))
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb"))),
+          origin = Origin.empty))
     }
   }
 }

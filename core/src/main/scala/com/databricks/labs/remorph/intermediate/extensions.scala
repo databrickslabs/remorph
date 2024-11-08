@@ -73,17 +73,17 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
-case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty) extends UnaryNode {
+case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty) extends UnaryNode(origin = Origin.empty) {
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType))
 }
 
 // TODO: (nfx) refactor to align more with catalyst
 // TODO: remove this and replace with Hint(Hint(...), ...)
-case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode {
+case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode(origin = Origin.empty) {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
+case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan(origin = Origin.empty) {
   override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
 }
 
@@ -137,7 +137,7 @@ case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
 case class BlockSampling(probability: BigDecimal) extends SamplingMethod
 
 // TODO: (nfx) refactor to align more with catalyst
-case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode {
+case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode(origin = Origin.empty) {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
@@ -176,12 +176,12 @@ case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false) extends UnaryNode {
+case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false) extends UnaryNode(origin = Origin.empty) {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }
 
-case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode(origin = Origin.empty) {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -195,7 +195,7 @@ case class Options(
   override def dataType: DataType = UnresolvedType
 }
 
-case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode {
+case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode(origin = Origin.empty) {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }

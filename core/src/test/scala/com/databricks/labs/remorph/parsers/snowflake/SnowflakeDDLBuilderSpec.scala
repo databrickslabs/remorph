@@ -215,7 +215,10 @@ class SnowflakeDDLBuilderSpec
         example(
           "CREATE TABLE t1 AS (SELECT * FROM t2);",
           CreateTableParams(
-            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None))), None, None, None),
+            CreateTableAsSelect("t1", Project(
+              namedTable("t2"),
+              Seq(Star(None)),
+              origin = Origin.empty), None, None, None),
             Map.empty[String, Seq[Constraint]],
             Map.empty[String, Seq[GenericOption]],
             Seq.empty[Constraint],

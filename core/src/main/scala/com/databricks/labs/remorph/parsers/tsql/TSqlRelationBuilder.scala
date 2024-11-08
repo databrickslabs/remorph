@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
@@ -86,11 +87,12 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       val columns: Seq[ir.Expression] =
         ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
       // Note that ALL is the default so we don't need to check for it
+      val origin = Origin.fromParseRuleContext(ctx)
       ctx match {
         case c if c.DISTINCT() != null =>
-          ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns)
+          ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns, origin)
         case _ =>
-          ir.Project(buildTop(Option(ctx.topClause()), select), columns)
+          ir.Project(buildTop(Option(ctx.topClause()), select), columns, origin)
       }
   }
 

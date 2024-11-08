@@ -30,7 +30,7 @@ class PySparkStatements(val expr: ir.Rule[ir.Expression]) extends ir.Rule[py.Sta
     case ir.NamedTable(name, _, _) => methodOf(ir.Name("spark"), "table", Seq(ir.StringLiteral(name)))
     case ir.NoTable() => methodOf(ir.Name("spark"), "emptyDataFrame", Seq())
     case ir.Filter(input, condition) => methodOf(plan(input), "filter", Seq(condition))
-    case ir.Project(input, projectList) => methodOf(plan(input), "select", projectList)
+    case ir.Project(input, projectList, _) => methodOf(plan(input), "select", projectList)
     case ir.Limit(input, limit) => methodOf(plan(input), "limit", Seq(limit))
     case ir.Offset(input, offset) => methodOf(plan(input), "offset", Seq(offset))
     case ir.Sort(input, sortList, _) => methodOf(plan(input), "orderBy", sortList)
