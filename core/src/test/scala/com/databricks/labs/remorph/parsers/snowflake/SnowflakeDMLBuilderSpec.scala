@@ -16,7 +16,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           InsertIntoTable(
             namedTable("foo"),
             None,
-            Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None))),
+            Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None)), origin = Origin.empty),
             None,
             None,
             overwrite = false))
@@ -28,7 +28,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           InsertIntoTable(
             namedTable("foo"),
             None,
-            Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None))),
+            Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None)), origin = Origin.empty),
             None,
             None,
             overwrite = true))
@@ -84,7 +84,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             _.deleteStatement(),
             MergeIntoTable(
               TableAlias(namedTable("table1"), "t1", Seq()),
-              SubqueryAlias(Project(namedTable("table2"), Seq(Star(None))), Id("t2"), Seq()),
+              SubqueryAlias(Project(namedTable("table2"), Seq(Star(None)), origin = Origin.empty), Id("t2"), Seq()),
               Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
               matchedActions = Seq(DeleteAction(None))))
         }
