@@ -80,9 +80,7 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
     var changed = false
 
     @inline def transformExpression(e: Expression): Expression = {
-      val newE = CurrentOrigin.withOrigin(e.origin) {
-        f(e)
-      }
+      val newE = f(e)
       if (newE.fastEquals(e)) {
         e
       } else {
