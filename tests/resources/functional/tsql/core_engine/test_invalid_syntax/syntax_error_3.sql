@@ -12,7 +12,7 @@ SELECT A B FROM C ;
 
    Unparsed input - ErrorNode encountered
     Unparsable text: unexpected extra input '*' while parsing a T-SQL batch
-    expecting one of: End of batch, Identifier, Select Statement, Statement, '$NODE_ID', '(', ';', 'BULK', 'EXTERNAL', 'IDENTITY', 'RAW', 'REPLICATE'...
+    expecting one of: End of batch, Identifier, Select Statement, Statement, '$NODE_ID', '(', ';', 'ACCOUNTADMIN', 'ALERT', 'ARRAY', 'BODY', 'BULK'...
     Unparsable text: *
  */
 SELECT
