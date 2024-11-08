@@ -219,6 +219,15 @@
           <listener>false</listener>
           <sourceDirectory>src/main/antlr4</sourceDirectory>
           <treatWarningsAsErrors>true</treatWarningsAsErrors>
+          <libDirectory>${project.basedir}/src/main/antlr4/com/databricks/labs/remorph/parsers/lib</libDirectory>
+          <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
+          <includes>
+            <include>**/*.g4</include> <!-- Include all .g4 files -->
+          </includes>
+          <excludes>
+            <exclude>**/lib/*.g4</exclude> <!-- But exclude the library grammars-->
+            <exclude>**/basesnowflake.g4</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>

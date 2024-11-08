@@ -8,7 +8,7 @@ SELECT A B FROM C ;
 
    Unparsed input - ErrorNode encountered
     Unparsable text: unexpected extra input '*' while parsing a Snowflake batch
-    expecting one of: End of batch, Select Statement, Statement, '(', ';', 'CALL', 'COMMENT', 'DECLARE', 'DESC', 'GET', 'LET', 'START'...
+    expecting one of: End of batch, Select Statement, Statement, '(', ';', 'CALL', 'COMMENT', 'DECLARE', 'GET', 'LET', 'START', 'WITH'...
     Unparsable text: *
  */
 SELECT
