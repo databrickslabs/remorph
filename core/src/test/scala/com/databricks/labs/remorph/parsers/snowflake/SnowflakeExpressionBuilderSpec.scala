@@ -349,7 +349,7 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr(
         query = "(SELECT col1 from table_expr)",
         rule = _.expr(),
-        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Id("col1")), origin = Origin.empty)))
+        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Id("col1")))(Origin.empty)))
     }
   }
 
@@ -397,16 +397,14 @@ class SnowflakeExpressionBuilderSpec
     "translate EXISTS expressions" in {
       exampleExpr("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(
         namedTable("t"),
-        Seq(Star(None)),
-        origin = Origin.empty)))
+        Seq(Star(None)))(Origin.empty)))
     }
 
     // see https://github.com/databrickslabs/remorph/issues/273
     "translate NOT EXISTS expressions" ignore {
       exampleExpr("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(
         namedTable("t"),
-        Seq(Star(None)),
-        origin = Origin.empty))))
+        Seq(Star(None)))(Origin.empty))))
     }
   }
 

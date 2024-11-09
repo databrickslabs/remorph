@@ -49,8 +49,8 @@ class SnowflakeCommandBuilderSpec
             ScalarSubquery(
               Project(
                 NamedTable("some_table", Map(), is_streaming = false),
-                Seq(Id("col1", caseSensitive = false)),
-                origin = Origin.empty))),
+                Seq(Id("col1", caseSensitive = false)))
+                (Origin.empty))),
           replace = false))
     }
   }
@@ -90,8 +90,8 @@ class SnowflakeCommandBuilderSpec
           value = ScalarSubquery(
             Project(
               NamedTable("some_table", Map(), is_streaming = false),
-              Seq(Id("col1", caseSensitive = false)),
-              origin = Origin.empty))))
+              Seq(Id("col1", caseSensitive = false)))
+              (Origin.empty))))
     }
   }
 

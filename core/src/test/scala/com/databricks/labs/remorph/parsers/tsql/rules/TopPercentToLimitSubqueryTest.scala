@@ -10,17 +10,16 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
     val out =
       (new TopPercentToLimitSubquery).apply(TopPercent(Project(
         namedTable("Employees"),
-        Seq(Star()),
-        origin = Origin.empty), Literal(10)))
+        Seq(Star()))(Origin.empty), Literal(10)))
     comparePlans(
       out,
       WithCTE(
         Seq(
-          SubqueryAlias(Project(namedTable("Employees"), Seq(Star()), origin = Origin.empty), Id("_limited1")),
+          SubqueryAlias(Project(namedTable("Employees"), Seq(Star()))(Origin.empty), Id("_limited1")),
           SubqueryAlias(
             Project(
               UnresolvedRelation(ruleText = "_limited1", message = "Unresolved relation _limited1"),
-              Seq(Alias(Count(Seq(Star())), Id("count"))), origin = Origin.empty),
+              Seq(Alias(Count(Seq(Star())), Id("count"))))(Origin.empty),
             Id("_counted1"))),
         Limit(
           Project(
@@ -29,8 +28,8 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
               message = "Unresolved relation _limited1",
               ruleName = "rule name undetermined",
               tokenName = None),
-            Seq(Star()),
-            origin = Origin.empty),
+            Seq(Star()))
+            (Origin.empty),
           ScalarSubquery(
             Project(
               UnresolvedRelation(
@@ -38,21 +37,21 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
                 message = "Unresolved relation _counted1",
                 ruleName = "N/A",
                 tokenName = Some("N/A")),
-              Seq(Cast(Multiply(Divide(Id("count"), Literal(10)), Literal(100)), LongType)),
-              origin = Origin.empty)))))
+              Seq(Cast(Multiply(Divide(Id("count"), Literal(10)), Literal(100)), LongType)))
+              (Origin.empty)))))
   }
 
   "PERCENT WITH TIES applies" in {
     val out = (new TopPercentToLimitSubquery).apply(
       Sort(
-        Project(TopPercent(namedTable("Employees"), Literal(10), with_ties = true), Seq(Star()), origin = Origin.empty),
+        Project(TopPercent(namedTable("Employees"), Literal(10), with_ties = true), Seq(Star()))(Origin.empty),
         Seq(SortOrder(UnresolvedAttribute("a"))),
         is_global = false))
     comparePlans(
       out,
       WithCTE(
         Seq(
-          SubqueryAlias(Project(namedTable("Employees"), Seq(Star()), origin = Origin.empty), Id("_limited1")),
+          SubqueryAlias(Project(namedTable("Employees"), Seq(Star()))(Origin.empty), Id("_limited1")),
           SubqueryAlias(
             Project(
               UnresolvedRelation(ruleText = "_limited1", message = "Unresolved _limited1"),
@@ -60,14 +59,14 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
                 Star(),
                 Alias(
                   Window(NTile(Literal(100)), sort_order = Seq(SortOrder(UnresolvedAttribute("a")))),
-                  Id("_percentile1"))),
-              origin = Origin.empty),
+                  Id("_percentile1"))))
+              (Origin.empty),
             Id("_with_percentile1"))),
         Filter(
           Project(
             UnresolvedRelation(ruleText = "_with_percentile1", message = "Unresolved _with_percentile1"),
-            Seq(Star()),
-            origin = Origin.empty),
+            Seq(Star()))
+            (Origin.empty),
           LessThanOrEqual(
             UnresolvedAttribute(
               unparsed_identifier = "_percentile1",

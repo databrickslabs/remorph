@@ -217,8 +217,8 @@ class SnowflakeDDLBuilderSpec
           CreateTableParams(
             CreateTableAsSelect("t1", Project(
               namedTable("t2"),
-              Seq(Star(None)),
-              origin = Origin.empty), None, None, None),
+              Seq(Star(None)))
+              (Origin.empty), None, None, None),
             Map.empty[String, Seq[Constraint]],
             Map.empty[String, Seq[GenericOption]],
             Seq.empty[Constraint],
@@ -290,7 +290,8 @@ class SnowflakeDDLBuilderSpec
             ruleText = "ALTER SESSION SET QUERY_TAG = 'TAG'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER")))
+            tokenName = Some("ALTER"))
+            (Origin.empty))
       }
 
       "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
@@ -300,7 +301,8 @@ class SnowflakeDDLBuilderSpec
             ruleText = "ALTER STREAM mystream SET COMMENT = 'New comment for stream'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER")))
+            tokenName = Some("ALTER"))
+            (Origin.empty))
       }
 
       "CREATE STREAM mystream ON TABLE mytable" in {
@@ -310,7 +312,8 @@ class SnowflakeDDLBuilderSpec
             ruleText = "CREATE STREAM mystream ON TABLE mytable",
             message = "CREATE STREAM UNSUPPORTED",
             ruleName = "createStream",
-            tokenName = Some("STREAM")))
+            tokenName = Some("STREAM"))
+            (Origin.empty))
       }
 
       "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
@@ -320,7 +323,8 @@ class SnowflakeDDLBuilderSpec
             ruleText = "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)",
             message = "CREATE TASK UNSUPPORTED",
             ruleName = "createTask",
-            tokenName = Some("TASK")))
+            tokenName = Some("TASK"))
+            (Origin.empty))
       }
     }
 
@@ -382,13 +386,13 @@ class SnowflakeDDLBuilderSpec
         ruleText = "Mocked string",
         message = "Unknown ALTER TABLE variant",
         ruleName = "alterTable",
-        tokenName = Some("ID"))
+        tokenName = Some("ID"))(Origin.empty)
       verify(alterTable).objectName(0)
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
       verify(alterTable).getRuleIndex
-      verify(alterTable, times(3)).getStart
-      verify(alterTable).getStop
+      verify(alterTable, times(4)).getStart
+      verify(alterTable, times(2)).getStop
       verifyNoMoreInteractions(alterTable)
     }
   }

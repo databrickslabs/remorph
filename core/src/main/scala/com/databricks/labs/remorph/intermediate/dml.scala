@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.intermediate
 
 // Used for DML other than SELECT
-abstract class Modification extends LogicalPlan(origin = Origin.empty)
+abstract class Modification extends LogicalPlan()(Origin.empty)
 
 case class InsertIntoTable(
     target: LogicalPlan,

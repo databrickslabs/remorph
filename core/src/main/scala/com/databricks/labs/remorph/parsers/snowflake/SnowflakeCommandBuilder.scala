@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.intermediate.procedures.SetVariable
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
@@ -12,7 +13,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
   protected override def unresolved(ruleText: String, message: String): ir.Command =
-    ir.UnresolvedCommand(ruleText, message)
+    ir.UnresolvedCommand(ruleText, message)(Origin.empty)
 
   // Concrete visitors
 
@@ -70,7 +71,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "Execute Task is not yet supported",
       ruleName = vc.ruleName(ctx),
-      tokenName = Some(tokenName(ctx.getStart)))
+      tokenName = Some(tokenName(ctx.getStart)))(Origin.fromParseRuleContext(ctx))
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): ir.Command =

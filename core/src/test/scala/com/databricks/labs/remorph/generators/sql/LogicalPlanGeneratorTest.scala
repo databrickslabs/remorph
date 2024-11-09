@@ -15,14 +15,14 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     Generating(optimizedPlan = plan, currentNode = plan, ctx = GeneratorContext(generator))
   "Project" should {
     "transpile to SELECT" in {
-      ir.Project(namedTable("t1"), Seq(ir.Id("c1")), origin = Origin.empty) generates "SELECT c1 FROM t1"
-      ir.Project(namedTable("t1"), Seq(ir.Star(None)), origin = Origin.empty) generates "SELECT * FROM t1"
-      ir.Project(ir.NoTable(), Seq(ir.Literal(1)), origin = Origin.empty) generates "SELECT 1"
+      ir.Project(namedTable("t1"), Seq(ir.Id("c1")))(Origin.empty) generates "SELECT c1 FROM t1"
+      ir.Project(namedTable("t1"), Seq(ir.Star(None)))(Origin.empty) generates "SELECT * FROM t1"
+      ir.Project(ir.NoTable(), Seq(ir.Literal(1)))(Origin.empty) generates "SELECT 1"
     }
 
     "transpile to SELECT with COMMENTS" in {
       ir.WithOptions(
-        ir.Project(namedTable("t"), Seq(ir.Star(None)), origin = Origin.empty),
+        ir.Project(namedTable("t"), Seq(ir.Star(None)))(Origin.empty),
         ir.Options(
           Map("MAXRECURSION" -> ir.Literal(10), "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
           Map("SOMESTROPT" -> "STRINGOPTION"),
@@ -58,7 +58,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "Filter" should {
     "transpile to WHERE" in {
       ir.Filter(
-        ir.Project(namedTable("t1"), Seq(ir.Id("c1")), origin = Origin.empty),
+        ir.Project(namedTable("t1"), Seq(ir.Id("c1")))(Origin.empty),
         ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "SELECT c1 FROM t1 WHERE IS_DATE(c2)"
     }
   }

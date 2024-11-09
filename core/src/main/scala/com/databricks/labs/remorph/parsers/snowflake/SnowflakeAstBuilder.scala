@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -59,7 +60,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
               ruleText = contextText(ctx),
               ruleName = vc.ruleName(ctx),
               tokenName = Some(tokenName(ctx.getStart)),
-              message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")
+              message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")(Origin.fromParseRuleContext(ctx))
         }
     }
   }
@@ -139,6 +140,6 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       ruleName = vc.ruleName(ctx),
       tokenName = Some(tokenName(ctx.getStart)),
-      message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")
+      message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")(Origin.fromParseRuleContext(ctx))
   }
 }

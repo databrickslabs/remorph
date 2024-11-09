@@ -90,9 +90,9 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       val origin = Origin.fromParseRuleContext(ctx)
       ctx match {
         case c if c.DISTINCT() != null =>
-          ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns, origin)
+          ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns)(origin)
         case _ =>
-          ir.Project(buildTop(Option(ctx.topClause()), select), columns, origin)
+          ir.Project(buildTop(Option(ctx.topClause()), select), columns)(origin)
       }
   }
 

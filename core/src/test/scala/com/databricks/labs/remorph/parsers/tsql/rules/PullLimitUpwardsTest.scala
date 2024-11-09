@@ -9,26 +9,23 @@ class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers
   "from project" in {
     val out = PullLimitUpwards.apply(Project(
       Limit(namedTable("a"), Literal(10)),
-      Seq(Star(None)),
-      origin = Origin.empty))
+      Seq(Star(None)))(Origin.empty))
     comparePlans(out, Limit(Project(
       namedTable("a"),
-      Seq(Star()),
-      origin = Origin.empty), Literal(10)))
+      Seq(Star()))(Origin.empty), Literal(10)))
   }
 
   "from project with filter" in {
     val out = PullLimitUpwards.apply(
       Filter(
-        Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)), origin = Origin.empty),
+        Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)))(Origin.empty),
         GreaterThan(UnresolvedAttribute("b"), Literal(1))))
     comparePlans(
       out,
       Limit(
         Filter(Project(
           namedTable("a"),
-          Seq(Star()),
-          origin = Origin.empty), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
+          Seq(Star()))(Origin.empty), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
         Literal(10)))
   }
 
@@ -36,7 +33,7 @@ class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers
     val out = PullLimitUpwards.apply(
       Sort(
         Filter(
-          Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)), origin = Origin.empty),
+          Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)))(Origin.empty),
           GreaterThan(UnresolvedAttribute("b"), Literal(1))),
         Seq(SortOrder(UnresolvedAttribute("b"))),
         is_global = false))
@@ -46,8 +43,8 @@ class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers
         Sort(
           Filter(Project(
             namedTable("a"),
-            Seq(Star()),
-            origin = Origin.empty), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
+            Seq(Star()))
+            (Origin.empty), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
           Seq(SortOrder(UnresolvedAttribute("b"))),
           is_global = false),
         Literal(10)))
