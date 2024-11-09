@@ -1,10 +1,12 @@
 package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 
+import java.lang.reflect.Constructor
+import scala.annotation.tailrec
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
@@ -31,13 +33,15 @@ object Origin {
   }
 
   def fromParseRuleContext(ctx: ParserRuleContext): Origin = {
+    val start = ctx.getStart
+    val stop = ctx.getStop
     Origin(
-      startLine = Option(ctx.start.getLine),
-      startColumn = Option(ctx.start.getCharPositionInLine),
-      endLine = Option(ctx.stop.getLine),
-      endColumn = Option(ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex),
-      startTokenIndex = Option(ctx.start.getTokenIndex),
-      endTokenIndex = Option(ctx.stop.getTokenIndex))
+      startLine = Option(start.getLine),
+      startColumn = Option(start.getCharPositionInLine),
+      endLine = Option(stop.getLine),
+      endColumn = Option(stop.getCharPositionInLine + stop.getStopIndex - stop.getStartIndex),
+      startTokenIndex = Option(start.getTokenIndex),
+      endTokenIndex = Option(stop.getTokenIndex))
 
   }
 }
@@ -57,11 +61,12 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Origin) extends Product {
+@JsonIgnoreProperties(Array("containsChild", "origin"))
+abstract class TreeNode[BaseType <: TreeNode[BaseType]]()(val origin: Origin) extends Product {
   // scalastyle:on
   self: BaseType =>
 
-  @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
+  lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
 
@@ -241,8 +246,8 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Orig
   private def makeCopy(newArgs: Array[AnyRef], allowEmptyArgs: Boolean): BaseType = attachTree(this, "makeCopy") {
     val allCtors = getClass.getConstructors
     if (newArgs.isEmpty && allCtors.isEmpty) {
-      // This is a singleton object which doesn't have any constructor. Just return `this` as we
-      // can't copy it.
+      // This is a singleton object which doesn't have any constructor.
+      // So just return `this` as we can't copy it.
       return this
     }
 
@@ -251,29 +256,12 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Orig
     if (ctors.isEmpty) {
       sys.error(s"No valid constructor for $nodeName")
     }
-    val allArgs: Array[AnyRef] = if (otherCopyArgs.isEmpty) {
-      newArgs
-    } else {
-      newArgs ++ otherCopyArgs
-    }
-    val defaultCtor = ctors
-      .find { ctor =>
-        if (ctor.getParameterTypes.length != allArgs.length) {
-          false
-        } else if (allArgs.contains(null)) {
-          // if there is a `null`, we can't figure out the class, therefore we should just fallback
-          // to older heuristic
-          false
-        } else {
-          val argsArray: Array[Class[_]] = allArgs.map(_.getClass)
-          isAssignable(argsArray, ctor.getParameterTypes)
-        }
-      }
-      .getOrElse(ctors.maxBy(_.getParameterTypes.length)) // fall back to older heuristic
+
+    val (defaultCtor, allArgs) = locateConstructor(ctors, newArgs, appendOrigin = false)
 
     try {
-      val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
-      res
+       val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
+       res
     } catch {
       case e: java.lang.IllegalArgumentException =>
         throw new TreeNodeException(
@@ -287,6 +275,47 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Orig
              |args: ${newArgs.mkString(", ")}
            """.stripMargin)
     }
+  }
+
+  @tailrec
+  private def locateConstructor(
+         ctors: Array[Constructor[_]],
+         newArgs: Array[AnyRef],
+         appendOrigin: Boolean
+   ): (Constructor[_], Array[AnyRef]) = {
+    var allArgs: Array[AnyRef] = if (otherCopyArgs.isEmpty) {
+        newArgs
+      } else {
+        newArgs ++ otherCopyArgs
+      }
+    allArgs = if (appendOrigin) {
+      allArgs ++ Array(Origin.empty)
+    } else {
+      allArgs
+    }
+    val foundCtor = ctors
+      .find { ctor =>
+        if (ctor.getParameterTypes.length != allArgs.length) {
+          false
+        } else if (allArgs.contains(null)) {
+          // if there is a `null`, we can't figure out the class,
+          // therefore we should just fallback to older heuristic
+          false
+        } else {
+          val argsArray: Array[Class[_]] = allArgs.map(_.getClass)
+          isAssignable(argsArray, ctor.getParameterTypes)
+        }
+      }
+    if (foundCtor.nonEmpty) {
+      return (foundCtor.get, allArgs)
+    }
+    if (appendOrigin) {
+      // we've already tried using the accurate method, fall back to older heuristic
+      (ctors.maxBy(_.getParameterTypes.length), newArgs)
+    } else {
+      locateConstructor(ctors, newArgs, appendOrigin = true)
+    }
+
   }
 
   /**

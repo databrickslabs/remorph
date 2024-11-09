@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.intermediate._
 
-case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
+case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode()() {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
 }
 
@@ -23,13 +23,13 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends Catalog {}
+    extends Catalog()() {}
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
   override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))
   override def children: Seq[LogicalPlan] = Seq(input)
 }
 
-case class DefaultValues() extends LeafNode {
+case class DefaultValues() extends LeafNode()() {
   override def output: Seq[Attribute] = Seq.empty
 }

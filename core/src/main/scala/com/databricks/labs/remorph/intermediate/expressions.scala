@@ -4,7 +4,7 @@ import java.util.{UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
-abstract class Expression(origin: Origin = Origin.empty) extends TreeNode[Expression](origin) {
+abstract class Expression(origin: Origin = Origin.empty) extends TreeNode[Expression]()(origin) {
   lazy val resolved: Boolean = childrenResolved
 
   def dataType: DataType
