@@ -4,6 +4,7 @@ import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.{intermediate => ir}
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     extends SnowflakeParserBaseVisitor[ir.Catalog]
@@ -92,28 +93,29 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val runtimeInfo = ctx match {
-        case c if c.JAVA() != null => buildJavaUDF(c)
-        case c if c.PYTHON() != null => buildPythonUDF(c)
-        case c if c.JAVASCRIPT() != null => ir.JavaScriptRuntimeInfo
-        case c if c.SCALA() != null => buildScalaUDF(c)
-        case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
-      }
-      val name = ctx.objectName().getText
+      val runtime = Option(ctx.id()).map(_.getText.toLowerCase(Locale.ROOT)).getOrElse("sql")
+      val runtimeInfo =
+        runtime match {
+          case r if r == "java" => buildJavaUDF(ctx)
+          case r if r == "python" => buildPythonUDF(ctx)
+          case r if r == "javascript" => ir.JavaScriptRuntimeInfo
+          case r if r == "scala" => buildScalaUDF(ctx)
+          case _ => ir.SQLRuntimeInfo(ctx.MEMOIZABLE() != null)
+        }
+      val name = ctx.dotIdentifier().getText
       val returnType = vc.typeBuilder.buildDataType(ctx.dataType())
       val parameters = ctx.argDecl().asScala.map(buildParameter)
       val acceptsNullParameters = ctx.CALLED() != null
       val body = buildFunctionBody(ctx.functionDefinition())
-      val comment = Option(ctx.commentClause()).map(c => extractString(c.string()))
+      val comment = Option(ctx.com).map(extractString)
       ir.CreateInlineUDF(name, returnType, parameters, runtimeInfo, acceptsNullParameters, comment, body)
   }
 
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter =
     ir.FunctionParameter(
-      name = ctx.argName().getText,
-      dataType = vc.typeBuilder.buildDataType(ctx.argDataType().dataType()),
-      defaultValue = Option(ctx.argDefaultValueClause())
-        .map(_.expr().accept(vc.expressionBuilder)))
+      name = ctx.id().getText,
+      dataType = vc.typeBuilder.buildDataType(ctx.dataType()),
+      defaultValue = Option(ctx.expr()).map(_.accept(vc.expressionBuilder)))
 
   private def buildFunctionBody(ctx: FunctionDefinitionContext): String = extractString(ctx.string()).trim
 
@@ -152,7 +154,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val tableName = ctx.objectName().getText
+      val tableName = ctx.dotIdentifier().getText
       val columns = buildColumnDeclarations(
         ctx
           .createTableClause()
@@ -160,17 +162,25 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           .columnDeclItemList()
           .columnDeclItem()
           .asScala)
+      if (ctx.REPLACE() != null) {
+        ir.ReplaceTableCommand(tableName, columns, true)
+      } else {
+        ir.CreateTableCommand(tableName, columns)
+      }
 
-      ir.CreateTableCommand(tableName, columns)
   }
 
   override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val tableName = ctx.objectName().getText
+      val tableName = ctx.dotIdentifier().getText
       val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
       // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
-      val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      val create = if (ctx.REPLACE() != null) {
+        ir.ReplaceTableAsSelect(tableName, selectStatement, Map.empty[String, String], true, false)
+      } else {
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
       val colConstraints = Map.empty[String, Seq[ir.Constraint]]
@@ -222,13 +232,32 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     val name = ctx.colDecl().columnName().getText
     val dataType = vc.typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
-    val nullability = if (ctx.nullNotNull().isEmpty) {
+    val identityConstraints = if (ctx.defaultValue() != null) {
+      ctx.defaultValue().asScala.map(buildDefaultValue)
+    } else {
+      Seq()
+    }
+    val nullability = if (ctx.NULL().isEmpty) {
       Seq()
     } else {
-      Seq(ir.Nullability(!ctx.nullNotNull().asScala.exists(_.NOT() != null)))
+      Seq(ir.Nullability(ctx.NOT() == null))
     }
-    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
+    ir.ColumnDeclaration(
+      name,
+      dataType,
+      virtualColumnDeclaration = None,
+      nullability ++ constraints ++ identityConstraints)
   }
+
+  private def buildDefaultValue(ctx: DefaultValueContext): ir.Constraint = {
+    ctx match {
+      case c if c.DEFAULT() != null => ir.GeneratedAlways(c.expr().accept(vc.expressionBuilder))
+      case c if c.AUTOINCREMENT() != null => ir.IdentityConstraint(None, None, always = true)
+      case c if c.IDENTITY() != null =>
+        ir.IdentityConstraint(Some(ctx.startWith().getText), Some(ctx.incrementBy().getText), false, true)
+    }
+  }
+
   private[snowflake] def buildOutOfLineConstraints(ctx: OutOfLineConstraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.columnListInParentheses(0).columnList().columnName().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)
@@ -236,7 +265,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique(Seq.empty))
       case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey(Seq.empty))
       case c if c.foreignKey() != null =>
-        val referencedObject = c.objectName().getText
+        val referencedObject = c.dotIdentifier().getText
         val references =
           c.columnListInParentheses(1).columnList().columnName().asScala.map(referencedObject + "." + _.getText)
         references.map(ref => ir.ForeignKey("", ref, "", Seq.empty))
@@ -253,7 +282,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c if c.UNIQUE() != null => ir.Unique()
     case c if c.primaryKey() != null => ir.PrimaryKey()
     case c if c.foreignKey() != null =>
-      val references = c.objectName().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
+      val references = c.dotIdentifier().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
       ir.ForeignKey("", references, "", Seq.empty)
     case c => ir.UnresolvedConstraint(c.getText)
   }
@@ -282,7 +311,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val tableName = ctx.objectName(0).getText
+      val tableName = ctx.dotIdentifier(0).getText
       ctx match {
         case c if c.tableColumnAction() != null =>
           ir.AlterTableCommand(tableName, buildColumnActions(c.tableColumnAction()))

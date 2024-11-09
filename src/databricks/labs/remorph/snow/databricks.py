@@ -10,7 +10,6 @@ from sqlglot.helper import apply_index_offset, csv
 from sqlglot.dialects.dialect import if_sql
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
-from databricks.labs.remorph.snow.snowflake import contains_expression, rank_functions
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ def _format_create_sql(self, expression: exp.Create) -> str:
 
     # Remove modifiers in order to simplify the schema.  For example, this removes things like "IF NOT EXISTS"
     # from "CREATE TABLE foo IF NOT EXISTS".
-    args_to_delete = ["temporary", "transient", "external", "replace", "exists", "unique", "materialized", "properties"]
+    args_to_delete = ["temporary", "transient", "external", "exists", "unique", "materialized", "properties"]
     for arg_to_delete in args_to_delete:
         if expression.args.get(arg_to_delete):
             del expression.args[arg_to_delete]
@@ -271,6 +270,10 @@ def _to_number(self, expression: local_expression.ToNumber):
         if precision:
             return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
         return func_expr
+    if not precision:
+        precision = 38
+    if not scale:
+        scale = 0
     if not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
@@ -354,6 +357,7 @@ def to_array(self, expression: exp.ToArray) -> str:
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
+    NULL_ORDERING = "nulls_are_small"
 
     class Generator(org_databricks.Databricks.Generator):
         INVERSE_TIME_MAPPING: dict[str, str] = {
@@ -384,6 +388,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
             exp.FromBase64: rename_func("UNBASE64"),
+            exp.AutoIncrementColumnConstraint: lambda *_: "GENERATED ALWAYS AS IDENTITY",
             local_expression.Parameter: _parm_sfx,
             local_expression.ToBoolean: _to_boolean,
             local_expression.Bracket: _lateral_bracket_sql,
@@ -416,6 +421,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentDate: _current_date,
             exp.Not: _not_sql,
             local_expression.ToArray: to_array,
+            local_expression.ArrayExists: rename_func("EXISTS"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
@@ -701,7 +707,7 @@ class Databricks(org_databricks.Databricks):  #
             return self.func(self.sql(expression, "this"), *expression.expressions)
 
         def order_sql(self, expression: exp.Order, flat: bool = False) -> str:
-            if isinstance(expression.parent, exp.Window) and contains_expression(expression.parent, rank_functions):
+            if isinstance(expression.parent, exp.Window):
                 for ordered_expression in expression.expressions:
                     if isinstance(ordered_expression, exp.Ordered) and ordered_expression.args.get('desc') is None:
                         ordered_expression.args['desc'] = False

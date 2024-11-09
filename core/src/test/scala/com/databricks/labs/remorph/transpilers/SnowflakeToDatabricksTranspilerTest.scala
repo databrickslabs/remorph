@@ -6,6 +6,26 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
+  "transpile TO_NUMBER and TO_DECIMAL" should {
+    "transpile TO_NUMBER" in {
+      "select TO_NUMBER(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_NUMBER with precision and scale" in {
+      "select TO_NUMBER(EXPR,38,0) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_DECIMAL" in {
+      "select TO_DECIMAL(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+  }
+
   "snowsql commands" should {
 
     "transpile BANG with semicolon" in {
@@ -150,7 +170,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
         |FROM t1;""".stripMargin transpilesTo
         s"""SELECT
-           |  LAST_VALUE(c1) IGNORE NULLS OVER (
+           |  LAST(c1) IGNORE NULLS OVER (
            |    PARTITION BY
            |      t1.c2
            |    ORDER BY

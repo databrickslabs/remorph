@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
+import com.fasterxml.jackson.annotation.JsonIgnore
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
@@ -60,10 +61,10 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   // scalastyle:on
   self: BaseType =>
 
-  lazy val containsChild: Set[TreeNode[_]] = children.toSet
+  @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
-  val origin: Origin = CurrentOrigin.get
+  @JsonIgnore val origin: Origin = CurrentOrigin.get
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild

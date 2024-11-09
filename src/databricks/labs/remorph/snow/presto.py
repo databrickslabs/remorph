@@ -5,6 +5,8 @@ from sqlglot.errors import ParseError
 from sqlglot.dialects.dialect import locate_to_strposition
 from sqlglot.tokens import TokenType
 
+from databricks.labs.remorph.snow import local_expression
+
 
 def _build_approx_percentile(args: list) -> exp.Expression:
     if len(args) == 4:
@@ -33,6 +35,12 @@ def _build_approx_percentile(args: list) -> exp.Expression:
     return exp.ApproxQuantile.from_arg_list(args)
 
 
+def _build_any_keys_match(args: list) -> local_expression.ArrayExists:
+    return local_expression.ArrayExists(
+        this=local_expression.MapKeys(this=seq_get(args, 0)), expression=seq_get(args, 1)
+    )
+
+
 class Presto(presto):
 
     class Parser(presto.Parser):
@@ -42,6 +50,7 @@ class Presto(presto):
             **presto.Parser.FUNCTIONS,
             "APPROX_PERCENTILE": _build_approx_percentile,
             "STRPOS": locate_to_strposition,
+            "ANY_KEYS_MATCH": _build_any_keys_match,
         }
 
     class Tokenizer(presto.Tokenizer):

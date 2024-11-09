@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage.estimation
 
-import com.databricks.labs.remorph.coverage.EstimationReport
-import upickle.default._
+import com.databricks.labs.remorph.coverage.{EstimationReport, EstimationReportEncoders}
+import io.circe.syntax._
 
 trait EstimationReporter {
   def report(): Unit
@@ -127,7 +127,8 @@ class SummaryEstimationReporter(outputDir: os.Path, estimate: EstimationReport) 
 }
 
 class JsonEstimationReporter(outputDir: os.Path, preserveQueries: Boolean, estimate: EstimationReport)
-    extends EstimationReporter {
+    extends EstimationReporter
+    with EstimationReportEncoders {
   override def report(): Unit = {
     val queriesDir = outputDir / "queries"
     os.makeDir.all(queriesDir)
@@ -157,7 +158,7 @@ class JsonEstimationReporter(outputDir: os.Path, preserveQueries: Boolean, estim
       }
     }
     val newEstimate = estimate.withRecords(newRecords)
-    val jsonReport: String = write(newEstimate, indent = 4)
+    val jsonReport: String = newEstimate.asJson.spaces4
     os.write(resultPath, jsonReport)
   }
 }

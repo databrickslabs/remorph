@@ -1,31 +1,29 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult}
+import com.databricks.labs.remorph.coverage.ErrorEncoders
+import com.databricks.labs.remorph.{Init, KoResult, OkResult, Parsing, PartialResult}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
-import upickle.default._
+import io.circe.syntax._
 
-trait TranspilerTestCommon extends Matchers with Formatter {
+trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
 
   protected def transpiler: Transpiler
 
-  protected def reformat = true
-
-  private def formatResult(result: String): String = if (reformat) format(result) else result
-
   implicit class TranspilerTestOps(input: String) {
     def transpilesTo(expectedOutput: String): Assertion = {
-      transpiler.transpile(SourceCode(input)) match {
-        case OkResult(output) => formatResult(output) shouldBe formatResult(expectedOutput)
-        case PartialResult(_, err) => fail(write(err))
-        case KoResult(_, err) => fail(write(err))
+      transpiler.transpile(Parsing(input)).runAndDiscardState(Init) match {
+        case OkResult(output) => format(output) shouldBe format(expectedOutput)
+        case PartialResult(_, err) => fail(err.asJson.noSpaces)
+        case KoResult(_, err) => fail(err.asJson.noSpaces)
       }
     }
     def failsTranspilation: Assertion = {
-      transpiler.transpile(SourceCode(input)) match {
+      transpiler.transpile(Parsing(input)).runAndDiscardState(Init) match {
         case KoResult(_, _) => succeed
         case PartialResult(_, _) => succeed
-        case _ => fail("query was expected to fail transpilation but didn't")
+        case x =>
+          fail(s"query was expected to fail transpilation but didn't: $x")
       }
     }
   }

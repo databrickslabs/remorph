@@ -29,13 +29,14 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
         case u if u.updateStatement() != null => u.updateStatement().accept(this)
         case d if d.deleteStatement() != null => d.deleteStatement().accept(this)
         case m if m.mergeStatement() != null => m.mergeStatement().accept(this)
+        case _ => unresolved("dmlCommand", "everything is null")
       }
   }
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val table = ctx.objectName().accept(vc.relationBuilder)
+      val table = ctx.dotIdentifier().accept(vc.relationBuilder)
       val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.buildId))
       val values = ctx match {
         case c if c.queryStatement() != null => c.queryStatement().accept(vc.relationBuilder)

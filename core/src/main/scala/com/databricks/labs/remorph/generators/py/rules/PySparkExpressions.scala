@@ -5,6 +5,7 @@ import com.databricks.labs.remorph.generators.py
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
+import java.util.Locale
 
 // F.expr(...)
 case class RawExpr(expr: ir.Expression) extends ir.LeafExpression {
@@ -41,6 +42,7 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
     case ir.Concat(children) => F("concat", children)
     case ir.ConcatWs(children) => F("concat_ws", children)
     case ir.In(value, list) => methodOf(value, "isin", list)
+    case fn: ir.Fn => F(fn.prettyName.toLowerCase(Locale.getDefault), fn.children.map(apply))
   }
 
   private def sortOrder(order: ir.SortOrder): ir.Expression = order match {
@@ -67,7 +69,9 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
       case None => windowSpec
       case Some(value) => windowFrame(windowSpec, value)
     }
-    ImportClassSideEffect(windowSpec, module = "pyspark.sql.window", klass = "Window")
+    windowSpec = ImportClassSideEffect(windowSpec, module = "pyspark.sql.window", klass = "Window")
+    val fn = apply(w.window_function)
+    methodOf(fn, "over", Seq(windowSpec))
   }
 
   private def windowFrame(windowSpec: ir.Expression, frame: ir.WindowFrame): ir.Expression = frame match {
