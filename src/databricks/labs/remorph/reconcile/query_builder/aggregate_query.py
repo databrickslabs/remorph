@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def _remove_aliases(node: exp.Expression) -> exp.Expression:
-    print("asdasdasasasdadas")
-    print(node.sql())
     if isinstance(node, exp.Alias):
         return node.this
     return node
