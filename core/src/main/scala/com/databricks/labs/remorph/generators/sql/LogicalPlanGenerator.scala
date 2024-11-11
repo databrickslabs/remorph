@@ -10,9 +10,9 @@ class LogicalPlanGenerator(
     extends BaseSQLGenerator[ir.LogicalPlan]
     with TransformationConstructors {
 
-  override def generate(tree: ir.LogicalPlan): SQL = {
+  override def generate(plan: ir.LogicalPlan): SQL = {
 
-    val sql: SQL = tree match {
+    val sql: SQL = plan match {
       case b: ir.Batch => batch(b)
       case w: ir.WithCTE => cte(w)
       case p: ir.Project => project(p)
@@ -54,9 +54,14 @@ class LogicalPlanGenerator(
       case x => partialResult(x)
     }
 
+    val lineComments = if (plan.comments.length > 0) {
+      plan.comments.map(node => node.text).mkString("\n") + "\n"
+    } else {
+      ""
+    }
     update { case g: Generating =>
-      g.copy(currentNode = tree)
-    }.flatMap(_ => sql)
+      g.copy(currentNode = plan)
+    }.flatMap(_ => code"$lineComments$sql")
   }
 
   private def batch(b: ir.Batch): SQL = {
@@ -293,12 +298,7 @@ class LogicalPlanGenerator(
       .sequence
       .map(_.mkString.stripSuffix(", "))
 
-    val lineComments = if (proj.comments.length > 0) {
-      proj.comments.map(node => node.text).mkString("\n") + "\n"
-    } else {
-      ""
-    }
-    code"${lineComments}SELECT $sqlParts$fromClause"
+     code"SELECT $sqlParts$fromClause"
   }
 
   private def orderBy(sort: ir.Sort): SQL = {
