@@ -11,7 +11,7 @@ SELECT
 
    Unparsed input - ErrorNode encountered
     Unparsable text: unexpected extra input ',' while parsing a SELECT statement
-    expecting one of: $Currency, 'String', @@Reference, @Local, Float, Identifier, Integer, Operator, Real, '$ACTION', '$NODE_ID', '$PARTITION'...
+    expecting one of: $Currency, 'String', @@Reference, @Local, Float, Identifier, Integer, Operator, Real, Statement, '$ACTION', '$NODE_ID'...
     Unparsable text: ,
  */
   col2

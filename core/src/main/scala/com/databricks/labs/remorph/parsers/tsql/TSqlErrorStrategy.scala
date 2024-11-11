@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.SqlErrorStrategy
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{StringContext => _, _}
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.IntervalSet
 
@@ -329,11 +329,9 @@ object TSqlErrorStrategy {
     AVAILABILITY_MODE,
     BACKUP_CLONEDB,
     BACKUP_PRIORITY,
-    BASE64,
     BEFORE,
     BEGIN_DIALOG,
-    BIGINT,
-    BINARY_KEYWORD,
+    BINARY,
     BINDING,
     BLOB_STORAGE,
     BLOCK,
@@ -563,7 +561,6 @@ object TSqlErrorStrategy {
     KEY_STORE_PROVIDER_NAME,
     KEYS,
     KEYSET,
-    KWINT,
     LANGUAGE,
     LAST,
     LEVEL,
@@ -668,7 +665,6 @@ object TSqlErrorStrategy {
     NTILE,
     NTLM,
     NUMANODE,
-    NUMBER,
     NUMERIC_ROUNDABORT,
     OBJECT,
     OFFLINE,
@@ -718,7 +714,6 @@ object TSqlErrorStrategy {
     POOL,
     PORT,
     PRECEDING,
-    PRECISION,
     PREDICATE,
     PRIMARY_ROLE,
     PRIOR,
@@ -734,12 +729,10 @@ object TSqlErrorStrategy {
     PROPERTY,
     PROVIDER,
     PROVIDER_KEY_NAME,
-    PYTHON,
     QUERY,
     QUEUE,
     QUEUE_DELAY,
     QUOTED_IDENTIFIER,
-    R,
     RANDOMIZED,
     RANGE,
     RC2,
@@ -855,8 +848,7 @@ object TSqlErrorStrategy {
     SIGNATURE,
     SINGLE_USER,
     SIZE,
-    SKIP_KEYWORD,
-    SMALLINT,
+    KWSKIP,
     SNAPSHOT,
     SOFTNUMA,
     SORT_IN_TEMPDB,
@@ -866,7 +858,6 @@ object TSqlErrorStrategy {
     SPATIAL_WINDOW_MAX_CELLS,
     SPECIFICATION,
     SPLIT,
-    SQL,
     SQLDUMPERFLAGS,
     SQLDUMPERPATH,
     SQLDUMPERTIMEOUT,
@@ -912,7 +903,6 @@ object TSqlErrorStrategy {
     TIES,
     TIMEOUT,
     TIMER,
-    TINYINT,
     TORN_PAGE_DETECTION,
     TOSTRING,
     TRACE,

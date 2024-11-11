@@ -80,6 +80,7 @@ def morph_config():
     )
 
 
+# TODO Add Standardized Sql Formatter to python functional tests.
 def _normalize_string(value: str) -> str:
     # Remove extra spaces and ensure consistent spacing around parentheses
     value = re.sub(r'\s+', ' ', value)  # Replace multiple spaces with a single space
@@ -190,34 +191,35 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
             continue
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()
-        if content:
-            parts = content.split(f"-- {source.lower()} sql:")
-            for part in parts[1:]:
-                source_sql = re.split(r'-- \w+ sql:', part)[0].strip().rstrip(";")
-                target_sql = (
-                    re.split(rf'-- {target} sql:', part)[1]
-                    if len(re.split(rf'-- {target} sql:', part)) > 1
-                    else re.split(r'-- databricks sql:', part)[1]
-                )
-                target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
-                # when multiple sqls are present below target
-                test_name = filenames.name.replace(".sql", "")
-                if is_expected_exception:
-                    exception_type = expected_exceptions.get(test_name, SqlglotError)
-                    exception = SqlglotError(test_name)
-                    if exception_type in {ParseError, UnsupportedError}:
-                        exception = exception_type(test_name)
-                    suite.append(
-                        FunctionalTestFileWithExpectedException(
-                            target_sql,
-                            source_sql,
-                            test_name,
-                            exception,
-                            target,
-                        )
+            source_pattern = rf'--\s*{source} sql:\n(.*?)(?=\n--\s*{target} sql:|$)'
+            target_pattern = rf'--\s*{target} sql:\n(.*)'
+
+            # Extract source and target queries
+
+            source_match = re.search(source_pattern, content, re.DOTALL)
+            target_match = re.search(target_pattern, content, re.DOTALL)
+
+            source_sql = source_match.group(1).strip().rstrip(";") if source_match else ""
+            target_sql = target_match.group(1).strip() if target_match else ""
+
+            # when multiple sqls are present below target
+            test_name = filenames.name.replace(".sql", "")
+            if is_expected_exception:
+                exception_type = expected_exceptions.get(test_name, SqlglotError)
+                exception = SqlglotError(test_name)
+                if exception_type in {ParseError, UnsupportedError}:
+                    exception = exception_type(test_name)
+                suite.append(
+                    FunctionalTestFileWithExpectedException(
+                        target_sql,
+                        source_sql,
+                        test_name,
+                        exception,
+                        target,
                     )
-                else:
-                    suite.append(FunctionalTestFile(target_sql, source_sql, test_name, target))
+                )
+            else:
+                suite.append(FunctionalTestFile(target_sql, source_sql, test_name, target))
     return suite
 
 

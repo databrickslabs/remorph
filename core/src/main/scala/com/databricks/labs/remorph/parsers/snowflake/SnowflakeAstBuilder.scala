@@ -36,14 +36,14 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     // This very top level visitor does not ignore any valid statements for the batch, instead
     // we prepend any errors to the batch plan, so they are generated first in the output.
     val errors = errorCheck(ctx)
-    val statements = visitMany(ctx.sqlCommand())
+    val statements = visitMany(ctx.sqlClauses())
     errors match {
       case Some(errorResult) => errorResult +: statements
       case None => statements
     }
   }
 
-  override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan = {
+  override def visitSqlClauses(ctx: SqlClausesContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>

@@ -21,7 +21,7 @@ trait ErrorEncoders {
   }
   implicit val remorphErrorEncoder: Encoder[RemorphError] = Encoder.instance {
     case s: SingleError => Json.arr(s.asJson)
-    case m: MultipleErrors => Json.arr(m.errors.map(_.msg.asJson): _*)
+    case m: MultipleErrors => Json.arr(m.errors.map(_.asJson): _*)
   }
 
 }
