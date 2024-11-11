@@ -1,9 +1,9 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.intermediate.{LogicalPlan, Origin, ParsingErrors, PlanGenerationFailure}
 import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
-import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, PartialResult, Transformation, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
@@ -13,18 +13,19 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
 
   private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 
-  override protected def createLexer(input: CharStream): Lexer = new SnowflakeLexer(input)
-  override protected def createParser(stream: TokenStream): SnowflakeParser = new SnowflakeParser(stream)
-  override protected def createTree(parser: SnowflakeParser): ParserRuleContext = parser.snowflakeFile()
-  override protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan = vc.astBuilder.visit(tree)
-  override protected def addErrorStrategy(parser: SnowflakeParser): Unit =
+  override def parse(parsing: Parsing): Transformation[LogicalPlan] = {
+    val input = CharStreams.fromString(parsing.source)
+    val lexer = new SnowflakeLexer(input)
+    val tokens = new CommonTokenStream(lexer)
+    val parser = new SnowflakeParser(tokens)
     parser.setErrorHandler(new SnowflakeErrorStrategy)
     val errListener = new ProductionErrorCollector(parsing.source, parsing.filename)
     parser.removeErrorListeners()
     parser.addErrorListener(errListener)
     val tree = parser.snowflakeFile()
     if (errListener.errorCount > 0) {
-      lift(KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors)))
+      val plan = new LogicalPlan()(Origin.empty)
+      lift(PartialResult(plan, ParsingErrors(errListener.errors)))
     } else {
       update {
         case p: Parsing => BuildingAst(tree, Some(p))
@@ -48,6 +49,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   }
 
   def dialect: String = "snowflake"
+
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {
