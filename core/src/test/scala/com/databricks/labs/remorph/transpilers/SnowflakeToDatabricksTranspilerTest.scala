@@ -322,7 +322,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
-  /*
+
   "Snowflake MERGE commands" should {
 
     "MERGE;" in {
@@ -357,7 +357,7 @@ SELECT * FROM test_tbl
     }
 
   }
-  */
+
 
 
 }

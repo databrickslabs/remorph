@@ -55,7 +55,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse(Parsing(query.source)).flatMap(parser.visit).run(Parsing(query.source)) match {
+    parser.parse(Parsing(query.source)).run(Parsing(query.source)) match {
       case KoResult(WorkflowStage.PARSE, error) =>
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
         Fingerprint(
