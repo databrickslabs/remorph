@@ -1,9 +1,9 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LogicalPlan, Origin, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
 import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
-import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, PartialResult, Transformation, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
@@ -24,8 +24,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
     parser.addErrorListener(errListener)
     val tree = parser.snowflakeFile()
     if (errListener.errorCount > 0) {
-      val plan = new LogicalPlan()(Origin.empty)
-      lift(PartialResult(plan, ParsingErrors(errListener.errors)))
+      lift(KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors)))
     } else {
       update {
         case p: Parsing => BuildingAst(tree, Some(p))
