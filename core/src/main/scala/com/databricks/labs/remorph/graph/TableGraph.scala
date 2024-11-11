@@ -9,7 +9,7 @@ protected case class Node(tableDefinition: TableDefinition, metadata: Map[String
 // `from` is the table which is sourced to create `to` table
 protected case class Edge(from: Node, to: Option[Node], metadata: Map[String, String])
 
-class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
+class TableGraph(parser: PlanParser) extends DependencyGraph with LazyLogging {
   private val nodes = scala.collection.mutable.Set.empty[Node]
   private val edges = scala.collection.mutable.Set.empty[Edge]
 

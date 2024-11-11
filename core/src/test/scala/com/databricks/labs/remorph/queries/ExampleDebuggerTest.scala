@@ -13,7 +13,7 @@ class ExampleDebuggerTest extends AnyWordSpec with Matchers with MockitoSugar wi
   "ExampleDebugger" should {
     "work" in {
       val buf = new StringBuilder
-      val parser = mock[PlanParser[_]]
+      val parser = mock[PlanParser]
       when(parser.parseLogicalPlan(any())).thenReturn(lift(OkResult(NoopNode)))
 
       val debugger = new ExampleDebugger(parser, x => buf.append(x), "snowflake")
