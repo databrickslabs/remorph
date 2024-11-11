@@ -1,10 +1,16 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.generators.orchestration.rules.history.RawMigration
+import io.circe.{Decoder, jackson}
+import io.circe.generic.semiauto._
 
 import java.io.File
 
 case class Payload(command: String, flags: Map[String, String])
+
+object Payload {
+  implicit val payloadDecoder: Decoder[Payload] = deriveDecoder
+}
 
 object Main extends App with ApplicationContext {
   // scalastyle:off println
@@ -47,9 +53,8 @@ object Main extends App with ApplicationContext {
 
   // parse json from the last CLI argument
   private def route: Payload = {
-    val payload = ujson.read(args.last).obj
-    val command = payload("command").str
-    cliFlags = payload("flags").obj.mapValues(_.str).toMap
-    Payload(command, flags)
+    val payload = jackson.decode[Payload](args.last).right.get
+    cliFlags = payload.flags
+    payload
   }
 }

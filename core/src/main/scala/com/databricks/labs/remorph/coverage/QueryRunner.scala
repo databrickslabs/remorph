@@ -4,8 +4,6 @@ import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.{RemorphError, UnexpectedOutput}
 import com.databricks.labs.remorph.queries.ExampleQuery
 import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Parsing}
-import com.databricks.labs.remorph.WorkflowStage.PARSE
-import com.databricks.labs.remorph.intermediate.UnexpectedOutput
 import com.databricks.labs.remorph.transpilers._
 
 trait QueryRunner extends Formatter {
@@ -25,24 +23,23 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
       ReportEntryReport(
         parsed = parsed,
         statements = 1,
-        transpilation_error = Some(UnexpectedOutput(format(expected), format(output))),
-        parsing_error = error)
+        failures = Some(UnexpectedOutput(format(expected), format(output))))
     } else {
       ReportEntryReport(
         parsed = parsed,
         transpiled = if (parsed == 1) 1 else 0,
         statements = 1,
         transpiled_statements = 1,
-        parsing_error = error)
+        failures = error)
     }
   }
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     transpiler.transpile(Parsing(exampleQuery.query)).runAndDiscardState(Parsing(exampleQuery.query)) match {
-      case KoResult(PARSE, error) => ReportEntryReport(statements = 1, parsing_error = Some(error))
+      case KoResult(PARSE, error) => ReportEntryReport(statements = 1, failures = Some(error))
       case KoResult(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly
-        ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(error))
+        ReportEntryReport(parsed = 1, statements = 1, failures = Some(error))
       case PartialResult(output, error) =>
         // Even with parsing errors, we will attempt to transpile the query, and parsing errors will be recorded in
         // entry report

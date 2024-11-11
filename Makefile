@@ -4,7 +4,6 @@ clean:
 	rm -fr .venv clean htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
 
 dev:
-	pip3 install hatch
 	hatch env create
 	hatch run pip install -e '.[test]'
 	hatch run which python
