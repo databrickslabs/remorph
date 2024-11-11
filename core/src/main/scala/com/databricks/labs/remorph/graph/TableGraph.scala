@@ -107,7 +107,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       try {
-        val plan = parser.parse(Parsing(query.source)).run(Parsing(query.source))
+        val plan = parser.parseLogicalPlan(Parsing(query.source)).run(Parsing(query.source))
         plan match {
           case KoResult(_, error) =>
             logger.warn(s"Failed to produce plan from query: ${query.id}")

@@ -53,7 +53,7 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def parse(input: Parsing): Transformation[ir.LogicalPlan] = planParser.parse(input)
+  protected def parse(input: Parsing): Transformation[ir.LogicalPlan] = planParser.parseLogicalPlan(input)
 
   // TODO: optimizer really should be its own thing and not part of PlanParser
   // I have put it here for now until we discuss^h^h^h^h^h^h^hSerge dictates where it should go ;)

@@ -43,7 +43,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
       planParser
-        .parse(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
+        .parseLogicalPlan(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
         .run(initialState) match {
         case KoResult(PARSE, error) =>
           Some(

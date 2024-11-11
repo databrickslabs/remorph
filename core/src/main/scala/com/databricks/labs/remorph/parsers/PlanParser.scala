@@ -12,62 +12,12 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  def parse(parsing: Parsing): Transformation[ir.LogicalPlan]
+  def parseLogicalPlan(parsing: Parsing): Transformation[ir.LogicalPlan]
   def dialect: String
 
   // TODO: This is probably not where the optimizer should be as this is a Plan "Parser" - it is here for now
   protected def createOptimizer: ir.Rules[ir.LogicalPlan]
-
-  /**
-   * Parse the input source code into a Parse tree
-   * @param input The source code with filename
-   * @return Returns a parse tree on success otherwise a description of the errors
-   */
-    /*
-  def parse(input: Parsing): Transformation[ParserRuleContext] = {
-    val inputString = CharStreams.fromString(input.source)
-    val lexer = createLexer(inputString)
-    val tokenStream = new CommonTokenStream(lexer)
-    val parser = createParser(tokenStream)
-    addErrorStrategy(parser)
-    val errListener = new ProductionErrorCollector(input.source, input.filename)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errListener)
-
-    update { case _ =>
-      input
-    }.flatMap { _ =>
-      val tree = createTree(parser)
-      if (errListener.errorCount > 0) {
-        lift(PartialResult(tree, ParsingErrors(errListener.errors)))
-      } else {
-        lift(OkResult(tree))
-      }
-    }
-  }
-*/
-  /**
-   * Visit the parse tree and create a logical plan
-   * @param tree The parse tree
-   * @return Returns a logical plan on success otherwise a description of the errors
-   */
-    /*
-  def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = {
-    update {
-      case p: Parsing => BuildingAst(tree, Some(p))
-      case _ => BuildingAst(tree)
-    }.flatMap { _ =>
-      try {
-        ok(createPlan(tree))
-      } catch {
-        case NonFatal(e) =>
-          lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
-      }
-    }
-  }
-  */
-
-
+  
   // TODO: This is probably not where the optimizer should be as this is a Plan "Parser" - it is here for now
   /**
    * Optimize the logical plan

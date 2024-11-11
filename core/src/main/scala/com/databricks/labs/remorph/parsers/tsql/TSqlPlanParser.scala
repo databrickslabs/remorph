@@ -13,7 +13,7 @@ class TSqlPlanParser extends PlanParser[TSqlParser] {
 
   val vc = new TSqlVisitorCoordinator(TSqlParser.VOCABULARY, TSqlParser.ruleNames)
 
-  override def parse(parsing: Parsing): Transformation[LogicalPlan] = {
+  override def parseLogicalPlan(parsing: Parsing): Transformation[LogicalPlan] = {
     val input = CharStreams.fromString(parsing.source)
     val lexer = new TSqlLexer(input)
     val tokens = new CommonTokenStream(lexer)
