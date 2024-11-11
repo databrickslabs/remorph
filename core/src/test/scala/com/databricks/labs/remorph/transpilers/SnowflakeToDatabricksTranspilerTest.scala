@@ -346,7 +346,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
-/*
+
   "line comment" should {
     "transpiles to line comment" in {
       """-- some comment
@@ -357,5 +357,5 @@ SELECT * FROM test_tbl
     }
 
   }
-*/
+
 }

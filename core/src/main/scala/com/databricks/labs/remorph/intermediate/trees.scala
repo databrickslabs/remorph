@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.{ParserRuleContext, Token}
 import org.antlr.v4.runtime.tree.ParseTree
 
 import java.lang.reflect.Constructor
@@ -42,7 +42,16 @@ object Origin {
       endColumn = Option(stop.getCharPositionInLine + stop.getStopIndex - stop.getStartIndex),
       startTokenIndex = Option(start.getTokenIndex),
       endTokenIndex = Option(stop.getTokenIndex))
+  }
 
+  def fromToken(token: Token): Origin = {
+    Origin(
+      startLine = Option(token.getLine),
+      startColumn = Option(token.getCharPositionInLine),
+      endLine = Option(token.getLine),
+      endColumn = Option(token.getCharPositionInLine + token.getText.length),
+      startTokenIndex = Option(token.getTokenIndex),
+      endTokenIndex = Option(token.getTokenIndex))
   }
 }
 
