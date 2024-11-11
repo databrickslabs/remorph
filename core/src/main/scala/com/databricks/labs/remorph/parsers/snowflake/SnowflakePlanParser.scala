@@ -1,11 +1,11 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.intermediate.{LineCommentNode, LogicalPlan, Origin, ParsingErrors, PlanGenerationFailure}
 import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser, TokenStream}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Token}
 
 import scala.util.control.NonFatal
 
@@ -42,13 +42,28 @@ class SnowflakePlanParser extends PlanParser {
 
   }
 
-  private def createPlan(tokens: TokenStream, tree: ParseTree): LogicalPlan = {
+  private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
+    tokens
+      .getTokens()
+      .stream()
+      .filter(token => token.getChannel == SnowflakeLexer.COMMENT_CHANNEL)
+      .forEach(token =>
+        token.getType match {
+          case SnowflakeLexer.LINE_COMMENT => attachLineCommentToPlan(token, plan)
+        })
     plan
   }
 
-  def dialect: String = "snowflake"
+  private def attachLineCommentToPlan(token: Token, plan: LogicalPlan): Unit = {
+    val found = plan.children.find(node =>
+      node.origin != null && node.origin.startLine.nonEmpty && node.origin.startLine.get > token.getLine)
+    if (found.nonEmpty) {
+      found.get.comments = found.get.comments :+ LineCommentNode(token.getText)(Origin.fromToken(token))
+    }
+  }
 
+  def dialect: String = "snowflake"
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {

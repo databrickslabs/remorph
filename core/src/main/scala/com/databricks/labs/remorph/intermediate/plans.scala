@@ -145,6 +145,7 @@ abstract class LogicalPlan()(origin: Origin) extends Plan[LogicalPlan]()(origin)
    * should return `false`).
    */
   lazy val resolved: Boolean = expressions.forall(_.resolved) && childrenResolved
+  var comments: Array[CommentNode] = Array()
 
   /**
    * Returns true if all its children of this query plan have been resolved.
@@ -179,3 +180,10 @@ abstract class BinaryNode extends LogicalPlan()(Origin.empty) {
   def right: LogicalPlan
   override def children: Seq[LogicalPlan] = Seq(left, right)
 }
+
+abstract class CommentNode(val text: String)(origin: Origin) extends LeafNode()(origin) {
+  override def output: Seq[Attribute] = Seq.empty
+  override def canEqual(that: Any): Boolean = false
+}
+
+case class LineCommentNode(override val text: String)(origin: Origin) extends CommentNode(text)(origin)
