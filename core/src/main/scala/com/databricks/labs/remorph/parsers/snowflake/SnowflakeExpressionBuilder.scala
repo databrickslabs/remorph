@@ -103,8 +103,11 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val objectNameIds = Option(ctx.dotIdentifier()).map(_.id().asScala.map(buildId)).getOrElse(Seq())
-      val columnIds = ctx.columnName().id().asScala.map(buildId)
+      val objectNameIds: Seq[ir.NameOrPosition] = Option(ctx.dotIdentifier()).toSeq.flatMap(_.id().asScala.map(buildId))
+      val columnIds: Seq[ir.NameOrPosition] = ctx match {
+        case c if c.columnName() != null => c.columnName().id().asScala.map(buildId)
+        case c if c.columnPosition() != null => Seq(visitColumnPosition(c.columnPosition()))
+      }
       val fqn = objectNameIds ++ columnIds
       val objectRefIds = fqn.take(fqn.size - 1)
       val objectRef = if (objectRefIds.isEmpty) {
@@ -118,6 +121,10 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitDotIdentifier(ctx: DotIdentifierContext): ir.ObjectReference = {
     val ids = ctx.id().asScala.map(buildId)
     ir.ObjectReference(ids.head, ids.tail: _*)
+  }
+
+  override def visitColumnPosition(ctx: ColumnPositionContext): ir.Position = {
+    ir.Position(ctx.INT().getText.toInt)
   }
 
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = errorCheck(ctx) match {

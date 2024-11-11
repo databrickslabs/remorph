@@ -35,7 +35,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case i: ir.IsNotNull => isNotNull(i)
       case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => lift(OkResult(name))
       case d: ir.Dot => dot(d)
-      case i: ir.Id => id(i)
+      case i: ir.Id => nameOrPosition(i)
       case o: ir.ObjectReference => objectReference(o)
       case a: ir.Alias => alias(a)
       case d: ir.Distinct => distinct(d)
@@ -187,7 +187,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def column(column: ir.Column): SQL = {
     val objectRef = column.tableNameOrAlias.map(or => code"${generateObjectReference(or)}.").getOrElse("")
-    code"$objectRef${id(column.columnName)}"
+    code"$objectRef${nameOrPosition(column.columnName)}"
   }
 
   private def insertAction(insertAction: ir.InsertAction): SQL = {
@@ -313,9 +313,10 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
     code"MAP($entriesStr)"
   }
 
-  private def id(id: ir.Id): SQL = id match {
+  private def nameOrPosition(id: ir.NameOrPosition): SQL = id match {
     case ir.Id(name, true) => code"`$name`"
     case ir.Id(name, false) => lift(OkResult(name))
+    case p @ ir.Position(_) => partialResult(p)
   }
 
   private def alias(alias: ir.Alias): SQL = {
@@ -332,7 +333,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   }
 
   private def generateObjectReference(reference: ir.ObjectReference): SQL = {
-    (reference.head +: reference.tail).map(id(_)).mkCode(".")
+    (reference.head +: reference.tail).map(nameOrPosition).mkCode(".")
   }
 
   private def cast(cast: ir.Cast): SQL = {
@@ -354,11 +355,11 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   }
 
   private def objectReference(objRef: ir.ObjectReference): SQL = {
-    (objRef.head +: objRef.tail).map(id(_)).mkCode(".")
+    (objRef.head +: objRef.tail).map(nameOrPosition).mkCode(".")
   }
 
   private def caseWhen(c: ir.Case): SQL = {
-    val expr = c.expression.map(expression(_)).toSeq
+    val expr = c.expression.map(expression).toSeq
     val branches = c.branches.map { branch =>
       code"WHEN ${expression(branch.condition)} THEN ${expression(branch.expression)}"
     }
