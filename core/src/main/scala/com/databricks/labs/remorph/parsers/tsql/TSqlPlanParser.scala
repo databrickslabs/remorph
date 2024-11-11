@@ -9,7 +9,7 @@ import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.util.control.NonFatal
 
-class TSqlPlanParser extends PlanParser[TSqlParser] {
+class TSqlPlanParser extends PlanParser {
 
   val vc = new TSqlVisitorCoordinator(TSqlParser.VOCABULARY, TSqlParser.ruleNames)
 

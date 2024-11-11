@@ -9,7 +9,7 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
 import scala.util.control.NonFatal
 
-class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
+class SnowflakePlanParser extends PlanParser {
 
   private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 

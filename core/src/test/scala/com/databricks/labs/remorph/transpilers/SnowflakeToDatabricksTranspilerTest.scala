@@ -357,7 +357,5 @@ SELECT * FROM test_tbl
     }
 
   }
-
 */
-
 }

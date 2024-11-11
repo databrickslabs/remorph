@@ -53,7 +53,7 @@ class CommentBasedQueryExtractor(inputDialect: String, targetDialect: String) ex
   }
 }
 
-class ExampleDebugger(parser: PlanParser[_], prettyPrinter: Any => Unit, dialect: String) extends LazyLogging {
+class ExampleDebugger(parser: PlanParser, prettyPrinter: Any => Unit, dialect: String) extends LazyLogging {
   def debugExample(name: String): Unit = {
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
