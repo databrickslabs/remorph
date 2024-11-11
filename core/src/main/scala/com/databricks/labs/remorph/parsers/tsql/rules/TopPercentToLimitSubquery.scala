@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.intermediate._
 import java.util.concurrent.atomic.AtomicLong
 
 case class TopPercent(child: LogicalPlan, percentage: Expression, with_ties: Boolean = false)
-  extends UnaryNode()(Origin.empty) {
+    extends UnaryNode()(Origin.empty) {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -51,14 +51,13 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
             SubqueryAlias(
               Project(
                 UnresolvedRelation(originalCteName, message = s"Unresolved $originalCteName"),
-                reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Id(percentileColName))))
-              (Origin.empty),
+                reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Id(percentileColName))))(
+                Origin.empty),
               Id(withPercentileCteName))),
           Filter(
             Project(
               UnresolvedRelation(withPercentileCteName, message = s"Unresolved $withPercentileCteName"),
-              reProject)
-            (Origin.empty),
+              reProject)(Origin.empty),
             LessThanOrEqual(
               UnresolvedAttribute(
                 percentileColName,
@@ -81,14 +80,12 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
         SubqueryAlias(
           Project(
             UnresolvedRelation(ruleText = originalCteName, message = s"Unresolved relation $originalCteName"),
-            Seq(Alias(Count(Seq(Star())), Id("count"))))
-          (Origin.empty),
+            Seq(Alias(Count(Seq(Star())), Id("count"))))(Origin.empty),
           Id(countedCteName))),
       Limit(
         Project(
           UnresolvedRelation(ruleText = originalCteName, message = s"Unresolved relation $originalCteName"),
-          Seq(Star()))
-        (Origin.empty),
+          Seq(Star()))(Origin.empty),
         ScalarSubquery(
           Project(
             UnresolvedRelation(
@@ -96,7 +93,6 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
               message = s"Unresolved relation $countedCteName",
               ruleName = "N/A",
               tokenName = Some("N/A")),
-            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(100)), LongType)))
-          (Origin.empty))))
+            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(100)), LongType)))(Origin.empty))))
   }
 }

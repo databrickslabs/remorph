@@ -44,25 +44,26 @@ class SnowflakePlanParser extends PlanParser {
 
   private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
-    tokens.getTokens().stream()
+    tokens
+      .getTokens()
+      .stream()
       .filter(token => token.getChannel == SnowflakeLexer.COMMENT_CHANNEL)
-      .forEach(token => token.getType match {
-      case SnowflakeLexer.LINE_COMMENT => attachLineCommentToPlan(token, plan)
-    })
+      .forEach(token =>
+        token.getType match {
+          case SnowflakeLexer.LINE_COMMENT => attachLineCommentToPlan(token, plan)
+        })
     plan
   }
 
   private def attachLineCommentToPlan(token: Token, plan: LogicalPlan): Unit = {
-    val found = plan.children.find(
-        node => node.origin != null && node.origin.startLine.nonEmpty && node.origin.startLine.get > token.getLine
-      )
-      if(found.nonEmpty) {
-        found.get.comments = found.get.comments :+ LineCommentNode(token.getText)(Origin.fromToken(token))
-      }
+    val found = plan.children.find(node =>
+      node.origin != null && node.origin.startLine.nonEmpty && node.origin.startLine.get > token.getLine)
+    if (found.nonEmpty) {
+      found.get.comments = found.get.comments :+ LineCommentNode(token.getText)(Origin.fromToken(token))
+    }
   }
 
   def dialect: String = "snowflake"
-
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {

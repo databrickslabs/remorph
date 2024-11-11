@@ -269,8 +269,8 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]]()(val origin: Origin) ex
     val (defaultCtor, allArgs) = locateConstructor(ctors, newArgs, appendOrigin = false)
 
     try {
-       val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
-       res
+      val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
+      res
     } catch {
       case e: java.lang.IllegalArgumentException =>
         throw new TreeNodeException(
@@ -288,15 +288,14 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]]()(val origin: Origin) ex
 
   @tailrec
   private def locateConstructor(
-         ctors: Array[Constructor[_]],
-         newArgs: Array[AnyRef],
-         appendOrigin: Boolean
-   ): (Constructor[_], Array[AnyRef]) = {
+      ctors: Array[Constructor[_]],
+      newArgs: Array[AnyRef],
+      appendOrigin: Boolean): (Constructor[_], Array[AnyRef]) = {
     var allArgs: Array[AnyRef] = if (otherCopyArgs.isEmpty) {
-        newArgs
-      } else {
-        newArgs ++ otherCopyArgs
-      }
+      newArgs
+    } else {
+      newArgs ++ otherCopyArgs
+    }
     allArgs = if (appendOrigin) {
       allArgs ++ Array(Origin.empty)
     } else {

@@ -298,7 +298,7 @@ class LogicalPlanGenerator(
       .sequence
       .map(_.mkString.stripSuffix(", "))
 
-     code"SELECT $sqlParts$fromClause"
+    code"SELECT $sqlParts$fromClause"
   }
 
   private def orderBy(sort: ir.Sort): SQL = {

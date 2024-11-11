@@ -68,7 +68,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |ADD
            |  COLUMN c1 DECIMAL(38, 0);""".stripMargin
-        )
+      )
     }
 
     "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" in {
@@ -84,7 +84,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
         s"""ALTER TABLE
            |  t1 DROP COLUMN c1;""".stripMargin
-        )
+      )
     }
 
     "ALTER TABLE t1 DROP COLUMN c1, c2;" in {
@@ -118,7 +118,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  col1 != 100;""".stripMargin
-        )
+      )
 
       "SELECT * FROM t1;" transpilesTo
         s"""SELECT
@@ -273,7 +273,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  CURRENT_TIMESTAMP()
            |FROM
            |  t1;""".stripMargin
-        )
+      )
     }
 
     "SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP" in {
@@ -284,7 +284,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-        )
+      )
     }
 
     "SELECT CURRENT_TIME(1) FROM t1 where dt < CURRENT_TIMESTAMP()" in {
@@ -295,7 +295,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-        )
+      )
     }
 
     "SELECT LOCALTIME() FROM t1 where dt < LOCALTIMESTAMP" in {
@@ -306,7 +306,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |WHERE
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
-        )
+      )
     }
   }
 
@@ -321,7 +321,6 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           | */""".stripMargin
     }
   }
-
 
   "Snowflake MERGE commands" should {
 

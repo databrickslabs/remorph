@@ -74,7 +74,7 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty)
-  extends UnaryNode()(Origin.empty) {
+    extends UnaryNode()(Origin.empty) {
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType))
 }
 
@@ -138,7 +138,8 @@ case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
 case class BlockSampling(probability: BigDecimal) extends SamplingMethod
 
 // TODO: (nfx) refactor to align more with catalyst
-case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode()(Origin.empty) {
+case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal])
+    extends UnaryNode()(Origin.empty) {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
@@ -178,7 +179,7 @@ case class TableFunction(functionCall: Expression) extends LeafNode()() {
 }
 
 case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false)
-  extends UnaryNode()(Origin.empty) {
+    extends UnaryNode()(Origin.empty) {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }

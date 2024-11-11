@@ -160,8 +160,7 @@ class TSqlRelationBuilderSpec
                 Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y"))))(Origin.empty),
               Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
             "t"),
-          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb"))))
-          (Origin.empty))
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb"))))(Origin.empty))
     }
   }
 }

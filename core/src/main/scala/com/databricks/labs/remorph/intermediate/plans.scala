@@ -146,6 +146,7 @@ abstract class LogicalPlan()(origin: Origin) extends Plan[LogicalPlan]()(origin)
    */
   lazy val resolved: Boolean = expressions.forall(_.resolved) && childrenResolved
   var comments: Array[CommentNode] = Array()
+
   /**
    * Returns true if all its children of this query plan have been resolved.
    */

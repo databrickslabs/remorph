@@ -395,16 +395,18 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate EXISTS expressions" in {
-      exampleExpr("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(
-        namedTable("t"),
-        Seq(Star(None)))(Origin.empty)))
+      exampleExpr(
+        "EXISTS (SELECT * FROM t)",
+        _.predicate,
+        Exists(Project(namedTable("t"), Seq(Star(None)))(Origin.empty)))
     }
 
     // see https://github.com/databrickslabs/remorph/issues/273
     "translate NOT EXISTS expressions" ignore {
-      exampleExpr("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(
-        namedTable("t"),
-        Seq(Star(None)))(Origin.empty))))
+      exampleExpr(
+        "NOT EXISTS (SELECT * FROM t)",
+        _.expr(),
+        Not(Exists(Project(namedTable("t"), Seq(Star(None)))(Origin.empty))))
     }
   }
 
