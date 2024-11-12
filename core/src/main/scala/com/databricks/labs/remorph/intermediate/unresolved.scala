@@ -122,8 +122,7 @@ case class UnresolvedCommand(
     ruleText: String,
     message: String,
     ruleName: String = "rule name undetermined",
-    tokenName: Option[String] = None)
-    (origin: Origin)
+    tokenName: Option[String] = None)(origin: Origin)
     extends Catalog()(origin)
     with Command
     with UnwantedInGeneratorInput
