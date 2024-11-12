@@ -31,7 +31,7 @@ class TSqlPlanParser extends PlanParser[TSqlParser] {
         case _ => BuildingAst(tree)
       }.flatMap { _ =>
         try {
-          ok(createPlan(parser, tree))
+          ok(createPlan(tokens, tree))
         } catch {
           case NonFatal(e) =>
             lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
@@ -42,7 +42,7 @@ class TSqlPlanParser extends PlanParser[TSqlParser] {
 
   }
 
-  private def createPlan(parser: Parser, tree: ParseTree): LogicalPlan = {
+  private def createPlan(tokens: TokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
     plan
   }

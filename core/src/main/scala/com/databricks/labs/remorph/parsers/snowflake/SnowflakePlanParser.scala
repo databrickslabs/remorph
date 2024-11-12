@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser, TokenStream}
 
 import scala.util.control.NonFatal
 
@@ -31,7 +31,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
         case _ => BuildingAst(tree)
       }.flatMap { _ =>
         try {
-          ok(createPlan(parser, tree))
+          ok(createPlan(tokens, tree))
         } catch {
           case NonFatal(e) =>
             lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
@@ -42,7 +42,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
 
   }
 
-  private def createPlan(parser: Parser, tree: ParseTree): LogicalPlan = {
+  private def createPlan(tokens: TokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
     plan
   }
