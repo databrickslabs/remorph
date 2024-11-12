@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.intermediate.Catalog
+import com.databricks.labs.remorph.intermediate.{Catalog, Origin}
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.{intermediate => ir}
 
@@ -72,14 +72,14 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
       // Now we can build the create table statement or the create table as select statement
 
       val createTable = ctx.createTableAs() match {
-        case null => ir.CreateTable(tableName, None, None, None, schema)
+        case null => ir.CreateTable(tableName, None, None, None, schema)(Origin.fromParseRuleContext(ctx))
         case ctas if ctas.selectStatementStandalone() != null =>
           ir.CreateTableAsSelect(
             tableName,
             ctas.selectStatementStandalone().accept(vc.relationBuilder),
             None,
             None,
-            None)
+            None)(Origin.fromParseRuleContext(ctx))
         case _ =>
           ir.UnresolvedCatalog(
             ruleText = contextText(ctx),
@@ -130,7 +130,7 @@ class TSqlDDLBuilder(override val vc: TSqlVisitorCoordinator)
             tableConstraints,
             indices,
             partitionOn,
-            options)
+            options)(Origin.fromParseRuleContext(ctx))
       }
   }
 

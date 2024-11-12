@@ -425,7 +425,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         _.snowflakeFile(),
         Batch(
           Seq(
-            CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
+            CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType)))(Origin.empty),
             Project(namedTable("t1"), Seq(Id("x")))(Origin.empty),
             Project(namedTable("t3"), Seq(Literal(3)))(Origin.empty))))
     }

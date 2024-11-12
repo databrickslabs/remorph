@@ -162,29 +162,29 @@ class SnowflakeDDLBuilderSpec
       "CREATE TABLE s.t1 (x VARCHAR)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq()))))
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq())))(Origin.empty))
       }
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique())))))
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique()))))(Origin.empty))
       }
       "CREATE TABLE s.t1 (x VARCHAR NOT NULL)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false))))))
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false)))))(Origin.empty))
       }
       "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey())))))
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey()))))(Origin.empty))
       }
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
           CreateTableCommand(
             "s.t1",
-            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty))))))
+            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty)))))(Origin.empty))
       }
       "more complex" in {
         example(
@@ -208,20 +208,20 @@ class SnowflakeDDLBuilderSpec
                 "b",
                 DecimalType(Some(38), Some(0)),
                 None,
-                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
+                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty))))))(Origin.empty))
       }
 
       "CREATE TABLE t1 AS SELECT c1, c2 FROM t2;" in {
         example(
           "CREATE TABLE t1 AS (SELECT * FROM t2);",
           CreateTableParams(
-            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None)))(Origin.empty), None, None, None),
+            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None)))(Origin.empty), None, None, None)(Origin.empty),
             Map.empty[String, Seq[Constraint]],
             Map.empty[String, Seq[GenericOption]],
             Seq.empty[Constraint],
             Seq.empty[Constraint],
             None,
-            None))
+            None)(Origin.empty))
       }
     }
     "translate ALTER TABLE commands" should {
