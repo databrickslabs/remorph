@@ -315,7 +315,8 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def nameOrPosition(id: ir.NameOrPosition): SQL = id match {
     case ir.Id(name, true) => code"`$name`"
-    case ir.Id(name, false) => lift(OkResult(name))
+    case ir.Id(name, false) => ok(name)
+    case ir.Name(name) => ok(name)
     case p @ ir.Position(_) => partialResult(p)
   }
 

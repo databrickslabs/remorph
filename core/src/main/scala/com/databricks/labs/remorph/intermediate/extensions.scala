@@ -11,7 +11,7 @@ sealed trait NameOrPosition extends LeafExpression
 // TODO: (nfx) refactor to align more with catalyst, replace with Name
 case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor with NameOrPosition
 
-case class Name(name: String) extends LeafExpression {
+case class Name(name: String) extends NameOrPosition {
   override def dataType: DataType = UnresolvedType
 }
 
