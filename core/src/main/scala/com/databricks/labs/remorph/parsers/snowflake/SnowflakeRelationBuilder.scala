@@ -117,12 +117,12 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
       val groupingExpressions =
-        c.groupByList()
-          .groupByElem()
-          .asScala
+        Option(c.groupByList()).toSeq
+          .flatMap(_.groupByElem().asScala)
           .map(_.accept(vc.expressionBuilder))
+      val groupType = if (c.ALL() != null) ir.GroupByAll else ir.GroupBy
       val aggregate =
-        ir.Aggregate(child = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+        ir.Aggregate(child = input, group_type = groupType, grouping_expressions = groupingExpressions, pivot = None)
       buildHaving(c.havingClause(), aggregate)
     }
   }
