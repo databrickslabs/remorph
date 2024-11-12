@@ -388,6 +388,8 @@ case object UnspecifiedGroupType extends GroupType
 
 case object GroupBy extends GroupType
 
+case object GroupByAll extends GroupType
+
 case object Pivot extends GroupType
 
 case object UnspecifiedFormat extends ParseFormat

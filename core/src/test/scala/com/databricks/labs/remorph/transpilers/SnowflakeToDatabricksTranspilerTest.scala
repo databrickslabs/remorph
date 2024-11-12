@@ -258,6 +258,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
     }
 
+    "GROUP BY ALL" in {
+      "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;" transpilesTo
+        "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
