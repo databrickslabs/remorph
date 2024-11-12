@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.snowflake.rules.InlineColumnExpression
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -338,7 +339,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
 
   override def visitCTEColumn(ctx: CTEColumnContext): ir.LogicalPlan = {
-    ir.InlineColumnExpression(vc.expressionBuilder.buildId(ctx.id()), ctx.expr().accept(vc.expressionBuilder))
+    InlineColumnExpression(vc.expressionBuilder.buildId(ctx.id()), ctx.expr().accept(vc.expressionBuilder))
   }
 
   private def buildSampleMethod(ctx: SampleMethodContext): ir.SamplingMethod = ctx match {
