@@ -8,7 +8,7 @@
 // $antlr-format alignTrailingComments true
 // =================================================================================
 
-lexer grammar Preprocessor;
+lexer grammar DBTPreprocessorLexer;
 
 tokens {
     STRING,
@@ -107,11 +107,25 @@ options {
     }
 
     private boolean isStatement() {
-        return matchAndConsume(config.statStart());
+        if( matchAndConsume(config.statStart())) {
+            // There may be a trailing hyphen that is part of the statement start
+            if (_input.LA(1) == '-') {
+                _input.consume();
+            }
+            return true;
+        }
+        return false;
     }
 
     private boolean isExpression() {
-        return matchAndConsume(config.exprStart());
+        if (matchAndConsume(config.exprStart())) {
+           // There may be a trailing hyphen that is part of the expression start
+            if (_input.LA(1) == '-') {
+                _input.consume();
+            }
+            return true;
+        }
+        return false;
     }
 
     private boolean isComment() {
@@ -125,11 +139,33 @@ options {
     }
 
     private boolean isStatementEnd() {
-        return matchAndConsume(config.statEnd());
+        // There may be a preceding hyphen that is part of the statement end
+        int index = _input.index();
+        if (_input.LA(-1) == '-') {
+            _input.consume();
+        }
+        if (matchAndConsume(config.statEnd())) {
+            return true;
+        }
+        // Return to the start of the statement, any hyphen wwas just that and
+        // not part of the token
+        _input.seek(index);
+        return false;
     }
 
     private boolean isExpresionEnd() {
-        return matchAndConsume(config.exprEnd());
+        // There may be a preceding hyphen that is part of the expression end
+        int index = _input.index();
+        if (_input.LA(-1) == '-') {
+            _input.consume();
+        }
+        if (matchAndConsume(config.exprEnd())) {
+            return true;
+        }
+        // Return to the start of the expression, any hyphen wwas just that and
+        // not part of the token
+        _input.seek(index);
+        return false;
     }
 
     private boolean isCommentEnd() {
