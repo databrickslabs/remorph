@@ -29,6 +29,6 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
       new TranslateWithinGroup,
       new FlattenNestedConcat,
       new CompactJsonAccess,
-      new BundleInlineColumnExpressions)
+      new DealiasInlineColumnExpressions)
   }
 }
