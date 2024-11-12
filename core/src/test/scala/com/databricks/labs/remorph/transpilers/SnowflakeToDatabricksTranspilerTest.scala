@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
+import org.scalatest.prop.PropertyChecks.forEvery
+import org.scalatest.prop.Tables.Table
 import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
@@ -346,15 +348,26 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
-  "line comment" should {
-    "transpiles to line comment" in {
-      """-- some comment
-select * from test_tbl;""" transpilesTo
-        """-- some comment
+  private val commentedSqlTable = Table(
+    ("original", "transpiled"), // heading
+    ("""-- some comment
+select * from test_tbl;""",
+"""-- some comment
 SELECT * FROM test_tbl
-;""".stripMargin
-    }
+;"""),
+      ("""-- some comment
+create table test_tbl (a int);""",
+ """-- some comment
+CREATE TABLE test_tbl (a DECIMAL(38, 0))
+;""")
+  )
 
+  "line comment" should {
+    "transpile line comment" in {
+      forEvery(commentedSqlTable) { (original: String, transpiled: String) =>
+        original.stripMargin transpilesTo transpiled.stripMargin
+      }
+    }
   }
 
 }

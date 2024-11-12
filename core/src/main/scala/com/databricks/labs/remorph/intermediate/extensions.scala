@@ -221,7 +221,7 @@ case class CreateTableParams(
     indices: Seq[Constraint], // Index Definitions (currently all unresolved)
     partition: Option[String], // Partitioning information but unsupported
     options: Option[Seq[GenericOption]] // Command level options
-) extends Catalog()()
+)(origin: Origin) extends Catalog()()
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing
