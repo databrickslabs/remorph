@@ -5,7 +5,6 @@ import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, Transformat
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
-import org.antlr.v4.runtime.ParserRuleContext
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
@@ -49,14 +48,12 @@ trait Formatter {
 
 abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors {
 
-  protected val planParser: PlanParser[_]
+  protected val planParser: PlanParser
   private val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def parse(input: Parsing): Transformation[ParserRuleContext] = planParser.parse(input)
-
-  protected def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = planParser.visit(tree)
+  protected def parse(input: Parsing): Transformation[ir.LogicalPlan] = planParser.parseLogicalPlan(input)
 
   // TODO: optimizer really should be its own thing and not part of PlanParser
   // I have put it here for now until we discuss^h^h^h^h^h^h^hSerge dictates where it should go ;)
@@ -84,6 +81,6 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
   }
 
   override def transpile(input: Parsing): Transformation[String] = {
-    set(input).flatMap(_ => parse(input)).flatMap(visit).flatMap(optimize).flatMap(generate)
+    set(input).flatMap(_ => parse(input)).flatMap(optimize).flatMap(generate)
   }
 }

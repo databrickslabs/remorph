@@ -15,7 +15,7 @@ case class UnresolvedRelation(
     message: String = "",
     ruleName: String = "rule name undetermined",
     tokenName: Option[String] = None)
-    extends LeafNode
+    extends LeafNode()()
     with UnwantedInGeneratorInput
     with Unresolved[UnresolvedRelation] {
   override def output: Seq[Attribute] = Seq.empty
@@ -122,8 +122,8 @@ case class UnresolvedCommand(
     ruleText: String,
     message: String,
     ruleName: String = "rule name undetermined",
-    tokenName: Option[String] = None)
-    extends Catalog
+    tokenName: Option[String] = None)(origin: Origin)
+    extends Catalog()(origin)
     with Command
     with UnwantedInGeneratorInput
     with Unresolved[UnresolvedCommand] {
@@ -131,7 +131,7 @@ case class UnresolvedCommand(
   override def children: Seq[LogicalPlan] = Seq.empty
 
   override def annotate(newRuleName: String, newTokenName: Option[String]): UnresolvedCommand =
-    copy(ruleName = newRuleName, tokenName = newTokenName)
+    copy(ruleName = newRuleName, tokenName = newTokenName)(origin = origin)
 }
 
 case class UnresolvedCatalog(
@@ -139,7 +139,7 @@ case class UnresolvedCatalog(
     message: String,
     ruleName: String = "rule name undetermined",
     tokenName: Option[String] = None)
-    extends Catalog
+    extends Catalog()()
     with UnwantedInGeneratorInput
     with Unresolved[UnresolvedCatalog] {
   override def output: Seq[Attribute] = Seq.empty
@@ -154,7 +154,7 @@ case class UnresolvedCTAS(
     message: String,
     ruleName: String = "rule name undetermined",
     tokenName: Option[String] = None)
-    extends Catalog
+    extends Catalog()()
     with Command
     with UnwantedInGeneratorInput
     with Unresolved[UnresolvedCTAS] {

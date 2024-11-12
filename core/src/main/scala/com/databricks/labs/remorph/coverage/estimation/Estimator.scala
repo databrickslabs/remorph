@@ -9,7 +9,7 @@ import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, Optimizing}
 import com.databricks.labs.remorph.transpilers.SqlGenerator
 import com.typesafe.scalalogging.LazyLogging
 
-class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
+class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser, analyzer: EstimationAnalyzer)
     extends LazyLogging {
 
   def run(): EstimationReport = {
@@ -43,8 +43,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
       planParser
-        .parse(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
-        .flatMap(planParser.visit)
+        .parseLogicalPlan(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
         .run(initialState) match {
         case KoResult(PARSE, error) =>
           Some(

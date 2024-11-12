@@ -62,7 +62,7 @@ class SnowflakeRelationBuilderSpec
         example(
           "FROM (SELECT * FROM t1) t2",
           _.fromClause(),
-          SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), Id("t2"), Seq()))
+          SubqueryAlias(Project(namedTable("t1"), Seq(Star(None)))(Origin.empty), Id("t2"), Seq()))
       }
     }
 
@@ -227,13 +227,13 @@ class SnowflakeRelationBuilderSpec
         example(
           "WITH a AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq()))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y")))(Origin.empty), Id("a"), Seq()))
       }
       "WITH a (b, c) AS (SELECT x, y FROM d)" in {
         example(
           "WITH a (b, c) AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq(Id("b"), Id("c"))))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y")))(Origin.empty), Id("a"), Seq(Id("b"), Id("c"))))
       }
     }
 
@@ -268,7 +268,7 @@ class SnowflakeRelationBuilderSpec
         example(
           "SELECT TOP 42 a FROM t",
           _.selectStatement(),
-          Project(Limit(namedTable("t"), Literal(42)), Seq(Id("a"))))
+          Project(Limit(namedTable("t"), Literal(42)), Seq(Id("a")))(Origin.empty))
       }
       "SELECT DISTINCT TOP 42 a FROM t" in {
         example(

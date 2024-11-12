@@ -53,12 +53,12 @@ class CommentBasedQueryExtractor(inputDialect: String, targetDialect: String) ex
   }
 }
 
-class ExampleDebugger(parser: PlanParser[_], prettyPrinter: Any => Unit, dialect: String) extends LazyLogging {
+class ExampleDebugger(parser: PlanParser, prettyPrinter: Any => Unit, dialect: String) extends LazyLogging {
   def debugExample(name: String): Unit = {
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _)) =>
-        parser.parse(Parsing(query)).flatMap(parser.visit).run(Parsing(query)) match {
+        parser.parseLogicalPlan(Parsing(query)).run(Parsing(query)) match {
           case com.databricks.labs.remorph.KoResult(_, error) =>
             logger.error(s"Failed to parse query: $query ${error.msg}")
           case PartialResult((_, plan), error) =>

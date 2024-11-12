@@ -45,7 +45,7 @@ case class Fingerprints(fingerprints: Seq[Fingerprint]) {
   def uniqueQueries: Int = fingerprints.map(_.fingerprint).distinct.size
 }
 
-class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
+class Anonymizer(parser: PlanParser) extends LazyLogging {
   private val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
@@ -55,7 +55,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse(Parsing(query.source)).flatMap(parser.visit).run(Parsing(query.source)) match {
+    parser.parseLogicalPlan(Parsing(query.source)).run(Parsing(query.source)) match {
       case KoResult(WorkflowStage.PARSE, error) =>
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
         Fingerprint(
