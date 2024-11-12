@@ -3141,7 +3141,8 @@ withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpressi
     ;
 
 commonTableExpression
-    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN ((selectStatement setOperators*) | expr) RPAREN
+    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN (selectStatement setOperators*) RPAREN # CTETable
+    | id AS LPAREN expr RPAREN																	  # CTEColumn
     ;
 
 selectStatement

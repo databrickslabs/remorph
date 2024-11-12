@@ -346,4 +346,27 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Expressions in CTE" in {
+    """WITH
+      |    a AS (1),
+      |    b AS (2),
+      |    t (d, e) AS (SELECT 4, 5),
+      |    c AS (3)
+      |SELECT
+      |    a + b,
+      |    a * c,
+      |    a * t.d
+      |FROM t;""".stripMargin transpilesTo
+      """WITH
+        |    INLINE_BUNDLE (a, b, c) AS (SELECT * FROM VALUES (1, 2, 3)),
+        |    t (d, e) AS (SELECT 4, 5)
+        |SELECT
+        |    INLINE_BUNDLE.a + INLINE_BUNDLE.b,
+        |    INLINE_BUNDLE.a * INLINE_BUNDLE.c,
+        |    INLINE_BUNDLE.a * t.d
+        |FROM
+        |    INLINE_BUNDLE,
+        |    t;""".stripMargin
+  }
+
 }
