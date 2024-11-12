@@ -272,8 +272,8 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Orig
       .getOrElse(ctors.maxBy(_.getParameterTypes.length)) // fall back to older heuristic
 
     try {
-       val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
-        res
+      val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
+      res
     } catch {
       case e: java.lang.IllegalArgumentException =>
         throw new TreeNodeException(
