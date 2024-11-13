@@ -357,7 +357,9 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             "c1",
             ir.IntegerType,
             constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey())),
-          ir.ColumnDeclaration("c2", ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
+          ir.ColumnDeclaration(
+            "c2",
+            ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
     }
   }
 

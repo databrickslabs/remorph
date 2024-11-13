@@ -118,10 +118,10 @@ case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration], _or
 // TODO Need to introduce TableSpecBase, TableSpec and UnresolvedTableSpec
 
 case class ReplaceTableCommand(
-                                name: String,
-                                columns: Seq[ColumnDeclaration],
-                                orCreate: Boolean,
-                                _origin: Option[Origin] = Option.empty)
+    name: String,
+    columns: Seq[ColumnDeclaration],
+    orCreate: Boolean,
+    _origin: Option[Origin] = Option.empty)
     extends Catalog(_origin)
 
 case class ReplaceTableAsSelect(

@@ -182,16 +182,11 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           tableName,
           selectStatement,
           Map.empty[String, String],
-          true, false,
+          true,
+          false,
           Some(Origin.fromParserRuleContext(ctx)))
       } else {
-        ir.CreateTableAsSelect(
-          tableName,
-          selectStatement,
-          None,
-          None,
-          None,
-          Some(Origin.fromParserRuleContext(ctx)))
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None, Some(Origin.fromParserRuleContext(ctx)))
       }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
