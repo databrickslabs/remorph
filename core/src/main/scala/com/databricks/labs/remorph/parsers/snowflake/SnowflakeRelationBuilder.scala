@@ -46,7 +46,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
         buildTop(top, buildDistinct(relation, expressions))
       } else {
-        ir.Project(buildTop(top, relation), expressions)(Origin.fromParseRuleContext(ctx))
+        ir.Project(buildTop(top, relation), expressions, Some(Origin.fromParserRuleContext(ctx)))
       }
   }
 

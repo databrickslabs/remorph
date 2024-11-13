@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
-import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -1672,8 +1671,7 @@ class ExpressionGeneratorTest
         ir.Id("c1"),
         Seq(
           ir.ScalarSubquery(
-            ir.Project(namedTable("table1"), Seq(ir.Id("column1")))(
-              Origin.empty)))) generates "c1 IN (SELECT column1 FROM table1)"
+            ir.Project(namedTable("table1"), Seq(ir.Id("column1")))))) generates "c1 IN (SELECT column1 FROM table1)"
 
       ir.In(ir.Id("c1"), Seq(ir.Literal(1), ir.Literal(2), ir.Literal(3))) generates "c1 IN (1, 2, 3)"
     }

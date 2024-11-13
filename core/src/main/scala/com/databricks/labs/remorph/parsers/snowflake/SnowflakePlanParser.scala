@@ -57,9 +57,9 @@ class SnowflakePlanParser extends PlanParser {
 
   private def attachLineCommentToPlan(token: Token, plan: LogicalPlan): Unit = {
     val found = plan.children.find(node =>
-      node.origin != null && node.origin.startLine.nonEmpty && node.origin.startLine.get > token.getLine)
+      node.origin.nonEmpty && node.origin.get.startLine > token.getLine)
     if (found.nonEmpty) {
-      found.get.comments = found.get.comments :+ LineCommentNode(token.getText)(Origin.fromToken(token))
+      found.get.comments = found.get.comments :+ LineCommentNode(token.getText, Origin.fromToken(token))
     }
   }
 

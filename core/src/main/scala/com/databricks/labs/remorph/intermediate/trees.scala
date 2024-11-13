@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonIgnore
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.{ParserRuleContext, Token}
 import org.antlr.v4.runtime.tree.ParseTree
 
@@ -14,44 +15,40 @@ import scala.util.control.NonFatal
 private class MutableInt(var i: Int)
 
 case class Origin(
-    startLine: Option[Int] = None,
-    startColumn: Option[Int] = None,
-    endLine: Option[Int] = None,
-    endColumn: Option[Int] = None,
-    startTokenIndex: Option[Int] = None,
-    endTokenIndex: Option[Int] = None)
+    startLine: Int,
+    startColumn: Int,
+    endLine: Int,
+    endColumn: Int,
+    startTokenIndex: Int,
+    endTokenIndex: Int)
 
 object Origin {
 
-  val empty: Origin = Origin()
-
-  def fromParseTree(tree: ParseTree): Origin = {
+  def fromParseTree(tree: ParseTree): Option[Origin] = {
     tree match {
-      case parserRuleContext: ParserRuleContext => Origin.fromParseRuleContext(parserRuleContext)
-      case other => Origin.empty
+      case parserRuleContext: ParserRuleContext => Some(Origin.fromParserRuleContext(parserRuleContext))
+      case other => Option.empty
     }
   }
 
-  def fromParseRuleContext(ctx: ParserRuleContext): Origin = {
-    val start = ctx.getStart
-    val stop = ctx.getStop
+  def fromParserRuleContext(ctx: ParserRuleContext): Origin = {
     Origin(
-      startLine = Option(start.getLine),
-      startColumn = Option(start.getCharPositionInLine),
-      endLine = Option(stop.getLine),
-      endColumn = Option(stop.getCharPositionInLine + stop.getStopIndex - stop.getStartIndex),
-      startTokenIndex = Option(start.getTokenIndex),
-      endTokenIndex = Option(stop.getTokenIndex))
+      startLine = ctx.start.getLine,
+      startColumn = ctx.start.getCharPositionInLine,
+      endLine = ctx.stop.getLine,
+      endColumn = ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex,
+      startTokenIndex = ctx.start.getTokenIndex,
+      endTokenIndex = ctx.stop.getTokenIndex)
   }
 
   def fromToken(token: Token): Origin = {
     Origin(
-      startLine = Option(token.getLine),
-      startColumn = Option(token.getCharPositionInLine),
-      endLine = Option(token.getLine),
-      endColumn = Option(token.getCharPositionInLine + token.getText.length),
-      startTokenIndex = Option(token.getTokenIndex),
-      endTokenIndex = Option(token.getTokenIndex))
+      startLine = token.getLine,
+      startColumn = token.getCharPositionInLine,
+      endLine = token.getLine,
+      endColumn = token.getCharPositionInLine + token.getText.length,
+      startTokenIndex = token.getTokenIndex,
+      endTokenIndex = token.getTokenIndex)
   }
 }
 
@@ -70,14 +67,15 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-@JsonIgnoreProperties(Array("containsChild", "origin"))
-abstract class TreeNode[BaseType <: TreeNode[BaseType]]()(val origin: Origin) extends Product {
+abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] = Option.empty) extends Product {
   // scalastyle:on
   self: BaseType =>
 
-  lazy val containsChild: Set[TreeNode[_]] = children.toSet
+  @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
+
+  def origin: Option[Origin] = _origin
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild
@@ -297,7 +295,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]]()(val origin: Origin) ex
       newArgs ++ otherCopyArgs
     }
     allArgs = if (appendOrigin) {
-      allArgs ++ Array(Origin.empty)
+      allArgs ++ Array(Option.empty)
     } else {
       allArgs
     }
