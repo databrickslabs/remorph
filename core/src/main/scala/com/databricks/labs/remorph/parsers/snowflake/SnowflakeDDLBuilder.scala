@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -163,9 +164,9 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           .columnDeclItem()
           .asScala)
       if (ctx.REPLACE() != null) {
-        ir.ReplaceTableCommand(tableName, columns, true)
+        ir.ReplaceTableCommand(tableName, columns, true, Some(Origin.fromParserRuleContext(ctx)))
       } else {
-        ir.CreateTableCommand(tableName, columns)
+        ir.CreateTableCommand(tableName, columns, Some(Origin.fromParserRuleContext(ctx)))
       }
 
   }
@@ -177,9 +178,15 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
       // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
       val create = if (ctx.REPLACE() != null) {
-        ir.ReplaceTableAsSelect(tableName, selectStatement, Map.empty[String, String], true, false)
+        ir.ReplaceTableAsSelect(
+          tableName,
+          selectStatement,
+          Map.empty[String, String],
+          true,
+          false,
+          Some(Origin.fromParserRuleContext(ctx)))
       } else {
-        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None, Some(Origin.fromParserRuleContext(ctx)))
       }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
@@ -189,7 +196,15 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       val indices = Seq.empty[ir.Constraint]
       val partition = None
       val options = None
-      ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
+      ir.CreateTableParams(
+        create,
+        colConstraints,
+        colOptions,
+        constraints,
+        indices,
+        partition,
+        options,
+        Some(Origin.fromParserRuleContext(ctx)))
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.Catalog =

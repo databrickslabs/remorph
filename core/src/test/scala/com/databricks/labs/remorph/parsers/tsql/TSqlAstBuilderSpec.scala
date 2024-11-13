@@ -400,19 +400,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     example(
       query = """WITH cteTable1 (col1, col2, col3count)
-                AS
-                (
-                    SELECT col1, fred, COUNT(OrderDate) AS counter
-                    FROM Table1
-                ),
-                cteTable2 (colx, coly, colxcount)
-                AS
-                (
-                    SELECT col1, fred, COUNT(OrderDate) AS counter
-                    FROM Table2
-                )
-                SELECT col2, col1, col3count, colx, coly, colxcount
-                FROM cteTable""",
+            AS
+            (
+                SELECT col1, fred, COUNT(OrderDate) AS counter
+                FROM Table1
+            ),
+            cteTable2 (colx, coly, colxcount)
+            AS
+            (
+                SELECT col1, fred, COUNT(OrderDate) AS counter
+                FROM Table2
+            )
+            SELECT col2, col1, col3count, colx, coly, colxcount
+            FROM cteTable""",
       expectedAst = Batch(
         Seq(WithCTE(
           Seq(
@@ -604,13 +604,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   "parse and collect the options in the OPTION clause in a SELECT statement" in {
     example(
       query = """SELECT * FROM t FOR XML RAW
-            OPTION (
-            MAXRECURSION 10,
-            OPTIMIZE [FOR] UNKNOWN,
-            SOMETHING ON,
-            SOMETHINGELSE OFF,
-            SOMEOTHER AUTO,
-            SOMEstrOpt = 'STRINGOPTION')""",
+        OPTION (
+        MAXRECURSION 10,
+        OPTIMIZE [FOR] UNKNOWN,
+        SOMETHING ON,
+        SOMETHINGELSE OFF,
+        SOMEOTHER AUTO,
+        SOMEstrOpt = 'STRINGOPTION')""",
       expectedAst = Batch(
         Seq(WithOptions(
           Project(namedTable("t"), Seq(Star(None))),
@@ -745,15 +745,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   "translate insert statements with SELECT" in {
     example(
       query = """
-           INSERT INTO ConsolidatedRecords (ID, Name)
-              SELECT ID, Name
-              FROM (
-                SELECT ID, Name
-                FROM TableA
-                  UNION
-                SELECT ID, Name
-                FROM TableB)
-              AS DerivedTable;""",
+       INSERT INTO ConsolidatedRecords (ID, Name)
+          SELECT ID, Name
+          FROM (
+            SELECT ID, Name
+            FROM TableA
+              UNION
+            SELECT ID, Name
+            FROM TableB)
+          AS DerivedTable;""",
       expectedAst = Batch(
         Seq(InsertIntoTable(
           namedTable("ConsolidatedRecords"),
@@ -879,10 +879,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   "translate MERGE statements" in {
     example(
       query = """
-          |MERGE INTO t USING s
-          | ON t.a = s.a
-          | WHEN MATCHED THEN UPDATE SET t.b = s.b
-          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+        |MERGE INTO t USING s
+        | ON t.a = s.a
+        | WHEN MATCHED THEN UPDATE SET t.b = s.b
+        | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
       expectedAst = Batch(
         Seq(MergeIntoTable(
           NamedTable("t", Map(), is_streaming = false),
@@ -905,11 +905,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   "translate MERGE statements with options" in {
     example(
       query = """
-            |MERGE INTO t USING s
-            | ON t.a = s.a
-            | WHEN MATCHED THEN UPDATE SET t.b = s.b
-            | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
-            | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
+        |MERGE INTO t USING s
+        | ON t.a = s.a
+        | WHEN MATCHED THEN UPDATE SET t.b = s.b
+        | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+        | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
       expectedAst = Batch(
         Seq(WithModificationOptions(
           MergeIntoTable(
@@ -935,17 +935,17 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             List())))))
     example(
       query = """
-            |WITH s (a, b, col3count)
-            |                AS
-            |                (
-            |                    SELECT col1, fred, COUNT(OrderDate) AS counter
-            |                    FROM Table1
-            |                )
-            |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
-            |   ON t.a = s.a
-            |   WHEN MATCHED THEN UPDATE SET t.b = s.b
-            |   WHEN NOT MATCHED BY TARGET THEN DELETE
-            |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+        |WITH s (a, b, col3count)
+        |                AS
+        |                (
+        |                    SELECT col1, fred, COUNT(OrderDate) AS counter
+        |                    FROM Table1
+        |                )
+        |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
+        |   ON t.a = s.a
+        |   WHEN MATCHED THEN UPDATE SET t.b = s.b
+        |   WHEN NOT MATCHED BY TARGET THEN DELETE
+        |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
       expectedAst = Batch(
         Seq(WithCTE(
           Seq(SubqueryAlias(

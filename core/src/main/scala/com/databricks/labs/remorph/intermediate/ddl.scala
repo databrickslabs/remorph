@@ -112,19 +112,26 @@ case class ColumnDeclaration(
     virtualColumnDeclaration: Option[Expression] = Option.empty,
     constraints: Seq[Constraint] = Seq.empty)
 
-case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration], _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
 // TODO Need to introduce TableSpecBase, TableSpec and UnresolvedTableSpec
 
-case class ReplaceTableCommand(name: String, columns: Seq[ColumnDeclaration], orCreate: Boolean) extends Catalog
+case class ReplaceTableCommand(
+    name: String,
+    columns: Seq[ColumnDeclaration],
+    orCreate: Boolean,
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin)
 
 case class ReplaceTableAsSelect(
     table_name: String,
     query: LogicalPlan,
     writeOptions: Map[String, String],
     orCreate: Boolean,
-    isAnalyzed: Boolean = false)
-    extends Catalog
+    isAnalyzed: Boolean = false,
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin)
 
 sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
@@ -152,7 +159,7 @@ case class RenameColumn(oldName: String, newName: String) extends TableAlteratio
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
 // Catalog API (experimental / unstable)
-abstract class Catalog extends LeafNode {
+abstract class Catalog(_origin: Option[Origin] = Option.empty) extends LeafNode(_origin) {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -181,8 +188,9 @@ case class CreateTable(
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    override val schema: DataType)
-    extends Catalog {}
+    override val schema: DataType,
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
 // As per Spark v2Commands
 case class CreateTableAsSelect(
@@ -190,8 +198,9 @@ case class CreateTableAsSelect(
     query: LogicalPlan,
     path: Option[String],
     source: Option[String],
-    description: Option[String])
-    extends Catalog {}
+    description: Option[String],
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}
