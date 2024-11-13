@@ -54,13 +54,15 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-abstract class TreeNode[BaseType <: TreeNode[BaseType]](@JsonIgnore origin: Origin) extends Product {
+abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] = Option.empty) extends Product {
   // scalastyle:on
   self: BaseType =>
 
   @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
+
+  def origin: Option[Origin] = _origin
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild

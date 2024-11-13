@@ -6,7 +6,8 @@ package com.databricks.labs.remorph.intermediate
  * the [[Command]] type that is used to execute commands on the server. [[Plan]] is a union of Spark's LogicalPlan and
  * QueryPlan.
  */
-abstract class Plan[PlanType <: Plan[PlanType]](origin: Origin = Origin.empty) extends TreeNode[PlanType](origin) {
+abstract class Plan[PlanType <: Plan[PlanType]](_origin: Option[Origin] = Option.empty)
+    extends TreeNode[PlanType](_origin) {
   self: PlanType =>
 
   def output: Seq[Attribute]
