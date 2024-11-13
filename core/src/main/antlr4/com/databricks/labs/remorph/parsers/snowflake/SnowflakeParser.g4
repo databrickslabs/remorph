@@ -3360,6 +3360,7 @@ predicate
     | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN                    # predASA
     | expression IS NOT? NULL                                                                    # predIsNull
     | expression NOT? IN LPAREN (subquery | exprList) RPAREN                                     # predIn
+    | LPAREN exprList RPAREN  NOT? IN LPAREN (subquery | exprList) RPAREN                    # predExprListIn
     | expression NOT? BETWEEN expression AND expression                                          # predBetween
     | expression NOT? op = (LIKE | ILIKE) expression (ESCAPE expression)?                        # predLikeSinglePattern
     | expression NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expression)? # predLikeMultiplePatterns

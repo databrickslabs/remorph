@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -28,6 +29,8 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
       new CastParseJsonToFromJson,
       new TranslateWithinGroup,
       new FlattenNestedConcat,
-      new CompactJsonAccess)
+      new CompactJsonAccess,
+      new DeleteOnMultipleColumns
+    )
   }
 }
