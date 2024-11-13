@@ -15,5 +15,5 @@ case class AzureAttributes(
     .setAvailability(availability.orNull)
     // .setFirstOnDemand(firstOnDemand.orNull)
     .setLogAnalyticsInfo(logAnalyticsInfo.map(_.toSDK).orNull)
-    // .setSpotBidMaxPrice(spotBidMaxPrice.orNull)
+  // .setSpotBidMaxPrice(spotBidMaxPrice.orNull)
 }
