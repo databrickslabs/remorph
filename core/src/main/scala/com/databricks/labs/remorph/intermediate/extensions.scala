@@ -241,7 +241,7 @@ case object WEEK_INTERVAL extends KnownIntervalType
 case object MONTH_INTERVAL extends KnownIntervalType
 case object YEAR_INTERVAL extends KnownIntervalType
 
-// TSQL - For translation purposes, we cannot use teh standard Catalyst CalendarInterval as it is not
+// TSQL - For translation purposes, we cannot use the standard Catalyst CalendarInterval as it is not
 // meant for code generation and converts everything to microseconds. It is much easier to use an extension
 // to the AST to represent the interval as it is required in TSQL, where we need to know if we were dealing with
 // MONTHS, HOURS, etc.
@@ -249,3 +249,4 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
+
