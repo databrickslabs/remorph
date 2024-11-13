@@ -12,33 +12,30 @@ import scala.util.control.NonFatal
 private class MutableInt(var i: Int)
 
 case class Origin(
-    startLine: Option[Int] = None,
-    startColumn: Option[Int] = None,
-    endLine: Option[Int] = None,
-    endColumn: Option[Int] = None,
-    startTokenIndex: Option[Int] = None,
-    endTokenIndex: Option[Int] = None)
+    startLine: Int,
+    startColumn: Int,
+    endLine: Int,
+    endColumn: Int,
+    startTokenIndex: Int,
+    endTokenIndex: Int)
 
 object Origin {
 
-  val empty: Origin = Origin()
-
-  def fromParseTree(tree: ParseTree): Origin = {
+  def fromParseTree(tree: ParseTree): Option[Origin] = {
     tree match {
-      case parserRuleContext: ParserRuleContext => Origin.fromParseRuleContext(parserRuleContext)
-      case other => Origin.empty
+      case parserRuleContext: ParserRuleContext => Some(Origin.fromParserRuleContext(parserRuleContext))
+      case other => Option.empty
     }
   }
 
-  def fromParseRuleContext(ctx: ParserRuleContext): Origin = {
+  def fromParserRuleContext(ctx: ParserRuleContext): Origin = {
     Origin(
-      startLine = Option(ctx.start.getLine),
-      startColumn = Option(ctx.start.getCharPositionInLine),
-      endLine = Option(ctx.stop.getLine),
-      endColumn = Option(ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex),
-      startTokenIndex = Option(ctx.start.getTokenIndex),
-      endTokenIndex = Option(ctx.stop.getTokenIndex))
-
+      startLine = ctx.start.getLine,
+      startColumn = ctx.start.getCharPositionInLine,
+      endLine = ctx.stop.getLine,
+      endColumn = ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex,
+      startTokenIndex = ctx.start.getTokenIndex,
+      endTokenIndex = ctx.stop.getTokenIndex)
   }
 }
 
