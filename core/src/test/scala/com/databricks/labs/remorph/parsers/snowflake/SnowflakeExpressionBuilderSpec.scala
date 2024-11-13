@@ -89,6 +89,13 @@ class SnowflakeExpressionBuilderSpec
           Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
       }
     }
+
+    "translate column positions" should {
+      "$1" in {
+        exampleExpr("$1", _.columnElem(), Column(None, Position(1)))
+      }
+    }
+
     "translate aliases" should {
       "x AS y" in {
         exampleExpr("1 AS y", _.selectListElem(), Alias(Literal(1), Id("y")))

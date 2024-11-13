@@ -6,18 +6,25 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst, replace with Name
-case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
+sealed trait NameOrPosition extends LeafExpression
 
-case class Name(name: String) extends LeafExpression {
+// TODO: (nfx) refactor to align more with catalyst, replace with Name
+case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor with NameOrPosition
+
+case class Name(name: String) extends NameOrPosition {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst
-case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
+case class Position(index: Int) extends ToRefactor with NameOrPosition {}
 
 // TODO: (nfx) refactor to align more with catalyst
-case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
+case class ObjectReference(head: NameOrPosition, tail: NameOrPosition*) extends ToRefactor
+
+// TODO: (nfx) refactor to align more with catalyst
+case class Column(tableNameOrAlias: Option[ObjectReference], columnName: NameOrPosition)
+    extends ToRefactor
+    with AstExtension {}
+
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
 case class DollarAction() extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
