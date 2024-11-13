@@ -3226,8 +3226,8 @@ tableSourceItemJoined: objectRef joinClause* | LPAREN tableSourceItemJoined RPAR
 objectRef
     : dotIdentifier atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?   # objRefDefault
     | TABLE LPAREN functionCall RPAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
-    | LATERAL? (functionCall | (LPAREN subquery RPAREN)) pivotUnpivot? tableAlias? # objRefSubquery
     | valuesTable tableAlias?                                                      # objRefValues
+    | LATERAL? (functionCall | (LPAREN subquery RPAREN)) pivotUnpivot? tableAlias? # objRefSubquery
     | dotIdentifier START WITH searchCondition CONNECT BY priorList?               # objRefStartWith
     ;
 
