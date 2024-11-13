@@ -782,18 +782,36 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
           .map(_.accept(this))
 
         // Assume subquery has output columns (v3, v4, etc.)
-        val subqueryOutput = subqueryExpr.collect { case ir.Id(id, _) =>
-          id
+        val subqueryOutput = subqueryExpr.collect {
+//          case ir.Id(id, _) =>
+//          id
+        case expr => expr
         }
 
         // Create comparisons between left-hand side and subquery columns
         // Adding outer and inner to the column references to avoid ambiguity while
         // generating there where clause in the optimized plan
-        val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
-          ir.Equals(
-            ir.Column(Some(ir.ObjectReference(ir.Id("outer"))), leftExpr.asInstanceOf[ir.Id]),
-            ir.Column(Some(ir.ObjectReference(ir.Id("inner"))), ir.Id(rightExpr)))
-        }
+//        val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
+//          ir.Equals(
+//            ir.Column(Some(ir.ObjectReference(ir.Id("outer"))), leftExpr.asInstanceOf[ir.Id]),
+//            ir.Column(Some(ir.ObjectReference(ir.Id("inner"))), ir.Id(rightExpr)))
+//        }
+
+//        val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
+//          ir.Equals(leftExpr, rightExpr)
+//        }
+      val comparisonExprs = leftExprList.zip(subqueryOutput).map { case (leftExpr, rightExpr) =>
+//        val leftColumn = leftExpr match {
+//          case id: ir.Id => ir.ColumnAlias(Some(ir.ObjectReference(ir.Id("outer"))), id)
+////          case _ => leftExpr
+//        }
+//        val rightColumn = rightExpr match {
+//          case id: ir.Id => ir.ColumnAlias(Some(ir.ObjectReference(ir.Id("inner"))), id)
+////          case _ => rightExpr
+        val leftColumn = ir.ColumnAlias(Some(ir.ObjectReference(ir.Id("outer"))), leftExpr)
+        val rightColumn = ir.ColumnAlias(Some(ir.ObjectReference(ir.Id("inner"))), rightExpr)
+        ir.Equals(leftColumn, rightColumn)
+      }
 
         val conjunction = comparisonExprs.reduce(ir.And)
         ir.Exists(ir.Project(ir.Filter(namedTable(subQueryTable), conjunction), Seq(ir.Id("1"))))

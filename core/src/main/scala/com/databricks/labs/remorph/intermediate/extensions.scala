@@ -18,6 +18,8 @@ case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
 
 // TODO: (nfx) refactor to align more with catalyst
 case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
+case class ColumnAlias(tableNameOrAlias: Option[ObjectReference], columnExpr: Expression)
+  extends ToRefactor with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
 case class DollarAction() extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor

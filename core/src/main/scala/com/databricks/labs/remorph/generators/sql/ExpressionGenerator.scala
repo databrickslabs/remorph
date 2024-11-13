@@ -66,6 +66,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case e: ir.Extract => extract(e)
       case c: ir.Concat => concat(c)
       case i: ir.In => in(i)
+      case c: ir.ColumnAlias => columnAlias(c)
 
       // keep this case after every case involving an `Fn`, otherwise it will make said case unreachable
       case fn: ir.Fn => code"${fn.prettyName}(${commas(fn.children)})"
@@ -188,6 +189,19 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   private def column(column: ir.Column): SQL = {
     val objectRef = column.tableNameOrAlias.map(or => code"${generateObjectReference(or)}.").getOrElse("")
     code"$objectRef${id(column.columnName)}"
+  }
+
+  private def columnAlias(alias: ir.ColumnAlias): SQL = {
+    val objectRef = alias.tableNameOrAlias.map(or => code"${generateObjectReference(or)}.").getOrElse("")
+    val columnExpr = alias.columnExpr match {
+      case func: ir.CallFunction =>
+//        code"${func.function_name}(${objectRef}${id(func.children.head.asInstanceOf[ir.Id])})"
+        code"""${func.function_name}
+              (${func.children.map(x => code"${objectRef}${expression(x)}").mkCode(", ")})"""
+      case i: ir.Id => code"$objectRef${id(i)}"
+      case _ => code"$objectRef${expression(alias.columnExpr)}"
+    }
+    columnExpr
   }
 
   private def insertAction(insertAction: ir.InsertAction): SQL = {

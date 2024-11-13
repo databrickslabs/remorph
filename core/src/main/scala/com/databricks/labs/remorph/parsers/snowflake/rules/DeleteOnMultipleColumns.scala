@@ -34,9 +34,9 @@ class DeleteOnMultipleColumns extends Rule[LogicalPlan] {
 
   private def replaceSourceAndTarget(expression: Expression, outerTable: String, subqueryTable: String): Expression = {
     expression transform {
-      case col @ Column(Some(ObjectReference(Id("outer", _))), _) =>
+      case col @ ColumnAlias(Some(ObjectReference(Id("outer", _))), _) =>
         col.copy(tableNameOrAlias = Some(ObjectReference(Id(outerTable))))
-      case col @ Column(Some(ObjectReference(Id("inner", _))), _) =>
+      case col @ ColumnAlias(Some(ObjectReference(Id("inner", _))), _) =>
         col.copy(tableNameOrAlias = Some(ObjectReference(Id(subqueryTable))))
     }
   }
