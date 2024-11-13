@@ -162,29 +162,29 @@ class SnowflakeDDLBuilderSpec
       "CREATE TABLE s.t1 (x VARCHAR)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq())))(Origin.empty))
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq()))))
       }
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique()))))(Origin.empty))
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique())))))
       }
       "CREATE TABLE s.t1 (x VARCHAR NOT NULL)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false)))))(Origin.empty))
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false))))))
       }
       "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey()))))(Origin.empty))
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey())))))
       }
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
           CreateTableCommand(
             "s.t1",
-            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty)))))(Origin.empty))
+            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty))))))
       }
       "more complex" in {
         example(
@@ -208,20 +208,20 @@ class SnowflakeDDLBuilderSpec
                 "b",
                 DecimalType(Some(38), Some(0)),
                 None,
-                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty))))))(Origin.empty))
+                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
       }
 
       "CREATE TABLE t1 AS SELECT c1, c2 FROM t2;" in {
         example(
           "CREATE TABLE t1 AS (SELECT * FROM t2);",
           CreateTableParams(
-            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None)))(Origin.empty), None, None, None)(Origin.empty),
+            CreateTableAsSelect("t1", Project(namedTable("t2"), Seq(Star(None))), None, None, None),
             Map.empty[String, Seq[Constraint]],
             Map.empty[String, Seq[GenericOption]],
             Seq.empty[Constraint],
             Seq.empty[Constraint],
             None,
-            None)(Origin.empty))
+            None))
       }
     }
     "translate ALTER TABLE commands" should {
@@ -287,7 +287,7 @@ class SnowflakeDDLBuilderSpec
             ruleText = "ALTER SESSION SET QUERY_TAG = 'TAG'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER"))(Origin.empty))
+            tokenName = Some("ALTER")))
       }
 
       "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
@@ -297,7 +297,7 @@ class SnowflakeDDLBuilderSpec
             ruleText = "ALTER STREAM mystream SET COMMENT = 'New comment for stream'",
             message = "Unknown ALTER command variant",
             ruleName = "alterCommand",
-            tokenName = Some("ALTER"))(Origin.empty))
+            tokenName = Some("ALTER")))
       }
 
       "CREATE STREAM mystream ON TABLE mytable" in {
@@ -307,7 +307,7 @@ class SnowflakeDDLBuilderSpec
             ruleText = "CREATE STREAM mystream ON TABLE mytable",
             message = "CREATE STREAM UNSUPPORTED",
             ruleName = "createStream",
-            tokenName = Some("STREAM"))(Origin.empty))
+            tokenName = Some("STREAM")))
       }
 
       "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
@@ -317,7 +317,7 @@ class SnowflakeDDLBuilderSpec
             ruleText = "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)",
             message = "CREATE TASK UNSUPPORTED",
             ruleName = "createTask",
-            tokenName = Some("TASK"))(Origin.empty))
+            tokenName = Some("TASK")))
       }
     }
 
@@ -379,13 +379,13 @@ class SnowflakeDDLBuilderSpec
         ruleText = "Mocked string",
         message = "Unknown ALTER TABLE variant",
         ruleName = "alterTable",
-        tokenName = Some("ID"))(Origin.empty)
+        tokenName = Some("ID"))
       verify(alterTable).dotIdentifier(0)
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
       verify(alterTable).getRuleIndex
-      verify(alterTable, times(4)).getStart
-      verify(alterTable, times(2)).getStop
+      verify(alterTable, times(3)).getStart
+      verify(alterTable).getStop
       verifyNoMoreInteractions(alterTable)
     }
   }

@@ -1,15 +1,15 @@
 package com.databricks.labs.remorph.intermediate
 
-abstract class Relation extends LogicalPlan()(Origin.empty)
+abstract class Relation extends LogicalPlan
 
 abstract class RelationCommon extends Relation {}
 
 case class SQL(query: String, named_arguments: Map[String, Expression], pos_arguments: Seq[Expression])
-    extends LeafNode()(Origin.empty) {
+    extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-abstract class Read(is_streaming: Boolean) extends LeafNode()(Origin.empty)
+abstract class Read(is_streaming: Boolean) extends LeafNode
 
 // TODO: replace it with TableIdentifier with catalog and schema filled
 // TODO: replace most (if not all) occurrences with UnresolvedRelation
@@ -29,7 +29,8 @@ case class DataSource(
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Project(input: LogicalPlan, columns: Seq[Expression])(origin: Origin) extends UnaryNode()(origin) {
+case class Project(input: LogicalPlan, columns: Seq[Expression], _origin: Option[Origin] = Option.empty)
+    extends UnaryNode(_origin) {
   override def child: LogicalPlan = input
   // TODO: add resolver for Star
   override def output: Seq[Attribute] = expressions.map {
@@ -41,7 +42,7 @@ case class Project(input: LogicalPlan, columns: Seq[Expression])(origin: Origin)
   }
 }
 
-case class Filter(input: LogicalPlan, condition: Expression) extends UnaryNode()(Origin.empty) {
+case class Filter(input: LogicalPlan, condition: Expression) extends UnaryNode {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
@@ -78,15 +79,15 @@ case class SetOperation(
   override def output: Seq[Attribute] = left.output ++ right.output
 }
 
-case class Limit(child: LogicalPlan, limit: Expression) extends UnaryNode()(Origin.empty) {
+case class Limit(child: LogicalPlan, limit: Expression) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Offset(child: LogicalPlan, offset: Expression) extends UnaryNode()(Origin.empty) {
+case class Offset(child: LogicalPlan, offset: Expression) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Tail(child: LogicalPlan, limit: Int) extends UnaryNode()(Origin.empty) {
+case class Tail(child: LogicalPlan, limit: Int) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -97,7 +98,7 @@ case class Aggregate(
     group_type: GroupType,
     grouping_expressions: Seq[Expression],
     pivot: Option[Pivot])
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output ++ grouping_expressions.map(_.asInstanceOf[Attribute])
 }
 
@@ -119,13 +120,11 @@ case class SortOrder(
   override def dataType: DataType = child.dataType
 }
 
-case class Sort(child: LogicalPlan, order: Seq[SortOrder], is_global: Boolean = false)
-    extends UnaryNode()(Origin.empty) {
+case class Sort(child: LogicalPlan, order: Seq[SortOrder], is_global: Boolean = false) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Drop(child: LogicalPlan, columns: Seq[Expression], column_names: Seq[String])
-    extends UnaryNode()(Origin.empty) {
+case class Drop(child: LogicalPlan, columns: Seq[Expression], column_names: Seq[String]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output diff columns.map(_.asInstanceOf[Attribute])
 }
 
@@ -134,20 +133,19 @@ case class Deduplicate(
     column_names: Seq[Expression],
     all_columns_as_keys: Boolean,
     within_watermark: Boolean)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class LocalRelation(child: LogicalPlan, data: Array[Byte], schemaString: String)
-    extends UnaryNode()(Origin.empty) {
+case class LocalRelation(child: LogicalPlan, data: Array[Byte], schemaString: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class CachedLocalRelation(hash: String) extends LeafNode()() {
+case class CachedLocalRelation(hash: String) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class CachedRemoteRelation(relation_id: String) extends LeafNode()() {
+case class CachedRemoteRelation(relation_id: String) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -158,107 +156,101 @@ case class Sample(
     with_replacement: Boolean,
     seed: Long,
     deterministic_order: Boolean)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends LeafNode()() {
+case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends LeafNode {
   override def output: Seq[Attribute] = Seq(AttributeReference("id", LongType))
 }
 
 // TODO: most likely has to be SubqueryAlias(identifier: AliasIdentifier, child: LogicalPlan)
-case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id] = Seq.empty)
-    extends UnaryNode()(Origin.empty) {
+case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id] = Seq.empty) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Repartition(child: LogicalPlan, num_partitions: Int, shuffle: Boolean) extends UnaryNode()(Origin.empty) {
+case class Repartition(child: LogicalPlan, num_partitions: Int, shuffle: Boolean) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class ShowString(child: LogicalPlan, num_rows: Int, truncate: Int, vertical: Boolean)
-    extends UnaryNode()(Origin.empty) {
+case class ShowString(child: LogicalPlan, num_rows: Int, truncate: Int, vertical: Boolean) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class HtmlString(child: LogicalPlan, num_rows: Int, truncate: Int) extends UnaryNode()(Origin.empty) {
+case class HtmlString(child: LogicalPlan, num_rows: Int, truncate: Int) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatSummary(child: LogicalPlan, statistics: Seq[String]) extends UnaryNode()(Origin.empty) {
+case class StatSummary(child: LogicalPlan, statistics: Seq[String]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatDescribe(child: LogicalPlan, cols: Seq[String]) extends UnaryNode()(Origin.empty) {
+case class StatDescribe(child: LogicalPlan, cols: Seq[String]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatCrosstab(child: LogicalPlan, col1: String, col2: String) extends UnaryNode()(Origin.empty) {
+case class StatCrosstab(child: LogicalPlan, col1: String, col2: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatCov(child: LogicalPlan, col1: String, col2: String) extends UnaryNode()(Origin.empty) {
+case class StatCov(child: LogicalPlan, col1: String, col2: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatCorr(child: LogicalPlan, col1: String, col2: String, method: String) extends UnaryNode()(Origin.empty) {
+case class StatCorr(child: LogicalPlan, col1: String, col2: String, method: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
 case class StatApproxQuantile(child: LogicalPlan, cols: Seq[String], probabilities: Seq[Double], relative_error: Double)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class StatFreqItems(child: LogicalPlan, cols: Seq[String], support: Double) extends UnaryNode()(Origin.empty) {
+case class StatFreqItems(child: LogicalPlan, cols: Seq[String], support: Double) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
 case class Fraction(stratum: Literal, fraction: Double)
 
-case class StatSampleBy(child: LogicalPlan, col: Expression, fractions: Seq[Fraction], seed: Long)
-    extends UnaryNode()(Origin.empty) {
+case class StatSampleBy(child: LogicalPlan, col: Expression, fractions: Seq[Fraction], seed: Long) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class NAFill(child: LogicalPlan, cols: Seq[String], values: Seq[Literal]) extends UnaryNode()(Origin.empty) {
+case class NAFill(child: LogicalPlan, cols: Seq[String], values: Seq[Literal]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class NADrop(child: LogicalPlan, cols: Seq[String], min_non_nulls: Int) extends UnaryNode()(Origin.empty) {
+case class NADrop(child: LogicalPlan, cols: Seq[String], min_non_nulls: Int) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
 case class Replacement(old_value: Literal, new_value: Literal)
 
-case class NAReplace(child: LogicalPlan, cols: Seq[String], replacements: Seq[Replacement])
-    extends UnaryNode()(Origin.empty) {
+case class NAReplace(child: LogicalPlan, cols: Seq[String], replacements: Seq[Replacement]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class ToDF(child: LogicalPlan, column_names: Seq[String]) extends UnaryNode()(Origin.empty) {
+case class ToDF(child: LogicalPlan, column_names: Seq[String]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class WithColumnsRenamed(child: LogicalPlan, rename_columns_map: Map[String, String])
-    extends UnaryNode()(Origin.empty) {
+case class WithColumnsRenamed(child: LogicalPlan, rename_columns_map: Map[String, String]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class WithColumns(child: LogicalPlan, aliases: Seq[Alias]) extends UnaryNode()(Origin.empty) {
+case class WithColumns(child: LogicalPlan, aliases: Seq[Alias]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class WithWatermark(child: LogicalPlan, event_time: String, delay_threshold: String)
-    extends UnaryNode()(Origin.empty) {
+case class WithWatermark(child: LogicalPlan, event_time: String, delay_threshold: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Hint(child: LogicalPlan, name: String, parameters: Seq[Expression]) extends UnaryNode()(Origin.empty) {
+case class Hint(child: LogicalPlan, name: String, parameters: Seq[Expression]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Values(values: Seq[Seq[Expression]]) extends LeafNode()() { // TODO: fix it
+case class Values(values: Seq[Seq[Expression]]) extends LeafNode { // TODO: fix it
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -268,21 +260,21 @@ case class Unpivot(
     values: Option[Values],
     variable_column_name: Id,
     value_column_name: Id)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class ToSchema(child: LogicalPlan, dataType: DataType) extends UnaryNode()(Origin.empty) {
+case class ToSchema(child: LogicalPlan, dataType: DataType) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
 case class RepartitionByExpression(child: LogicalPlan, partition_exprs: Seq[Expression], num_partitions: Int)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
 case class MapPartitions(child: LogicalPlan, func: CommonInlineUserDefinedTableFunction, is_barrier: Boolean)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -296,7 +288,7 @@ case class GroupMap(
     is_map_groups_with_state: Boolean,
     output_mode: String,
     timeout_conf: String)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -320,7 +312,7 @@ case class ApplyInPandasWithState(
     state_schema: String,
     output_mode: String,
     timeout_conf: String)
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -331,18 +323,17 @@ case class CommonInlineUserDefinedTableFunction(
     deterministic: Boolean,
     arguments: Seq[Expression],
     python_udtf: Option[PythonUDTF])
-    extends LeafNode()() {
+    extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class CollectMetrics(child: LogicalPlan, name: String, metrics: Seq[Expression])
-    extends UnaryNode()(Origin.empty) {
+case class CollectMetrics(child: LogicalPlan, name: String, metrics: Seq[Expression]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 
 }
 
 case class Parse(child: LogicalPlan, format: ParseFormat, dataType: DataType, options: Map[String, String])
-    extends UnaryNode()(Origin.empty) {
+    extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -361,7 +352,7 @@ case class AsOfJoin(
   override def output: Seq[Attribute] = left.output ++ right.output
 }
 
-case class Unknown() extends LeafNode()() {
+case class Unknown() extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 

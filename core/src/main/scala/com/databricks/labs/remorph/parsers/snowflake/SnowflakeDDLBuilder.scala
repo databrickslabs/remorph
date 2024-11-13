@@ -164,9 +164,9 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           .columnDeclItem()
           .asScala)
       if (ctx.REPLACE() != null) {
-        ir.ReplaceTableCommand(tableName, columns, true)(Origin.fromParseRuleContext(ctx))
+        ir.ReplaceTableCommand(tableName, columns, true, Some(Origin.fromParserRuleContext(ctx)))
       } else {
-        ir.CreateTableCommand(tableName, columns)(Origin.fromParseRuleContext(ctx))
+        ir.CreateTableCommand(tableName, columns, Some(Origin.fromParserRuleContext(ctx)))
       }
 
   }
@@ -182,15 +182,16 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
           tableName,
           selectStatement,
           Map.empty[String, String],
-          true,
-          false)(Origin.fromParseRuleContext(ctx))
+          true, false,
+          Some(Origin.fromParserRuleContext(ctx)))
       } else {
         ir.CreateTableAsSelect(
           tableName,
           selectStatement,
           None,
           None,
-          None)(Origin.fromParseRuleContext(ctx))
+          None,
+          Some(Origin.fromParserRuleContext(ctx)))
       }
       // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
       // TODO Capture other Table Properties
@@ -207,7 +208,8 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
         constraints,
         indices,
         partition,
-        options)(Origin.fromParseRuleContext(ctx))
+        options,
+        Some(Origin.fromParserRuleContext(ctx)))
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.Catalog =
@@ -215,14 +217,14 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       "CREATE STREAM UNSUPPORTED",
       ruleName = contextRuleName(ctx),
-      tokenName = Some("STREAM"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("STREAM"))
 
   override def visitCreateTask(ctx: CreateTaskContext): ir.Catalog = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE TASK UNSUPPORTED",
       ruleName = "createTask",
-      tokenName = Some("TASK"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("TASK"))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -310,7 +312,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "CREATE USER UNSUPPORTED",
       ruleName = "createUser",
-      tokenName = Some("USER"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("USER"))
 
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
@@ -322,7 +324,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             ruleName = vc.ruleName(ctx),
             tokenName = Some(tokenName(ctx.getStart)),
-            message = s"Unknown ALTER command variant")(Origin.fromParseRuleContext(ctx))
+            message = s"Unknown ALTER command variant")
       }
   }
 
@@ -340,7 +342,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             message = "Unknown ALTER TABLE variant",
             ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))(Origin.fromParseRuleContext(ctx))
+            tokenName = Some(tokenName(ctx.getStart)))
       }
   }
 

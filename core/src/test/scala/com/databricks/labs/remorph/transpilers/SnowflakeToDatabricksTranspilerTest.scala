@@ -350,17 +350,18 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   private val commentedSqlTable = Table(
     ("original", "transpiled"), // heading
-    ("""-- some comment
+    (
+      """-- some comment
 select * from test_tbl;""",
-"""-- some comment
+      """-- some comment
 SELECT * FROM test_tbl
 ;"""),
-      ("""-- some comment
+    (
+      """-- some comment
 create table test_tbl (a int);""",
- """-- some comment
+      """-- some comment
 CREATE TABLE test_tbl (a DECIMAL(38, 0))
-;""")
-  )
+;"""))
 
   "line comment" should {
     "transpile line comment" in {

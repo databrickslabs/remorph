@@ -7,19 +7,19 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers with IRHelpers {
   "from project" in {
-    val out = PullLimitUpwards.apply(Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)))(Origin.empty))
-    comparePlans(out, Limit(Project(namedTable("a"), Seq(Star()))(Origin.empty), Literal(10)))
+    val out = PullLimitUpwards.apply(Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None))))
+    comparePlans(out, Limit(Project(namedTable("a"), Seq(Star())), Literal(10)))
   }
 
   "from project with filter" in {
     val out = PullLimitUpwards.apply(
       Filter(
-        Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)))(Origin.empty),
+        Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None))),
         GreaterThan(UnresolvedAttribute("b"), Literal(1))))
     comparePlans(
       out,
       Limit(
-        Filter(Project(namedTable("a"), Seq(Star()))(Origin.empty), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
+        Filter(Project(namedTable("a"), Seq(Star())), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
         Literal(10)))
   }
 
@@ -27,7 +27,7 @@ class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers
     val out = PullLimitUpwards.apply(
       Sort(
         Filter(
-          Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None)))(Origin.empty),
+          Project(Limit(namedTable("a"), Literal(10)), Seq(Star(None))),
           GreaterThan(UnresolvedAttribute("b"), Literal(1))),
         Seq(SortOrder(UnresolvedAttribute("b"))),
         is_global = false))
@@ -35,9 +35,7 @@ class PullLimitUpwardsTest extends AnyWordSpec with PlanComparison with Matchers
       out,
       Limit(
         Sort(
-          Filter(
-            Project(namedTable("a"), Seq(Star()))(Origin.empty),
-            GreaterThan(UnresolvedAttribute("b"), Literal(1))),
+          Filter(Project(namedTable("a"), Seq(Star())), GreaterThan(UnresolvedAttribute("b"), Literal(1))),
           Seq(SortOrder(UnresolvedAttribute("b"))),
           is_global = false),
         Literal(10)))

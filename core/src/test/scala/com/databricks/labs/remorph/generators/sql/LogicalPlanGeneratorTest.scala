@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
-import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -15,14 +14,14 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     Generating(optimizedPlan = plan, currentNode = plan, ctx = GeneratorContext(generator))
   "Project" should {
     "transpile to SELECT" in {
-      ir.Project(namedTable("t1"), Seq(ir.Id("c1")))(Origin.empty) generates "SELECT c1 FROM t1"
-      ir.Project(namedTable("t1"), Seq(ir.Star(None)))(Origin.empty) generates "SELECT * FROM t1"
-      ir.Project(ir.NoTable(), Seq(ir.Literal(1)))(Origin.empty) generates "SELECT 1"
+      ir.Project(namedTable("t1"), Seq(ir.Id("c1"))) generates "SELECT c1 FROM t1"
+      ir.Project(namedTable("t1"), Seq(ir.Star(None))) generates "SELECT * FROM t1"
+      ir.Project(ir.NoTable(), Seq(ir.Literal(1))) generates "SELECT 1"
     }
 
     "transpile to SELECT with COMMENTS" in {
       ir.WithOptions(
-        ir.Project(namedTable("t"), Seq(ir.Star(None)))(Origin.empty),
+        ir.Project(namedTable("t"), Seq(ir.Star(None))),
         ir.Options(
           Map("MAXRECURSION" -> ir.Literal(10), "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
           Map("SOMESTROPT" -> "STRINGOPTION"),
@@ -58,7 +57,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "Filter" should {
     "transpile to WHERE" in {
       ir.Filter(
-        ir.Project(namedTable("t1"), Seq(ir.Id("c1")))(Origin.empty),
+        ir.Project(namedTable("t1"), Seq(ir.Id("c1"))),
         ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "SELECT c1 FROM t1 WHERE IS_DATE(c2)"
     }
   }
@@ -358,9 +357,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             "c1",
             ir.IntegerType,
             constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey())),
-          ir.ColumnDeclaration(
-            "c2",
-            ir.StringType)))(Origin.empty) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
+          ir.ColumnDeclaration("c2", ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
     }
   }
 
@@ -381,15 +378,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(
-            ir.StructField("a", ir.IntegerType),
-            ir.StructField("b", ir.VarcharType(Some(10))))))(Origin.empty),
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates "CREATE TABLE some_table (a INT, b VARCHAR(10))"
+        Some(Seq.empty)) generates "CREATE TABLE some_table (a INT, b VARCHAR(10))"
     }
 
     "transpile to CREATE TABLE with commented options" in {
@@ -399,10 +394,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(
-            ir.StructField("a", ir.IntegerType),
-            ir.StructField("b", ir.VarcharType(Some(10))))))
-        (Origin.empty),
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Map("a" -> Seq(ir.OptionUnresolved("Unsupported Option: SPARSE")), "b" -> Seq.empty),
         Seq(
@@ -411,7 +403,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             ir.CheckConstraint(ir.GreaterThan(ir.Column(None, ir.Id("a")), ir.Literal(0, ir.IntegerType))))),
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates
+        Some(Seq.empty)) generates
         "CREATE TABLE some_table (a INT /* Unsupported Option: SPARSE */, b VARCHAR(10), CONSTRAINT c1 CHECK (a > 0))"
     }
 
@@ -422,8 +414,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-        (Origin.empty),
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
         Map(
           "a" -> Seq(ir.DefaultValueConstraint(ir.Literal(0, ir.IntegerType))),
           "b" -> Seq(ir.DefaultValueConstraint(ir.Literal("foo", ir.StringType)))),
@@ -431,7 +422,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates
+        Some(Seq.empty)) generates
         "CREATE TABLE some_table (a INT DEFAULT 0, b VARCHAR(10) DEFAULT 'foo')"
     }
 
@@ -442,14 +433,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-        (Origin.empty),
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Seq(ir.NamedConstraint("c1", ir.ForeignKey("a, b", "other_table", "c, d", Seq.empty))),
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates
+        Some(Seq.empty)) generates
         "CREATE TABLE some_table (a INT, b VARCHAR(10), CONSTRAINT c1 FOREIGN KEY (a, b) REFERENCES other_table(c, d))"
     }
 
@@ -460,14 +450,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-        (Origin.empty),
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
         Map("a" -> Seq(ir.PrimaryKey()), "b" -> Seq(ir.Unique())),
         Map("a" -> Seq.empty, "b" -> Seq.empty),
         Seq(ir.ForeignKey("b", "other_table", "b", Seq.empty)),
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates
+        Some(Seq.empty)) generates
         "CREATE TABLE some_table (a INT PRIMARY KEY, b VARCHAR(10) UNIQUE, FOREIGN KEY (b) REFERENCES other_table(b))"
     }
 
@@ -483,8 +472,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             ir.StructField("name", ir.VarcharType(Some(50)), nullable = false),
             ir.StructField("age", ir.IntegerType),
             ir.StructField("email", ir.VarcharType(Some(100))),
-            ir.StructField("department_id", ir.IntegerType))))
-        (Origin.empty),
+            ir.StructField("department_id", ir.IntegerType)))),
         Map(
           "name" -> Seq.empty,
           "email" -> Seq(ir.Unique()),
@@ -502,7 +490,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           ir.ForeignKey("department_id", "departments", "id", Seq.empty)),
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates
+        Some(Seq.empty)) generates
         "CREATE TABLE example_table (id INT PRIMARY KEY, name VARCHAR(50) NOT NULL, age INT," +
         " email VARCHAR(100) UNIQUE, department_id INT, CHECK (age >= 18)," +
         " FOREIGN KEY (department_id) REFERENCES departments(id))"
@@ -514,28 +502,24 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           None,
           None,
           None,
-          ir.StructType(Seq(ir.StructField("id", ir.VarcharType(Some(10))))))
-        (Origin.empty),
+          ir.StructType(Seq(ir.StructField("id", ir.VarcharType(Some(10)))))),
         Map("id" -> Seq.empty),
         Map("id" -> Seq.empty),
         Seq(ir.NamedConstraint("c1", ir.CheckConstraint(ir.IsNotNull(ir.Column(None, ir.Id("id")))))),
         Seq.empty,
         None,
-        Some(Seq.empty))(Origin.empty) generates "CREATE TABLE example_table (id VARCHAR(10), CONSTRAINT c1 CHECK (id IS NOT NULL))"
+        Some(Seq.empty)) generates "CREATE TABLE example_table (id VARCHAR(10), CONSTRAINT c1 CHECK (id IS NOT NULL))"
     }
 
     "transpile unsupported table level options to comments" in {
       ir.CreateTableParams(
-        ir.CreateTable(
-          "example_table",
-          None, None, None,
-          ir.StructType(Seq(ir.StructField("id", ir.IntegerType))))(Origin.empty),
+        ir.CreateTable("example_table", None, None, None, ir.StructType(Seq(ir.StructField("id", ir.IntegerType)))),
         Map("id" -> Seq.empty),
         Map("id" -> Seq.empty),
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq(ir.OptionUnresolved("LEDGER=ON"))))(Origin.empty) generates
+        Some(Seq(ir.OptionUnresolved("LEDGER=ON")))) generates
         """/*
           |   The following options are unsupported:
           |

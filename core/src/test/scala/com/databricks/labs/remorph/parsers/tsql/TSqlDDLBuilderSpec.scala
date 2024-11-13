@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -23,16 +22,13 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(Seq(
-              ir.StructField("a", ir.IntegerType),
-              ir.StructField("b", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Seq.empty,
           Seq.empty,
           None,
-          Some(Seq.empty))(Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with a primary key, foreign key and a Unique column" in {
@@ -44,17 +40,13 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(Seq(
-              ir.StructField("a", ir.IntegerType),
-              ir.StructField("b", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
           Map("a" -> Seq(ir.PrimaryKey()), "b" -> Seq(ir.Unique())),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Seq(ir.ForeignKey("b", "other_table", "b", Seq.empty)),
           Seq.empty,
           None,
-          Some(Seq.empty))
-          (Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with a CHECK constraint and column options" in {
@@ -66,9 +58,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(
-              Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Map("a" -> Seq(ir.OptionUnresolved("Unsupported Option: SPARSE")), "b" -> Seq.empty),
           Seq(
@@ -77,8 +67,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               ir.CheckConstraint(ir.GreaterThan(ir.Column(None, ir.Id("a")), ir.Literal(0, ir.IntegerType))))),
           Seq.empty,
           None,
-          Some(Seq.empty))
-        (Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with a DEFAULT constraint" in {
@@ -90,8 +79,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
           Map(
             "a" -> Seq(ir.DefaultValueConstraint(ir.Literal(0, ir.IntegerType))),
             "b" -> Seq(ir.DefaultValueConstraint(ir.Literal("foo", ir.StringType)))),
@@ -99,8 +87,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq.empty,
           Seq.empty,
           None,
-          Some(Seq.empty))
-        (Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with a complex FK constraint" in {
@@ -112,15 +99,13 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Map("a" -> Seq.empty, "b" -> Seq.empty),
           Seq(ir.NamedConstraint("c1", ir.ForeignKey("a, b", "other_table", "c, d", Seq.empty))),
           Seq.empty,
           None,
-          Some(Seq.empty))
-        (Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with various column level constraints" in {
@@ -138,8 +123,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               ir.StructField("name", ir.VarcharType(Some(50)), nullable = false),
               ir.StructField("age", ir.IntegerType),
               ir.StructField("email", ir.VarcharType(Some(100))),
-              ir.StructField("department_id", ir.IntegerType))))
-          (Origin.empty),
+              ir.StructField("department_id", ir.IntegerType)))),
           Map(
             "name" -> Seq.empty,
             "email" -> Seq(ir.Unique()),
@@ -157,8 +141,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             ir.ForeignKey("department_id", "departments", "id", Seq.empty)),
           Seq.empty,
           None,
-          Some(Seq.empty))
-        (Origin.empty))
+          Some(Seq.empty)))
     }
 
     "translate a CREATE TABLE with a named NULL constraint" in {
@@ -170,15 +153,13 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             None,
-            ir.StructType(Seq(ir.StructField("id", ir.VarcharType(Some(10))))))
-          (Origin.empty),
+            ir.StructType(Seq(ir.StructField("id", ir.VarcharType(Some(10)))))),
           Map("id" -> Seq.empty),
           Map("id" -> Seq.empty),
           Seq(ir.NamedConstraint("c1", ir.CheckConstraint(ir.IsNotNull(ir.Column(None, ir.Id("id")))))),
           Seq.empty,
           None,
-          Some(Seq.empty))
-        (Origin.empty))
+          Some(Seq.empty)))
     }
   }
 
@@ -186,14 +167,13 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     singleQueryExample(
       "CREATE TABLE example_table (id INT) WITH (LEDGER = ON);",
       ir.CreateTableParams(
-        ir.CreateTable("example_table", None, None, None, ir.StructType(Seq(ir.StructField("id", ir.IntegerType))))
-        (Origin.empty),
+        ir.CreateTable("example_table", None, None, None, ir.StructType(Seq(ir.StructField("id", ir.IntegerType)))),
         Map("id" -> Seq.empty),
         Map("id" -> Seq.empty),
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq(ir.OptionUnresolved("LEDGER = ON"))))(Origin.empty))
+        Some(Seq(ir.OptionUnresolved("LEDGER = ON")))))
 
   }
 }

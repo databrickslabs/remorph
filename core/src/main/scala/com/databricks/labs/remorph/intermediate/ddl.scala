@@ -112,25 +112,26 @@ case class ColumnDeclaration(
     virtualColumnDeclaration: Option[Expression] = Option.empty,
     constraints: Seq[Constraint] = Seq.empty)
 
-case class CreateTableCommand(
-    name: String,
-    columns: Seq[ColumnDeclaration])
-    (origin: Origin) extends Catalog()(origin) {}
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration], _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
 // TODO Need to introduce TableSpecBase, TableSpec and UnresolvedTableSpec
 
-case class ReplaceTableCommand(name: String,
-    columns: Seq[ColumnDeclaration],
-    orCreate: Boolean)
-    (origin: Origin) extends Catalog()(origin)
+case class ReplaceTableCommand(
+                                name: String,
+                                columns: Seq[ColumnDeclaration],
+                                orCreate: Boolean,
+                                _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin)
 
 case class ReplaceTableAsSelect(
     table_name: String,
     query: LogicalPlan,
     writeOptions: Map[String, String],
     orCreate: Boolean,
-    isAnalyzed: Boolean = false)
-    (origin: Origin) extends Catalog()(origin)
+    isAnalyzed: Boolean = false,
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin)
 
 sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
@@ -155,31 +156,31 @@ case class DropColumns(columnNames: Seq[String]) extends TableAlteration
 case class RenameConstraint(oldName: String, newName: String) extends TableAlteration
 case class RenameColumn(oldName: String, newName: String) extends TableAlteration
 
-case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog()() {}
+case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
 // Catalog API (experimental / unstable)
-abstract class Catalog()(origin: Origin = Origin.empty) extends LeafNode()(origin) {
+abstract class Catalog(_origin: Option[Origin] = Option.empty) extends LeafNode(_origin) {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class SetCurrentDatabase(db_name: String) extends Catalog()() {}
-case class ListDatabases(pattern: Option[String]) extends Catalog()() {}
-case class ListTables(db_name: Option[String], pattern: Option[String]) extends Catalog()() {}
-case class ListFunctions(db_name: Option[String], pattern: Option[String]) extends Catalog()() {}
-case class ListColumns(table_name: String, db_name: Option[String]) extends Catalog()() {}
-case class GetDatabase(db_name: String) extends Catalog()() {}
-case class GetTable(table_name: String, db_name: Option[String]) extends Catalog()() {}
-case class GetFunction(function_name: String, db_name: Option[String]) extends Catalog()() {}
-case class DatabaseExists(db_name: String) extends Catalog()() {}
-case class TableExists(table_name: String, db_name: Option[String]) extends Catalog()() {}
-case class FunctionExists(function_name: String, db_name: Option[String]) extends Catalog()() {}
+case class SetCurrentDatabase(db_name: String) extends Catalog {}
+case class ListDatabases(pattern: Option[String]) extends Catalog {}
+case class ListTables(db_name: Option[String], pattern: Option[String]) extends Catalog {}
+case class ListFunctions(db_name: Option[String], pattern: Option[String]) extends Catalog {}
+case class ListColumns(table_name: String, db_name: Option[String]) extends Catalog {}
+case class GetDatabase(db_name: String) extends Catalog {}
+case class GetTable(table_name: String, db_name: Option[String]) extends Catalog {}
+case class GetFunction(function_name: String, db_name: Option[String]) extends Catalog {}
+case class DatabaseExists(db_name: String) extends Catalog {}
+case class TableExists(table_name: String, db_name: Option[String]) extends Catalog {}
+case class FunctionExists(function_name: String, db_name: Option[String]) extends Catalog {}
 case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
     description: Option[String],
     override val schema: DataType)
-    extends Catalog()() {}
+    extends Catalog {}
 
 // As per Spark v2Commands
 case class CreateTable(
@@ -187,8 +188,9 @@ case class CreateTable(
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    override val schema: DataType)
-    (origin: Origin) extends Catalog()(origin) {}
+    override val schema: DataType,
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
 // As per Spark v2Commands
 case class CreateTableAsSelect(
@@ -196,20 +198,21 @@ case class CreateTableAsSelect(
     query: LogicalPlan,
     path: Option[String],
     source: Option[String],
-    description: Option[String])
-    (origin: Origin) extends Catalog()(origin) {}
+    description: Option[String],
+    _origin: Option[Origin] = Option.empty)
+    extends Catalog(_origin) {}
 
-case class DropTempView(view_name: String) extends Catalog()() {}
-case class DropGlobalTempView(view_name: String) extends Catalog()() {}
-case class RecoverPartitions(table_name: String) extends Catalog()() {}
-case class IsCached(table_name: String) extends Catalog()() {}
-case class CacheTable(table_name: String, storage_level: StorageLevel) extends Catalog()() {}
-case class UncachedTable(table_name: String) extends Catalog()() {}
-case class ClearCache() extends Catalog()() {}
-case class RefreshTable(table_name: String) extends Catalog()() {}
-case class RefreshByPath(path: String) extends Catalog()() {}
-case class SetCurrentCatalog(catalog_name: String) extends Catalog()() {}
-case class ListCatalogs(pattern: Option[String]) extends Catalog()() {}
+case class DropTempView(view_name: String) extends Catalog {}
+case class DropGlobalTempView(view_name: String) extends Catalog {}
+case class RecoverPartitions(table_name: String) extends Catalog {}
+case class IsCached(table_name: String) extends Catalog {}
+case class CacheTable(table_name: String, storage_level: StorageLevel) extends Catalog {}
+case class UncachedTable(table_name: String) extends Catalog {}
+case class ClearCache() extends Catalog {}
+case class RefreshTable(table_name: String) extends Catalog {}
+case class RefreshByPath(path: String) extends Catalog {}
+case class SetCurrentCatalog(catalog_name: String) extends Catalog {}
+case class ListCatalogs(pattern: Option[String]) extends Catalog {}
 
 case class TableIdentifier(table: String, database: Option[String])
 case class CatalogTable(
