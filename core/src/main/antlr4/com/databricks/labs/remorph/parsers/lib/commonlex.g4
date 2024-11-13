@@ -19,10 +19,6 @@
 // =================================================================================
 lexer grammar commonlex;
 
- channels {
-     COMMENT_CHANNEL
- }
-
 // TODO: Remove the use of DUMMY for unfinished Snoflake grammar productions
 DUMMY:
     'DUMMY'
@@ -1431,7 +1427,7 @@ WS: SPACE+ -> skip;
 
 // Comments
 SQL_COMMENT  : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
-LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(COMMENT_CHANNEL);
+LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(HIDDEN);
 
 // Identifiers
 ID              : ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
