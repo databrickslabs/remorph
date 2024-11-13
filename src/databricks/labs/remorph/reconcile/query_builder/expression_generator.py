@@ -133,12 +133,13 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
-def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) -> exp.Expression:
+def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True, cast=None) -> exp.Expression:
+    lit: exp.Expression = exp.Literal(this=this, is_string=is_string)
+    if cast:
+        lit = exp.Cast(this=lit, to=exp.DataType(this=cast))
     if alias:
-        return exp.Alias(
-            this=exp.Literal(this=this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted)
-        )
-    return exp.Literal(this=this, is_string=is_string)
+        lit = exp.Alias(this=lit, alias=exp.Identifier(this=alias, quoted=quoted))
+    return lit
 
 
 def transform_expression(
