@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph.generators.py
 
-import com.databricks.labs.remorph.intermediate.{Binary, DataType, Expression, Name, Origin, Plan, StringType, UnresolvedType, Attribute => IRAttribute}
+import com.databricks.labs.remorph.intermediate.{Binary, DataType, Expression, Name, Plan, StringType, UnresolvedType, Attribute => IRAttribute}
 
 // this is a subset of https://docs.python.org/3/library/ast.html
 
-abstract class Statement extends Plan[Statement]()(Origin.empty) {
+abstract class Statement extends Plan[Statement]() {
   override def output: Seq[IRAttribute] = Nil
 }
 
