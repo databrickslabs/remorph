@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, TokenStream}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 import scala.util.control.NonFatal
 
@@ -42,7 +42,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
 
   }
 
-  private def createPlan(tokens: TokenStream, tree: ParseTree): LogicalPlan = {
+  private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
     plan
   }

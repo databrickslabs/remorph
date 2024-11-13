@@ -42,7 +42,7 @@ class TSqlPlanParser extends PlanParser[TSqlParser] {
 
   }
 
-  private def createPlan(tokens: TokenStream, tree: ParseTree): LogicalPlan = {
+  private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
     val plan = vc.astBuilder.visit(tree)
     plan
   }
