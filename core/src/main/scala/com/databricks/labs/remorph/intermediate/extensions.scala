@@ -33,7 +33,7 @@ case object Noop extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-case object NoopNode extends LeafNode {
+case object NoopNode extends LeafNode()() {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -61,11 +61,11 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 }
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends LeafNode {
+case class NoTable() extends LeafNode()() {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class LocalVarTable(id: Id) extends LeafNode {
+case class LocalVarTable(id: Id) extends LeafNode()() {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -80,17 +80,18 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
-case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty) extends UnaryNode {
+case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty)
+    extends UnaryNode()(Origin.empty) {
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType))
 }
 
 // TODO: (nfx) refactor to align more with catalyst
 // TODO: remove this and replace with Hint(Hint(...), ...)
-case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode {
+case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode()(Origin.empty) {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
+case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan()(Origin.empty) {
   override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
 }
 
@@ -111,7 +112,7 @@ case class CreateInlineUDF(
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)
-    extends Catalog {}
+    extends Catalog()() {}
 
 // Used for raw expressions that have no context
 case class Dot(left: Expression, right: Expression) extends Binary(left, right) {
@@ -144,7 +145,8 @@ case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
 case class BlockSampling(probability: BigDecimal) extends SamplingMethod
 
 // TODO: (nfx) refactor to align more with catalyst
-case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode {
+case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal])
+    extends UnaryNode()(Origin.empty) {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
@@ -179,16 +181,17 @@ case object OuterApply extends JoinType
 
 // TODO: fix
 // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-tvf.html
-case class TableFunction(functionCall: Expression) extends LeafNode {
+case class TableFunction(functionCall: Expression) extends LeafNode()() {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false) extends UnaryNode {
+case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = false)
+    extends UnaryNode()(Origin.empty) {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }
 
-case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode()(Origin.empty) {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -202,7 +205,7 @@ case class Options(
   override def dataType: DataType = UnresolvedType
 }
 
-case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode {
+case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode()(Origin.empty) {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
@@ -225,7 +228,7 @@ case class CreateTableParams(
     indices: Seq[Constraint], // Index Definitions (currently all unresolved)
     partition: Option[String], // Partitioning information but unsupported
     options: Option[Seq[GenericOption]] // Command level options
-) extends Catalog
+) extends Catalog()()
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing

@@ -47,7 +47,8 @@ class SnowflakeCommandBuilderSpec
           dataType = StructType(Seq()),
           defaultExpr = Some(
             ScalarSubquery(
-              Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false))))),
+              Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false)))(
+                Origin.empty))),
           replace = false))
     }
   }
@@ -85,7 +86,8 @@ class SnowflakeCommandBuilderSpec
           name = Id("query_statement"),
           dataType = Some(StructType(Seq(StructField("col1", UnresolvedType)))),
           value = ScalarSubquery(
-            Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false))))))
+            Project(NamedTable("some_table", Map(), is_streaming = false), Seq(Id("col1", caseSensitive = false)))(
+              Origin.empty))))
     }
   }
 

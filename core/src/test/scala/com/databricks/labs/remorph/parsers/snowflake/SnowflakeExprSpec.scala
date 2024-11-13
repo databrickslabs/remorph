@@ -127,12 +127,12 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       "col1 IN (SELECT * FROM t)" in {
         searchConditionExample(
           "col1 IN (SELECT * FROM t)",
-          In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))))
+          In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))(Origin.empty)))))
       }
       "col1 NOT IN (SELECT * FROM t)" in {
         searchConditionExample(
           "col1 NOT IN (SELECT * FROM t)",
-          Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None))))))))
+          Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))(Origin.empty))))))
       }
       "col1 IN (1, 2, 3)" in {
         searchConditionExample("col1 IN (1, 2, 3)", In(Id("col1"), Seq(Literal(1), Literal(2), Literal(3))))

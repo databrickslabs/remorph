@@ -6,7 +6,7 @@ package com.databricks.labs.remorph.intermediate
  * the [[Command]] type that is used to execute commands on the server. [[Plan]] is a union of Spark's LogicalPlan and
  * QueryPlan.
  */
-abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
+abstract class Plan[PlanType <: Plan[PlanType]]()(origin: Origin) extends TreeNode[PlanType]()(origin) {
   self: PlanType =>
 
   def output: Seq[Attribute]
@@ -80,9 +80,7 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
     var changed = false
 
     @inline def transformExpression(e: Expression): Expression = {
-      val newE = CurrentOrigin.withOrigin(e.origin) {
-        f(e)
-      }
+      val newE = f(e)
       if (newE.fastEquals(e)) {
         e
       } else {
@@ -139,7 +137,7 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
   }
 }
 
-abstract class LogicalPlan extends Plan[LogicalPlan] {
+abstract class LogicalPlan()(origin: Origin) extends Plan[LogicalPlan]()(origin) {
 
   /**
    * Returns true if this expression and all its children have been resolved to a specific schema and false if it still
@@ -166,17 +164,17 @@ abstract class LogicalPlan extends Plan[LogicalPlan] {
 
 }
 
-abstract class LeafNode extends LogicalPlan {
+abstract class LeafNode()(origin: Origin = Origin.empty) extends LogicalPlan()(origin) {
   override def children: Seq[LogicalPlan] = Nil
   override def producedAttributes: AttributeSet = outputSet
 }
 
-abstract class UnaryNode extends LogicalPlan {
+abstract class UnaryNode()(origin: Origin) extends LogicalPlan()(origin) {
   def child: LogicalPlan
   override def children: Seq[LogicalPlan] = child :: Nil
 }
 
-abstract class BinaryNode extends LogicalPlan {
+abstract class BinaryNode extends LogicalPlan()(Origin.empty) {
   def left: LogicalPlan
   def right: LogicalPlan
   override def children: Seq[LogicalPlan] = Seq(left, right)
