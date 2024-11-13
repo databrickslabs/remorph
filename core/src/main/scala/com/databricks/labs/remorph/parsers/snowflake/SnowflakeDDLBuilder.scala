@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -198,14 +197,14 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       "CREATE STREAM UNSUPPORTED",
       ruleName = contextRuleName(ctx),
-      tokenName = Some("STREAM"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("STREAM"))
 
   override def visitCreateTask(ctx: CreateTaskContext): ir.Catalog = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE TASK UNSUPPORTED",
       ruleName = "createTask",
-      tokenName = Some("TASK"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("TASK"))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -293,7 +292,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleText = contextText(ctx),
       message = "CREATE USER UNSUPPORTED",
       ruleName = "createUser",
-      tokenName = Some("USER"))(Origin.fromParseRuleContext(ctx))
+      tokenName = Some("USER"))
 
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
@@ -305,7 +304,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             ruleName = vc.ruleName(ctx),
             tokenName = Some(tokenName(ctx.getStart)),
-            message = s"Unknown ALTER command variant")(Origin.fromParseRuleContext(ctx))
+            message = s"Unknown ALTER command variant")
       }
   }
 
@@ -323,7 +322,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
             ruleText = contextText(ctx),
             message = "Unknown ALTER TABLE variant",
             ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))(Origin.fromParseRuleContext(ctx))
+            tokenName = Some(tokenName(ctx.getStart)))
       }
   }
 

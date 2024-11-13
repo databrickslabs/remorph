@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.intermediate._
 object PullLimitUpwards extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan transformUp {
     case Project(Limit(child, limit), exprs) =>
-      Limit(Project(child, exprs)(Origin.empty), limit)
+      Limit(Project(child, exprs), limit)
     case Filter(Limit(child, limit), cond) =>
       Limit(Filter(child, cond), limit)
     case Sort(Limit(child, limit), order, global) =>

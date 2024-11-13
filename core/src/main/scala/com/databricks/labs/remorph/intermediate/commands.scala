@@ -5,11 +5,11 @@ trait Command extends LogicalPlan {
 }
 
 case class SqlCommand(sql: String, named_arguments: Map[String, Expression], pos_arguments: Seq[Expression])
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
 case class CreateDataFrameViewCommand(child: Relation, name: String, is_global: Boolean, replace: Boolean)
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
 abstract class TableSaveMethod
@@ -24,7 +24,7 @@ case object OverwriteSaveMode extends SaveMode
 case object ErrorIfExistsSaveMode extends SaveMode
 case object IgnoreSaveMode extends SaveMode
 
-case class SaveTable(table_name: String, save_method: TableSaveMethod) extends LeafNode()() with Command
+case class SaveTable(table_name: String, save_method: TableSaveMethod) extends LeafNode with Command
 
 case class BucketBy(bucket_column_names: Seq[String], num_buckets: Int)
 
@@ -39,7 +39,7 @@ case class WriteOperation(
     bucket_by: Option[BucketBy],
     options: Map[String, String],
     clustering_columns: Seq[String])
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
 abstract class Mode
@@ -61,7 +61,7 @@ case class WriteOperationV2(
     mode: Mode,
     overwrite_condition: Option[Expression],
     clustering_columns: Seq[String])
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
 case class Trigger(
@@ -85,11 +85,11 @@ case class WriteStreamOperationStart(
     sink_destination: SinkDestination,
     foreach_writer: Option[StreamingForeachFunction],
     foreach_batch: Option[StreamingForeachFunction])
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
 // TODO: align snowflake and common IR implementations for `CreateVariable`
 case class CreateVariable(name: Id, dataType: DataType, defaultExpr: Option[Expression] = None, replace: Boolean)
-    extends LeafNode()()
+    extends LeafNode
     with Command
 
