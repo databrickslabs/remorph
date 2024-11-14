@@ -442,12 +442,13 @@ class LogicalPlanGenerator(
     val child = generate(aggregate.child)
     val expressions = expr.commas(aggregate.grouping_expressions)
     aggregate.group_type match {
+      case ir.GroupByAll => code"$child GROUP BY ALL"
       case ir.GroupBy =>
         code"$child GROUP BY $expressions"
       case ir.Pivot if aggregate.pivot.isDefined =>
         val pivot = aggregate.pivot.get
         val col = expr.generate(pivot.col)
-        val values = pivot.values.map(expr.generate(_)).mkCode(" IN(", ", ", ")")
+        val values = pivot.values.map(expr.generate).mkCode(" IN(", ", ", ")")
         code"$child PIVOT($expressions FOR $col$values)"
       case a => partialResult(a, ir.UnsupportedGroupType(a.toString))
     }

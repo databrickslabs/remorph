@@ -19,6 +19,8 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
   protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
     ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
+  // Concrete visitors
+
   override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan = {
     // This very top level visitor does not ignore any valid statements for the batch, instead
     // we prepend any errors to the batch plan, so they are generated first in the output.

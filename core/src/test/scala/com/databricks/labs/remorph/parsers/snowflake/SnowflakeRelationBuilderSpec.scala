@@ -287,6 +287,10 @@ class SnowflakeRelationBuilderSpec
         Values(Seq(Seq(Literal("a"), Literal(1)), Seq(Literal("b"), Literal(2)))))
     }
 
+    "do not confuse VALUES clauses with a single row with a function call" in {
+      example("VALUES (1, 2, 3)", _.objectRef(), Values(Seq(Seq(Literal(1), Literal(2), Literal(3)))))
+    }
+
     "translate table functions as object references" should {
       "TABLE(some_func(some_arg))" in {
         example(
