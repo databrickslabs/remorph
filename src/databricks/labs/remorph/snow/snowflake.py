@@ -110,6 +110,13 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
     return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
 
 
+def _div0_to_if(args: list) -> exp.If:
+    cond = exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0))
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
+
+
 def _div0null_to_if(args: list) -> exp.If:
     cond = exp.Or(
         this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
@@ -346,6 +353,7 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+            "TRY_TO_TIMESTAMP": local_expression.TryToTimestamp.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_date_add,
@@ -355,6 +363,7 @@ class Snow(Snowflake):
             "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
             "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0": _div0_to_if,
             "DIV0NULL": _div0null_to_if,
             "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
             "BITOR_AGG": local_expression.BitOr.from_arg_list,

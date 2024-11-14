@@ -215,7 +215,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
 
   private def regexpExtract(args: Seq[ir.Expression]): ir.Expression = {
     if (args.size == 2) {
-      ir.RegExpExtract(args.head, args(1), oneLiteral)
+      ir.RegExpExtract(args.head, args(1), zeroLiteral)
     } else if (args.size == 3) {
       ir.RegExpExtract(args.head, args(1), args(2))
     } else {
