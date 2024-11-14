@@ -6,5 +6,5 @@ select id, string1,
 -- databricks sql:
 
 select id, string1,
-	   REGEXP_EXTRACT(string1, 'the\\W+\\w+') as `SUBSTRING`
+	   REGEXP_EXTRACT(string1, 'the\\W+\\w+', 0) as `SUBSTRING`
     from demo2;

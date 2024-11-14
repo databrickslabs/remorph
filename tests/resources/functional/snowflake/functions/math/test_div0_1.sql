@@ -3,4 +3,4 @@
 SELECT DIV0(a, b);
 
 -- databricks sql:
-SELECT IF(b = 0, 0, a / b);
+select if ( b = 0 and a is not null, 0, a / b );

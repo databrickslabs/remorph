@@ -551,7 +551,7 @@ class Databricks(org_databricks.Databricks):  #
 
             return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
 
-        def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
+        def converttimezone_sql(self, expression: exp.ConvertTimezone):
             func = "CONVERT_TIMEZONE"
             expr = expression.args["tgtTZ"]
             if len(expression.args) == 3 and expression.args.get("this"):
