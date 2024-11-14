@@ -20,6 +20,7 @@ class ParsedTest extends AnyWordSpec with Matchers {
       val n2 = new ParsedNode[LineCommentNode](c2, range)
       c1 must equal(c2)
       n1 must equal(n2)
+      n2.range must equal(range)
     }
   }
 
