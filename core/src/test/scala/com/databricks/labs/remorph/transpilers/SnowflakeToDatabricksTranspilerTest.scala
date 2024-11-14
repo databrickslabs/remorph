@@ -351,17 +351,6 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
-  "line comment" should {
-    "transpiles to line comment" in {
-      """-- some comment
-select * from test_tbl;""" transpilesTo
-        """-- some comment
-SELECT * FROM test_tbl
-;""".stripMargin
-    }
-
-  }
-
   "Expressions in CTE" in {
     """WITH
       |    a AS (1),
@@ -381,6 +370,17 @@ SELECT * FROM test_tbl
         |    1 * t.d
         |FROM
         |    t;""".stripMargin
+  }
+
+  "line comment" should {
+    "transpiles to line comment" in {
+      """-- some comment
+select * from test_tbl;""" transpilesTo
+        """-- some comment
+SELECT * FROM test_tbl
+;""".stripMargin
+    }
+
   }
 
 }
