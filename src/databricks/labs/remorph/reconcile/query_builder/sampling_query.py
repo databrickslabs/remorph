@@ -80,8 +80,8 @@ class SamplingQueryBuilder(QueryBuilder):
             build_join_clause(
                 "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
             )
-            .transform(coalesce, default="_null_recon_", is_string=True)
-            .transform(trim)
+            # .transform(coalesce, default="_null_recon_", is_string=True)
+            # .transform(trim)
         )
 
     def _get_with_clause(self, df: DataFrame) -> exp.Select:
