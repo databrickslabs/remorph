@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.intermediate.WithKnownOrigin
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.ID
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -250,9 +251,12 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val mockDotExprCtx = mock(classOf[TSqlParser.ExprDotContext])
       val mockExpressionCtx = mock(classOf[TSqlParser.ExpressionContext])
       val mockVisitor = mock(classOf[TSqlExpressionBuilder])
+      val mockDotExprStart = mock(classOf[Token])
 
       when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
-      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal("a"))
+      when(mockExpressionCtx.accept(mockVisitor))
+        .thenReturn(ir.Literal("a").asInstanceOf[WithKnownOrigin[ir.Expression]])
+      when(mockDotExprCtx.getStart).thenReturn(mockDotExprStart)
       val result = astBuilder.visitExprDot(mockDotExprCtx)
 
       result shouldBe a[ir.Dot]
@@ -362,6 +366,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "cover case that cannot happen with dot" in {
 
       val mockCtx = mock(classOf[TSqlParser.ExprDotContext])
+      val mockCtxStart = mock(classOf[Token])
+      when(mockCtx.getStart).thenReturn(mockCtxStart)
       val expressionMockColumn = mock(classOf[TSqlParser.ExpressionContext])
       when(mockCtx.expression(0)).thenReturn(expressionMockColumn)
       when(expressionMockColumn.accept(any())).thenReturn(simplyNamedColumn("a"))

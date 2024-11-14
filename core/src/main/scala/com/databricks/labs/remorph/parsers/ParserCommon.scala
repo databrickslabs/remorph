@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.intermediate.{OriginTracking, WithKnownOrigin}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
@@ -8,7 +9,11 @@ import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
 
-trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: AbstractParseTreeVisitor[A] =>
+trait ParserCommon[A <: ir.TreeNode[_]]
+    extends ParseTreeVisitor[ir.WithKnownOrigin[A]]
+    with LazyLogging
+    with OriginTracking {
+  self: AbstractParseTreeVisitor[ir.WithKnownOrigin[A]] =>
 
   val vc: VisitorCoordinator
 
@@ -30,8 +35,10 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    */
   protected def unresolved(ruleText: String, message: String): A
 
-  protected override def defaultResult(): A = {
-    unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
+  protected override def defaultResult(): ir.WithKnownOrigin[A] = {
+    withOriginFromParseTree(currentNode.getRuleContext) {
+      unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
+    }
   }
 
   /**
@@ -92,7 +99,7 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @param next The next result that should somehow be aggregated to form a single result
    * @return The aggregated result from the two supplied results (accumulate error strings)
    */
-  override def aggregateResult(agg: A, next: A): A =
+  override def aggregateResult(agg: ir.WithKnownOrigin[A], next: ir.WithKnownOrigin[A]): ir.WithKnownOrigin[A] =
     Option(next).getOrElse(agg)
 
   protected var currentNode: RuleNode = _
@@ -105,8 +112,17 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @param node the RuleNode that was not visited
    * @return T an instance of the type returned by the implementing visitor
    */
-  abstract override def visitChildren(node: RuleNode): A = {
-    caller = Thread.currentThread().getStackTrace()(4).getMethodName
+  abstract override def visitChildren(node: RuleNode): WithKnownOrigin[A] = withOriginFromParseTree(node) {
+    caller = Thread
+      .currentThread()
+      .getStackTrace()
+      .collectFirst {
+        case e
+            if e.getMethodName.startsWith("visit") && !Set("visitChildren", "visitChildren$").contains(
+              e.getMethodName) =>
+          e.getMethodName
+      }
+      .getOrElse("???")
     implementor = this.getClass.getSimpleName
     logger.warn(
       s"Unimplemented visitor for method: $caller in class: $implementor" +

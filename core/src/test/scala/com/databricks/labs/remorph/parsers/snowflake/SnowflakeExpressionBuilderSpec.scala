@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, ID, LiteralContext}
-import org.antlr.v4.runtime.CommonToken
+import org.antlr.v4.runtime.{CommonToken, Token}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -460,7 +460,10 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved child" in {
+
+      val mockLiteralStart = mock[Token]
       val literal = mock[LiteralContext]
+      when(literal.getStart).thenReturn(mockLiteralStart)
       vc.expressionBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
       verify(literal).id()
@@ -473,6 +476,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).NULL()
       verify(literal).jsonLiteral()
       verify(literal).arrayLiteral()
+      verify(literal).getStart
       verifyNoMoreInteractions(literal)
     }
   }

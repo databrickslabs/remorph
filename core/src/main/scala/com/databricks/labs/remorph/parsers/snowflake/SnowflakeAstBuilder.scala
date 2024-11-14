@@ -11,8 +11,9 @@ import scala.collection.JavaConverters._
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
 class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
-    with ParserCommon[ir.LogicalPlan] {
+    extends SnowflakeParserBaseVisitor[ir.WithKnownOrigin[ir.LogicalPlan]]
+    with ParserCommon[ir.LogicalPlan]
+    with ir.OriginTracking {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
@@ -21,16 +22,17 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan = {
-    // This very top level visitor does not ignore any valid statements for the batch, instead
-    // we prepend any errors to the batch plan, so they are generated first in the output.
-    val errors = errorCheck(ctx)
-    val batchPlan = Option(ctx.batch()).map(buildBatch).getOrElse(Seq.empty)
-    errors match {
-      case Some(errorResult) => ir.Batch(errorResult +: batchPlan)
-      case None => ir.Batch(batchPlan)
+  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      // This very top level visitor does not ignore any valid statements for the batch, instead
+      // we prepend any errors to the batch plan, so they are generated first in the output.
+      val errors = errorCheck(ctx)
+      val batchPlan = Option(ctx.batch()).map(buildBatch).getOrElse(Seq.empty)
+      errors match {
+        case Some(errorResult) => ir.Batch(errorResult +: batchPlan)
+        case None => ir.Batch(batchPlan)
+      }
     }
-  }
 
   private def buildBatch(ctx: BatchContext): Seq[ir.LogicalPlan] = {
     // This very top level visitor does not ignore any valid statements for the batch, instead
@@ -43,46 +45,49 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitSqlClauses(ctx: SqlClausesContext): ir.LogicalPlan = {
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        ctx match {
-          case c if c.ddlCommand() != null => c.ddlCommand().accept(this)
-          case c if c.dmlCommand() != null => c.dmlCommand().accept(this)
-          case c if c.showCommand() != null => c.showCommand().accept(this)
-          case c if c.useCommand() != null => c.useCommand().accept(this)
-          case c if c.describeCommand() != null => c.describeCommand().accept(this)
-          case c if c.otherCommand() != null => c.otherCommand().accept(this)
-          case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
-          case _ =>
-            ir.UnresolvedCommand(
-              ruleText = contextText(ctx),
-              ruleName = vc.ruleName(ctx),
-              tokenName = Some(tokenName(ctx.getStart)),
-              message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")
-        }
+  override def visitSqlClauses(ctx: SqlClausesContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
+            case c if c.ddlCommand() != null => c.ddlCommand().accept(this)
+            case c if c.dmlCommand() != null => c.dmlCommand().accept(this)
+            case c if c.showCommand() != null => c.showCommand().accept(this)
+            case c if c.useCommand() != null => c.useCommand().accept(this)
+            case c if c.describeCommand() != null => c.describeCommand().accept(this)
+            case c if c.otherCommand() != null => c.otherCommand().accept(this)
+            case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
+            case _ =>
+              ir.UnresolvedCommand(
+                ruleText = contextText(ctx),
+                ruleName = vc.ruleName(ctx),
+                tokenName = Some(tokenName(ctx.getStart)),
+                message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand")
+          }
+      }
     }
-  }
 
   // TODO: Sort out where to visitSubquery
-  override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        val select = ctx.selectStatement().accept(vc.relationBuilder)
-        val withCTE = buildCTE(ctx.withExpression(), select)
-        ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
-    }
-  }
-
-  override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        ctx.accept(vc.ddlBuilder)
+  override def visitQueryStatement(ctx: QueryStatementContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val select = ctx.selectStatement().accept(vc.relationBuilder)
+          val withCTE = buildCTE(ctx.withExpression(), select)
+          ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
+      }
     }
 
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.accept(vc.ddlBuilder)
+      }
+    }
   private def buildCTE(ctx: WithExpressionContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     if (ctx == null) {
       return relation
@@ -118,28 +123,32 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitDmlCommand(ctx: DmlCommandContext): ir.LogicalPlan =
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        ctx match {
-          case c if c.queryStatement() != null => c.queryStatement().accept(this)
-          case c => c.accept(vc.dmlBuilder)
-        }
+  override def visitDmlCommand(ctx: DmlCommandContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
+            case c if c.queryStatement() != null => c.queryStatement().accept(this)
+            case c => c.accept(vc.dmlBuilder)
+          }
+      }
+    }
+  override def visitOtherCommand(ctx: OtherCommandContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.accept(vc.commandBuilder)
+      }
     }
 
-  override def visitOtherCommand(ctx: OtherCommandContext): ir.LogicalPlan =
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        ctx.accept(vc.commandBuilder)
+  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.WithKnownOrigin[ir.LogicalPlan] =
+    withOriginFromContext(ctx) {
+      ir.UnresolvedCommand(
+        ruleText = contextText(ctx),
+        ruleName = vc.ruleName(ctx),
+        tokenName = Some(tokenName(ctx.getStart)),
+        message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")
     }
-
-  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
-    ir.UnresolvedCommand(
-      ruleText = contextText(ctx),
-      ruleName = vc.ruleName(ctx),
-      tokenName = Some(tokenName(ctx.getStart)),
-      message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand")
-  }
 }

@@ -2,6 +2,8 @@ package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
 import com.fasterxml.jackson.annotation.JsonIgnore
+import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.ParseTree
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
@@ -17,6 +19,19 @@ case class Origin(
     sqlText: Option[String] = None,
     objectType: Option[String] = None,
     objectName: Option[String] = None)
+
+trait KnownOrigin
+
+trait OriginTracking {
+  def withOriginFromContext[T <: TreeNode[_]](ctx: ParserRuleContext)(t: => T): WithKnownOrigin[T] =
+    t.withOrigin(Origin(line = Some(ctx.getStart.getLine))).asInstanceOf[WithKnownOrigin[T]]
+
+  def withOriginFromParseTree[T <: TreeNode[_]](tree: ParseTree)(t: => T): WithKnownOrigin[T] =
+    tree match {
+      case p: ParserRuleContext => withOriginFromContext(p)(t)
+      case t => t.asInstanceOf[WithKnownOrigin[T]]
+    }
+}
 
 object CurrentOrigin {
   private val value = new ThreadLocal[Origin]() {
@@ -64,7 +79,14 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
-  @JsonIgnore val origin: Origin = CurrentOrigin.get
+  @JsonIgnore private[this] var _origin: Origin = CurrentOrigin.get
+
+  def origin: Origin = _origin
+
+  def withOrigin(newOrigin: Origin): WithKnownOrigin[BaseType] = {
+    _origin = newOrigin
+    self.asInstanceOf[WithKnownOrigin[BaseType]]
+  }
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild
