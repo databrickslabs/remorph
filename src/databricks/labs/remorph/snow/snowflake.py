@@ -346,6 +346,7 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+            "TRY_TO_TIMESTAMP": local_expression.TryToTimestamp.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_date_add,
