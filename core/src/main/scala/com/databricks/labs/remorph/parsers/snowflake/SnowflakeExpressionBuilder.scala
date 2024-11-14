@@ -12,8 +12,8 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ir.Expression]
-    with ParserCommon[ir.Expression]
+    extends SnowflakeParserBaseVisitor[ParsedNode[ir.Expression]]
+    with ParserCommon[ParsedNode[ir.Expression]]
     with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
@@ -21,12 +21,12 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ir.Expression =
+  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.Expression] =
     ir.UnresolvedExpression(ruleText = ruleText, message = message)
 
   // Concrete visitors..
 
-  override def visitFunctionCall(ctx: FunctionCallContext): ir.Expression = errorCheck(ctx) match {
+  override def visitFunctionCall(ctx: FunctionCallContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -37,13 +37,13 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitValuesTable(ctx: ValuesTableContext): ir.Expression = errorCheck(ctx) match {
+  override def visitValuesTable(ctx: ValuesTableContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.valuesTableBody().accept(this)
   }
 
-  override def visitGroupByElem(ctx: GroupByElemContext): ir.Expression = errorCheck(ctx) match {
+  override def visitGroupByElem(ctx: GroupByElemContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -53,7 +53,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitId(ctx: IdContext): ir.Expression = errorCheck(ctx) match {
+  override def visitId(ctx: IdContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       buildId(ctx)
@@ -80,7 +80,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case id => ir.Id(id.getText)
   }
 
-  override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = errorCheck(ctx) match {
+  override def visitSelectListElem(ctx: SelectListElemContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val rawExpression = ctx match {
@@ -91,7 +91,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       buildAlias(ctx.asAlias(), rawExpression)
   }
 
-  override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExpressionElem(ctx: ExpressionElemContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -100,7 +100,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = errorCheck(ctx) match {
+  override def visitColumnElem(ctx: ColumnElemContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val objectNameIds: Seq[ir.NameOrPosition] = Option(ctx.dotIdentifier()).toSeq.flatMap(_.id().asScala.map(buildId))
@@ -127,7 +127,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.Position(ctx.INT().getText.toInt)
   }
 
-  override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = errorCheck(ctx) match {
+  override def visitColumnElemStar(ctx: ColumnElemStarContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Star(Option(ctx.dotIdentifier()).map { on =>
@@ -136,13 +136,13 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       })
   }
 
-  private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
+  private def buildAlias(ctx: AsAliasContext, input: ParsedNode[ir.Expression]): ParsedNode[ir.Expression] =
     Option(ctx).fold(input) { c =>
       val alias = buildId(c.alias().id())
       ir.Alias(input, alias)
     }
 
-  override def visitColumnName(ctx: ColumnNameContext): ir.Expression = errorCheck(ctx) match {
+  override def visitColumnName(ctx: ColumnNameContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.id().asScala match {
@@ -170,7 +170,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
   }
 
-  override def visitLiteral(ctx: LiteralContext): ir.Expression = errorCheck(ctx) match {
+  override def visitLiteral(ctx: LiteralContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
@@ -216,7 +216,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
    *
    * @param ctx the parse tree
    */
-  override def visitString(ctx: SnowflakeParser.StringContext): ir.Expression = errorCheck(ctx) match {
+  override def visitString(ctx: SnowflakeParser.StringContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -262,13 +262,13 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       case _ => ir.Literal.True
     }
 
-  override def visitExprNot(ctx: ExprNotContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprNot(ctx: ExprNotContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => ir.Not(e) }
   }
 
-  override def visitExprAnd(ctx: ExprAndContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprAnd(ctx: ExprAndContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expr(0).accept(this)
@@ -276,7 +276,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.And(left, right)
   }
 
-  override def visitExprOr(ctx: ExprOrContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprOr(ctx: ExprOrContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expr(0).accept(this)
@@ -284,25 +284,25 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Or(left, right)
   }
 
-  override def visitNonLogicalExpression(ctx: NonLogicalExpressionContext): ir.Expression = errorCheck(ctx) match {
+  override def visitNonLogicalExpression(ctx: NonLogicalExpressionContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.expression().accept(this)
   }
 
-  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.expression().accept(this)
   }
 
-  override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprNextval(ctx: ExprNextvalContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       NextValue(ctx.dotIdentifier().getText)
   }
 
-  override def visitExprDot(ctx: ExprDotContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprDot(ctx: ExprDotContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val lhs = ctx.expression(0).accept(this)
@@ -310,7 +310,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Dot(lhs, rhs)
   }
 
-  override def visitExprColon(ctx: ExprColonContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprColon(ctx: ExprColonContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val lhs = ctx.expression(0).accept(this)
@@ -318,25 +318,25 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.JsonAccess(lhs, rhs)
   }
 
-  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprCollate(ctx: ExprCollateContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Collate(ctx.expression().accept(this), removeQuotes(ctx.string().getText))
   }
 
-  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprCase(ctx: ExprCaseContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.caseExpression().accept(this)
   }
 
-  override def visitExprIff(ctx: ExprIffContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprIff(ctx: ExprIffContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.iffExpr().accept(this)
   }
 
-  override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprComparison(ctx: ExprComparisonContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expression(0).accept(this)
@@ -344,13 +344,13 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       buildComparisonExpression(ctx.comparisonOperator(), left, right)
   }
 
-  override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprDistinct(ctx: ExprDistinctContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Distinct(ctx.expression().accept(this))
   }
 
-  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val expr = ctx.expression().accept(this)
@@ -358,25 +358,25 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.WithinGroup(expr, sortOrders)
   }
 
-  override def visitExprOver(ctx: ExprOverContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprOver(ctx: ExprOverContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       buildWindow(ctx.overClause(), ctx.expression().accept(this))
   }
 
-  override def visitExprCast(ctx: ExprCastContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprCast(ctx: ExprCastContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.castExpr().accept(this)
   }
 
-  override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprAscribe(ctx: ExprAscribeContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Cast(ctx.expression().accept(this), typeBuilder.buildDataType(ctx.dataType()))
   }
 
-  override def visitExprSign(ctx: ExprSignContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprSign(ctx: ExprSignContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.sign() match {
@@ -385,31 +385,31 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression = errorCheck(ctx) match {
+  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
   }
 
-  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression = errorCheck(ctx) match {
+  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
   }
 
-  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.primitiveExpression().accept(this)
   }
 
-  override def visitExprFuncCall(ctx: ExprFuncCallContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprFuncCall(ctx: ExprFuncCallContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.functionCall().accept(this)
   }
 
-  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = errorCheck(ctx) match {
+  override def visitJsonLiteral(ctx: JsonLiteralContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val fields = ctx.kvPair().asScala.map { kv =>
@@ -420,7 +420,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.StructExpr(fields)
   }
 
-  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = errorCheck(ctx) match {
+  override def visitArrayLiteral(ctx: ArrayLiteralContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val elements = ctx.expr().asScala.map(_.accept(this)).toList
@@ -434,31 +434,31 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.ArrayExpr(elements, dataType)
   }
 
-  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.ArrayAccess(ctx.id().accept(this), ir.NumericLiteral(ctx.INT().getText))
   }
 
-  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.id().accept(this)
   }
 
-  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
   }
 
-  override def visitPrimExprLiteral(ctx: PrimExprLiteralContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPrimExprLiteral(ctx: PrimExprLiteralContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.literal().accept(this)
   }
 
-  private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
+  private def buildBinaryOperation(operator: Token, left: ParsedNode[ir.Expression], right: ParsedNode[ir.Expression]): ParsedNode[ir.Expression] =
     operator.getType match {
       case STAR => ir.Multiply(left, right)
       case DIVIDE => ir.Divide(left, right)
@@ -470,8 +470,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   private[snowflake] def buildComparisonExpression(
       op: ComparisonOperatorContext,
-      left: ir.Expression,
-      right: ir.Expression): ir.Expression = {
+      left: ParsedNode[ir.Expression],
+      right: ParsedNode[ir.Expression]): ParsedNode[ir.Expression] = {
     if (op.EQ() != null) {
       ir.Equals(left, right)
     } else if (op.NE() != null || op.LTGT() != null) {
@@ -494,7 +494,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitIffExpr(ctx: IffExprContext): ir.Expression = errorCheck(ctx) match {
+  override def visitIffExpr(ctx: IffExprContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val condition = ctx.searchCondition().accept(this)
@@ -503,7 +503,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.If(condition, thenBranch, elseBranch)
   }
 
-  override def visitCastExpr(ctx: CastExprContext): ir.Expression = errorCheck(ctx) match {
+  override def visitCastExpr(ctx: CastExprContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -520,7 +520,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = errorCheck(
+  override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ParsedNode[ir.Expression] = errorCheck(
     ctx) match {
     case Some(errorResult) => errorResult
     case None =>
@@ -532,8 +532,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   private def buildWindow(
       ctx: OverClauseContext,
-      windowFunction: ir.Expression,
-      ignore_nulls: Boolean = false): ir.Expression = {
+      windowFunction: ParsedNode[ir.Expression],
+      ignore_nulls: Boolean = false): ParsedNode[ir.Expression] = {
     val partitionSpec = visitMany(ctx.expr())
     val sortOrder =
       Option(ctx.windowOrderingAndFrame()).map(c => buildSortOrder(c.orderByClause())).getOrElse(Seq())
@@ -562,7 +562,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
    * make the frame specification explicit. see:
    * https://docs.snowflake.com/en/sql-reference/functions-analytic#usage-notes-for-window-frames
    */
-  private def snowflakeDefaultFrameSpec(windowFunction: ir.Expression): Option[ir.WindowFrame] = {
+  private def snowflakeDefaultFrameSpec(windowFunction: ParsedNode[ir.Expression]): Option[ir.WindowFrame] = {
     val rankRelatedDefaultFrameSpec = ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.UnboundedFollowing)
     windowFunction match {
       case fn: ir.Fn if rankRelatedWindowFunctions.contains(fn.prettyName) => Some(rankRelatedDefaultFrameSpec)
@@ -589,7 +589,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c if c.CURRENT() != null => ir.CurrentRow
   }
 
-  override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = errorCheck(ctx) match {
+  override def visitStandardFunction(ctx: StandardFunctionContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val functionName = fetchFunctionName(ctx)
@@ -614,20 +614,20 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // aggregateFunction
 
-  override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = errorCheck(ctx) match {
+  override def visitAggFuncExprList(ctx: AggFuncExprListContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val param = visitMany(ctx.exprList().expr())
       functionBuilder.buildFunction(buildId(ctx.id()), param)
   }
 
-  override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = errorCheck(ctx) match {
+  override def visitAggFuncStar(ctx: AggFuncStarContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       functionBuilder.buildFunction(buildId(ctx.id()), Seq(ir.Star(None)))
   }
 
-  override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = errorCheck(ctx) match {
+  override def visitAggFuncList(ctx: AggFuncListContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val param = ctx.expr().accept(this)
@@ -638,7 +638,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = errorCheck(ctx) match {
+  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val part = if (ctx.ID() != null) { ir.Id(removeQuotes(ctx.ID().getText)) }
@@ -654,7 +654,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case _ => throw new IllegalArgumentException("Expected a string literal")
   }
 
-  override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = errorCheck(ctx) match {
+  override def visitCaseExpression(ctx: CaseExpressionContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val exprs = ctx.expr().asScala
@@ -676,43 +676,43 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Search conditions and predicates
 
-  override def visitScNot(ctx: ScNotContext): ir.Expression = errorCheck(ctx) match {
+  override def visitScNot(ctx: ScNotContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Not(ctx.searchCondition().accept(this))
   }
 
-  override def visitScAnd(ctx: ScAndContext): ir.Expression = errorCheck(ctx) match {
+  override def visitScAnd(ctx: ScAndContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.And(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
   }
 
-  override def visitScOr(ctx: ScOrContext): ir.Expression = errorCheck(ctx) match {
+  override def visitScOr(ctx: ScOrContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Or(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
   }
 
-  override def visitScPred(ctx: ScPredContext): ir.Expression = errorCheck(ctx) match {
+  override def visitScPred(ctx: ScPredContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.predicate().accept(this)
   }
 
-  override def visitScPrec(ctx: ScPrecContext): ir.Expression = errorCheck(ctx) match {
+  override def visitScPrec(ctx: ScPrecContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.searchCondition.accept(this)
   }
 
-  override def visitPredExists(ctx: PredExistsContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredExists(ctx: PredExistsContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Exists(ctx.subquery().accept(vc.relationBuilder))
   }
 
-  override def visitPredBinop(ctx: PredBinopContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredBinop(ctx: PredBinopContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expression(0).accept(this)
@@ -728,7 +728,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitPredASA(ctx: PredASAContext): ir.Expression =
+  override def visitPredASA(ctx: PredASAContext): ParsedNode[ir.Expression] =
     // TODO: build ASA
     ir.UnresolvedExpression(
       ruleText = contextText(ctx),
@@ -736,17 +736,17 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleName = vc.ruleName(ctx),
       tokenName = Some(tokenName(ctx.getStart)))
 
-  override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredBetween(ctx: PredBetweenContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val lowerBound = ctx.expression(1).accept(this)
       val upperBound = ctx.expression(2).accept(this)
       val expression = ctx.expression(0).accept(this)
       val between = ir.Between(expression, lowerBound, upperBound)
-      Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
+      Option(ctx.NOT()).fold[ParsedNode[ir.Expression]](between)(_ => ir.Not(between))
   }
 
-  override def visitPredIn(ctx: PredInContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredIn(ctx: PredInContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val in = if (ctx.subquery() != null) {
@@ -756,10 +756,10 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
         // In a list of expressions
         ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
       }
-      Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+      Option(ctx.NOT()).fold[ParsedNode[ir.Expression]](in)(_ => ir.Not(in))
   }
 
-  override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expression(0).accept(this)
@@ -772,10 +772,10 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
         case LIKE => ir.Like(left, right, escape)
         case ILIKE => ir.ILike(left, right, escape)
       }
-      Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+      Option(ctx.NOT()).fold[ParsedNode[ir.Expression]](like)(_ => ir.Not(like))
   }
 
-  override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.Expression =
+  override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ParsedNode[ir.Expression] =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -788,32 +788,32 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
           case ILIKE if ctx.ALL() != null => ir.ILikeAll(left, normalizedPatterns)
           case ILIKE => ir.ILikeAny(left, normalizedPatterns)
         }
-        Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+        Option(ctx.NOT()).fold[ParsedNode[ir.Expression]](like)(_ => ir.Not(like))
     }
 
-  override def visitPredRLike(ctx: PredRLikeContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredRLike(ctx: PredRLikeContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.expression(0).accept(this)
       val right = ctx.expression(1).accept(this)
       val rLike = ir.RLike(left, right)
-      Option(ctx.NOT()).fold[ir.Expression](rLike)(_ => ir.Not(rLike))
+      Option(ctx.NOT()).fold[ParsedNode[ir.Expression]](rLike)(_ => ir.Not(rLike))
   }
 
-  override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredIsNull(ctx: PredIsNullContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val expression = ctx.expression().accept(this)
       if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
   }
 
-  override def visitPredExpr(ctx: PredExprContext): ir.Expression = errorCheck(ctx) match {
+  override def visitPredExpr(ctx: PredExprContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.expression().accept(this)
   }
 
-  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExpressionContext): Seq[ir.Expression] = {
+  private def normalizePatterns(patterns: Seq[ParsedNode[ir.Expression]], escape: ExpressionContext): Seq[ParsedNode[ir.Expression]] = {
     Option(escape)
       .map(_.accept(this))
       .collect { case ir.StringLiteral(esc) =>
@@ -827,19 +827,19 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(patterns)
   }
 
-  override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = errorCheck(ctx) match {
+  override def visitParamAssoc(ctx: ParamAssocContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
-  override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = errorCheck(ctx) match {
+  override def visitSetColumnValue(ctx: SetColumnValueContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.Assign(ctx.columnName().accept(this), ctx.expr().accept(this))
   }
 
-  override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = errorCheck(ctx) match {
+  override def visitExprSubquery(ctx: ExprSubqueryContext): ParsedNode[ir.Expression] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))

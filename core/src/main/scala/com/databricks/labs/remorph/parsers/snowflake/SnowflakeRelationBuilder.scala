@@ -9,17 +9,17 @@ import org.antlr.v4.runtime.ParserRuleContext
 import scala.collection.JavaConverters._
 
 class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
-    with ParserCommon[ir.LogicalPlan] {
+    extends SnowflakeParserBaseVisitor[ParsedNode[ir.LogicalPlan]]
+    with ParserCommon[ParsedNode[ir.LogicalPlan]] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.LogicalPlan] =
     ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
-  override def visitSelectStatement(ctx: SelectStatementContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitSelectStatement(ctx: SelectStatementContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       // Note that the optional select clauses may be null on very simple statements
@@ -50,7 +50,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildLimitOffset(ctx: LimitClauseContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
         val limit = ir.Limit(input, ctx.expr(0).accept(vc.expressionBuilder))
@@ -65,7 +65,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
+  private def buildDistinct(input: ParsedNode[ir.LogicalPlan], projectExpressions: Seq[ir.Expression]): ParsedNode[ir.LogicalPlan] = {
     val columnNames = projectExpressions.collect {
       case ir.Id(i, _) => i
       case ir.Column(_, c) => c
@@ -74,12 +74,12 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.Deduplicate(input, projectExpressions, columnNames.isEmpty, within_watermark = false)
   }
 
-  private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
+  private def buildTop(ctxOpt: Option[TopClauseContext], input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] =
     ctxOpt.fold(input) { top =>
       ir.Limit(input, top.expr().accept(vc.expressionBuilder))
     }
 
-  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
@@ -90,7 +90,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
           buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from)))))
   }
 
-  override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitFromClause(ctx: FromClauseContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableSources = visitMany(ctx.tableSources().tableSource())
@@ -103,19 +103,19 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
+  private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] =
     Option(ctx).fold(input) { c =>
       ir.Filter(input, conditionRule(c).accept(vc.expressionBuilder))
     }
-  private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
+  private def buildHaving(ctx: HavingClauseContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] =
     buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
 
-  private def buildQualify(ctx: QualifyClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
+  private def buildQualify(ctx: QualifyClauseContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
-  private def buildWhere(ctx: WhereClauseContext, from: ir.LogicalPlan): ir.LogicalPlan =
+  private def buildWhere(ctx: WhereClauseContext, from: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] =
     buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
 
-  private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildGroupBy(ctx: GroupByClauseContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx).fold(input) { c =>
       val groupingExpressions =
         Option(c.groupByList()).toSeq
@@ -128,14 +128,14 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildOrderBy(ctx: OrderByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildOrderBy(ctx: OrderByClauseContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.orderItem().asScala.map(vc.expressionBuilder.visitOrderItem)
       ir.Sort(input, sortOrders, is_global = false)
     }
   }
 
-  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableFunc = ir.TableFunction(ctx.functionCall().accept(vc.expressionBuilder))
@@ -144,7 +144,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
   // @see https://docs.snowflake.com/en/sql-reference/functions-table
-  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val relation = ctx match {
@@ -159,7 +159,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), maybeLateral))
   }
 
-  private def buildSubqueryAlias(ctx: TableAliasContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildSubqueryAlias(ctx: TableAliasContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx)
       .map(a =>
         ir.SubqueryAlias(
@@ -169,13 +169,13 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(input)
   }
 
-  override def visitValuesTable(ctx: ValuesTableContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitValuesTable(ctx: ValuesTableContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx.valuesTableBody().accept(this)
   }
 
-  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val expressions =
@@ -186,13 +186,13 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Values(expressions)
   }
 
-  override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitObjRefDefault(ctx: ObjRefDefaultContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.dotIdentifier().accept(this)))
   }
 
-  override def visitTableRef(ctx: TableRefContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitTableRef(ctx: TableRefContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val table = ctx.dotIdentifier().accept(this)
@@ -203,21 +203,21 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
         .getOrElse(table)
   }
 
-  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitDotIdentifier(ctx: DotIdentifierContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.id().asScala.map(vc.expressionBuilder.buildId).map(_.id).mkString(".")
       ir.NamedTable(tableName, Map.empty, is_streaming = false)
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val values = ctx.valuesTable().accept(this)
       buildTableAlias(ctx.tableAlias(), values)
   }
 
-  private def buildTableAlias(ctx: TableAliasContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildTableAlias(ctx: TableAliasContext, relation: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx)
       .map { c =>
         val alias = c.alias().getText
@@ -227,7 +227,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(relation)
   }
 
-  private def buildPivotOrUnpivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildPivotOrUnpivot(ctx: PivotUnpivotContext, relation: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     if (ctx == null) {
       relation
     } else if (ctx.PIVOT() != null) {
@@ -237,7 +237,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildPivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildPivot(ctx: PivotUnpivotContext, relation: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     val pivotValues: Seq[ir.Literal] =
       vc.expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
     val argument = ir.Column(None, vc.expressionBuilder.buildId(ctx.pivotColumn))
@@ -251,7 +251,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       pivot = Some(ir.Pivot(column, pivotValues)))
   }
 
-  private def buildUnpivot(ctx: PivotUnpivotContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildUnpivot(ctx: PivotUnpivotContext, relation: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     val unpivotColumns = ctx
       .columnList()
       .columnName()
@@ -267,7 +267,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       value_column_name = valueColumnName)
   }
 
-  override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitTableSource(ctx: TableSourceContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableSource = ctx match {
@@ -277,14 +277,14 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       buildSample(ctx.sample(), tableSource)
   }
 
-  override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val left = ctx.objectRef().accept(this)
       ctx.joinClause().asScala.foldLeft(left)(buildJoin)
   }
 
-  private def buildJoin(left: ir.LogicalPlan, right: JoinClauseContext): ir.Join = {
+  private def buildJoin(left: ParsedNode[ir.LogicalPlan], right: JoinClauseContext): ir.Join = {
     val usingColumns = Option(right.columnList()).map(_.columnName().asScala.map(_.getText)).getOrElse(Seq())
     val joinType = if (right.NATURAL() != null) {
       ir.NaturalJoin(translateOuterJoinType(right.outerJoin()))
@@ -325,7 +325,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(ir.UnspecifiedJoin)
   }
 
-  override def visitCTETable(ctx: CTETableContext): ir.LogicalPlan =
+  override def visitCTETable(ctx: CTETableContext): ParsedNode[ir.LogicalPlan] =
     errorCheck(ctx).getOrElse {
       val tableName = vc.expressionBuilder.buildId(ctx.tableName)
       val columns = ctx.columnList() match {
@@ -338,7 +338,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
 
     }
 
-  override def visitCTEColumn(ctx: CTEColumnContext): ir.LogicalPlan = {
+  override def visitCTEColumn(ctx: CTEColumnContext): ParsedNode[ir.LogicalPlan] = {
     InlineColumnExpression(vc.expressionBuilder.buildId(ctx.id()), ctx.expr().accept(vc.expressionBuilder))
   }
 
@@ -348,7 +348,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c: SampleMethodBlockContext => ir.BlockSampling(BigDecimal(c.INT().getText))
   }
 
-  private def buildSample(ctx: SampleContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+  private def buildSample(ctx: SampleContext, input: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
     Option(ctx)
       .map { sampleCtx =>
         val seed = Option(sampleCtx.sampleSeed()).map(s => BigDecimal(s.INT().getText))
@@ -358,7 +358,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(input)
   }
 
-  override def visitTableOrQuery(ctx: TableOrQueryContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitTableOrQuery(ctx: TableOrQueryContext): ParsedNode[ir.LogicalPlan] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {

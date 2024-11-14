@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.parsed.ParsedNode
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
@@ -16,7 +17,8 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
     a != null && b != null && a.getSourceInterval.startsBeforeDisjoint(b.getSourceInterval)
   }
 
-  def visitMany[R <: RuleContext](contexts: java.lang.Iterable[R]): Seq[A] = contexts.asScala.map(_.accept(self)).toSeq
+  def visitMany[R <: RuleContext](contexts: java.lang.Iterable[R]):
+    Seq[A] = contexts.asScala.map(_.accept(self)).toSeq
 
   /**
    * <p>

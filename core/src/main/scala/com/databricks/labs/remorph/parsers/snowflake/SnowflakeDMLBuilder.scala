@@ -8,18 +8,18 @@ import com.databricks.labs.remorph.{intermediate => ir}
 import scala.collection.JavaConverters._
 
 class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ir.Modification]
-    with ParserCommon[ir.Modification]
+    extends SnowflakeParserBaseVisitor[ParsedNode[ir.Modification]]
+    with ParserCommon[ParsedNode[ir.Modification]]
     with IRHelpers {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ir.Modification =
+  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.Modification] =
     ir.UnresolvedModification(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
-  override def visitDmlCommand(ctx: DmlCommandContext): ir.Modification = errorCheck(ctx) match {
+  override def visitDmlCommand(ctx: DmlCommandContext): ParsedNode[ir.Modification] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -33,7 +33,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = errorCheck(ctx) match {
+  override def visitInsertStatement(ctx: InsertStatementContext): ParsedNode[ir.Modification] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val table = ctx.dotIdentifier().accept(vc.relationBuilder)
@@ -46,7 +46,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.InsertIntoTable(table, columns, values, None, None, overwrite)
   }
 
-  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification =
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ParsedNode[ir.Modification] =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -60,7 +60,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
         }
     }
 
-  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.Modification = errorCheck(ctx) match {
+  override def visitUpdateStatement(ctx: UpdateStatementContext): ParsedNode[ir.Modification] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val target = ctx.tableRef().accept(vc.relationBuilder)
@@ -71,7 +71,7 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.UpdateTable(target, sources, set, where, None, None)
   }
 
-  override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = errorCheck(ctx) match {
+  override def visitMergeStatement(ctx: MergeStatementContext): ParsedNode[ir.Modification] = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val target = ctx.tableRef().accept(vc.relationBuilder)
