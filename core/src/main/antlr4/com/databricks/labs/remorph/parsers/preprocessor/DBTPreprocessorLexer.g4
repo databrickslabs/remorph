@@ -11,8 +11,7 @@
 lexer grammar DBTPreprocessorLexer;
 
 tokens {
-    STRING,
-    CHAR
+    STRING
 }
 
 options {
@@ -86,7 +85,17 @@ options {
      */
     private void scanPast(String str) {
         int index = _input.index();
+
+        // If there was a preceding hyphen such as -%}, we need to move past that as well
+        if (_input.LA(-1) == '-') {
+            index++;
+        }
         _input.seek(index + str.length() - 1);
+
+        // If there is a trailing hyphen suchas {%- then we need to scan past that as well
+        if (_input.LA(1) == '-') {
+            _input.consume();
+        }
     }
 
     /**
@@ -94,6 +103,11 @@ options {
      * match the current configured chracters that start a Ninja statement templage
      */
     private boolean matchAndConsume(String str) {
+        // Check if the first character matches otherwise we would accidentally accept anything for
+        // a single character marker such as LineStatStart
+        if (str.charAt(0) != _input.LA(-1)) {
+            return false;
+        }
         for (int i = 1; i < str.length(); i++) {
             if (str.charAt(i) != _input.LA(1)) {
                 return false;
@@ -182,6 +196,12 @@ COMMENT: . { scanPast(config.commentStart); } { isComment() }? -> pushMode(comme
 LINESTAT: . { scanPast(config.lineStatStart); } { isLineStat() }? -> pushMode(lineStatMode )
     ;
 
+// We track whitespace as it can influence how a template following or not following
+// whitespace is replaced in the processed output. Similarly, we want to know if whitespace
+// followed the template reference or not
+WS: [ \t]+
+    ;
+
 C: .
     ;
 
@@ -191,7 +211,7 @@ STATEMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
     ;
 STATEMENT_END: . { scanPast(config.statEnd); } { isStatementEnd() }? -> popMode
     ;
-STATMENT_BIT: . -> type(CHAR)
+STATMENT_BIT: . -> type(C)
     ;
 
 mode expressionMode;
@@ -200,7 +220,7 @@ EXPRESSION_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
     ;
 EXPRESSION_END: . { scanPast(config.exprEnd); } { isExpresionEnd() }? -> popMode
     ;
-EXPRESSION_BIT: . -> type(CHAR)
+EXPRESSION_BIT: . -> type(C)
     ;
 
 mode commentMode;
@@ -208,7 +228,7 @@ COMMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
     ;
 COMMENT_END: . { scanPast(config.commentEnd); } { isCommentEnd() }? -> popMode
     ;
-COMMENT_BIT: . -> type(CHAR)
+COMMENT_BIT: . -> type(C)
     ;
 
 mode lineStatMode;
@@ -216,5 +236,5 @@ LINESTAT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
     ;
 LINESTAT_END: ( '\r\n' | '\n') -> popMode
     ;
-LINESTAT_BIT: . -> type(CHAR)
+LINESTAT_BIT: . -> type(C)
     ;
