@@ -60,6 +60,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
       new CastParseJsonToFromJson,
       new TranslateWithinGroup,
       new FlattenNestedConcat,
-      new CompactJsonAccess)
+      new CompactJsonAccess,
+      new DealiasInlineColumnExpressions)
   }
 }
