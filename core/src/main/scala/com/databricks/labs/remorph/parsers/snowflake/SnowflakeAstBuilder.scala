@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsed.{ParsedNode, ParsedRange}
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -12,30 +11,28 @@ import scala.collection.JavaConverters._
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
 class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ParsedNode[ir.LogicalPlan]]
-    with ParserCommon[ParsedNode[ir.LogicalPlan]] {
+    extends SnowflakeParserBaseVisitor[ir.LogicalPlan]
+    with ParserCommon[ir.LogicalPlan] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.LogicalPlan] =
-    new ParsedNode(ir.UnresolvedRelation(ruleText = ruleText, message = message), ParsedRange.empty)
+  protected override def unresolved(ruleText: String, message: String): ir.LogicalPlan =
+    ir.UnresolvedRelation(ruleText = ruleText, message = message)
 
   // Concrete visitors
 
-  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ParsedNode[ir.LogicalPlan] = {
+  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan = {
     // This very top level visitor does not ignore any valid statements for the batch, instead
     // we prepend any errors to the batch plan, so they are generated first in the output.
     val errors = errorCheck(ctx)
     val batchPlan = Option(ctx.batch()).map(buildBatch).getOrElse(Seq.empty)
     errors match {
-      case Some(errorResult) => new ParsedNode(
-        ir.Batch(errorResult +: batchPlan),
-        ParsedRange.fromParserRuleContext(ctx))
-      case None => new ParsedNode(ir.Batch(batchPlan), ParsedRange.fromParserRuleContext(ctx))
+      case Some(errorResult) => ir.Batch(errorResult +: batchPlan)
+      case None => ir.Batch(batchPlan)
     }
   }
 
-  private def buildBatch(ctx: BatchContext): Seq[ParsedNode[ir.LogicalPlan]] = {
+  private def buildBatch(ctx: BatchContext): Seq[ir.LogicalPlan] = {
     // This very top level visitor does not ignore any valid statements for the batch, instead
     // we prepend any errors to the batch plan, so they are generated first in the output.
     val errors = errorCheck(ctx)
@@ -46,7 +43,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitSqlClauses(ctx: SqlClausesContext): ParsedNode[ir.LogicalPlan] = {
+  override def visitSqlClauses(ctx: SqlClausesContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -69,7 +66,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
   }
 
   // TODO: Sort out where to visitSubquery
-  override def visitQueryStatement(ctx: QueryStatementContext): ParsedNode[ir.LogicalPlan] = {
+  override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -79,14 +76,14 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitDdlCommand(ctx: DdlCommandContext): ParsedNode[ir.LogicalPlan] =
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
         ctx.accept(vc.ddlBuilder)
     }
 
-  private def buildCTE(ctx: WithExpressionContext, relation: ParsedNode[ir.LogicalPlan]): ParsedNode[ir.LogicalPlan] = {
+  private def buildCTE(ctx: WithExpressionContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     if (ctx == null) {
       return relation
     }
@@ -104,7 +101,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildSetOperator(left: ParsedNode[ir.LogicalPlan], ctx: SetOperatorsContext): ParsedNode[ir.LogicalPlan] = {
+  private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -121,7 +118,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitDmlCommand(ctx: DmlCommandContext): ParsedNode[ir.LogicalPlan] =
+  override def visitDmlCommand(ctx: DmlCommandContext): ir.LogicalPlan =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -131,14 +128,14 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
         }
     }
 
-  override def visitOtherCommand(ctx: OtherCommandContext): ParsedNode[ir.LogicalPlan] =
+  override def visitOtherCommand(ctx: OtherCommandContext): ir.LogicalPlan =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
         ctx.accept(vc.commandBuilder)
     }
 
-  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ParsedNode[ir.LogicalPlan] = {
+  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       ruleName = vc.ruleName(ctx),

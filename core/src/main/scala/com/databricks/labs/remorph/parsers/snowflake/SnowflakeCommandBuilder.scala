@@ -6,12 +6,12 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringCont
 import com.databricks.labs.remorph.{intermediate => ir}
 
 class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ParsedNode[ir.Command]]
-    with ParserCommon[ParsedNode[ir.Command]] {
+    extends SnowflakeParserBaseVisitor[ir.Command]
+    with ParserCommon[ir.Command] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.Command] =
+  protected override def unresolved(ruleText: String, message: String): ir.Command =
     ir.UnresolvedCommand(ruleText, message)
 
   // Concrete visitors
@@ -19,7 +19,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
   // TODO: Implement Cursor and Exception for Declare Statements.
   // TODO: Implement Cursor for Let Statements.
 
-  override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ParsedNode[ir.Command] =
+  override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -29,7 +29,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.CreateVariable(variableName, dataType, Some(variableValue), replace = false)
     }
 
-  override def visitDeclareSimple(ctx: DeclareSimpleContext): ParsedNode[ir.Command] =
+  override def visitDeclareSimple(ctx: DeclareSimpleContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -38,7 +38,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.CreateVariable(variableName, dataType, None, replace = false)
     }
 
-  override def visitDeclareResultSet(ctx: DeclareResultSetContext): ParsedNode[ir.Command] =
+  override def visitDeclareResultSet(ctx: DeclareResultSetContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -51,7 +51,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
         ir.CreateVariable(variableName, dataType, variableValue, replace = false)
     }
 
-  override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ParsedNode[ir.Command] =
+  override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
@@ -65,7 +65,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
         SetVariable(variableName, variableValue, variableDataType)
     }
 
-  override def visitExecuteTask(ctx: ExecuteTaskContext): ParsedNode[ir.Command] = {
+  override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       message = "Execute Task is not yet supported",
@@ -73,7 +73,7 @@ class SnowflakeCommandBuilder(override val vc: SnowflakeVisitorCoordinator)
       tokenName = Some(tokenName(ctx.getStart)))
   }
 
-  override def visitOtherCommand(ctx: OtherCommandContext): ParsedNode[ir.Command] =
+  override def visitOtherCommand(ctx: OtherCommandContext): ir.Command =
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>

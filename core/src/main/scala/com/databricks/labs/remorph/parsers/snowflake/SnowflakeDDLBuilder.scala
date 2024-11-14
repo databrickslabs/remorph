@@ -7,12 +7,12 @@ import com.databricks.labs.remorph.{intermediate => ir}
 import java.util.Locale
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ParsedNode[ir.Catalog]]
-    with ParserCommon[ParsedNode[ir.Catalog]] {
+    extends SnowflakeParserBaseVisitor[ir.Catalog]
+    with ParserCommon[ir.Catalog] {
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
-  protected override def unresolved(ruleText: String, message: String): ParsedNode[ir.Catalog] =
+  protected override def unresolved(ruleText: String, message: String): ir.Catalog =
     ir.UnresolvedCatalog(ruleText = ruleText, message = message)
 
   // Concrete visitors
@@ -25,7 +25,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
     }
 
-  override def visitDdlCommand(ctx: DdlCommandContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -36,7 +36,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitCreateCommand(ctx: CreateCommandContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitCreateCommand(ctx: CreateCommandContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -90,7 +90,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitCreateFunction(ctx: CreateFunctionContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val runtime = Option(ctx.id()).map(_.getText.toLowerCase(Locale.ROOT)).getOrElse("sql")
@@ -151,7 +151,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.PythonRuntimeInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
-  override def visitCreateTable(ctx: CreateTableContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.dotIdentifier().getText
@@ -170,7 +170,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   }
 
-  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.dotIdentifier().getText
@@ -192,14 +192,14 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
   }
 
-  override def visitCreateStream(ctx: CreateStreamContext): ParsedNode[ir.Catalog] =
+  override def visitCreateStream(ctx: CreateStreamContext): ir.Catalog =
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE STREAM UNSUPPORTED",
       ruleName = contextRuleName(ctx),
       tokenName = Some("STREAM"))
 
-  override def visitCreateTask(ctx: CreateTaskContext): ParsedNode[ir.Catalog] = {
+  override def visitCreateTask(ctx: CreateTaskContext): ir.Catalog = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE TASK UNSUPPORTED",
@@ -287,14 +287,14 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
-  override def visitCreateUser(ctx: CreateUserContext): ParsedNode[ir.Catalog] =
+  override def visitCreateUser(ctx: CreateUserContext): ir.Catalog =
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       message = "CREATE USER UNSUPPORTED",
       ruleName = "createUser",
       tokenName = Some("USER"))
 
-  override def visitAlterCommand(ctx: AlterCommandContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
@@ -308,7 +308,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       }
   }
 
-  override def visitAlterTable(ctx: AlterTableContext): ParsedNode[ir.Catalog] = errorCheck(ctx) match {
+  override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.dotIdentifier(0).getText
