@@ -2,11 +2,7 @@ package com.databricks.labs.remorph.intermediate
 
 import com.databricks.labs.remorph.utils.Strings.truncatedString
 import com.fasterxml.jackson.annotation.JsonIgnore
-import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.tree.ParseTree
 
-import java.lang.reflect.Constructor
-import scala.annotation.tailrec
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
@@ -14,31 +10,36 @@ import scala.util.control.NonFatal
 private class MutableInt(var i: Int)
 
 case class Origin(
-    startLine: Int,
-    startColumn: Int,
-    endLine: Int,
-    endColumn: Int,
-    startTokenIndex: Int,
-    endTokenIndex: Int)
+    line: Option[Int] = None,
+    startPosition: Option[Int] = None,
+    startIndex: Option[Int] = None,
+    stopIndex: Option[Int] = None,
+    sqlText: Option[String] = None,
+    objectType: Option[String] = None,
+    objectName: Option[String] = None)
 
-object Origin {
-
-  def fromParseTree(tree: ParseTree): Option[Origin] = {
-    tree match {
-      case parserRuleContext: ParserRuleContext => Some(Origin.fromParserRuleContext(parserRuleContext))
-      case other => Option.empty
-    }
+object CurrentOrigin {
+  private val value = new ThreadLocal[Origin]() {
+    override def initialValue: Origin = Origin()
   }
 
-  def fromParserRuleContext(ctx: ParserRuleContext): Origin = {
-    Origin(
-      startLine = ctx.start.getLine,
-      startColumn = ctx.start.getCharPositionInLine,
-      endLine = ctx.stop.getLine,
-      endColumn = ctx.stop.getCharPositionInLine + ctx.stop.getStopIndex - ctx.stop.getStartIndex,
-      startTokenIndex = ctx.start.getTokenIndex,
-      endTokenIndex = ctx.stop.getTokenIndex)
+  def get: Origin = value.get()
+
+  def setPosition(line: Int, start: Int): Unit = {
+    value.set(value.get.copy(line = Some(line), startPosition = Some(start)))
   }
+
+  def withOrigin[A](o: Origin)(f: => A): A = {
+    set(o)
+    val ret =
+      try f
+      finally { reset() }
+    ret
+  }
+
+  def set(o: Origin): Unit = value.set(o)
+
+  def reset(): Unit = value.set(Origin())
 }
 
 class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, msg: String, cause: Throwable)
@@ -56,15 +57,14 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] = Option.empty) extends Product {
+abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   // scalastyle:on
   self: BaseType =>
 
   @JsonIgnore lazy val containsChild: Set[TreeNode[_]] = children.toSet
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
-
-  def origin: Option[Origin] = _origin
+  @JsonIgnore val origin: Origin = CurrentOrigin.get
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild
@@ -242,8 +242,8 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] 
   private def makeCopy(newArgs: Array[AnyRef], allowEmptyArgs: Boolean): BaseType = attachTree(this, "makeCopy") {
     val allCtors = getClass.getConstructors
     if (newArgs.isEmpty && allCtors.isEmpty) {
-      // This is a singleton object which doesn't have any constructor.
-      // So just return `this` as we can't copy it.
+      // This is a singleton object which doesn't have any constructor. Just return `this` as we
+      // can't copy it.
       return this
     }
 
@@ -252,12 +252,31 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] 
     if (ctors.isEmpty) {
       sys.error(s"No valid constructor for $nodeName")
     }
-
-    val (defaultCtor, allArgs) = locateConstructor(ctors, newArgs, appendOrigin = false)
+    val allArgs: Array[AnyRef] = if (otherCopyArgs.isEmpty) {
+      newArgs
+    } else {
+      newArgs ++ otherCopyArgs
+    }
+    val defaultCtor = ctors
+      .find { ctor =>
+        if (ctor.getParameterTypes.length != allArgs.length) {
+          false
+        } else if (allArgs.contains(null)) {
+          // if there is a `null`, we can't figure out the class, therefore we should just fallback
+          // to older heuristic
+          false
+        } else {
+          val argsArray: Array[Class[_]] = allArgs.map(_.getClass)
+          isAssignable(argsArray, ctor.getParameterTypes)
+        }
+      }
+      .getOrElse(ctors.maxBy(_.getParameterTypes.length)) // fall back to older heuristic
 
     try {
-      val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
-      res
+      CurrentOrigin.withOrigin(origin) {
+        val res = defaultCtor.newInstance(allArgs.toArray: _*).asInstanceOf[BaseType]
+        res
+      }
     } catch {
       case e: java.lang.IllegalArgumentException =>
         throw new TreeNodeException(
@@ -271,46 +290,6 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] 
              |args: ${newArgs.mkString(", ")}
            """.stripMargin)
     }
-  }
-
-  @tailrec
-  private def locateConstructor(
-      ctors: Array[Constructor[_]],
-      newArgs: Array[AnyRef],
-      appendOrigin: Boolean): (Constructor[_], Array[AnyRef]) = {
-    var allArgs: Array[AnyRef] = if (otherCopyArgs.isEmpty) {
-      newArgs
-    } else {
-      newArgs ++ otherCopyArgs
-    }
-    allArgs = if (appendOrigin) {
-      allArgs ++ Array(Option.empty)
-    } else {
-      allArgs
-    }
-    val foundCtor = ctors
-      .find { ctor =>
-        if (ctor.getParameterTypes.length != allArgs.length) {
-          false
-        } else if (allArgs.contains(null)) {
-          // if there is a `null`, we can't figure out the class,
-          // therefore we should just fallback to older heuristic
-          false
-        } else {
-          val argsArray: Array[Class[_]] = allArgs.map(_.getClass)
-          isAssignable(argsArray, ctor.getParameterTypes)
-        }
-      }
-    if (foundCtor.nonEmpty) {
-      return (foundCtor.get, allArgs)
-    }
-    if (appendOrigin) {
-      // we've already tried using the accurate method, fall back to older heuristic
-      (ctors.maxBy(_.getParameterTypes.length), newArgs)
-    } else {
-      locateConstructor(ctors, newArgs, appendOrigin = true)
-    }
-
   }
 
   /**
@@ -389,7 +368,9 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] 
    *   the function used to transform this nodes children
    */
   def transformDown(rule: PartialFunction[BaseType, BaseType]): BaseType = {
-    val afterRule = rule.applyOrElse(this, identity[BaseType])
+    val afterRule = CurrentOrigin.withOrigin(origin) {
+      rule.applyOrElse(this, identity[BaseType])
+    }
 
     // Check if unchanged and then possibly return old copy to avoid gc churn.
     if (this fastEquals afterRule) {
@@ -410,9 +391,13 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]](_origin: Option[Origin] 
   def transformUp(rule: PartialFunction[BaseType, BaseType]): BaseType = {
     val afterRuleOnChildren = mapChildren(_.transformUp(rule))
     val newNode = if (this fastEquals afterRuleOnChildren) {
-      rule.applyOrElse(this, identity[BaseType])
+      CurrentOrigin.withOrigin(origin) {
+        rule.applyOrElse(this, identity[BaseType])
+      }
     } else {
-      rule.applyOrElse(afterRuleOnChildren, identity[BaseType])
+      CurrentOrigin.withOrigin(origin) {
+        rule.applyOrElse(afterRuleOnChildren, identity[BaseType])
+      }
     }
     // If the transform function replaces this node with a new one, carry over the tags.
     newNode

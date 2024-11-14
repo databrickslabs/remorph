@@ -13,7 +13,10 @@ abstract class Read(is_streaming: Boolean) extends LeafNode
 
 // TODO: replace it with TableIdentifier with catalog and schema filled
 // TODO: replace most (if not all) occurrences with UnresolvedRelation
-case class NamedTable(unparsed_identifier: String, options: Map[String, String], is_streaming: Boolean)
+case class NamedTable(
+    unparsed_identifier: String,
+    options: Map[String, String] = Map.empty,
+    is_streaming: Boolean = false)
     extends Read(is_streaming) {
   override def output: Seq[Attribute] = Seq.empty
 }
@@ -384,6 +387,8 @@ case object ExceptSetOp extends SetOpType
 case object UnspecifiedGroupType extends GroupType
 
 case object GroupBy extends GroupType
+
+case object GroupByAll extends GroupType
 
 case object Pivot extends GroupType
 

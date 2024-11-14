@@ -6,8 +6,7 @@ package com.databricks.labs.remorph.intermediate
  * the [[Command]] type that is used to execute commands on the server. [[Plan]] is a union of Spark's LogicalPlan and
  * QueryPlan.
  */
-abstract class Plan[PlanType <: Plan[PlanType]](_origin: Option[Origin] = Option.empty)
-    extends TreeNode[PlanType](_origin) {
+abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
   self: PlanType =>
 
   def output: Seq[Attribute]
@@ -81,7 +80,9 @@ abstract class Plan[PlanType <: Plan[PlanType]](_origin: Option[Origin] = Option
     var changed = false
 
     @inline def transformExpression(e: Expression): Expression = {
-      val newE = f(e)
+      val newE = CurrentOrigin.withOrigin(e.origin) {
+        f(e)
+      }
       if (newE.fastEquals(e)) {
         e
       } else {
