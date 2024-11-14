@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LineCommentNode, LogicalPlan, Origin, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
 import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
@@ -56,11 +56,11 @@ class SnowflakePlanParser extends PlanParser {
   }
 
   private def attachLineCommentToPlan(token: Token, plan: LogicalPlan): Unit = {
-    val found = plan.children.find(node =>
+    /*val found = plan.children.find(node =>
       node.origin.nonEmpty && node.origin.get.startLine > token.getLine)
     if (found.nonEmpty) {
       found.get.comments = found.get.comments :+ LineCommentNode(token.getText, Origin.fromToken(token))
-    }
+    }*/
   }
 
   def dialect: String = "snowflake"

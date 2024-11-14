@@ -21,7 +21,7 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
 
   /** See [[PullLimitUpwards]] */
   private def normalize(plan: LogicalPlan): LogicalPlan = plan transformUp {
-    case Project(TopPercent(child, limit, withTies), exprs, _) =>
+    case Project(TopPercent(child, limit, withTies), exprs) =>
       TopPercent(Project(child, exprs), limit, withTies)
     case Filter(TopPercent(child, limit, withTies), cond) =>
       TopPercent(Filter(child, cond), limit, withTies)
@@ -40,7 +40,7 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
       case Sort(child, order, _) =>
         // TODO: this is (temporary) hack due to the lack of star resolution. otherwise child.output is fine
         val reProject = child.find(_.isInstanceOf[Project]).map(_.asInstanceOf[Project]) match {
-          case Some(Project(_, expressions, _)) => expressions
+          case Some(Project(_, expressions)) => expressions
           case None =>
             throw new IllegalArgumentException("Cannot find a projection")
         }

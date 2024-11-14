@@ -139,7 +139,7 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
   }
 }
 
-abstract class LogicalPlan(_origin: Option[Origin] = Option.empty) extends Plan[LogicalPlan](_origin) {
+abstract class LogicalPlan extends Plan[LogicalPlan] {
 
   /**
    * Returns true if this expression and all its children have been resolved to a specific schema and false if it still
@@ -147,7 +147,6 @@ abstract class LogicalPlan(_origin: Option[Origin] = Option.empty) extends Plan[
    * should return `false`).
    */
   lazy val resolved: Boolean = expressions.forall(_.resolved) && childrenResolved
-  var comments: Array[CommentNode] = Array()
 
   /**
    * Returns true if all its children of this query plan have been resolved.
@@ -167,12 +166,12 @@ abstract class LogicalPlan(_origin: Option[Origin] = Option.empty) extends Plan[
 
 }
 
-abstract class LeafNode(_origin: Option[Origin] = Option.empty) extends LogicalPlan(_origin) {
+abstract class LeafNode extends LogicalPlan {
   override def children: Seq[LogicalPlan] = Nil
   override def producedAttributes: AttributeSet = outputSet
 }
 
-abstract class UnaryNode(_origin: Option[Origin] = Option.empty) extends LogicalPlan(_origin) {
+abstract class UnaryNode extends LogicalPlan {
   def child: LogicalPlan
   override def children: Seq[LogicalPlan] = child :: Nil
 }
@@ -183,9 +182,9 @@ abstract class BinaryNode extends LogicalPlan {
   override def children: Seq[LogicalPlan] = Seq(left, right)
 }
 
-abstract class CommentNode(val text: String, _origin: Origin) extends LeafNode(Some(_origin)) {
+abstract class CommentNode(val text: String) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
   override def canEqual(that: Any): Boolean = false
 }
 
-case class LineCommentNode(override val text: String, _origin: Origin) extends CommentNode(text, _origin)
+case class LineCommentNode(override val text: String) extends CommentNode(text)

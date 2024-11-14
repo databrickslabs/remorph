@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.snowflake.rules.InlineColumnExpression
@@ -47,7 +46,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
         buildTop(top, buildDistinct(relation, expressions))
       } else {
-        ir.Project(buildTop(top, relation), expressions, Some(Origin.fromParserRuleContext(ctx)))
+        ir.Project(buildTop(top, relation), expressions/*, Some(Origin.fromParserRuleContext(ctx))*/)
       }
   }
 
