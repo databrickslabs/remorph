@@ -26,7 +26,6 @@ object ParsedRange {
   }
 }
 
-
 class ParsedNode[+A](val value: A, val range: ParsedRange) {
 
   override def equals(other: Any): Boolean = {
@@ -37,6 +36,12 @@ class ParsedNode[+A](val value: A, val range: ParsedRange) {
     }
   }
   override def hashCode(): Int = value.hashCode()
+
+}
+
+object ParsedNode {
+
+  implicit def asNode[N](parsed: ParsedNode[N]): N = parsed.value
 
 }
 
