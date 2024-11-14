@@ -30,7 +30,7 @@ class DealiasInlineColumnExpressions extends Rule[LogicalPlan] {
 
     val fixedUpReferences = query transformUp { case p =>
       p.transformExpressionsUp {
-        case Column(None, id) if columnNamesToValues.contains(id) => columnNamesToValues(id)
+        case Column(None, id: Id) if columnNamesToValues.contains(id) => columnNamesToValues(id)
         case id: Id if columnNamesToValues.contains(id) => columnNamesToValues(id)
       }
     }
