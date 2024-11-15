@@ -4,7 +4,7 @@ import re
 from sqlglot import expressions as exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
 from sqlglot.dialects.snowflake import Snowflake as SqlglotSnowflake
-from sqlglot.errors import ParseError
+from sqlglot.errors import TokenError, ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
@@ -348,7 +348,7 @@ class Snowflake(SqlglotSnowflake):
                 end = end if end < self.size else self.size - 1
                 context = self.sql[start:end]
                 msg = f"Error tokenizing '{context}'"
-                raise ParseError(msg) from e
+                raise TokenError(msg) from e
             return self.tokens
 
     class Parser(SqlglotSnowflake.Parser):

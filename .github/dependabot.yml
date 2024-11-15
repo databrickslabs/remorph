@@ -15,5 +15,13 @@ updates:
     ignore:
       # Ignore updates for Databricks Connect: the version in use needs to match the testing infrastructure.
       - dependency-name: "com.databricks:databricks-connect"
-      # Ignore updates for Scala: we manage this dependency manually.
+      # Ignore non-patch updates for Scala: we manually manage the Scala version.
       - dependency-name: "org.scala-lang:scala-library"
+        update-types:
+          # (Scala 2 patch releases are binary compatible, so they're the only type allowed.)
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+      # Mockito from 5.x requires JDK 11, but we are using JDK 8.
+      - dependency-name: "org.mockito:mockito-core"
+        versions:
+          - ">=5.0.0"
