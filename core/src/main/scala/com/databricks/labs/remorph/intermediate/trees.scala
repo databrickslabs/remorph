@@ -56,6 +56,8 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
   }
 }
 
+trait KnownLocationRange
+
 // scalastyle:off
 abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   // scalastyle:on
@@ -65,6 +67,14 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   private lazy val _hashCode: Int = productHash(this, scala.util.hashing.MurmurHash3.productSeed)
   private lazy val allChildren: Set[TreeNode[_]] = (children ++ innerChildren).toSet[TreeNode[_]]
   @JsonIgnore val origin: Origin = CurrentOrigin.get
+  @JsonIgnore private[this] var _locationRange: ParsedLocationRange = ParsedLocationRange.empty
+
+  def locationRange: ParsedLocationRange = _locationRange
+
+  def withLocationRange(newLocation: ParsedLocationRange): WithKnownLocationRange[BaseType] = {
+    _locationRange = newLocation
+    self.asInstanceOf[WithKnownLocationRange[BaseType]]
+  }
 
   /**
    * Returns a Seq of the children of this node. Children should not change. Immutability required for containsChild

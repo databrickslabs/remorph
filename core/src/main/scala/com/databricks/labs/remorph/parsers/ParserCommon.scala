@@ -8,8 +8,12 @@ import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
 
-trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: AbstractParseTreeVisitor[A] =>
+trait ParserCommon[A <: ir.TreeNode[_]]
+    extends ParseTreeVisitor[ir.WithKnownLocationRange[A]]
+    with LazyLogging
+    with LocationTracking {
 
+  self: AbstractParseTreeVisitor[ir.WithKnownLocationRange[A]] =>
   val vc: VisitorCoordinator
 
   protected def occursBefore(a: ParseTree, b: ParseTree): Boolean = {
@@ -30,8 +34,10 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    */
   protected def unresolved(ruleText: String, message: String): A
 
-  protected override def defaultResult(): A = {
-    unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
+  protected override def defaultResult(): ir.WithKnownLocationRange[A] = {
+    withLocationRangeFromParseTree(currentNode.getRuleContext) {
+      unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
+    }
   }
 
   /**
@@ -92,7 +98,9 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @param next The next result that should somehow be aggregated to form a single result
    * @return The aggregated result from the two supplied results (accumulate error strings)
    */
-  override def aggregateResult(agg: A, next: A): A =
+  override def aggregateResult(
+      agg: ir.WithKnownLocationRange[A],
+      next: ir.WithKnownLocationRange[A]): ir.WithKnownLocationRange[A] =
     Option(next).getOrElse(agg)
 
   protected var currentNode: RuleNode = _
@@ -105,22 +113,33 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    * @param node the RuleNode that was not visited
    * @return T an instance of the type returned by the implementing visitor
    */
-  abstract override def visitChildren(node: RuleNode): A = {
-    caller = Thread.currentThread().getStackTrace()(4).getMethodName
-    implementor = this.getClass.getSimpleName
-    logger.warn(
-      s"Unimplemented visitor for method: $caller in class: $implementor" +
-        s" for: ${contextText(node.getRuleContext)}")
-    currentNode = node
-    val result = super.visitChildren(node)
-    result match {
-      case c: ir.Unresolved[A] =>
-        node match {
-          case ctx: ParserRuleContext =>
-            c.annotate(contextRuleName(ctx), Some(tokenName(ctx.getStart)))
+  abstract override def visitChildren(node: RuleNode): ir.WithKnownLocationRange[A] = {
+    withLocationRangeFromParseTree(node) {
+      caller = Thread
+        .currentThread()
+        .getStackTrace()
+        .collectFirst {
+          case e
+              if e.getMethodName.startsWith("visit") && !Set("visitChildren", "visitChildren$").contains(
+                e.getMethodName) =>
+            e.getMethodName
         }
-      case _ =>
-        result
+        .getOrElse("???")
+      implementor = this.getClass.getSimpleName
+      logger.warn(
+        s"Unimplemented visitor for method: $caller in class: $implementor" +
+          s" for: ${contextText(node.getRuleContext)}")
+      currentNode = node
+      val result = super.visitChildren(node)
+      result match {
+        case c: ir.Unresolved[A] =>
+          node match {
+            case ctx: ParserRuleContext =>
+              c.annotate(contextRuleName(ctx), Some(tokenName(ctx.getStart)))
+          }
+        case _ =>
+          result
+      }
     }
   }
 
@@ -149,4 +168,45 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
       None
     }
   }
+}
+
+object LocationFactory {
+
+  def locationRangeFromParserRuleContext(ctx: ParserRuleContext): ir.ParsedLocationRange =
+    ir.ParsedLocationRange(locationFromStartToken(ctx.getStart), locationFromStopToken(ctx.getStop))
+
+  def locationRangeFromToken(token: Token): ir.ParsedLocationRange =
+    ir.ParsedLocationRange(locationFromStartToken(token), locationFromStopToken(token))
+
+  def locationFromStartToken(token: Token): ir.ParsedLocation =
+    ir.ParsedLocation(token.getLine, token.getCharPositionInLine, token.getTokenIndex)
+
+  def locationFromStopToken(token: Token): ir.ParsedLocation =
+    ir.ParsedLocation(
+      token.getLine,
+      token.getCharPositionInLine + token.getStopIndex - token.getStartIndex,
+      token.getTokenIndex)
+}
+
+trait LocationTracking {
+
+  def withLocationRangeFromParseTree[T <: ir.TreeNode[_]](tree: ParseTree)(t: => T): ir.WithKnownLocationRange[T] =
+    tree match {
+      case p: ParserRuleContext => withLocationRangeFromRuleContext(p)(t)
+      case t => t.asInstanceOf[ir.WithKnownLocationRange[T]]
+    }
+
+  def withLocationRangeFromRuleContext[T <: ir.TreeNode[_]](ctx: ParserRuleContext)(
+      t: => T): ir.WithKnownLocationRange[T] = {
+    if(ctx.getStart == null || ctx.getStart.getType == Token.EOF) {
+      t.asInstanceOf[ir.WithKnownLocationRange[T]]
+    } else {
+      t.withLocationRange(LocationFactory.locationRangeFromParserRuleContext(ctx))
+        .asInstanceOf[ir.WithKnownLocationRange[T]]
+    }
+  }
+
+  def withLocationRangeFromToken[T <: ir.TreeNode[_]](token: Token)(t: => T): ir.WithKnownLocationRange[T] =
+    t.withLocationRange(LocationFactory.locationRangeFromToken(token))
+      .asInstanceOf[ir.WithKnownLocationRange[T]]
 }

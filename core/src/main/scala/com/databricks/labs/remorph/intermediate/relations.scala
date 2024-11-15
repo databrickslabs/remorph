@@ -32,9 +32,7 @@ case class DataSource(
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Project(
-                    input: LogicalPlan,
-                    columns: Seq[Expression]) extends UnaryNode {
+case class Project(input: LogicalPlan, columns: Seq[Expression]) extends UnaryNode {
   override def child: LogicalPlan = input
   // TODO: add resolver for Star
   override def output: Seq[Attribute] = expressions.map {

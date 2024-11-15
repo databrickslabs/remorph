@@ -2,7 +2,9 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
-import org.antlr.v4.runtime.CommonToken
+import org.antlr.v4.runtime.misc.Interval
+import org.antlr.v4.runtime.{CharStream, CommonToken}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
@@ -369,7 +371,12 @@ class SnowflakeDDLBuilderSpec
     "handle unexpected child" in {
       val tableName = parseString("s.t1", _.dotIdentifier())
       val alterTable = mock[AlterTableContext]
-      val startTok = new CommonToken(ID, "s")
+      val startTok = mock[CommonToken]
+      when(startTok.getType).thenReturn(ID)
+      when(startTok.getText).thenReturn("s")
+      val charStream = mock[CharStream]
+      when(charStream.getText(any[Interval])).thenReturn("Mocked string")
+      when(startTok.getInputStream).thenReturn(charStream)
       when(alterTable.dotIdentifier(0)).thenReturn(tableName)
       when(alterTable.getStart).thenReturn(startTok)
       when(alterTable.getStop).thenReturn(startTok)
@@ -384,8 +391,8 @@ class SnowflakeDDLBuilderSpec
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
       verify(alterTable).getRuleIndex
-      verify(alterTable, times(3)).getStart
-      verify(alterTable).getStop
+      verify(alterTable, times(6)).getStart
+      verify(alterTable, times(2)).getStop
       verifyNoMoreInteractions(alterTable)
     }
   }
