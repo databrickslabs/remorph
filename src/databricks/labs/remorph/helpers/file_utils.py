@@ -1,6 +1,7 @@
 import codecs
 from pathlib import Path
 from collections.abc import Generator
+from sqlglot.expressions import Expression
 
 
 # Optionally check to see if a string begins with a Byte Order Mark
@@ -102,3 +103,19 @@ def refactor_hexadecimal_chars(input_string: str) -> str:
     for key, value in highlight.items():
         output_string = output_string.replace(key, value)
     return output_string
+
+
+def format_error_message(error_message: Exception, error_sql: str) -> str:
+    """
+    Formats the error message with the error SQL.
+    :param error_message: Error message
+    :param error_sql: Error SQL
+    :return: Formatted error message
+    """
+    error_str = (
+        "------------------------ Transpilation Error Start:------------------------\n"
+        f"/*\n{str(error_message)}\n*/\n\n"
+        f"/*\nOriginal Query:\n\n{str(error_sql)}\n*/\n"
+        "------------------------ Transpilation Error End:------------------------"
+    ).strip()
+    return error_str

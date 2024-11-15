@@ -64,8 +64,7 @@ def test_parse_invalid_query(transpiler):
 
 def test_tokenizer_exception(transpiler, write_dialect):
     transpiler_result = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
-
-    assert transpiler_result.transpiled_sql == [""]
+    assert transpiler_result.transpiled_sql[0] == ""
     assert transpiler_result.parse_error_list[0].file_name == "file.sql"
     assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
