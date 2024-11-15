@@ -147,6 +147,7 @@ abstract class LogicalPlan extends Plan[LogicalPlan] {
    * should return `false`).
    */
   lazy val resolved: Boolean = expressions.forall(_.resolved) && childrenResolved
+  var precedingComments: Seq[CommentNode] = Nil
 
   /**
    * Returns true if all its children of this query plan have been resolved.

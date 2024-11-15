@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.intermediate.WithKnownLocationRange
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.ID
 import com.databricks.labs.remorph.{intermediate => ir}
@@ -252,7 +253,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val mockVisitor = mock(classOf[TSqlExpressionBuilder])
 
       when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
-      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal("a"))
+      when(mockExpressionCtx.accept(mockVisitor))
+        .thenReturn(ir.Literal("a").asInstanceOf[WithKnownLocationRange[ir.Literal]])
       val result = astBuilder.visitExprDot(mockDotExprCtx)
 
       result shouldBe a[ir.Dot]
