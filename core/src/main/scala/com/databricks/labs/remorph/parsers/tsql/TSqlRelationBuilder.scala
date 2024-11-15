@@ -67,9 +67,12 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
         case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
         case qe if qe.queryExpression() != null =>
           val lhs = qe.queryExpression(0).accept(this)
-          val rhs = qe.queryExpression(1).accept(this)
-          val isAll = qe.ALL() != null
-          ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+          Option(qe.queryExpression(1)).map(_.accept(this)) match {
+            case Some(rhs) =>
+              val isAll = qe.ALL() != null
+              ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+            case None => lhs
+          }
       }
   }
 
