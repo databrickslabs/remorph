@@ -1,15 +1,13 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
-import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
+import com.databricks.labs.remorph.intermediate.LogicalPlan
+import com.databricks.labs.remorph.parsers.{AntlrPlanParser, PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
-import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
+import com.databricks.labs.remorph.{Parsing, Transformation, intermediate => ir}
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
-import scala.util.control.NonFatal
-
-class SnowflakePlanParser extends PlanParser {
+class SnowflakePlanParser extends PlanParser with AntlrPlanParser {
 
   private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 
@@ -19,27 +17,9 @@ class SnowflakePlanParser extends PlanParser {
     val tokens = new CommonTokenStream(lexer)
     val parser = new SnowflakeParser(tokens)
     parser.setErrorHandler(new SnowflakeErrorStrategy)
-    val errListener = new ProductionErrorCollector(parsing.source, parsing.filename)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errListener)
+    val errListener = setErrorListener(parser, new ProductionErrorCollector(parsing.source, parsing.filename))
     val tree = parser.snowflakeFile()
-    if (errListener.errorCount > 0) {
-      lift(KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors)))
-    } else {
-      update {
-        case p: Parsing => BuildingAst(tree, Some(p))
-        case _ => BuildingAst(tree)
-      }.flatMap { _ =>
-        try {
-          ok(createPlan(tokens, tree))
-        } catch {
-          case NonFatal(e) =>
-            lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
-        }
-      }
-
-    }
-
+    generatePlan(tree, () => createPlan(tokens, tree), errListener)
   }
 
   private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
