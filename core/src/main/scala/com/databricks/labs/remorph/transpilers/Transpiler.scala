@@ -48,7 +48,7 @@ trait Formatter {
 
 abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors {
 
-  protected val planParser: PlanParser[_]
+  protected val planParser: PlanParser
   private val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)

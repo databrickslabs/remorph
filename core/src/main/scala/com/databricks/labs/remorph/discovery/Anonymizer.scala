@@ -45,7 +45,7 @@ case class Fingerprints(fingerprints: Seq[Fingerprint]) {
   def uniqueQueries: Int = fingerprints.map(_.fingerprint).distinct.size
 }
 
-class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
+class Anonymizer(parser: PlanParser) extends LazyLogging {
   private val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
