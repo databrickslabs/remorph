@@ -65,13 +65,11 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case None =>
       ctx match {
         case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
-        case _ =>
-          // TODO: Implement this style of UNION
-          ir.UnresolvedRelation(
-            ruleText = contextText(ctx),
-            message = s"This style of UNION specification is as yet supported",
-            ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))
+        case qe if qe.queryExpression() != null =>
+          val lhs = qe.queryExpression(0).accept(this)
+          val rhs = qe.queryExpression(1).accept(this)
+          val isAll = qe.ALL() != null
+          ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
       }
   }
 

@@ -147,6 +147,34 @@ class TSqlRelationBuilderSpec
           Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
     }
 
+    "translate right-associative UNION clauses" should {
+      // These are of the form: (queryExpression) UNION [ALL] query expression
+      "(SELECT a, b FROM bb) UNION select x, y FROM zz" in {
+        example(
+          "(SELECT a, b FROM bb) UNION select x, y FROM zz",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
+            ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+            ir.UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "(SELECT a, b FROM bb) UNION ALL select x, y FROM zz" in {
+        example(
+          "(SELECT a, b FROM bb) UNION ALL select x, y FROM zz",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
+            ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+            ir.UnionSetOp,
+            is_all = true,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+    }
+
     "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')" in {
       example(
         "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')",
