@@ -1,11 +1,14 @@
+import logging
 from sqlglot import expressions as exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 
 from databricks.labs.remorph.config import TranspilationResult
-from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
+from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars, format_error_message
 from databricks.labs.remorph.helpers.morph_status import ParserError
+
+logger = logging.getLogger(__name__)
 
 
 class SqlglotEngine:
@@ -15,13 +18,30 @@ class SqlglotEngine:
     def transpile(
         self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
     ) -> TranspilationResult:
+        transpiled_sql_statements = []
         try:
-            transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
+            parsed_expressions = parse(sql, read=self.read_dialect, error_level=None)
+            for expression in parsed_expressions:
+                if expression is not None:
+                    try:
+                        sql = expression.sql(dialect=self.read_dialect)
+                        transpiled_sql = transpile(
+                            sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=ErrorLevel.RAISE
+                        )
+                        transpiled_sql_statements.extend(transpiled_sql)
+                    except (ParseError, TokenError, UnsupportedError) as e:
+                        logger.error(f"Error transpiling SQL from file {file_name} for expression: {expression}: {e}")
+                        error_statement = format_error_message(e, str(expression))
+                        transpiled_sql_statements.append(error_statement)
+                        error_list.append(ParserError(file_name, refactor_hexadecimal_chars(str(e))))
         except (ParseError, TokenError, UnsupportedError) as e:
-            transpiled_sql = [""]
+            transpiled_sql_statements = [""]
+            error_statement = format_error_message(e, str(sql))
+            transpiled_sql_statements.append(error_statement)
+            logger.error(f"Error parsing SQL from file {file_name}: {e}")
             error_list.append(ParserError(file_name, refactor_hexadecimal_chars(str(e))))
 
-        return TranspilationResult(transpiled_sql, error_list)
+        return TranspilationResult(transpiled_sql_statements, error_list)
 
     def parse(self, sql: str, file_name: str) -> tuple[list[Expression | None] | None, ParserError | None]:
         expression = None
