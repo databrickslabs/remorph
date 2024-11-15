@@ -1,7 +1,6 @@
 import codecs
 from pathlib import Path
 from collections.abc import Generator
-from sqlglot.expressions import Expression
 
 
 # Optionally check to see if a string begins with a Byte Order Mark

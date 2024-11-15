@@ -22,7 +22,7 @@ class SqlglotEngine:
     ) -> TranspilationResult:
         transpiled_sql_statements = []
         try:
-            parsed_expressions = parse(sql, read=self.read_dialect, error_level=None)
+            parsed_expressions = parse(sql, read=self.read_dialect, error_level=ErrorLevel.WARN)
             for expression in parsed_expressions:
                 if expression is not None:
                     try:
