@@ -292,14 +292,6 @@ class LogicalPlanGenerator(
       }
       .sequence
       .map(_.mkString.stripSuffix(", "))
-  /*
-    val lineComments = if (proj.comments.length > 0) {
-      proj.comments.map(node => node.text).mkString("\n") + "\n"
-    } else {
-      ""
-    }
-    code"${lineComments}SELECT $sqlParts$fromClause"
-   */
     code"SELECT $sqlParts$fromClause"
   }
 

@@ -150,17 +150,17 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       ctx: A,
       conditionRule: A => ParserRuleContext,
       input: ir.LogicalPlan): ir.WithKnownLocationRange[ir.LogicalPlan] = {
-    if(ctx==null) {
+    if (ctx == null) {
       input.asInstanceOf[ir.WithKnownLocationRange[ir.LogicalPlan]]
     } else {
       withLocationRangeFromRuleContext(ctx) {
         ir.Filter(input, conditionRule(ctx).accept(vc.expressionBuilder))
       }
-      }
+    }
   }
 
   private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.WithKnownLocationRange[ir.LogicalPlan] =
-    if(ctx==null) {
+    if (ctx == null) {
       input.asInstanceOf[ir.WithKnownLocationRange[ir.LogicalPlan]]
     } else {
       withLocationRangeFromRuleContext(ctx) {
@@ -169,7 +169,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     }
 
   private def buildWhere(ctx: WhereClauseContext, from: ir.LogicalPlan): ir.WithKnownLocationRange[ir.LogicalPlan] =
-    if(ctx==null) {
+    if (ctx == null) {
       from.asInstanceOf[ir.WithKnownLocationRange[ir.LogicalPlan]]
     } else {
       withLocationRangeFromRuleContext(ctx) {
@@ -181,12 +181,13 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   private def buildGroupBy(
       ctx: GroupByClauseContext,
       input: ir.LogicalPlan): ir.WithKnownLocationRange[ir.LogicalPlan] = {
-    if(ctx==null) {
+    if (ctx == null) {
       input.asInstanceOf[ir.WithKnownLocationRange[ir.LogicalPlan]]
     } else {
       withLocationRangeFromRuleContext(ctx) {
         val groupingExpressions =
-          ctx.expression()
+          ctx
+            .expression()
             .asScala
             .map(_.accept(vc.expressionBuilder))
         ir.Aggregate(child = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)

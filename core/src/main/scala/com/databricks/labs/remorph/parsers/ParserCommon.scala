@@ -198,7 +198,7 @@ trait LocationTracking {
 
   def withLocationRangeFromRuleContext[T <: ir.TreeNode[_]](ctx: ParserRuleContext)(
       t: => T): ir.WithKnownLocationRange[T] = {
-    if(ctx.getStart == null || ctx.getStart.getType == Token.EOF) {
+    if (ctx.getStart == null || ctx.getStart.getType == Token.EOF) {
       t.asInstanceOf[ir.WithKnownLocationRange[T]]
     } else {
       t.withLocationRange(LocationFactory.locationRangeFromParserRuleContext(ctx))
