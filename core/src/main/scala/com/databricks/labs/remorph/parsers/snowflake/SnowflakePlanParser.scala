@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.intermediate.{LineCommentNode, LogicalPlan, ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.parsers.LocationFactory.locationRangeFromToken
 import com.databricks.labs.remorph.parsers.{PlanParser, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{BuildingAst, KoResult, Parsing, Transformation, WorkflowStage, intermediate => ir}
@@ -37,9 +38,7 @@ class SnowflakePlanParser extends PlanParser {
             lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
         }
       }
-
     }
-
   }
 
   private def createPlan(tokens: CommonTokenStream, tree: ParseTree): LogicalPlan = {
@@ -56,11 +55,14 @@ class SnowflakePlanParser extends PlanParser {
   }
 
   private def attachLineCommentToPlan(token: Token, plan: LogicalPlan): Unit = {
-    /*val found = plan.children.find(node =>
-      node.origin.nonEmpty && node.origin.get.startLine > token.getLine)
+    // TODO we currently only consider the scenario where the line comment precedes a statement
+    // we need to also cater for scenarios where the comment is at EOL
+    val found = plan.children.find(node => node.locationRange.start.line > token.getLine)
+
     if (found.nonEmpty) {
-      found.get.comments = found.get.comments :+ LineCommentNode(token.getText, Origin.fromToken(token))
-    }*/
+      val node = LineCommentNode(token.getText).withLocationRange(locationRangeFromToken(token))
+      found.get.precedingComments = found.get.precedingComments :+ node
+    }
   }
 
   def dialect: String = "snowflake"

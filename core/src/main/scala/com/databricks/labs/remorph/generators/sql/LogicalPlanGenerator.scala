@@ -292,7 +292,12 @@ class LogicalPlanGenerator(
       }
       .sequence
       .map(_.mkString.stripSuffix(", "))
-    code"SELECT $sqlParts$fromClause"
+    val precedingComments = if (proj.precedingComments.nonEmpty) {
+      proj.precedingComments.map(node => node.text).mkString("\n") + "\n"
+    } else {
+      ""
+    }
+    code"${precedingComments}SELECT $sqlParts$fromClause"
   }
 
   private def orderBy(sort: ir.Sort): SQL = {
