@@ -5,7 +5,7 @@ abstract class Modification extends LogicalPlan
 
 case class InsertIntoTable(
     target: LogicalPlan,
-    columns: Option[Seq[Id]],
+    columns: Option[Seq[NameOrPosition]],
     values: LogicalPlan,
     outputRelation: Option[LogicalPlan] = None,
     options: Option[Expression] = None,
