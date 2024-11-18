@@ -359,7 +359,7 @@ class Databricks(org_databricks.Databricks):  #
     databricks = org_databricks.Databricks()
     NULL_ORDERING = "nulls_are_small"
 
-    class Generator(org_databricks.Databricks.Generator):
+    class Generator(org_databricks.Databricks.Generator):  # pylint: disable=too-many-public-methods
         INVERSE_TIME_MAPPING: dict[str, str] = {
             **{v: k for k, v in org_databricks.Databricks.TIME_MAPPING.items()},
             "%-d": "dd",
@@ -713,7 +713,7 @@ class Databricks(org_databricks.Databricks):  #
                         ordered_expression.args['desc'] = False
             return super().order_sql(expression, flat)
 
-        def add_column_sql(self, expression: exp.AlterTable) -> str:
+        def add_column_sql(self, expression: exp.Alter) -> str:
             # Final output contains ADD COLUMN before each column
             # This function will handle this issue and return the final output
             columns = self.expressions(expression, key="actions", flat=True)
