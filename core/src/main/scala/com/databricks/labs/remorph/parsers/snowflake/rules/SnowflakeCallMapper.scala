@@ -62,6 +62,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
       case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
       case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
+      case ir.CallFunction("SHA2", args) => ir.Sha2(args.head, args.lift(1).getOrElse(ir.Literal(256)))
       case ir.CallFunction("SPLIT_PART", args) => splitPart(args)
       case ir.CallFunction("SQUARE", args) => ir.Pow(args.head, ir.Literal(2))
       case ir.CallFunction("STRTOK", args) => strtok(args)
@@ -229,12 +230,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def tryToDate(args: Seq[ir.Expression]): ir.Expression = {
-    val format = if (args.size < 2) {
-      ir.Literal("yyyy-MM-dd")
-    } else {
-      args(1)
-    }
-    ir.CallFunction("DATE", Seq(ir.TryToTimestamp(args.head, format)))
+    ir.CallFunction("DATE", Seq(ir.TryToTimestamp(args.head, args.lift(1))))
   }
 
   private def dateAdd(args: Seq[ir.Expression]): ir.Expression = {
@@ -302,27 +298,55 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def toTime(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(a) => ir.ParseToTimestamp(a, inferTimeFormat(a))
-    case Seq(a, b) => ir.ParseToTimestamp(a, b)
+    case Seq(a) => inferTemporalFormat(a, unsupportedAutoTimeFormats)
+    case Seq(a, b) => ir.ParseToTimestamp(a, Some(b))
     case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
   }
 
-  private val timestampFormats = Seq("yyyy-MM-dd HH:mm:ss")
-
-  private def inferTimeFormat(expression: ir.Expression): ir.Expression = expression match {
-    case ir.StringLiteral(timeStr) =>
-      ir.StringLiteral(timestampFormats.find(fmt => Try(DateTimeFormatter.ofPattern(fmt).parse(timeStr)).isSuccess).get)
+  private def toTimestamp(args: Seq[ir.Expression]): ir.Expression = args match {
+    case Seq(a) => inferTemporalFormat(a, unsupportedAutoTimestampFormats)
+    case Seq(a, b) => ir.ParseToTimestamp(a, Some(b))
+    case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
   }
 
-  private def toTimestamp(args: Seq[ir.Expression]): ir.Expression = {
-    if (args.size == 1) {
-      ir.Cast(args.head, ir.TimestampType)
-    } else if (args.size == 2) {
-      ir.ParseToTimestamp(args.head, args(1))
-    } else {
-      throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
+  // Timestamp formats that can be automatically inferred by Snowflake but not by Databricks
+  private val unsupportedAutoTimestampFormats = Seq(
+    "yyyy-MM-dd'T'HH:mmXXX",
+    "yyyy-MM-dd HH:mmXXX",
+    "EEE, dd MMM yyyy HH:mm:ss ZZZ",
+    "EEE, dd MMM yyyy HH:mm:ss.SSSSSSSSS ZZZ",
+    "EEE, dd MMM yyyy hh:mm:ss a ZZZ",
+    "EEE, dd MMM yyyy hh:mm:ss.SSSSSSSSS a ZZZ",
+    "EEE, dd MMM yyyy HH:mm:ss",
+    "EEE, dd MMM yyyy HH:mm:ss.SSSSSSSSS",
+    "EEE, dd MMM yyyy hh:mm:ss a",
+    "EEE, dd MMM yyyy hh:mm:ss.SSSSSSSSS a",
+    "MM/dd/yyyy HH:mm:ss",
+    "EEE MMM dd HH:mm:ss ZZZ yyyy")
+
+  private val unsupportedAutoTimeFormats = Seq("hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
+
+  // In Snowflake, when TO_TIME/TO_TIMESTAMP is called without a specific format, the system is capable of inferring the
+  // format from the string being parsed. Databricks has a similar behavior, but the set of formats it's capable of
+  // detecting automatically is narrower.
+  private def inferTemporalFormat(expression: ir.Expression, unsupportedAutoformats: Seq[String]): ir.Expression =
+    expression match {
+      // If the expression to be parsed is a Literal, we try the formats supported by Snowflake but not by Databricks
+      // and add an explicit parameter with the first that matches, or fallback to no format parameter if none has
+      // matched (which could indicate that either the implicit format is one Databricks can automatically infer, or the
+      // string to be parsed is malformed).
+      case ir.StringLiteral(timeStr) =>
+        ir.ParseToTimestamp(
+          expression,
+          unsupportedAutoformats
+            .find(fmt => Try(DateTimeFormatter.ofPattern(fmt).parse(timeStr)).isSuccess)
+            .map(ir.Literal(_)))
+      // If the string to be parsed isn't a Literal, we do something similar but "at runtime".
+      case e =>
+        ir.IfNull(
+          ir.Coalesce(unsupportedAutoformats.map(fmt => ir.TryToTimestamp(e, Some(ir.Literal(fmt))))),
+          ir.ParseToTimestamp(e))
     }
-  }
 
   private def dayname(args: Seq[ir.Expression]): ir.Expression = {
     ir.DateFormatClass(args.head, ir.Literal("E"))
