@@ -15,7 +15,7 @@ from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
 def _get_dashboard_query(kwargs):
-    serialized_dashboard = json.loads(kwargs['serialized_dashboard'])
+    serialized_dashboard = json.loads(kwargs['dashboard']['serialized_dashboard'])
     return serialized_dashboard['datasets'][0]['query']
 
 
