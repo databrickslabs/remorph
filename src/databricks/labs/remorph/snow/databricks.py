@@ -11,6 +11,8 @@ from sqlglot.dialects.dialect import if_sql
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
+# pylint: disable=too-many-public-methods
+
 logger = logging.getLogger(__name__)
 
 VALID_DATABRICKS_TYPES = {
@@ -359,7 +361,7 @@ class Databricks(org_databricks.Databricks):  #
     databricks = org_databricks.Databricks()
     NULL_ORDERING = "nulls_are_small"
 
-    class Generator(org_databricks.Databricks.Generator):  # pylint: disable=too-many-public-methods
+    class Generator(org_databricks.Databricks.Generator):
         INVERSE_TIME_MAPPING: dict[str, str] = {
             **{v: k for k, v in org_databricks.Databricks.TIME_MAPPING.items()},
             "%-d": "dd",
