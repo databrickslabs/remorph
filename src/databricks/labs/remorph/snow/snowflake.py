@@ -14,7 +14,6 @@ from sqlglot.optimizer.annotate_types import annotate_types
 
 from databricks.labs.remorph.snow import local_expression
 
-
 logger = logging.getLogger(__name__)
 # pylint: disable=protected-access
 """ SF Supported Date and Time Parts:
