@@ -30,11 +30,13 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     tree
   }
 
-  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan): Unit = {
+  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan, failOnErrors: Boolean = true): Unit = {
     val sfTree = parseString(query, rule)
     if (errListener != null && errListener.errorCount != 0) {
       errListener.logErrors()
-      fail(s"${errListener.errorCount} errors found in the child string")
+      if (failOnErrors) {
+        fail(s"${errListener.errorCount} errors found in the child string")
+      }
     }
 
     val result = astBuilder.visit(sfTree)
