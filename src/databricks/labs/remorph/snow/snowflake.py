@@ -10,6 +10,7 @@ from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
+from sqlglot.optimizer.annotate_types import annotate_types
 
 from databricks.labs.remorph.snow import local_expression
 
@@ -95,8 +96,6 @@ def _parse_date_add(args: list) -> exp.DateAdd:
 def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
     this = seq_get(args, 0)
     if this and not this.type:
-        from sqlglot.optimizer.annotate_types import annotate_types
-
         annotate_types(this)
         if this.is_type(*exp.DataType.TEMPORAL_TYPES):
             return build_formatted_time(exp.ToChar, "snow", default=True)(args)
