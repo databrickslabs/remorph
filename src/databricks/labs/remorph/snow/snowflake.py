@@ -100,7 +100,6 @@ def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
 
         annotate_types(this)
         if this.is_type(*exp.DataType.TEMPORAL_TYPES):
-            a = build_formatted_time(exp.ToChar, read, default=True)(args)
             return build_formatted_time(exp.ToChar, read, default=True)(args)
 
     return exp.ToChar.from_arg_list(args)
