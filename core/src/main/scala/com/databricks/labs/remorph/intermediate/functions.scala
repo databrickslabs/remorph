@@ -274,7 +274,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("STDDEV", args) => StddevSamp(args.head)
     case CallFunction("STDDEV_POP", args) => StddevPop(args.head)
     case CallFunction("STR_TO_MAP", args) => StringToMap(args.head, args(1), args(2))
-    case CallFunction("SUBSTR", args) => Substring(args.head, args(1), args(2))
+    case CallFunction("SUBSTR", args) => Substring(args.head, args(1), args.lift(2))
     case CallFunction("SUBSTRING_INDEX", args) => SubstringIndex(args.head, args(1), args(2))
     case CallFunction("SUM", args) => Sum(args.head)
     case CallFunction("TAN", args) => Tan(args.head)
@@ -1384,9 +1384,9 @@ case class StringToMap(left: Expression, right: Expression, c: Expression) exten
  * substr(str FROM pos[ FOR len]]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the
  * slice of byte array that starts at `pos` and is of length `len`.
  */
-case class Substring(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class Substring(str: Expression, pos: Expression, len: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "SUBSTR"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(str, pos) ++ len.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2543,3 +2543,4 @@ case class ParseJson(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "PARSE_JSON"
   override def dataType: DataType = VariantType
 }
+

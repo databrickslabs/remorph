@@ -321,7 +321,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     "EEE, dd MMM yyyy HH:mm:ss.SSSSSSSSS",
     "EEE, dd MMM yyyy hh:mm:ss a",
     "EEE, dd MMM yyyy hh:mm:ss.SSSSSSSSS a",
-    "MM/dd/yyyy HH:mm:ss",
+    "M/dd/yyyy HH:mm:ss",
     "EEE MMM dd HH:mm:ss ZZZ yyyy")
 
   private val unsupportedAutoTimeFormats = Seq("hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
@@ -344,8 +344,18 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       // If the string to be parsed isn't a Literal, we do something similar but "at runtime".
       case e =>
         ir.IfNull(
-          ir.Coalesce(unsupportedAutoformats.map(fmt => ir.TryToTimestamp(e, Some(ir.Literal(fmt))))),
+          ir.Coalesce(unsupportedAutoformats.map(makeAutoFormatExplicit(e, _))),
           ir.ParseToTimestamp(e))
+    }
+
+  private def makeAutoFormatExplicit(expr: ir.Expression, javaDateTimeFormatString: String): ir.Expression =
+    if (javaDateTimeFormatString.startsWith("EEE")) {
+      // Since version 3.0, Spark doesn't support day-of-week field in datetime parsing
+      // Considering that this is piece of information is irrelevant for parsing a timestamp
+      // we simply ignore it from the input string and the format.
+      ir.TryToTimestamp(ir.Substring(expr, ir.Literal(4)), Some(ir.Literal(javaDateTimeFormatString.substring(3))))
+    } else {
+      ir.TryToTimestamp(expr, Some(ir.Literal(javaDateTimeFormatString)))
     }
 
   private def dayname(args: Seq[ir.Expression]): ir.Expression = {

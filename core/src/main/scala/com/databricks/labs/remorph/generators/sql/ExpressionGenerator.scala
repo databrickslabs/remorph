@@ -480,7 +480,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
     }
     code"{${ref.map(_.toUpperCase(Locale.getDefault()))}_SCHEMA}"
   }
-  private def singleQuote(s: String): SQL = code"'$s'"
+  private def singleQuote(s: String): SQL = code"'${s.replace("'", "\\'")}'"
   private def isValidIdentifier(s: String): Boolean =
     (s.head.isLetter || s.head == '_') && s.forall(x => x.isLetterOrDigit || x == '_')
 
