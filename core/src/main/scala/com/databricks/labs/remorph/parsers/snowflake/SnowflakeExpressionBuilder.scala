@@ -12,8 +12,9 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
-    extends SnowflakeParserBaseVisitor[ir.Expression]
+    extends SnowflakeParserBaseVisitor[ir.WithKnownOrigin[ir.Expression]]
     with ParserCommon[ir.Expression]
+    with ir.OriginTracking
     with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
@@ -26,37 +27,48 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Concrete visitors..
 
-  override def visitFunctionCall(ctx: FunctionCallContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case b if b.builtinFunction() != null => b.builtinFunction().accept(this)
-        case s if s.standardFunction() != null => s.standardFunction().accept(this)
-        case a if a.aggregateFunction() != null => a.aggregateFunction().accept(this)
-        case r if r.rankingWindowedFunction() != null => r.rankingWindowedFunction().accept(this)
+  override def visitFunctionCall(ctx: FunctionCallContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
+            case b if b.builtinFunction() != null => b.builtinFunction().accept(this)
+            case s if s.standardFunction() != null => s.standardFunction().accept(this)
+            case a if a.aggregateFunction() != null => a.aggregateFunction().accept(this)
+            case r if r.rankingWindowedFunction() != null => r.rankingWindowedFunction().accept(this)
+          }
       }
-  }
+    }
 
-  override def visitValuesTable(ctx: ValuesTableContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.valuesTableBody().accept(this)
-  }
-
-  override def visitGroupByElem(ctx: GroupByElemContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case c if c.columnElem() != null => c.columnElem().accept(this)
-        case n if n.INT() != null => ir.NumericLiteral(n.INT().getText)
-        case e if e.expressionElem() != null => e.expressionElem().accept(this)
+  override def visitValuesTable(ctx: ValuesTableContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.valuesTableBody().accept(this)
       }
-  }
+    }
 
-  override def visitId(ctx: IdContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      buildId(ctx)
+  override def visitGroupByElem(ctx: GroupByElemContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
+            case c if c.columnElem() != null => c.columnElem().accept(this)
+            case n if n.INT() != null => ir.NumericLiteral(n.INT().getText)
+            case e if e.expressionElem() != null => e.expressionElem().accept(this)
+          }
+      }
+    }
+
+  override def visitId(ctx: IdContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        buildId(ctx)
+    }
   }
 
   private[snowflake] def buildId(ctx: IdContext): ir.Id = ctx match {
@@ -80,61 +92,75 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case id => ir.Id(id.getText)
   }
 
-  override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val rawExpression = ctx match {
-        case c if c.columnElem() != null => c.columnElem().accept(this)
-        case c if c.expressionElem() != null => c.expressionElem().accept(this)
-        case c if c.columnElemStar() != null => c.columnElemStar().accept(this)
+  override def visitSelectListElem(ctx: SelectListElemContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val rawExpression = ctx match {
+            case c if c.columnElem() != null => c.columnElem().accept(this)
+            case c if c.expressionElem() != null => c.expressionElem().accept(this)
+            case c if c.columnElemStar() != null => c.columnElemStar().accept(this)
+          }
+          buildAlias(ctx.asAlias(), rawExpression)
       }
-      buildAlias(ctx.asAlias(), rawExpression)
-  }
+    }
 
-  override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case e if e.expr() != null => e.expr().accept(this)
-        case p if p.searchCondition() != null => p.searchCondition().accept(this)
+  override def visitExpressionElem(ctx: ExpressionElemContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
+            case e if e.expr() != null => e.expr().accept(this)
+            case p if p.searchCondition() != null => p.searchCondition().accept(this)
+          }
       }
+    }
+
+  override def visitColumnElem(ctx: ColumnElemContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val objectNameIds: Seq[ir.NameOrPosition] =
+          Option(ctx.dotIdentifier()).toSeq.flatMap(_.id().asScala.map(buildId))
+        val columnIds: Seq[ir.NameOrPosition] = ctx match {
+          case c if c.columnName() != null => c.columnName().id().asScala.map(buildId)
+          case c if c.columnPosition() != null => Seq(visitColumnPosition(c.columnPosition()))
+        }
+        val fqn = objectNameIds ++ columnIds
+        val objectRefIds = fqn.take(fqn.size - 1)
+        val objectRef = if (objectRefIds.isEmpty) {
+          None
+        } else {
+          Some(ir.ObjectReference(objectRefIds.head, objectRefIds.tail: _*))
+        }
+        ir.Column(objectRef, fqn.last)
+    }
   }
 
-  override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val objectNameIds: Seq[ir.NameOrPosition] = Option(ctx.dotIdentifier()).toSeq.flatMap(_.id().asScala.map(buildId))
-      val columnIds: Seq[ir.NameOrPosition] = ctx match {
-        case c if c.columnName() != null => c.columnName().id().asScala.map(buildId)
-        case c if c.columnPosition() != null => Seq(visitColumnPosition(c.columnPosition()))
+  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.WithKnownOrigin[ir.ObjectReference] =
+    withOriginFromContext(ctx) {
+      val ids = ctx.id().asScala.map(buildId)
+      ir.ObjectReference(ids.head, ids.tail: _*)
+    }
+
+  override def visitColumnPosition(ctx: ColumnPositionContext): ir.WithKnownOrigin[ir.Position] =
+    withOriginFromContext(ctx) {
+      ir.Position(ctx.INT().getText.toInt)
+    }
+
+  override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.Star(Option(ctx.dotIdentifier()).map { on =>
+            val objectNameIds = on.id().asScala.map(buildId)
+            ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
+          })
       }
-      val fqn = objectNameIds ++ columnIds
-      val objectRefIds = fqn.take(fqn.size - 1)
-      val objectRef = if (objectRefIds.isEmpty) {
-        None
-      } else {
-        Some(ir.ObjectReference(objectRefIds.head, objectRefIds.tail: _*))
-      }
-      ir.Column(objectRef, fqn.last)
-  }
-
-  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.ObjectReference = {
-    val ids = ctx.id().asScala.map(buildId)
-    ir.ObjectReference(ids.head, ids.tail: _*)
-  }
-
-  override def visitColumnPosition(ctx: ColumnPositionContext): ir.Position = {
-    ir.Position(ctx.INT().getText.toInt)
-  }
-
-  override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Star(Option(ctx.dotIdentifier()).map { on =>
-        val objectNameIds = on.id().asScala.map(buildId)
-        ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
-      })
-  }
+    }
 
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
@@ -142,17 +168,19 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       ir.Alias(input, alias)
     }
 
-  override def visitColumnName(ctx: ColumnNameContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.id().asScala match {
-        case Seq(columnName) => ir.Column(None, buildId(columnName))
-        case Seq(tableNameOrAlias, columnName) =>
-          ir.Column(Some(ir.ObjectReference(buildId(tableNameOrAlias))), buildId(columnName))
-      }
+  override def visitColumnName(ctx: ColumnNameContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.id().asScala match {
+          case Seq(columnName) => ir.Column(None, buildId(columnName))
+          case Seq(tableNameOrAlias, columnName) =>
+            ir.Column(Some(ir.ObjectReference(buildId(tableNameOrAlias))), buildId(columnName))
+        }
+    }
   }
 
-  override def visitOrderItem(ctx: OrderItemContext): ir.SortOrder = {
+  override def visitOrderItem(ctx: OrderItemContext): ir.WithKnownOrigin[ir.SortOrder] = withOriginFromContext(ctx) {
     val direction = if (ctx.DESC() != null) ir.Descending else ir.Ascending
     val nullOrdering = if (direction == ir.Descending) {
       if (ctx.LAST() != null) {
@@ -170,32 +198,34 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
   }
 
-  override def visitLiteral(ctx: LiteralContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
-      ctx match {
-        case c if Option(c.id()).exists(_.getText.toLowerCase(Locale.ROOT) == "date") =>
-          val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
-          Try(java.time.LocalDate.parse(dateStr))
-            .map(ir.Literal(_))
-            .getOrElse(ir.Literal.Null)
-        case c if c.TIMESTAMP() != null =>
-          val timestampStr = c.string.getText.stripPrefix("'").stripSuffix("'")
-          val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-          Try(LocalDateTime.parse(timestampStr, format))
-            .map(ir.Literal(_))
-            .getOrElse(ir.Literal.Null)
-        case c if c.string() != null => c.string.accept(this)
-        case c if c.INT() != null => ir.NumericLiteral(sign + c.INT().getText)
-        case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
-        case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
-        case c if c.NULL() != null => ir.Literal.Null
-        case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
-        case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
-        case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
-        case _ => ir.Literal.Null
-      }
+  override def visitLiteral(ctx: LiteralContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
+        ctx match {
+          case c if Option(c.id()).exists(_.getText.toLowerCase(Locale.ROOT) == "date") =>
+            val dateStr = c.string().getText.stripPrefix("'").stripSuffix("'")
+            Try(java.time.LocalDate.parse(dateStr))
+              .map(ir.Literal(_))
+              .getOrElse(ir.Literal.Null)
+          case c if c.TIMESTAMP() != null =>
+            val timestampStr = c.string.getText.stripPrefix("'").stripSuffix("'")
+            val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            Try(LocalDateTime.parse(timestampStr, format))
+              .map(ir.Literal(_))
+              .getOrElse(ir.Literal.Null)
+          case c if c.string() != null => c.string.accept(this)
+          case c if c.INT() != null => ir.NumericLiteral(sign + c.INT().getText)
+          case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
+          case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
+          case c if c.NULL() != null => ir.Literal.Null
+          case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
+          case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
+          case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
+          case _ => ir.Literal.Null
+        }
+    }
   }
 
   /**
@@ -216,247 +246,325 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
    *
    * @param ctx the parse tree
    */
-  override def visitString(ctx: SnowflakeParser.StringContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
+  override def visitString(ctx: SnowflakeParser.StringContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx match {
 
-        // $$string$$ means interpret the string as raw string with no variable substitution, escape sequences, etc.
-        // TODO: Do we need a raw flag in the ir.StringLiteral so that we generate r'sdfsdfsdsfds' for Databricks SQL?
-        //       or is r'string' a separate Ir in Spark?
-        case _ if ctx.DOLLAR_STRING() != null =>
-          val str = ctx.DOLLAR_STRING().getText.stripPrefix("$$").stripSuffix("$$")
-          ir.StringLiteral(str)
+            // $$string$$ means interpret the string as raw string with no variable substitution, escape sequences, etc.
+            // TODO: Do we need a raw flag in the ir.StringLiteral so that we generate r'sdfsdfsdsfds' for Databricks SQL?
+            //       or is r'string' a separate Ir in Spark?
+            case _ if ctx.DOLLAR_STRING() != null =>
+              val str = ctx.DOLLAR_STRING().getText.stripPrefix("$$").stripSuffix("$$")
+              ir.StringLiteral(str)
 
-        // Else we must have composite string literal
-        case _ =>
-          val str = if (ctx.stringPart() == null) {
-            ""
-          } else {
-            ctx
-              .stringPart()
-              .asScala
-              .map {
-                case p if p.VAR_SIMPLE() != null => s"$${${p.VAR_SIMPLE().getText.drop(1)}}" // &var => ${var} (soon)
-                case p if p.VAR_COMPLEX() != null => s"$$${p.VAR_COMPLEX().getText.drop(1)}" // &{var} => ${var}
-                case p if p.STRING_AMPAMP() != null => "&" // && => &
-                case p if p.STRING_CONTENT() != null => p.STRING_CONTENT().getText
-                case p if p.STRING_ESCAPE() != null => p.STRING_ESCAPE().getText
-                case p if p.STRING_SQUOTE() != null => "''" // Escaped single quote
-                case p if p.STRING_UNICODE() != null => p.STRING_UNICODE().getText
-                case _ => removeQuotes(ctx.getText)
+            // Else we must have composite string literal
+            case _ =>
+              val str = if (ctx.stringPart() == null) {
+                ""
+              } else {
+                ctx
+                  .stringPart()
+                  .asScala
+                  .map {
+                    case p if p.VAR_SIMPLE() != null =>
+                      s"$${${p.VAR_SIMPLE().getText.drop(1)}}" // &var => ${var} (soon)
+                    case p if p.VAR_COMPLEX() != null => s"$$${p.VAR_COMPLEX().getText.drop(1)}" // &{var} => ${var}
+                    case p if p.STRING_AMPAMP() != null => "&" // && => &
+                    case p if p.STRING_CONTENT() != null => p.STRING_CONTENT().getText
+                    case p if p.STRING_ESCAPE() != null => p.STRING_ESCAPE().getText
+                    case p if p.STRING_SQUOTE() != null => "''" // Escaped single quote
+                    case p if p.STRING_UNICODE() != null => p.STRING_UNICODE().getText
+                    case _ => removeQuotes(ctx.getText)
+                  }
+                  .mkString
               }
-              .mkString
+              ir.StringLiteral(str)
           }
-          ir.StringLiteral(str)
       }
-  }
+    }
 
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 
-  override def visitTrueFalse(ctx: TrueFalseContext): ir.Literal =
+  override def visitTrueFalse(ctx: TrueFalseContext): ir.WithKnownOrigin[ir.Literal] = withOriginFromContext(ctx) {
     ctx.TRUE() match {
       case null => ir.Literal.False
       case _ => ir.Literal.True
     }
-
-  override def visitExprNot(ctx: ExprNotContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => ir.Not(e) }
+  }
+  override def visitExprNot(ctx: ExprNotContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => withOriginFromContext(ctx)(ir.Not(e)) }
+    }
   }
 
-  override def visitExprAnd(ctx: ExprAndContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expr(0).accept(this)
-      val right = ctx.expr(1).accept(this)
-      ir.And(left, right)
+  override def visitExprAnd(ctx: ExprAndContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val left = ctx.expr(0).accept(this)
+        val right = ctx.expr(1).accept(this)
+        ir.And(left, right)
+    }
   }
 
-  override def visitExprOr(ctx: ExprOrContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expr(0).accept(this)
-      val right = ctx.expr(1).accept(this)
-      ir.Or(left, right)
+  override def visitExprOr(ctx: ExprOrContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val left = ctx.expr(0).accept(this)
+        val right = ctx.expr(1).accept(this)
+        ir.Or(left, right)
+    }
   }
 
-  override def visitNonLogicalExpression(ctx: NonLogicalExpressionContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.expression().accept(this)
-  }
-
-  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.expression().accept(this)
-  }
-
-  override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      NextValue(ctx.dotIdentifier().getText)
-  }
-
-  override def visitExprDot(ctx: ExprDotContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val lhs = ctx.expression(0).accept(this)
-      val rhs = ctx.expression(1).accept(this)
-      ir.Dot(lhs, rhs)
-  }
-
-  override def visitExprColon(ctx: ExprColonContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val lhs = ctx.expression(0).accept(this)
-      val rhs = ctx.expression(1).accept(this)
-      ir.JsonAccess(lhs, rhs)
-  }
-
-  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Collate(ctx.expression().accept(this), removeQuotes(ctx.string().getText))
-  }
-
-  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.caseExpression().accept(this)
-  }
-
-  override def visitExprIff(ctx: ExprIffContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.iffExpr().accept(this)
-  }
-
-  override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expression(0).accept(this)
-      val right = ctx.expression(1).accept(this)
-      buildComparisonExpression(ctx.comparisonOperator(), left, right)
-  }
-
-  override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Distinct(ctx.expression().accept(this))
-  }
-
-  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val expr = ctx.expression().accept(this)
-      val sortOrders = buildSortOrder(ctx.withinGroup().orderByClause())
-      ir.WithinGroup(expr, sortOrders)
-  }
-
-  override def visitExprOver(ctx: ExprOverContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      buildWindow(ctx.overClause(), ctx.expression().accept(this))
-  }
-
-  override def visitExprCast(ctx: ExprCastContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.castExpr().accept(this)
-  }
-
-  override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Cast(ctx.expression().accept(this), typeBuilder.buildDataType(ctx.dataType()))
-  }
-
-  override def visitExprSign(ctx: ExprSignContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.sign() match {
-        case c if c.PLUS() != null => ir.UPlus(ctx.expression().accept(this))
-        case c if c.MINUS() != null => ir.UMinus(ctx.expression().accept(this))
+  override def visitNonLogicalExpression(ctx: NonLogicalExpressionContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.expression().accept(this)
       }
-  }
+    }
 
-  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
-  }
-
-  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
-  }
-
-  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.primitiveExpression().accept(this)
-  }
-
-  override def visitExprFuncCall(ctx: ExprFuncCallContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.functionCall().accept(this)
-  }
-
-  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val fields = ctx.kvPair().asScala.map { kv =>
-        val fieldName = removeQuotes(kv.key.getText)
-        val fieldValue = visitLiteral(kv.literal())
-        ir.Alias(fieldValue, ir.Id(fieldName))
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.expression().accept(this)
       }
-      ir.StructExpr(fields)
+    }
+
+  override def visitExprNextval(ctx: ExprNextvalContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          NextValue(ctx.dotIdentifier().getText)
+      }
+    }
+
+  override def visitExprDot(ctx: ExprDotContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val lhs = ctx.expression(0).accept(this)
+        val rhs = ctx.expression(1).accept(this)
+        ir.Dot(lhs, rhs)
+    }
   }
 
-  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val elements = ctx.expr().asScala.map(_.accept(this)).toList
-      // TODO: The current type determination may be too naive
-      // but this does not affect code generation as the generator does not use it.
-      // Here we determine the type of the array by inspecting the first expression in the array literal,
-      // but when an array literal contains a double or a cast and the first value appears to be an integer,
-      // then the array literal type should probably be typed as DoubleType and not IntegerType, which means
-      // we need a function that types all the expressions and types it as the most general type.
-      val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
-      ir.ArrayExpr(elements, dataType)
+  override def visitExprColon(ctx: ExprColonContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val lhs = ctx.expression(0).accept(this)
+        val rhs = ctx.expression(1).accept(this)
+        ir.JsonAccess(lhs, rhs)
+    }
   }
 
-  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.ArrayAccess(ctx.id().accept(this), ir.NumericLiteral(ctx.INT().getText))
+  override def visitExprCollate(ctx: ExprCollateContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.Collate(ctx.expression().accept(this), removeQuotes(ctx.string().getText))
+      }
+    }
+
+  override def visitExprCase(ctx: ExprCaseContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.caseExpression().accept(this)
+    }
   }
 
-  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.id().accept(this)
+  override def visitExprIff(ctx: ExprIffContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.iffExpr().accept(this)
+    }
   }
 
-  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
+  override def visitExprComparison(ctx: ExprComparisonContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val left = ctx.expression(0).accept(this)
+          val right = ctx.expression(1).accept(this)
+          buildComparisonExpression(ctx.comparisonOperator(), left, right)
+      }
+    }
+
+  override def visitExprDistinct(ctx: ExprDistinctContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.Distinct(ctx.expression().accept(this))
+      }
+    }
+
+  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val expr = ctx.expression().accept(this)
+          val sortOrders = buildSortOrder(ctx.withinGroup().orderByClause())
+          ir.WithinGroup(expr, sortOrders)
+      }
+    }
+
+  override def visitExprOver(ctx: ExprOverContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        buildWindow(ctx.overClause(), ctx.expression().accept(this))
+    }
   }
 
-  override def visitPrimExprLiteral(ctx: PrimExprLiteralContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.literal().accept(this)
+  override def visitExprCast(ctx: ExprCastContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.castExpr().accept(this)
+    }
   }
+
+  override def visitExprAscribe(ctx: ExprAscribeContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.Cast(ctx.expression().accept(this), typeBuilder.buildDataType(ctx.dataType()))
+      }
+    }
+
+  override def visitExprSign(ctx: ExprSignContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.sign() match {
+          case c if c.PLUS() != null => ir.UPlus(ctx.expression().accept(this))
+          case c if c.MINUS() != null => ir.UMinus(ctx.expression().accept(this))
+        }
+    }
+  }
+
+  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
+      }
+    }
+
+  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          buildBinaryOperation(ctx.op, ctx.expression(0).accept(this), ctx.expression(1).accept(this))
+      }
+    }
+
+  override def visitExprPrimitive(ctx: ExprPrimitiveContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.primitiveExpression().accept(this)
+      }
+    }
+
+  override def visitExprFuncCall(ctx: ExprFuncCallContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.functionCall().accept(this)
+      }
+    }
+
+  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val fields = ctx.kvPair().asScala.map { kv =>
+            val fieldName = removeQuotes(kv.key.getText)
+            val fieldValue = visitLiteral(kv.literal())
+            ir.Alias(fieldValue, ir.Id(fieldName))
+          }
+          ir.StructExpr(fields)
+      }
+    }
+
+  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val elements = ctx.expr().asScala.map(_.accept(this)).toList
+          // TODO: The current type determination may be too naive
+          // but this does not affect code generation as the generator does not use it.
+          // Here we determine the type of the array by inspecting the first expression in the array literal,
+          // but when an array literal contains a double or a cast and the first value appears to be an integer,
+          // then the array literal type should probably be typed as DoubleType and not IntegerType, which means
+          // we need a function that types all the expressions and types it as the most general type.
+          val dataType = elements.headOption.map(_.dataType).getOrElse(ir.UnresolvedType)
+          ir.ArrayExpr(elements, dataType)
+      }
+    }
+
+  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.ArrayAccess(ctx.id().accept(this), ir.NumericLiteral(ctx.INT().getText))
+      }
+    }
+
+  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.id().accept(this)
+      }
+    }
+
+  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
+      }
+    }
+
+  override def visitPrimExprLiteral(ctx: PrimExprLiteralContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ctx.literal().accept(this)
+      }
+    }
 
   private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
     operator.getType match {
@@ -494,41 +602,47 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  override def visitIffExpr(ctx: IffExprContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val condition = ctx.searchCondition().accept(this)
-      val thenBranch = ctx.expr(0).accept(this)
-      val elseBranch = ctx.expr(1).accept(this)
-      ir.If(condition, thenBranch, elseBranch)
+  override def visitIffExpr(ctx: IffExprContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val condition = ctx.searchCondition().accept(this)
+        val thenBranch = ctx.expr(0).accept(this)
+        val elseBranch = ctx.expr(1).accept(this)
+        ir.If(condition, thenBranch, elseBranch)
+    }
   }
 
-  override def visitCastExpr(ctx: CastExprContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case c if c.castOp != null =>
-          val expression = c.expr().accept(this)
-          val dataType = typeBuilder.buildDataType(c.dataType())
-          ctx.castOp.getType match {
-            case CAST => ir.Cast(expression, dataType)
-            case TRY_CAST => ir.TryCast(expression, dataType)
-          }
+  override def visitCastExpr(ctx: CastExprContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx match {
+          case c if c.castOp != null =>
+            val expression = c.expr().accept(this)
+            val dataType = typeBuilder.buildDataType(c.dataType())
+            ctx.castOp.getType match {
+              case CAST => ir.Cast(expression, dataType)
+              case TRY_CAST => ir.TryCast(expression, dataType)
+            }
 
-        case c if c.INTERVAL() != null =>
-          ir.Cast(c.expr().accept(this), ir.IntervalType)
+          case c if c.INTERVAL() != null =>
+            ir.Cast(c.expr().accept(this), ir.IntervalType)
+        }
+    }
+  }
+
+  override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val ignore_nulls = if (ctx.ignoreOrRepectNulls() != null) {
+            ctx.ignoreOrRepectNulls().getText.equalsIgnoreCase("IGNORENULLS")
+          } else false
+          buildWindow(ctx.overClause(), ctx.standardFunction().accept(this), ignore_nulls)
       }
-  }
-
-  override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = errorCheck(
-    ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val ignore_nulls = if (ctx.ignoreOrRepectNulls() != null) {
-        ctx.ignoreOrRepectNulls().getText.equalsIgnoreCase("IGNORENULLS")
-      } else false
-      buildWindow(ctx.overClause(), ctx.standardFunction().accept(this), ignore_nulls)
-  }
+    }
 
   private def buildWindow(
       ctx: OverClauseContext,
@@ -589,17 +703,20 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c if c.CURRENT() != null => ir.CurrentRow
   }
 
-  override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val functionName = fetchFunctionName(ctx)
-      val arguments = ctx match {
-        case c if c.exprList() != null => visitMany(c.exprList().expr())
-        case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
-        case _ => Seq.empty
+  override def visitStandardFunction(ctx: StandardFunctionContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val functionName = fetchFunctionName(ctx)
+          val arguments = ctx match {
+            case c if c.exprList() != null => visitMany(c.exprList().expr())
+            case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
+            case _ => Seq.empty
+          }
+          functionBuilder.buildFunction(functionName, arguments)
       }
-      functionBuilder.buildFunction(functionName, arguments)
-  }
+    }
 
   private def fetchFunctionName(ctx: StandardFunctionContext): String = {
     if (ctx.functionName() != null) {
@@ -614,203 +731,249 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // aggregateFunction
 
-  override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val param = visitMany(ctx.exprList().expr())
-      functionBuilder.buildFunction(buildId(ctx.id()), param)
-  }
-
-  override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      functionBuilder.buildFunction(buildId(ctx.id()), Seq(ir.Star(None)))
-  }
-
-  override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val param = ctx.expr().accept(this)
-      val separator = Option(ctx.string()).map(s => ir.Literal(removeQuotes(s.getText)))
-      ctx.op.getType match {
-        case LISTAGG => functionBuilder.buildFunction("LISTAGG", param +: separator.toSeq)
-        case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
+  override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val param = visitMany(ctx.exprList().expr())
+          functionBuilder.buildFunction(buildId(ctx.id()), param)
       }
-  }
+    }
 
-  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val part = if (ctx.ID() != null) { ir.Id(removeQuotes(ctx.ID().getText)) }
-      else {
-        buildIdFromString(ctx.string())
+  override def visitAggFuncStar(ctx: AggFuncStarContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          functionBuilder.buildFunction(buildId(ctx.id()), Seq(ir.Star(None)))
       }
-      val date = ctx.expr().accept(this)
-      functionBuilder.buildFunction(ctx.EXTRACT().getText, Seq(part, date))
-  }
+    }
+
+  override def visitAggFuncList(ctx: AggFuncListContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val param = ctx.expr().accept(this)
+          val separator = Option(ctx.string()).map(s => ir.Literal(removeQuotes(s.getText)))
+          ctx.op.getType match {
+            case LISTAGG => functionBuilder.buildFunction("LISTAGG", param +: separator.toSeq)
+            case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
+          }
+      }
+    }
+
+  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val part = if (ctx.ID() != null) { ir.Id(removeQuotes(ctx.ID().getText)) }
+          else {
+            buildIdFromString(ctx.string())
+          }
+          val date = ctx.expr().accept(this)
+          functionBuilder.buildFunction(ctx.EXTRACT().getText, Seq(part, date))
+      }
+    }
 
   private def buildIdFromString(ctx: SnowflakeParser.StringContext): ir.Id = ctx.accept(this) match {
     case ir.StringLiteral(s) => ir.Id(s)
     case _ => throw new IllegalArgumentException("Expected a string literal")
   }
 
-  override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val exprs = ctx.expr().asScala
-      val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
-      ctx match {
-        case c if c.switchSection().size() > 0 =>
-          val expression = exprs.find(occursBefore(_, ctx.switchSection(0))).map(_.accept(this))
-          val branches = c.switchSection().asScala.map { branch =>
-            ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
+  override def visitCaseExpression(ctx: CaseExpressionContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val exprs = ctx.expr().asScala
+          val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
+          ctx match {
+            case c if c.switchSection().size() > 0 =>
+              val expression = exprs.find(occursBefore(_, ctx.switchSection(0))).map(_.accept(this))
+              val branches = c.switchSection().asScala.map { branch =>
+                ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
+              }
+              ir.Case(expression, branches, otherwise)
+            case c if c.switchSearchConditionSection().size() > 0 =>
+              val branches = c.switchSearchConditionSection().asScala.map { branch =>
+                ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
+              }
+              ir.Case(None, branches, otherwise)
           }
-          ir.Case(expression, branches, otherwise)
-        case c if c.switchSearchConditionSection().size() > 0 =>
-          val branches = c.switchSearchConditionSection().asScala.map { branch =>
-            ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
-          }
-          ir.Case(None, branches, otherwise)
       }
-  }
+    }
 
   // Search conditions and predicates
 
-  override def visitScNot(ctx: ScNotContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Not(ctx.searchCondition().accept(this))
+  override def visitScNot(ctx: ScNotContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ir.Not(ctx.searchCondition().accept(this))
+    }
   }
 
-  override def visitScAnd(ctx: ScAndContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.And(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+  override def visitScAnd(ctx: ScAndContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ir.And(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+    }
   }
 
-  override def visitScOr(ctx: ScOrContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Or(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+  override def visitScOr(ctx: ScOrContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ir.Or(ctx.searchCondition(0).accept(this), ctx.searchCondition(1).accept(this))
+    }
   }
 
-  override def visitScPred(ctx: ScPredContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.predicate().accept(this)
+  override def visitScPred(ctx: ScPredContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.predicate().accept(this)
+    }
   }
 
-  override def visitScPrec(ctx: ScPrecContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.searchCondition.accept(this)
+  override def visitScPrec(ctx: ScPrecContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.searchCondition.accept(this)
+    }
   }
 
-  override def visitPredExists(ctx: PredExistsContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Exists(ctx.subquery().accept(vc.relationBuilder))
+  override def visitPredExists(ctx: PredExistsContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ir.Exists(ctx.subquery().accept(vc.relationBuilder))
+    }
   }
 
-  override def visitPredBinop(ctx: PredBinopContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expression(0).accept(this)
-      val right = ctx.expression(1).accept(this)
-      ctx.comparisonOperator match {
-        case op if op.LE != null => ir.LessThanOrEqual(left, right)
-        case op if op.GE != null => ir.GreaterThanOrEqual(left, right)
-        case op if op.LTGT != null => ir.NotEquals(left, right)
-        case op if op.NE != null => ir.NotEquals(left, right)
-        case op if op.EQ != null => ir.Equals(left, right)
-        case op if op.GT != null => ir.GreaterThan(left, right)
-        case op if op.LT != null => ir.LessThan(left, right)
-      }
+  override def visitPredBinop(ctx: PredBinopContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val left = ctx.expression(0).accept(this)
+        val right = ctx.expression(1).accept(this)
+        ctx.comparisonOperator match {
+          case op if op.LE != null => ir.LessThanOrEqual(left, right)
+          case op if op.GE != null => ir.GreaterThanOrEqual(left, right)
+          case op if op.LTGT != null => ir.NotEquals(left, right)
+          case op if op.NE != null => ir.NotEquals(left, right)
+          case op if op.EQ != null => ir.Equals(left, right)
+          case op if op.GT != null => ir.GreaterThan(left, right)
+          case op if op.LT != null => ir.LessThan(left, right)
+        }
+    }
   }
 
-  override def visitPredASA(ctx: PredASAContext): ir.Expression =
+  override def visitPredASA(ctx: PredASAContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
     // TODO: build ASA
     ir.UnresolvedExpression(
       ruleText = contextText(ctx),
       message = "ALL | SOME | ANY is not yet supported",
       ruleName = vc.ruleName(ctx),
       tokenName = Some(tokenName(ctx.getStart)))
-
-  override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val lowerBound = ctx.expression(1).accept(this)
-      val upperBound = ctx.expression(2).accept(this)
-      val expression = ctx.expression(0).accept(this)
-      val between = ir.Between(expression, lowerBound, upperBound)
-      Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
   }
 
-  override def visitPredIn(ctx: PredInContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val in = if (ctx.subquery() != null) {
-        // In the result of a sub query
-        ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
-      } else {
-        // In a list of expressions
-        ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+  override def visitPredBetween(ctx: PredBetweenContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val lowerBound = ctx.expression(1).accept(this)
+          val upperBound = ctx.expression(2).accept(this)
+          val expression = ctx.expression(0).accept(this)
+          val between = ir.Between(expression, lowerBound, upperBound)
+          Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
       }
-      Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+    }
+
+  override def visitPredIn(ctx: PredInContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val in = if (ctx.subquery() != null) {
+          // In the result of a sub query
+          ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))))
+        } else {
+          // In a list of expressions
+          ir.In(ctx.expression().accept(this), ctx.exprList().expr().asScala.map(_.accept(this)))
+        }
+        Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+    }
   }
 
-  override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expression(0).accept(this)
-      val right = ctx.expression(1).accept(this)
-      // NB: The escape character is a complete expression that evaluates to a single char at runtime
-      // and not a single char at parse time.
-      val escape = Option(ctx.expression(2))
-        .map(_.accept(this))
-      val like = ctx.op.getType match {
-        case LIKE => ir.Like(left, right, escape)
-        case ILIKE => ir.ILike(left, right, escape)
+  override def visitPredLikeSinglePattern(ctx: PredLikeSinglePatternContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val left = ctx.expression(0).accept(this)
+          val right = ctx.expression(1).accept(this)
+          // NB: The escape character is a complete expression that evaluates to a single char at runtime
+          // and not a single char at parse time.
+          val escape = Option(ctx.expression(2))
+            .map(_.accept(this))
+          val like = ctx.op.getType match {
+            case LIKE => ir.Like(left, right, escape)
+            case ILIKE => ir.ILike(left, right, escape)
+          }
+          Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
       }
-      Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
-  }
+    }
 
-  override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.Expression =
+  override def visitPredLikeMultiplePatterns(ctx: PredLikeMultiplePatternsContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          val left = ctx.expression(0).accept(this)
+          val patterns = visitMany(ctx.exprListInParentheses().exprList().expr())
+          val normalizedPatterns = normalizePatterns(patterns, ctx.expression(1))
+          val like = ctx.op.getType match {
+            case LIKE if ctx.ALL() != null => ir.LikeAll(left, normalizedPatterns)
+            case LIKE => ir.LikeAny(left, normalizedPatterns)
+            case ILIKE if ctx.ALL() != null => ir.ILikeAll(left, normalizedPatterns)
+            case ILIKE => ir.ILikeAny(left, normalizedPatterns)
+          }
+          Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+      }
+    }
+
+  override def visitPredRLike(ctx: PredRLikeContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
         val left = ctx.expression(0).accept(this)
-        val patterns = visitMany(ctx.exprListInParentheses().exprList().expr())
-        val normalizedPatterns = normalizePatterns(patterns, ctx.expression(1))
-        val like = ctx.op.getType match {
-          case LIKE if ctx.ALL() != null => ir.LikeAll(left, normalizedPatterns)
-          case LIKE => ir.LikeAny(left, normalizedPatterns)
-          case ILIKE if ctx.ALL() != null => ir.ILikeAll(left, normalizedPatterns)
-          case ILIKE => ir.ILikeAny(left, normalizedPatterns)
-        }
-        Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+        val right = ctx.expression(1).accept(this)
+        val rLike = ir.RLike(left, right)
+        Option(ctx.NOT()).fold[ir.Expression](rLike)(_ => ir.Not(rLike))
     }
-
-  override def visitPredRLike(ctx: PredRLikeContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val left = ctx.expression(0).accept(this)
-      val right = ctx.expression(1).accept(this)
-      val rLike = ir.RLike(left, right)
-      Option(ctx.NOT()).fold[ir.Expression](rLike)(_ => ir.Not(rLike))
   }
 
-  override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      val expression = ctx.expression().accept(this)
-      if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
+  override def visitPredIsNull(ctx: PredIsNullContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val expression = ctx.expression().accept(this)
+        if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
+    }
   }
 
-  override def visitPredExpr(ctx: PredExprContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.expression().accept(this)
+  override def visitPredExpr(ctx: PredExprContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        ctx.expression().accept(this)
+    }
   }
 
   private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExpressionContext): Seq[ir.Expression] = {
@@ -827,21 +990,29 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(patterns)
   }
 
-  override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+  override def visitParamAssoc(ctx: ParamAssocContext): ir.WithKnownOrigin[ir.Expression] = withOriginFromContext(ctx) {
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+    }
   }
 
-  override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.Assign(ctx.columnName().accept(this), ctx.expr().accept(this))
-  }
+  override def visitSetColumnValue(ctx: SetColumnValueContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.Assign(ctx.columnName().accept(this), ctx.expr().accept(this))
+      }
+    }
 
-  override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))
-  }
+  override def visitExprSubquery(ctx: ExprSubqueryContext): ir.WithKnownOrigin[ir.Expression] =
+    withOriginFromContext(ctx) {
+      errorCheck(ctx) match {
+        case Some(errorResult) => errorResult
+        case None =>
+          ir.ScalarSubquery(ctx.subquery().accept(vc.relationBuilder))
+      }
+    }
 }

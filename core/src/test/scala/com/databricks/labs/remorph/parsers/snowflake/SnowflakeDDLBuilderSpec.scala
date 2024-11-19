@@ -384,7 +384,7 @@ class SnowflakeDDLBuilderSpec
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
       verify(alterTable).getRuleIndex
-      verify(alterTable, times(3)).getStart
+      verify(alterTable, times(4)).getStart
       verify(alterTable).getStop
       verifyNoMoreInteractions(alterTable)
     }
