@@ -11,7 +11,8 @@ from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
-from databricks.labs.remorph.snow import local_expression
+from databricks.labs.remorph.snow import local_expression, snowflake
+
 
 logger = logging.getLogger(__name__)
 # pylint: disable=protected-access
@@ -89,6 +90,20 @@ def _parse_to_timestamp(args: list) -> exp.StrToTime | exp.UnixToTime | exp.Time
 
 def _parse_date_add(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
+
+
+def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
+    this = seq_get(args, 0)
+    read = snowflake.Snow
+    if this and not this.type:
+        from sqlglot.optimizer.annotate_types import annotate_types
+
+        annotate_types(this)
+        if this.is_type(*exp.DataType.TEMPORAL_TYPES):
+            a = build_formatted_time(exp.ToChar, read, default=True)(args)
+            return build_formatted_time(exp.ToChar, read, default=True)(args)
+
+    return exp.ToChar.from_arg_list(args)
 
 
 def _parse_split_part(args: list) -> local_expression.SplitPart:
@@ -243,6 +258,10 @@ def contains_expression(expr, target_type):
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
+
+    TIME_MAPPING = {
+        "mm": "MM",
+    }
 
     class Tokenizer(Snowflake.Tokenizer):
 
@@ -405,6 +424,7 @@ class Snow(Snowflake):
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
+            "TO_CHAR": _build_timetostr_or_tochar,
         }
 
         FUNCTION_PARSERS = {
