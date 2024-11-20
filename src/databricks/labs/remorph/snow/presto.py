@@ -1,3 +1,4 @@
+import logging
 from sqlglot.dialects.presto import Presto as presto
 from sqlglot import exp
 from sqlglot.helper import seq_get
@@ -5,6 +6,9 @@ from sqlglot.errors import ParseError
 from sqlglot.tokens import TokenType
 
 from databricks.labs.remorph.snow import local_expression
+
+
+logger = logging.getLogger(__name__)
 
 
 def _build_approx_percentile(args: list) -> exp.Expression:
@@ -45,6 +49,12 @@ def _build_str_position(args: list) -> local_expression.Locate:
     # For now we haven't implemented the logic same as presto for 3rd param.
     # Users should be vigilant when using 3 param function in presto strpos.
     if len(args) == 3:
+        msg = (
+            "*Warning:: The third parameter in Presto's `strpos` function and Databricks' `locate` function "
+            "have different implementations. Please exercise caution when using the three-parameter version "
+            "of the `strpos` function in Presto."
+        )
+        logger.warning(msg)
         return local_expression.Locate(substring=seq_get(args, 1), this=seq_get(args, 0), position=seq_get(args, 2))
     return local_expression.Locate(substring=seq_get(args, 1), this=seq_get(args, 0))
 
