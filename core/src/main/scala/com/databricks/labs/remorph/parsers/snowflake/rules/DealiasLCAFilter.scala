@@ -18,8 +18,8 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   def dealiasProject(project: Project, filter: Filter): Project = {
     val aliases = project.columns
       .collect { case a: Alias => a }
-      .filter(alias => alias.child.isInstanceOf[Id]) // TODO do we need to support more than that ?
-      .map(alias => alias.name.id -> alias.child.asInstanceOf[Id].id)
+      .filter(alias => !alias.child.isInstanceOf[Literal])
+      .map(alias => alias.name.id -> alias.child)
       .toMap
     if (aliases.isEmpty) {
       project
@@ -28,7 +28,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasProject(project: Project, filter: Filter, aliases: Map[String, String]): Project = {
+  private def dealiasProject(project: Project, filter: Filter, aliases: Map[String, Expression]): Project = {
     val transformed = dealiasFilter(filter, aliases)
     if (transformed eq filter) {
       project
@@ -37,9 +37,10 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasFilter(filter: Filter, aliases: Map[String, String]): Filter = {
-    val transformed = filter.condition transform { case binary: Binary =>
-      dealiasBinary(binary, aliases)
+  private def dealiasFilter(filter: Filter, aliases: Map[String, Expression]): Filter = {
+    val transformed = filter.condition transform {
+      case in: In => dealiasIn(in, aliases)
+      case binary: Binary => dealiasBinary(binary, aliases)
     }
     if (transformed eq filter.condition) {
       filter
@@ -48,9 +49,18 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasBinary(binary: Binary, aliases: Map[String, String]): Expression = {
-    val head = dealiasBinaryItem(binary.children.head, aliases)
-    val last = dealiasBinaryItem(binary.children.last, aliases)
+  private def dealiasIn(in: In, aliases: Map[String, Expression]): Expression = {
+    val transformed = dealiasColumnRef(in.left, aliases)
+    if (transformed eq in.left) {
+      in
+    } else {
+      in.makeCopy(Array(transformed, in.other))
+    }
+  }
+
+  private def dealiasBinary(binary: Binary, aliases: Map[String, Expression]): Expression = {
+    val head = dealiasColumnRef(binary.children.head, aliases)
+    val last = dealiasColumnRef(binary.children.last, aliases)
     if ((head eq binary.children.head) && (last eq binary.children.last)) {
       binary
     } else {
@@ -58,7 +68,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  def dealiasBinaryItem(item: Expression, aliases: Map[String, String]): Expression = {
+  def dealiasColumnRef(item: Expression, aliases: Map[String, Expression]): Expression = {
     val key = item match {
       case name: Name => name.name
       case id: Id => id.id
@@ -71,11 +81,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
       if (alias.isEmpty) {
         item
       } else {
-        val replacement = alias.get._2
-        item transform {
-          case name: Name => name.makeCopy(Array(replacement))
-          case id: Id => id.makeCopy(Array(replacement.asInstanceOf[AnyRef], id.caseSensitive.asInstanceOf[AnyRef]))
-        }
+        alias.get._2
       }
     }
   }
