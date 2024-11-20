@@ -4,8 +4,8 @@ import com.databricks.labs.remorph.intermediate._
 
 class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
 
-  override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
-      case project: Project => dealiasProject(project)
+  override def apply(plan: LogicalPlan): LogicalPlan = plan transform { case project: Project =>
+    dealiasProject(project)
   }
 
   private def dealiasProject(project: Project): Project = {
@@ -38,8 +38,8 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasFilter(filter: Filter, aliases: Map[Id, String]): Filter = {
-    val transformed = filter.condition transform {
-      case binary: Binary => dealiasBinary(binary, aliases)
+    val transformed = filter.condition transform { case binary: Binary =>
+      dealiasBinary(binary, aliases)
     }
     if (transformed eq filter.condition) {
       filter
