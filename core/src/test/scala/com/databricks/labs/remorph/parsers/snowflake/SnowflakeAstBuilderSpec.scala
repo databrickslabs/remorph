@@ -457,13 +457,13 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
             UnresolvedRelation("Unparsable text: SELECTxyz", message = "Unparsed input - ErrorNode encountered"),
-            UnresolvedRelation("Unparsable text: SELECT\nUnparsable text: x\nUnparsable text: y\nUnparsable text: z\nUnparsable text: parser recovered by ignoring: SELECTxyz;", message = "Unparsed input - ErrorNode encountered"),
+            UnresolvedRelation(
+              "Unparsable text: SELECT\nUnparsable text: x\nUnparsable text: y\nUnparsable text: z\nUnparsable text: parser recovered by ignoring: SELECTxyz;",
+              message = "Unparsed input - ErrorNode encountered"),
             Project(namedTable("t3"), Seq(Literal(3))))),
         failOnErrors = false)
 
     }
-
-
 
     "translate BANG to Unresolved Expression" in {
 
