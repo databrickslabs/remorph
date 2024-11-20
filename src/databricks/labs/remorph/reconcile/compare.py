@@ -166,8 +166,10 @@ def _get_mismatch_columns(df: DataFrame, columns: list[str]):
 
 
 def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str], column_list: list[str]):
-    source_aliased = [col('base.' + column).cast("String").alias(column + '_base') for column in column_list]
-    target_aliased = [col('compare.' + column).cast("String").alias(column + '_compare') for column in column_list]
+    source_aliased = [col('base.' + column).alias(column + '_base') for column in column_list]
+    target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
+    # source_aliased = [col('base.' + column).cast("String").alias(column + '_base') for column in column_list]
+    # target_aliased = [col('compare.' + column).cast("String").alias(column + '_compare') for column in column_list]
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
     key_cols = [col(column) for column in key_columns]

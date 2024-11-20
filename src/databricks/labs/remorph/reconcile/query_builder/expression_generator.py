@@ -7,6 +7,7 @@ from sqlglot import expressions as exp
 
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping
+from databricks.labs.remorph.snow import databricks, oracle, snowflake
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
@@ -89,6 +90,10 @@ def array_to_string(
 
 def array_sort(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
+
+
+def cast(expr: exp.Expression, to: exp.DataType) -> exp.Expression:
+    return exp.Cast(this=expr, to=to)
 
 
 def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Expression:
@@ -238,17 +243,102 @@ def _get_is_string(column_types_dict: dict[str, DataType], column_name: str) -> 
     return True
 
 
-DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {
-    "universal": {"default": [partial(coalesce, default='_null_recon_', is_string=True), partial(trim)]},
-    "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
-    "oracle": {
-        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
-        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
-    },
-    "databricks": {
-        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
-    },
-}
+def _snow_datatype_transformations(data_type: exp.DataType) -> list[partial[exp.Expression]] | None:
+    if data_type.type == exp.DataType.Type.ARRAY:
+        return [partial(array_to_string), partial(array_sort)]
+    return None
+
+
+def _oracle_datatype_transformations(data_type: exp.DataType) -> list[partial[exp.Expression]] | None:
+    if data_type.type in {exp.DataType.Type.NCHAR, exp.DataType.Type.NVARCHAR}:
+        return [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")]
+    # if data_type.type == exp.DataType.Type.DECIMAL:
+    #     expressions = data_type.expressions
+    #     precision_param, scale_param = (
+    #         expressions[:2]
+    #         if len(expressions) >= 2
+    #         else (expressions[0], None) if len(expressions) == 1 else (None, None)
+    #     )
+    #     precision = precision_param.this.this if precision_param else None
+    #     scale = scale_param.this.this if scale_param else None
+    #     if precision and scale:
+    #         return [
+    #             partial(
+    #                 cast,
+    #                 to=exp.DataType.build(
+    #                     "DECIMAL",
+    #                     expressions=[
+    #                         exp.DataTypeParam(this=exp.Literal(this=precision)),
+    #                         exp.DataTypeParam(this=exp.Literal(this=scale)),
+    #                     ],
+    #                 ),
+    #             )
+    #         ]
+    #     if precision is None and scale is None:
+    #         return [partial(cast, to=exp.DataType.build("DOUBLE"))]
+    #
+    #     if precision < 2:
+    #         return [
+    #             # CAST as Byte type
+    #         ]
+    #     elif precision < 5:
+    #         return [
+    #             # CAST as Short type
+    #         ]
+    #     elif precision < 10:
+    #         return [
+    #             # CAST as Integer type
+    #         ]
+    #     elif precision < 19:
+    #         return [
+    #             # CAST as Long type
+    #         ]
+    #     else:
+    #         return [
+    #             partial(
+    #                 cast,
+    #                 to=exp.DataType.build(
+    #                     "DECIMAL",
+    #                     expressions=[
+    #                         exp.DataTypeParam(this=exp.Literal(this=precision)),
+    #                         exp.DataTypeParam(this=exp.Literal(this=0)),
+    #                     ],
+    #                 ),
+    #             )
+    #         ]
+
+    return None
+
+
+def _databricks_datatype_transformations(data_type: exp.DataType) -> list[partial[exp.Expression]] | None:
+    if data_type.type == exp.DataType.Type.ARRAY:
+        return [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")]
+    return None
+
+
+def _universal_datatype_transformations(_: exp.DataType) -> list[partial[exp.Expression]] | None:
+    # For now no type specific transformations are specified
+    # If needed, add them here
+    return None
+
+
+def _datatype_transformation_mapper(dialect: Dialect) -> Callable[[exp.DataType], list[partial[exp.Expression]]]:
+    if dialect == snowflake.Snowflake:
+        return _snow_datatype_transformations
+    if dialect == oracle.Oracle:
+        return _oracle_datatype_transformations
+    if dialect == databricks.Databricks:
+        return _databricks_datatype_transformations
+    return _universal_datatype_transformations
+
+
+def datatype_transformations(data_type: exp.DataType, dialect: Dialect) -> list[partial[exp.Expression]]:
+    dialect_transformations = _datatype_transformation_mapper(dialect)
+    transformations = dialect_transformations(data_type)
+    if transformations:
+        return transformations
+    return [partial(coalesce, default='_null_recon_', is_string=True), partial(trim)]
+
 
 sha256_partial = partial(sha2, num_bits="256", is_expr=True)
 md5_partial = partial(md5, is_expr=True)
