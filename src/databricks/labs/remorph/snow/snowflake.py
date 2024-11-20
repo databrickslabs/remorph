@@ -97,7 +97,7 @@ def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
     if this and not this.type:
         annotate_types(this)
         if this.is_type(*exp.DataType.TEMPORAL_TYPES):
-            return build_formatted_time(exp.ToChar, "snow", default=True)(args)
+            return build_formatted_time(exp.ToChar, "snowflake", default=True)(args)
 
     return exp.ToChar.from_arg_list(args)
 
@@ -254,10 +254,11 @@ def contains_expression(expr, target_type):
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
-
-    TIME_MAPPING = {
-        "mm": "MM",
-    }
+    #
+    # TIME_MAPPING = {
+    #     "mm": "MM",
+    #     "d" :"d"
+    # }
 
     class Tokenizer(Snowflake.Tokenizer):
 
