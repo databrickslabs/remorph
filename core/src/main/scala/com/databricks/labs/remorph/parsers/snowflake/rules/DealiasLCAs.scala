@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.intermediate.{Expression, _}
 
 import scala.collection.immutable.Map
 
-class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
+class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
     plan transform { case project: Project =>
@@ -64,7 +64,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasPartition(aliases: Map[String, Expression], partition: Seq[Expression]): Seq[Expression] = {
-    partition map { col => dealiasColumnRef(aliases, col) }
+    partition map { col => dealiasExpression(aliases, col) }
   }
 
   private def dealiasSortOrder(aliases: Map[String, Expression], sort_order: Seq[SortOrder]): Seq[SortOrder] = {
@@ -72,7 +72,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasSortOrder(aliases: Map[String, Expression], sort_order: SortOrder): SortOrder = {
-    val transformed = dealiasColumnRef(aliases, sort_order.child)
+    val transformed = dealiasExpression(aliases, sort_order.child)
     if (transformed eq sort_order.child) {
       sort_order
     } else {
@@ -100,7 +100,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasIn(aliases: Map[String, Expression], in: In): Expression = {
-    val transformed = dealiasColumnRef(aliases, in.left)
+    val transformed = dealiasExpression(aliases, in.left)
     if (transformed eq in.left) {
       in
     } else {
@@ -109,8 +109,8 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasBinary(aliases: Map[String, Expression], binary: Binary): Expression = {
-    val head = dealiasColumnRef(aliases, binary.children.head)
-    val last = dealiasColumnRef(aliases, binary.children.last)
+    val head = dealiasExpression(aliases, binary.children.head)
+    val last = dealiasExpression(aliases, binary.children.last)
     if ((head eq binary.children.head) && (last eq binary.children.last)) {
       binary
     } else {
@@ -118,21 +118,38 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  def dealiasColumnRef(aliases: Map[String, Expression], column: Expression): Expression = {
-    val key = column match {
-      case name: Name => name.name
-      case id: Id => id.id
-      case _ => null
-    }
-    if (key == null) {
-      column
+  private def dealiasCallFunction(aliases: Map[String, Expression], func: CallFunction): CallFunction = {
+    val args = func.arguments map { arg => dealiasExpression(aliases, arg) }
+    if (args == func.arguments) {
+      func
     } else {
-      val alias = aliases.find(p => p._1 == key)
-      if (alias.isEmpty) {
-        column
-      } else {
-        alias.get._2
-      }
+      func.makeCopy(Array(func.function_name, args)).asInstanceOf[CallFunction]
+    }
+  }
+
+  private def dealiasName(aliases: Map[String, Expression], name: Name): Expression = {
+    val alias = aliases.find(p => p._1 == name.name)
+    if (alias.isEmpty) {
+      name
+    } else {
+      alias.get._2
+    }
+  }
+
+  private def dealiasId(aliases: Map[String, Expression], id: Id): Expression = {
+    val alias = aliases.find(p => p._1 == id.id)
+    if (alias.isEmpty) {
+      id
+    } else {
+      alias.get._2
+    }
+  }
+
+  private def dealiasExpression(aliases: Map[String, Expression], column: Expression): Expression = {
+    column transform {
+      case name: Name => dealiasName(aliases, name)
+      case id: Id => dealiasId(aliases, id)
+      case func: CallFunction => dealiasCallFunction(aliases, func)
     }
   }
 }
