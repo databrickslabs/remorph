@@ -263,9 +263,14 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
     }
 
-    "transpile LCA" in {
+    "transpile LCA replacing aliases" in {
       "SELECT column_a as alias_a FROM table_a where alias_a = '123';" transpilesTo
         "SELECT column_a as alias_a FROM table_a where column_a = '123';"
+    }
+
+    "transpile LCA not replacing aliases" in {
+      "SELECT '123' as alias_a FROM table_a where alias_a = '123';" transpilesTo
+        "SELECT '123' as alias_a FROM table_a where alias_a = '123';"
     }
   }
 
