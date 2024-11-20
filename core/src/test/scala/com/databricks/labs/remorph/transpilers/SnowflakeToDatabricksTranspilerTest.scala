@@ -378,8 +378,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |CREATE TABLE t1 (x VARCHAR);
         |SELECT x y z;
         |SELECT 3 FROM t3;
-        |""".stripMargin transpilesTo(
-      """
+        |""".stripMargin transpilesTo ("""
         |CREATE TABLE t1 (x STRING);
         |/* The following issues were detected:
         |
