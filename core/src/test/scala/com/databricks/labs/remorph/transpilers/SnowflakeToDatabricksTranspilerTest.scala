@@ -282,6 +282,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by ca ORDER BY ca) FROM table1 t;" transpilesTo
         "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by t.col1 ORDER BY t.col1 ASC NULLS LAST) FROM table1 AS t;"
     }
+
+    "transpile LCA with function" in {
+      "SELECT col1 AS ca FROM table1 where SUBSTR(ca, 1, 3) = '123';" transpilesTo
+        "SELECT col1 AS ca FROM table1 where SUBSTR(col1, 1, 3) = '123';"
+    }
   }
 
   "Snowflake transpile function with optional brackets" should {
