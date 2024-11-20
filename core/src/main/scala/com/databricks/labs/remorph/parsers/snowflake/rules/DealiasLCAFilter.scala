@@ -17,7 +17,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
 
   def dealiasProject(project: Project, filter: Filter): Project = {
     val aliases = project.columns
-      .collect{ case a: Alias => a}
+      .collect { case a: Alias => a }
       .filter(alias => alias.child.isInstanceOf[Id]) // TODO do we need to support more than that ?
       .map(alias => alias.name.id -> alias.child.asInstanceOf[Id].id)
       .toMap
