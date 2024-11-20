@@ -19,7 +19,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     val aliases = project.columns
       .filter(col => col.isInstanceOf[Alias])
       .map(col => col.asInstanceOf[Alias])
-      .map(alias => alias.name -> (alias.child match { case id: Id => id.id }))
+      .map(alias => alias.name.id -> (alias.child match { case id: Id => id.id }))
       .toMap
     if (aliases.isEmpty) {
       project
@@ -28,7 +28,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasProject(project: Project, filter: Filter, aliases: Map[Id, String]): Project = {
+  private def dealiasProject(project: Project, filter: Filter, aliases: Map[String, String]): Project = {
     val transformed = dealiasFilter(filter, aliases)
     if (transformed eq filter) {
       project
@@ -37,7 +37,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasFilter(filter: Filter, aliases: Map[Id, String]): Filter = {
+  private def dealiasFilter(filter: Filter, aliases: Map[String, String]): Filter = {
     val transformed = filter.condition transform { case binary: Binary =>
       dealiasBinary(binary, aliases)
     }
@@ -48,7 +48,7 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def dealiasBinary(binary: Binary, aliases: Map[Id, String]): Expression = {
+  private def dealiasBinary(binary: Binary, aliases: Map[String, String]): Expression = {
     val head = dealiasBinaryItem(binary.children.head, aliases)
     val last = dealiasBinaryItem(binary.children.last, aliases)
     if ((head eq binary.children.head) && (last eq binary.children.last)) {
@@ -58,16 +58,16 @@ class DealiasLCAFilter extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  def dealiasBinaryItem(item: Expression, aliases: Map[Id, String]): Expression = {
+  def dealiasBinaryItem(item: Expression, aliases: Map[String, String]): Expression = {
     val key = item match {
-      case name: Name => Id(name.name)
-      case id: Id => id
+      case name: Name => name.name
+      case id: Id => id.id
       case _ => null
     }
     if (key == null) {
       item
     } else {
-      val alias = aliases.find(p => p._1.id == key.id)
+      val alias = aliases.find(p => p._1 == key)
       if (alias.isEmpty) {
         item
       } else {
