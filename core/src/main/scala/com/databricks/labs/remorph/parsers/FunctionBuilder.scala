@@ -276,6 +276,7 @@ abstract class FunctionBuilder {
     case "STRING_AGG" => FunctionDefinition.standard(2, 3)
     case "STRING_ESCAPE" => FunctionDefinition.standard(2)
     case "STUFF" => FunctionDefinition.standard(4)
+    case "SUBSTR" => FunctionDefinition.standard(2, 3)
     case "SUBSTRING" => FunctionDefinition.standard(2, 3)
     case "SUM" => FunctionDefinition.standard(1)
     case "SUSER_ID" => FunctionDefinition.standard(0, 1)
