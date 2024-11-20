@@ -277,6 +277,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 t WHERE ca in ('v1', 'v2');" transpilesTo
         "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 as t WHERE t.col3 in ('v1', 'v2');"
     }
+
+    "transpile LCA with partition" in {
+      "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by ca ORDER BY ca) FROM table1 t;" transpilesTo
+        "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by t.col1 ORDER BY t.col1 ASC NULLS LAST) FROM table1 AS t;"
+    }
   }
 
   "Snowflake transpile function with optional brackets" should {
