@@ -297,16 +297,42 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def toTime(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(a) => inferTemporalFormat(a, unsupportedAutoTimeFormats)
-    case Seq(a, b) => ir.ParseToTimestamp(a, Some(b))
-    case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
+  private def toTime(args: Seq[ir.Expression]): ir.Expression = {
+    val timeFormat = ir.Literal("HH:mm:ss")
+    args match {
+      case Seq(a) =>
+        ir.DateFormatClass(
+          inferTemporalFormat(a, unsupportedAutoTimestampFormats ++ unsupportedAutoTimeFormats),
+          timeFormat)
+      case Seq(a, b) => ir.DateFormatClass(ir.ParseToTimestamp(a, Some(b)), timeFormat)
+      case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
+    }
   }
 
   private def toTimestamp(args: Seq[ir.Expression]): ir.Expression = args match {
     case Seq(a) => inferTemporalFormat(a, unsupportedAutoTimestampFormats)
-    case Seq(a, b) => ir.ParseToTimestamp(a, Some(b))
+    case Seq(a, lit: ir.Literal) => toTimestampWithLiteralFormat(a, lit)
+    case Seq(a, b) => toTimestampWithVariableFormat(a, b)
     case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
+  }
+
+  private def toTimestampWithLiteralFormat(expression: ir.Expression, fmt: ir.Literal): ir.Expression = fmt match {
+    case num @ ir.IntLiteral(_) =>
+      ir.ParseToTimestamp(expression, Some(ir.Pow(ir.Literal(10), num)))
+    case ir.StringLiteral(str) =>
+      ir.ParseToTimestamp(
+        expression,
+        Some(ir.StringLiteral(temporalFormatMapping.foldLeft(str) { case (s, (sf, dbx)) => s.replace(sf, dbx) })))
+  }
+
+  private def toTimestampWithVariableFormat(expression: ir.Expression, fmt: ir.Expression): ir.Expression = {
+    val translatedFmt = temporalFormatMapping.foldLeft(fmt) { case (s, (sf, dbx)) =>
+      ir.StringReplace(s, ir.Literal(sf), ir.Literal(dbx))
+    }
+    ir.If(
+      ir.StartsWith(fmt, ir.Literal("DY")),
+      ir.ParseToTimestamp(ir.Substring(expression, ir.Literal(4)), Some(ir.Substring(translatedFmt, ir.Literal(4)))),
+      ir.ParseToTimestamp(expression, Some(translatedFmt)))
   }
 
   // Timestamp formats that can be automatically inferred by Snowflake but not by Databricks
@@ -324,7 +350,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     "M/dd/yyyy HH:mm:ss",
     "EEE MMM dd HH:mm:ss ZZZ yyyy")
 
-  private val unsupportedAutoTimeFormats = Seq("hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
+  private val unsupportedAutoTimeFormats =
+    Seq("HH:MM:ss.SSSSSSSSS", "HH:MM:ss", "HH:MM", "hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
 
   // In Snowflake, when TO_TIME/TO_TIMESTAMP is called without a specific format, the system is capable of inferring the
   // format from the string being parsed. Databricks has a similar behavior, but the set of formats it's capable of
@@ -336,16 +363,26 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       // matched (which could indicate that either the implicit format is one Databricks can automatically infer, or the
       // string to be parsed is malformed).
       case ir.StringLiteral(timeStr) =>
-        ir.ParseToTimestamp(
-          expression,
-          unsupportedAutoformats
-            .find(fmt => Try(DateTimeFormatter.ofPattern(fmt).parse(timeStr)).isSuccess)
-            .map(ir.Literal(_)))
+        Try(timeStr.trim.toInt)
+          .map(int => ir.ParseToTimestamp(ir.Literal(int)))
+          .getOrElse(
+            ir.ParseToTimestamp(
+              expression,
+              unsupportedAutoformats
+                .find(fmt => Try(DateTimeFormatter.ofPattern(fmt).parse(timeStr)).isSuccess)
+                .map(ir.Literal(_))))
       // If the string to be parsed isn't a Literal, we do something similar but "at runtime".
       case e =>
-        ir.IfNull(
-          ir.Coalesce(unsupportedAutoformats.map(makeAutoFormatExplicit(e, _))),
-          ir.ParseToTimestamp(e))
+        ir.Case(
+          Some(ir.TypeOf(e)),
+          Seq(
+            ir.WhenBranch(
+              ir.Literal("string"),
+              ir.IfNull(
+                ir.Coalesce(ir.TryToTimestamp(ir.TryCast(e, ir.IntegerType)) +: unsupportedAutoformats.map(
+                  makeAutoFormatExplicit(e, _))),
+                ir.ParseToTimestamp(e)))),
+          Some(ir.Cast(expression, ir.TimestampType)))
     }
 
   private def makeAutoFormatExplicit(expr: ir.Expression, javaDateTimeFormatString: String): ir.Expression =
@@ -357,6 +394,35 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else {
       ir.TryToTimestamp(expr, Some(ir.Literal(javaDateTimeFormatString)))
     }
+
+  private val temporalFormatMapping = Seq(
+    "YYYY" -> "yyyy",
+    "YY" -> "yy",
+    "MON" -> "MMM",
+    "DD" -> "dd",
+    "DY" -> "EEE", // will be ignored down the line as it isn't supported anymore since Spark 3.0
+    "HH24" -> "HH",
+    "HH12" -> "hh",
+    "AM" -> "a",
+    "PM" -> "a",
+    "MI" -> "mm",
+    "SS" -> "ss",
+    "FF9" -> "SSSSSSSSS",
+    "FF8" -> "SSSSSSSS",
+    "FF7" -> "SSSSSSS",
+    "FF6" -> "SSSSSS",
+    "FF5" -> "SSSSS",
+    "FF4" -> "SSSS",
+    "FF3" -> "SSS",
+    "FF2" -> "SS",
+    "FF1" -> "S",
+    "FF0" -> "",
+    "FF" -> "SSSSSSSSS",
+    "TZH:TZM" -> "ZZZ",
+    "TZHTZM" -> "ZZZ",
+    "TZH" -> "ZZZ",
+    "UUUU" -> "yyyy",
+    "\"" -> "'")
 
   private def dayname(args: Seq[ir.Expression]): ir.Expression = {
     ir.DateFormatClass(args.head, ir.Literal("E"))

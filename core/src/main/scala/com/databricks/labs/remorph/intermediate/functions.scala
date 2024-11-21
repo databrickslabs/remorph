@@ -2544,3 +2544,10 @@ case class ParseJson(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = VariantType
 }
 
+/**
+ * startswith(expr, startExpr) - Returns true if expr begins with startExpr.
+ */
+case class StartsWith(expr: Expression, startExpr: Expression) extends Binary(expr, startExpr) with Fn {
+  override def prettyName: String = "STARTSWITH"
+  override def dataType: DataType = BooleanType
+}
