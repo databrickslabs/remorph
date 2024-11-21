@@ -207,7 +207,7 @@ C: .
 
 mode statementMode;
 
-STATEMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+STATEMENT_STRING: '\'' ('\\' . | ~["\n])* '\'' -> type(STRING)
     ;
 STATEMENT_END: . { scanPast(config.statEnd); } { isStatementEnd() }? -> popMode
     ;
@@ -216,7 +216,7 @@ STATMENT_BIT: . -> type(C)
 
 mode expressionMode;
 
-EXPRESSION_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+EXPRESSION_STRING: '\'' ('\\' . | ~['\n])* '\'' -> type(STRING)
     ;
 EXPRESSION_END: . { scanPast(config.exprEnd); } { isExpresionEnd() }? -> popMode
     ;
@@ -224,7 +224,7 @@ EXPRESSION_BIT: . -> type(C)
     ;
 
 mode commentMode;
-COMMENT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+COMMENT_STRING: '\'' ('\\' . | ~['\n])* '\'' -> type(STRING)
     ;
 COMMENT_END: . { scanPast(config.commentEnd); } { isCommentEnd() }? -> popMode
     ;
@@ -232,9 +232,9 @@ COMMENT_BIT: . -> type(C)
     ;
 
 mode lineStatMode;
-LINESTAT_STRING: '"' ('\\' . | ~["\n])* '"' -> type(STRING)
+LINESTAT_STRING: '\'' ('\\' . | ~['\n])* '\'' -> type(STRING)
     ;
-LINESTAT_END: ( '\r\n' | '\n') -> popMode
+LINESTAT_END: '\r'? '\n' -> popMode
     ;
 LINESTAT_BIT: . -> type(C)
     ;

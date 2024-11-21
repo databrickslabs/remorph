@@ -6,8 +6,9 @@ import com.databricks.labs.remorph.parsers.preprocessor.DBTPreprocessorLexer
 import com.databricks.labs.remorph.preprocessor.PreProcessor
 import com.databricks.labs.remorph.preprocessor.jinga.{CommentElement, ExpressionElement, StatementElement, TemplateManager}
 import com.databricks.labs.remorph.{OkResult, Transformation}
-import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.{CharStream, CommonTokenStream, Lexer, Token}
+
+import scala.util.matching.Regex
 
 class DBTPreprocessor extends PreProcessor {
 
@@ -41,6 +42,22 @@ class DBTPreprocessor extends PreProcessor {
     lift(OkResult(result.toString()))
   }
 
+  def postProcess(result: String): String = {
+    val jingaPattern: Regex = """__Jinga(\d{4})""".r
+
+    val processedResult = jingaPattern.replaceAllIn(
+      result,
+      m => {
+        val templateRef = m.matched
+        templateManager.get(templateRef) match {
+          case Some(template) => template.text
+          case None => templateRef
+        }
+      })
+
+    processedResult
+  }
+
   private def accumulate(tokenStream: CommonTokenStream, result: StringBuilder, endType: Int): Unit = {
 
     // Was there any preceding whitespace? We need to know if this template element was specified like this:
@@ -54,8 +71,7 @@ class DBTPreprocessor extends PreProcessor {
       token = tokenStream.LT(1)
     } while (token.getType != endType)
     tokenStream.consume()
-    val span = new Interval(start.getStartIndex, token.getStopIndex)
-    val text = tokenStream.getText(span)
+    val text = tokenStream.getText(start, token)
     val followingWhitespace = hasSpace(tokenStream, 1)
 
     val origin =

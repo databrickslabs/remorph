@@ -1,9 +1,140 @@
-# A preprocessor for macros, parameters, Jinga templates, and DBT
+# A Processor for Jinga Templates, and DBT Projects
 
-Many organizations manage their SQL based apps using DBT, which is a system based upon
-Jinga templating engine. Hence remorph must be able to find source dialect SQL embedded in
-these templates and convert the embedded SQL to the target dialect, rebuilding the templates
-accordingly.
+| |                  |
+|:-----------------------|:-----------------|
+| **Author**             | Jim Idle         |
+| **Engineering Owner**  | Serge Smertin    |
+| **Product Owner**      | Guenia Izquierdo |
+| **Status**             | Draft for review |
+
+Major Changes:
+
+ - 2024-11 Initial draft
+ - 2024-11 Modifed solution descriptions after prototyping/experimentation
+ - 2024-11 Added workflow diagrams
+ - 2024-11 Added DBT project section
+ - 2024-11 Added placeholders section and explanations
+
+# Table of Contents
+- [A preprocessor for macros, parameters, Jinga templates, and DBT](#a-preprocessor-for-macros-parameters-jinga-templates-and-dbt)
+   - [Motivation](#motivation)
+   - [Definitions](#definitions)
+   - [Sample Template](#sample-template)
+   - [Complications](#complications)
+   - [Approaches to handling templates](#approaches-to-handling-templates)
+      - [Lexing and Placeholding](#lexing-and-placeholding)
+      - [In-place parsing](#in-place-parsing)
+      - [Translate on the fly](#translate-on-the-fly)
+   - [The preprocessor](#the-preprocessor)
+      - [Placeholders](#placeholders)
+      - [Workflow](#workflow)
+   - [DBT Projects](#dbt-projects)
+
+## Motivation
+
+Many customers converting from a particular SQL dialect to Databricks SQL will have adopted
+Jinga templates, usually in the form of DBT projects. These templates will contain SQL code
+in the source dialect, which we must transpile to Databricks SQL, while preserving the original
+template structure. 
+
+Here, we define the approach to handling these templates within the existing
+remorph framework, and approach to handling DBT project conversion.
+
+## Definitions
+
+ - Template - a template is a piece of text that contains placeholders for variables, loops, and
+   conditional statements in a format defined by the Jinga template engine. 
+ - Template Element The templates contain templating elements enclosed in `{{ }}`, `{# #}`, 
+   and `{% %}` blocks.
+ - Statement Element - a statement element is a template element that contains Jinga processing
+   directives such as a loop or conditional statement. They are enclosed in `{% %}` blocks and
+   quite often consist of matched pais of `{% %}` blocks for things like `if` `end`.
+ - Expression Element - an expression element is a template element that contains a variable
+   reference or a function call. They are enclosed in `{{ }}` blocks.
+ - Text Element - a text element is a piece of text that is not a template element - it is just
+   free text. It is passed through the Jinga processor unchanged. In our case the text will be
+   SQL code in a particular dialect and we must translate it to Databricks SQL.
+
+## Proposal sketches
+
+In the following diagrams, existing components are shown in blue, modified components in Magenta,
+and new components are shown in green.
+
+Firstly, we introduce a new pre-processing phase in the toolchain. This phase is based upon and ANTLR lexer and supporting
+Scala code. Raw text is passed through, but template elements are located and replaced with placeholders (defined later 
+in this document). The resulting text can then be used in the existing ANTLR based toolchain.
+
+In the process of capturing the template elements, we will note whether the template element was preceded or followed by
+whitespace. This is important when regenerating the template elements in the post-processing phase.
+
+```mermaid
+---
+title: Jinga Preprocessor Workflow
+config:
+  theme: dark
+---
+block-beta
+    block
+        columns 3
+        Template(("Template Source Text")) ba1<[" "]>(right) Tokenizer 
+        space:2 ba2<[" "]>(down)
+        Replace["Generate Placeholder"] ba3<[" "]>(left) Capture["Capture Templates\nand Text"] 
+        ba4<[" "]>(down) space:2
+        Text(("Text with Placeholders"))
+    end
+    
+    classDef new fill:#696,stroke:#333;
+    classDef exist fill:#969,stroke:#333;
+    classDef modified fill:##a752ba,stroke:#333;
+    class Template,Replace,Tokenizer,Capture,Text new
+```
+
+The placeholders are then used in the existing ANTLR based toolchain, with some modifications:
+
+```mermaid
+---
+config:
+  theme: dark
+---
+block-beta
+    block
+        columns 3
+        Placeholder(("Text with Placeholders")) ba1<[" "]>(right) Tokenizer["Common Lexer"] 
+        space:2 ba2<[" "]>(down)
+        Ir["Logical Plan with\nnew IR for template\nelements."] ba3<[" "]>(left) Parser["Dialect Parser/Visitor"] 
+        ba4<[" "]>(down) space:2
+        Generator["SQL Generator caters\nfor template IR"] ba5<[" "]>(right) Text["Translated Text"]
+    end
+    classDef new fill:#696,stroke:#333;
+    classDef exist fill:#969,stroke:#333;
+    classDef modified fill:#a752ba,stroke:#333;
+    class Placeholder,Text new
+    class Tokenizer,Ir,Parser,Generator modified
+```
+
+There is then another additional post-processing phase that will replace the placeholders with the template element
+text. If the original template element was not preceded or followed by whitespace, then placeholders will elide preceding
+of following whitespace accordingly. This allows the code generator to be as simple as possible. Not that this phase must
+be applied before any SQL formatting is applied.
+
+```mermaid
+---
+config:
+  theme: dark
+---
+block-beta
+    block
+        columns 3
+        Placeholder(("Translated Text")) ba1<[" "]>(right) PostProcessor["Replace Placeholders\n(with whitespace handling)"]
+        space:2 ba2<[" "]>(down)
+        space:2 Text["Reformed Template Text"] 
+    end
+    classDef new fill:#696,stroke:#333;
+    classDef exist fill:#969,stroke:#333;
+    classDef modified fill:#a752ba,stroke:#333;
+    class Placeholder,Text new
+    class Tokenizer,Ir,Parser,Generator modified
+```
 
 ## Sample Template
 
@@ -28,7 +159,8 @@ macros and template references are used. We see that:
 
  - literal strings can contain template/parameter references: `'{{ payment_method }}'`
  - `{% -%}` templates can contain templating code: `{% for payment_method in payment_methods -%}`
- - `{{ ref('payments') }}` is a macro call
+ - `{{ ref('payments') }}` is a macro, which invokes a function. IN this case ref is a function that
+   returns a string stored in a variable called payments.
 
 Of note, we see that a template use such as `{{ payment_method }}_amount` will generate text that
 creates a single Identifier, and so whitespace needs to be accounted for in the generated code, as
@@ -45,45 +177,52 @@ is present or not:
  - Jinga allows the user to change the delimiters for the templates from the default `{{ }}` to anything else. Hence
    lexical tricks are used such that we can still use an ANTLR based lexer as the basis of the preprocessor.
  - In many cases the templates will be used in place of say, _expressions_, and therefore we can just accept a
-   special token such as say: `NINJAEXPR: '{{}}' ;`. 
+   special token: `NINJAEXPR: 'Jinga_' [0-9]+ ;`. 
    - However, we are going to find both statement and expression
      templates located in places where the current SQL parser will not expect them. In the example above, the statement
      template `{% for payment_method in payment_methods -%}` is located in the middle of a SQL statement. In this case
-     we would need to allow templates to occur anywhere in the parse in violation of the normal syntax rules. That is essentionally, not viable.
+     we would need to allow templates to occur anywhere in the parse in violation of the normal syntax rules. 
  - Jinga allows line statements, also with the prefix being configurable. Hence, we need to be able to handle
    them too. Typically, they would start with a single prefix such as `# for item in seq`, and the entire line
    is a ninja statement.
  - There is nothing stopping a user from stuffing variables with actual SQL statements. We will probably draw a
-   line at supporting that.
+   line at supporting that, although when translating say an entire DBT project, we will likely find the definition
+   of the variables and they would then be translated naturally.
  - Macros can contain bits of SQL code, which we may be able to attempt to translate by trying different entry points
-   into the SQL parser. However, this is not guaranteed to be successful as literalyl anything can be put anywhere 
-   in macros
+   into the SQL parser. However, this is not guaranteed to be successful as literally anything can be put anywhere 
+   in macros.
  - There are macros that do things like add or not add commas at the ends for loops of text generation. We can cater
    for this using the generally accepted practice of allow trailing commas in sequences, so we can accept partial
    lists of columns, for example.
 
-## Approaches to handling templates
+## Major alternatives to handling templates
 
 We should first note that our template handler/preprocessor is not expanding the templates, but locating them and
 translating embedded SQL. The templates themselves will be left in place, and the translated SQL will be adorned
-with them. We are writing a XXX SQL plus DBT to Databricks SQL plus DBT, such that users will then maintain the
+with them exactly as it was before transpilation. 
+
+In other words we are writing a XXX SQL plus DBT to Databricks SQL plus DBT, such that users will then maintain the
 Databricks SQL alongside their templates.
 
 We therefore have the following approaches:
 
 ### Lexing and Placeholding
 
-As there are few constructs in the templates, we can lex the raw input, store the gathered tokens, and replace
-them with a single token identifying the template. The TSQL grammars then need only look for simple template
-references and not have to worry about the template syntax itself. The pre-processor here becomes more of a controller
-in that it can transform pieces of the input text by calling the source dialect transpiler and the code generator
-for each component of the source text. However, the grammars for the source dialects will need to be modified
-to accept the template tokens at strategic points in the parse.
+This is the proposed approach.
+
+As there are few constructs in the templates, we can lex the raw input, store the gathered template elements, and replace
+them with a single token identifying the template element. 
+
+The SQL grammars then need only look for simple template references and not have to worry about the template syntax itself.
+However, the grammars for the source dialects will need to be modified to accept the template tokens at strategic points 
+in the parse. We note that it may not be possible to cover 100% of the esoteric uses of templates, but we can cover the
+majority. The existing system for handling parsing errors will generate code that shows why we could not parse what looked
+like SQL but the template was used in a place where it is impossible to parse it. 
 
 #### Advantages
 
- - The lexer and parser are not burdened with the template syntax
- - The lexer and parser can be used with a few modifications
+ - The existing lexers and parsers are not burdened with the template syntax
+ - The lexers, parsers and code generator can be used with a few small modifications
 
 #### Disadvantages
 
@@ -96,8 +235,9 @@ to accept the template tokens at strategic points in the parse.
 ### In-place parsing
 
 While similar to the above, we could capture and manage the actual templates in the dialect grammars. This
-removes the need for a pre-processor but means that we woudl need to include more pieces of ANTLR
-specification in each dialect grammar. It also smells like not separating clear responsibilities/functionality.
+removes the need for a pre-processor but means that we would pollute the existing pipeline wiht template handling. 
+It smells like not separating clear responsibilities/functionality. Because teh delimiters for template elements
+can be changed by the user, the common lexer would need to know about DBT configs and so on.
 
 #### Advantages
 
@@ -106,7 +246,7 @@ specification in each dialect grammar. It also smells like not separating clear 
 #### Disadvantages
 
  - We end up with code dealing with templates intermingled with the dialect parsing code
- - We still need to track the templates and their locations, so we are not saving any coding effort
+ - We still need to track the templates, so we are not saving any coding effort, just moving it around
 
 ### Translate on the fly
 
@@ -123,64 +263,59 @@ DBT, then convert on the fly.
  - We do not guarantee that we can perform a 100% conversion of the incoming source dialect
  - Users would then be maintaining code in the source dialect, which is not the goal of the project
 
-## The preprocessor
+# Part II - Implementation Details
+
+## The Processor
 
 We therefore conclude that the best approach is to use a preprocessor that will locate and track the templates
-and replace them in the pre-processed stream with a placeholder.
+and replace them in the pre-processed output with a placeholder.
 
 As the templates are just text with the macro types above sprinkled in, we can create a preprocessor
 that will always run against the given input text, even if, with un-templated SQL, the preprocessor
 will merely pass through what it sees. However, there may well be other functionality for the preprocessor
-to provide in the future such as perhaps parameter tracking/processing, or perhaps daisy-chaining of
-pre-processors that perform specific tasks.
+phase to provide in the future such as perhaps parameter tracking/processing, or perhaps daisy-chaining of
+pre-processors that perform specific tasks. The optimizer phase of the toolchain shows the value of being
+able to apply multiple transformations in any particular transpilation phase.
 
 Hence the preprocessor will be a simple text processor that will:
 
  - find and replace all `{{ }}`, `{# #}` and `{% %}` blocks with a placeholder
  - track the unique placeholders and their original text
- - pass through the placeholders to the target SQL lexer
- - modify the grammars such that the placeholders are accepted at strategic points in the parse
- - attempt to convert any SQL within expression macros (complicated by the fact that the Jinga 
-   syntax contains things that look like function calls - we are likely to need a Jinga parser
+ - pass through the placeholders to the common SQL lexer
+
+To process the preprocessor output, we will:
+
+ - modify the dialect grammars such that the placeholders are accepted at strategic points in the parse
  - attempt to convert the SQL within the text where the macros are replaced with placeholders.
  - the code generator will just pass the placeholders back to the template processor and 
-   the template processor will replace the placeholders with the translated templates.
+   the template processor will replace the placeholders with the template elements, which may
+   also require some form of processing, which can now be handled outside of the toolchain.
 
-## Workflow
-```mermaid
----
-title: Preprocessor Workflow
-config:
-  direction: RL
-  theme: dark
----
-flowchart TD
-    textsource[Raw Template Source Code] --> preprocessor-phase-I
-    subgraph preprocessor-phase-I[Prepare Input]
-       template-locating[Template locating] --> antlr-char-stream[Text Streaming]
-       antlr-char-stream --> preprocessor-lexer[Tokenizer]
-       preprocessor-lexer --> capture-templates[Capture Templates]
-       capture-templates --> translate[Translate dialect]
-       translate --> template-store[Template Store]
-       preprocessor-lexer --> text-with-placeholders[Text with Placeholders]
-       text-with-placeholders --> dialect-transpiler[Translate Dialect]
-    end
-   template-store --> preprocessor-phase-II
-   dialect-transpiler --> preprocessor-phase-II
-    
-    subgraph preprocessor-phase-II[Translate Templates]
-       template-replacer[Replace Template Placeholders] --> code-gen[Assemble output]
-    end
-    code-gen --> output[Translated Template]
-```
+Note that Jinga template elements cannot contain random text and so at this time, we ssee no need to
+process them in any way. However, shoudl the need arise, we can now 
+
+### Placeholders
+
+The placeholders will be simple strings that are unique to the template. A template manager will
+generate placeholder names in the form: `__JingaNNNN` where `NNNN` is a unique number, generated
+sequentially. This allows the common lexer to be used for all dialects, as the placeholders will
+always be of the same form. At this point we do not need to distinguish between the types of template
+element (statement, expression, etc.) as they will be replaced via a post-processing step. The IR
+generator will create a new IR node for each placeholder, holding its text value, and the code 
+generator will merely replace the placeholders with the text value. After code generation completes,
+the placeholders will be replaced with the template definitions using a post-processing step.
 
 ## DBT Projects
 
-As well as the template processing, we will need to bring in the DBT configuration and associated fluff that
-goes with a complete DBT project layout. This includes processing the .yml configuration files and using
-anything from the configuration that is required to generate the Databricks DBT project. This will be a separate
-utility which will coordinate with the preprocessor to ensure that the correct configuration is used and that
-the translated templates are stored in the appropriate location for the DBT project.
+As well as the template processing, we will need a DBT processor to bring in the DBT configuration and associated fluff that
+goes with a complete DBT project layout, and translate every SQL bearing template. 
+
+This includes processing the .yml configuration files and using anything from the configuration that is required to 
+generate the Databricks DBT project. This will be a separate utility which will coordinate with the transpiler to ensure 
+that the correct configuration is used and that the translated templates are stored in the appropriate location for the DBT project.
+
+A conversion will create a new DBT project (leaving the original input intact) with the same structure as the original, 
+but with the SQL code translated to Databricks SQL. The ourput will 
 
 A simplified sequence diagram of the process is shown below:
 

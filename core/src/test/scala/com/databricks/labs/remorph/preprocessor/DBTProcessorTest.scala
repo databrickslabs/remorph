@@ -28,13 +28,15 @@ class DBTProcessorTest extends AnyWordSpec {
       val result = dbtPreProc.process(input).run(input)
 
       // scalastyle:off
-      result match {
-        case OkResult(output) => println(output._2)
-        case _ => assert(false)
+      val processed = result match {
+        case OkResult(output) => dbtPreProc.postProcess(output._2)
+        case _ => ""
       }
+
+      println(processed)
       // scalastyle:on
 
-      assert(true)
+      assert(input.source == processed)
 
     }
 
