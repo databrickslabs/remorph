@@ -3,4 +3,4 @@
 SELECT strpos('Hello world', 'l', 2);
 
 -- databricks sql:
-SELECT LOCATE('Hello world', 'l', 2);
+SELECT LOCATE('l', 'Hello world', 2);
