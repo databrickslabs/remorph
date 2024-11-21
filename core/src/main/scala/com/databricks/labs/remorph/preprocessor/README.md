@@ -324,17 +324,25 @@ sequenceDiagram
     participant User
     participant DBTProcessor
     participant ConfigLoader
-    participant Preprocessor
+    participant Processor
     participant Template Directory
     participant OutputWriter
 
     User->>DBTProcessor: Load DBT Project
+    activate DBTProcessor
     DBTProcessor->>ConfigLoader: Load Configuration
+    activate ConfigLoader
     ConfigLoader-->>DBTProcessor: Configuration Loaded
+    deactivate ConfigLoader
     DBTProcessor->>DBTProcessor: Adjust Configuration
-    DBTProcessor->>Preprocessor: Process Template
-    Preprocessor-->>DBTProcessor: Translated Template
+    DBTProcessor->>Processor: Process Template
+    activate Processor
+    Processor-->>DBTProcessor: Translated Template
+    deactivate Processor
     DBTProcessor->>Template Directory: Store Translated Template
     DBTProcessor->>OutputWriter: Write Translated Project
+    activate OutputWriter
     OutputWriter-->>User: Translated DBT Project
+    deactivate OutputWriter
+    deactivate DBTProcessor
 ```
