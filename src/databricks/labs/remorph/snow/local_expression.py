@@ -41,6 +41,10 @@ class TryToDate(Func):
     arg_types = {"this": True, "format": False}
 
 
+class TryToTimestamp(Func):
+    arg_types = {"this": True, "format": False}
+
+
 class SplitPart(Func):
     arg_types = {"this": True, "expression": False, "partNum": False}
 
@@ -180,3 +184,11 @@ class MapKeys(Func):
 
 class ArrayExists(Func):
     arg_types = {"this": True, "expression": True}
+
+
+class Locate(Func):
+    arg_types = {"substring": True, "this": True, "position": False}
+
+
+class NamedStruct(Func):
+    arg_types = {"expressions": True}

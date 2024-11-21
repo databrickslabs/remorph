@@ -258,6 +258,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
     }
 
+    "GROUP BY ALL" in {
+      "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;" transpilesTo
+        "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
@@ -344,6 +349,27 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |WHEN NOT MATCHED THEN
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
+  }
+
+  "Expressions in CTE" in {
+    """WITH
+      |    a AS (1),
+      |    b AS (2),
+      |    t (d, e) AS (SELECT 4, 5),
+      |    c AS (3)
+      |SELECT
+      |    a + b,
+      |    a * c,
+      |    a * t.d
+      |FROM t;""".stripMargin transpilesTo
+      """WITH
+        |    t (d, e) AS (SELECT 4, 5)
+        |SELECT
+        |    1 + 2,
+        |    1 * 3,
+        |    1 * t.d
+        |FROM
+        |    t;""".stripMargin
   }
 
 }

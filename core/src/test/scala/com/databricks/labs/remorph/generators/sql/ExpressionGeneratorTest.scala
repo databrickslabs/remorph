@@ -71,6 +71,10 @@ class ExpressionGeneratorTest
     "s.t.a" in {
       ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
     }
+
+    "$1" in {
+      ir.Column(None, ir.Position(1)).doesNotTranspile
+    }
   }
 
   "arithmetic" should {
