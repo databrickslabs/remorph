@@ -346,8 +346,9 @@ def derive_function_name(expr: exp.Expression) -> str:
         return "TO_DATE"
     return ""
 
+
 def _reformat_date(self, expression: exp) -> str:
-    this = expression.this
+    this = self.sql(expression, "this")
     input_format = self.sql(expression, "format")
     function_name = derive_function_name(expression)
     if expression.this.type.this == exp.DataType.Type.TIMESTAMP:
