@@ -64,7 +64,9 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
-        case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
+        case qs if qs.querySpecification() != null =>
+          val lhs = qs.querySpecification().accept(this)
+          qs.sqlUnion().asScala.foldLeft(lhs)(buildSetOperation)
         case qe if qe.queryExpression() != null =>
           qe.queryExpression().asScala.map(_.accept(this)) match {
             case Seq(lhs) => lhs
@@ -73,6 +75,20 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
               ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
           }
       }
+  }
+
+  private[tsql] def buildSetOperation(lhs: ir.LogicalPlan, ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
+    val setOp = ctx match {
+      case u if u.UNION() != null => ir.UnionSetOp
+      case e if e.EXCEPT() != null => ir.ExceptSetOp
+      case i if i.INTERSECT() != null => ir.IntersectSetOp
+    }
+    val isAll = ctx.ALL() != null
+    val rhs = ctx match {
+      case qs if qs.querySpecification() != null => qs.querySpecification().accept(this)
+      case qe if qe.queryExpression() != null => qe.queryExpression().accept(this)
+    }
+    ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
   }
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = errorCheck(
