@@ -20,7 +20,7 @@ options {
 
 @members {
     /**
-    * Defines the configuration for the preprocessor, such as Jinga templating delimiters and
+    * Defines the configuration for the preprocessor, such as Jinja templating delimiters and
     * any DBT parameters that are relevant to us.
     */
     public class Config {
@@ -32,7 +32,7 @@ options {
         private String commentEnd;
         private String lineStatStart;
 
-        // Standard defaults for Jinga templating
+        // Standard defaults for Jinja templating
         public Config() {
             this("{{", "}}", "{%", "%}", "{#", "#}", "#");
         }

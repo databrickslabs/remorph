@@ -1,15 +1,15 @@
-package com.databricks.labs.remorph.preprocessors.jinga
+package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph.{OkResult, PreProcessing}
 import org.scalatest.wordspec.AnyWordSpec
 
-class JingaProcessorTest extends AnyWordSpec {
+class JinjaProcessorTest extends AnyWordSpec {
 
   "Preprocessor" should {
     "pre statement block" in {
 
       // NB: These will be moved to a PreProcessorTestCommon trait
-      val dbtPreProc = new JingaProcessor()
+      val dbtPreProc = new JinjaProcessor()
       val input = PreProcessing("""{%- set payment_methods = dbt_utils.get_column_values(
                             |                              table=ref('raw_payments'),
                             |                              column='payment_method'

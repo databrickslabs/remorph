@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.preprocessors.jinga
+package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.preprocessor.DBTPreprocessorLexer
@@ -8,7 +8,7 @@ import org.antlr.v4.runtime._
 
 import scala.util.matching.Regex
 
-class JingaProcessor extends Processor {
+class JinjaProcessor extends Processor {
 
   val templateManager = new TemplateManager()
 

@@ -1,4 +1,4 @@
-# A Processor for Jinga Templates, and DBT Projects
+# A Processor for Jinja Templates, and DBT Projects
 
 | |                  |
 |:-----------------------|:-----------------|
@@ -16,7 +16,7 @@ Major Changes:
  - 2024-11 Added placeholders section and explanations
 
 # Table of Contents
-- [A preprocessor for macros, parameters, Jinga templates, and DBT](#a-preprocessor-for-macros-parameters-jinga-templates-and-dbt)
+- [A preprocessor for macros, parameters, Jinja templates, and DBT](#a-preprocessor-for-macros-parameters-jinga-templates-and-dbt)
    - [Motivation](#motivation)
    - [Definitions](#definitions)
    - [Sample Template](#sample-template)
@@ -33,7 +33,7 @@ Major Changes:
 ## Motivation
 
 Many customers converting from a particular SQL dialect to Databricks SQL will have adopted
-Jinga templates, usually in the form of DBT projects. These templates will contain SQL code
+Jinja templates, usually in the form of DBT projects. These templates will contain SQL code
 in the source dialect, which we must transpile to Databricks SQL, while preserving the original
 template structure. 
 
@@ -43,16 +43,16 @@ remorph framework, and approach to handling DBT project conversion.
 ## Definitions
 
  - Template - a template is a piece of text that contains placeholders for variables, loops, and
-   conditional statements in a format defined by the Jinga template engine. 
+   conditional statements in a format defined by the Jinja template engine. 
  - Template Element The templates contain templating elements enclosed in `{{ }}`, `{# #}`, 
    and `{% %}` blocks.
- - Statement Element - a statement element is a template element that contains Jinga processing
+ - Statement Element - a statement element is a template element that contains Jinja processing
    directives such as a loop or conditional statement. They are enclosed in `{% %}` blocks and
    quite often consist of matched pais of `{% %}` blocks for things like `if` `end`.
  - Expression Element - an expression element is a template element that contains a variable
    reference or a function call. They are enclosed in `{{ }}` blocks.
  - Text Element - a text element is a piece of text that is not a template element - it is just
-   free text. It is passed through the Jinga processor unchanged. In our case the text will be
+   free text. It is passed through the Jinja processor unchanged. In our case the text will be
    SQL code in a particular dialect and we must translate it to Databricks SQL.
 
 ## Proposal sketches
@@ -69,7 +69,7 @@ whitespace. This is important when regenerating the template elements in the pos
 
 ```mermaid
 ---
-title: Jinga Preprocessor Workflow
+title: Jinja Preprocessor Workflow
 config:
   theme: dark
 ---
@@ -154,7 +154,7 @@ WITH order_payments AS (
 SELECT * FROM order_payments
 ```
 
-The example shows a query embdedded in a DBT/Jinga template and shows the various ways in which
+The example shows a query embdedded in a DBT/Jinja template and shows the various ways in which
 macros and template references are used. We see that:
 
  - literal strings can contain template/parameter references: `'{{ payment_method }}'`
@@ -174,7 +174,7 @@ is present or not:
 
 ###  Complications
 
- - Jinga allows the user to change the delimiters for the templates from the default `{{ }}` to anything else. Hence
+ - Jinja allows the user to change the delimiters for the templates from the default `{{ }}` to anything else. Hence
    lexical tricks are used such that we can still use an ANTLR based lexer as the basis of the preprocessor.
  - In many cases the templates will be used in place of say, _expressions_, and therefore we can just accept a
    special token: `NINJAEXPR: 'Jinga_' [0-9]+ ;`. 
@@ -182,7 +182,7 @@ is present or not:
      templates located in places where the current SQL parser will not expect them. In the example above, the statement
      template `{% for payment_method in payment_methods -%}` is located in the middle of a SQL statement. In this case
      we would need to allow templates to occur anywhere in the parse in violation of the normal syntax rules. 
- - Jinga allows line statements, also with the prefix being configurable. Hence, we need to be able to handle
+ - Jinja allows line statements, also with the prefix being configurable. Hence, we need to be able to handle
    them too. Typically, they would start with a single prefix such as `# for item in seq`, and the entire line
    is a ninja statement.
  - There is nothing stopping a user from stuffing variables with actual SQL statements. We will probably draw a
@@ -291,7 +291,7 @@ To process the preprocessor output, we will:
    the template processor will replace the placeholders with the template elements, which may
    also require some form of processing, which can now be handled outside of the toolchain.
 
-Note that Jinga template elements cannot contain random text and so at this time, we ssee no need to
+Note that Jinja template elements cannot contain random text and so at this time, we ssee no need to
 process them in any way. However, shoudl the need arise, we can now 
 
 ### Placeholders

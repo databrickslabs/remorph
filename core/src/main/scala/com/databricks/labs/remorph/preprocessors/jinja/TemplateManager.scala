@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.preprocessors.jinga
+package com.databricks.labs.remorph.preprocessors.jinja
 
 import scala.collection.mutable
 

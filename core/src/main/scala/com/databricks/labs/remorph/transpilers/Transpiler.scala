@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.preprocessors.jinga.JingaProcessor
+import com.databricks.labs.remorph.preprocessors.jinja.JinjaProcessor
 import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, PreProcessing, Transformation, TransformationConstructors, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
