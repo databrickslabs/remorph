@@ -2,8 +2,6 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.{Expression, _}
 
-import scala.collection.immutable.Map
-
 class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
@@ -28,9 +26,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
-    columns
-      .collect { case Alias(e, name) if !e.isInstanceOf[Literal]=> name.id -> e }
-      .toMap
+    columns.collect { case Alias(e, name) if !e.isInstanceOf[Literal] => name.id -> e }.toMap
 
   }
 
