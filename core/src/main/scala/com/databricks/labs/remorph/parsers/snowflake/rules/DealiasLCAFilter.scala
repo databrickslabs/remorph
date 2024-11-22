@@ -98,18 +98,20 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
   private def dealiasArgument(arg: Expression): Expression = {
     arg match {
-      case name: Name => if (recursionSafeguards.contains(name.name)) {
-        name
-      } else {
-        recursionSafeguards += name.name
-        dealiasExpression(name)
-      }
-      case id: Id => if (recursionSafeguards.contains(id.id)) {
-        id
-      } else {
-        recursionSafeguards += id.id
-        dealiasExpression(id)
-      }
+      case name: Name =>
+        if (recursionSafeguards.contains(name.name)) {
+          name
+        } else {
+          recursionSafeguards += name.name
+          dealiasExpression(name)
+        }
+      case id: Id =>
+        if (recursionSafeguards.contains(id.id)) {
+          id
+        } else {
+          recursionSafeguards += id.id
+          dealiasExpression(id)
+        }
       case _: Expression => dealiasExpression(arg)
     }
   }

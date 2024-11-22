@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, TestFile}
+import org.scalatest.Ignore
 // import org.scalatest.Ignore
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -21,8 +22,9 @@ abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec 
 
 object SnowflakeAcceptanceSuite {
 
-  val rootPath: Path = Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
-    .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))
+  val rootPath: Path = Paths.get(
+    Option(System.getProperty("snowflake.test.resources.path"))
+      .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))
 }
 
 class SnowflakeAcceptanceSuite
@@ -50,15 +52,14 @@ class SnowflakeAcceptanceSuite
             "core_engine/test_invalid_syntax/syntax_error_2.sql",
             "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
 
-
-// @Ignore("this is for debugging acceptance tests")
-class SingleSnowflakeAcceptance extends AcceptanceSpec(
-  new AcceptanceTestRunner(
-    AcceptanceTestConfig(
-      new TestFile(Paths.get(SnowflakeAcceptanceSuite.rootPath.toString, "core_engine", "lca", "lca_homonym.sql")),
-      new CommentBasedQueryExtractor("snowflake", "databricks"),
-      new IsTranspiledFromSnowflakeQueryRunner)))
-
+@Ignore // this is for debugging individual acceptance tests, simply uncomment to debug the test
+class SnowflakeAcceptanceTest
+    extends AcceptanceSpec(
+      new AcceptanceTestRunner(
+        AcceptanceTestConfig(
+          new TestFile(Paths.get(SnowflakeAcceptanceSuite.rootPath.toString, "core_engine", "lca", "lca_homonym.sql")),
+          new CommentBasedQueryExtractor("snowflake", "databricks"),
+          new IsTranspiledFromSnowflakeQueryRunner)))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(
