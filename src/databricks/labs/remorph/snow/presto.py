@@ -1,11 +1,14 @@
+import logging
 from sqlglot.dialects.presto import Presto as presto
 from sqlglot import exp
 from sqlglot.helper import seq_get
 from sqlglot.errors import ParseError
-from sqlglot.dialects.dialect import locate_to_strposition
 from sqlglot.tokens import TokenType
 
 from databricks.labs.remorph.snow import local_expression
+
+
+logger = logging.getLogger(__name__)
 
 
 def _build_approx_percentile(args: list) -> exp.Expression:
@@ -41,6 +44,80 @@ def _build_any_keys_match(args: list) -> local_expression.ArrayExists:
     )
 
 
+def _build_str_position(args: list) -> local_expression.Locate:
+    # TODO the 3rd param in presto strpos and databricks locate has different implementation.
+    # For now we haven't implemented the logic same as presto for 3rd param.
+    # Users should be vigilant when using 3 param function in presto strpos.
+    if len(args) == 3:
+        msg = (
+            "*Warning:: The third parameter in Presto's `strpos` function and Databricks' `locate` function "
+            "have different implementations. Please exercise caution when using the three-parameter version "
+            "of the `strpos` function in Presto."
+        )
+        logger.warning(msg)
+        return local_expression.Locate(substring=seq_get(args, 1), this=seq_get(args, 0), position=seq_get(args, 2))
+    return local_expression.Locate(substring=seq_get(args, 1), this=seq_get(args, 0))
+
+
+def _build_array_average(args: list) -> exp.Reduce:
+    return exp.Reduce(
+        this=exp.ArrayFilter(
+            this=seq_get(args, 0),
+            expression=exp.Lambda(
+                this=exp.Not(this=exp.Is(this=exp.Identifier(this="x", quoted=False), expression=exp.Null())),
+                expressions=[exp.Identifier(this="x", quoted=False)],
+            ),
+        ),
+        initial=local_expression.NamedStruct(
+            expressions=[
+                exp.Literal(this="sum", is_string=True),
+                exp.Cast(this=exp.Literal(this="0", is_string=False), to=exp.DataType(this="DOUBLE")),
+                exp.Literal(this="cnt", is_string=True),
+                exp.Literal(this="0", is_string=False),
+            ],
+        ),
+        merge=exp.Lambda(
+            this=local_expression.NamedStruct(
+                expressions=[
+                    exp.Literal(this="sum", is_string=True),
+                    exp.Add(
+                        this=exp.Dot(
+                            this=exp.Identifier(this="acc", quoted=False),
+                            expression=exp.Identifier(this="sum", quoted=False),
+                        ),
+                        expression=exp.Identifier(this="x", quoted=False),
+                    ),
+                    exp.Literal(this="cnt", is_string=True),
+                    exp.Add(
+                        this=exp.Dot(
+                            this=exp.Identifier(this="acc", quoted=False),
+                            expression=exp.Identifier(this="cnt", quoted=False),
+                        ),
+                        expression=exp.Literal(this="1", is_string=False),
+                    ),
+                ],
+            ),
+            expressions=[exp.Identifier(this="acc", quoted=False), exp.Identifier(this="x", quoted=False)],
+        ),
+        finish=exp.Lambda(
+            this=exp.Anonymous(
+                this="try_divide",
+                expressions=[
+                    exp.Dot(
+                        this=exp.Identifier(this="acc", quoted=False),
+                        expression=exp.Identifier(this="sum", quoted=False),
+                    ),
+                    exp.Dot(
+                        this=exp.Identifier(this="acc", quoted=False),
+                        expression=exp.Identifier(this="cnt", quoted=False),
+                    ),
+                ],
+            ),
+            expressions=[exp.Identifier(this="acc", quoted=False)],
+        ),
+    )
+
+
 class Presto(presto):
 
     class Parser(presto.Parser):
@@ -49,8 +126,9 @@ class Presto(presto):
         FUNCTIONS = {
             **presto.Parser.FUNCTIONS,
             "APPROX_PERCENTILE": _build_approx_percentile,
-            "STRPOS": locate_to_strposition,
+            "STRPOS": _build_str_position,
             "ANY_KEYS_MATCH": _build_any_keys_match,
+            "ARRAY_AVERAGE": _build_array_average,
         }
 
     class Tokenizer(presto.Tokenizer):
