@@ -166,7 +166,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     select_expr = key_cols + source_aliased + target_aliased + match_expr
 
     filter_columns = " and ".join([column + "_match" for column in column_list])
-    filter_expr = ~expr(filter_columns)
+    filter_expr = ~expr(filter_columns) if filter_columns else lit(True)
 
     mismatch_df = (
         source.alias('base')

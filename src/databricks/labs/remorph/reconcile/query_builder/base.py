@@ -76,19 +76,25 @@ class QueryBuilder(ABC):
     def aggregates(self) -> list[Aggregate] | None:
         return self.table_conf.aggregates
 
-    def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
+    def add_transformations(self, aliases: list[exp.Expression], source: Dialect, universal=False) -> list[exp.Expression]:
         if self.user_transformations:
-            alias_with_user_transforms = self._apply_user_transformation(aliases)
+            alias_with_user_transforms = self._apply_user_transformation(aliases, universal)
             default_transform_schema: list[Schema] = list(
                 filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.schema)
             )
             return self._apply_default_transformation(alias_with_user_transforms, default_transform_schema, source)
         return self._apply_default_transformation(aliases, self.schema, source)
 
-    def _apply_user_transformation(self, aliases: list[exp.Expression]) -> list[exp.Expression]:
+    def _apply_user_transformation(self, aliases: list[exp.Expression], universal=False) -> list[exp.Expression]:
         with_transform = []
         for alias in aliases:
-            with_transform.append(alias.transform(self._user_transformer, self.user_transformations))
+            alias:exp.Expression = alias.transform(self._user_transformer, self.user_transformations)
+            if universal:
+                if isinstance(alias, exp.Alias):
+                    alias = exp.Alias(this=exp.Coalesce(this=alias.this, expressions=[exp.Literal(this="_null_recon_", is_string=True)]), alias=alias.alias)
+                else:
+                    alias = exp.Coalesce(this=alias, expressions=[exp.Literal(this="_null_recon_", is_string=True)])
+            with_transform.append(alias)
         return with_transform
 
     @staticmethod
@@ -97,6 +103,8 @@ class QueryBuilder(ABC):
             column_name = node.name
             if column_name in user_transformations.keys():
                 return parse_one(user_transformations.get(column_name, column_name))
+        if isinstance(node, exp.Alias) and node.alias_or_name in user_transformations.keys():
+            return exp.Alias(this=parse_one(user_transformations.get(node.alias_or_name, node.alias_or_name)), alias=node.alias)
         return node
 
     def _apply_default_transformation(

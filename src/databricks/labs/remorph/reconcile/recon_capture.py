@@ -269,6 +269,7 @@ class ReconCapture:
                     when '{source_dialect_key}' = 'databricks' then 'Databricks'
                     when '{source_dialect_key}' = 'snowflake' then 'Snowflake'
                     when '{source_dialect_key}' = 'oracle' then 'Oracle'
+                    when '{source_dialect_key}' = 'teradata' then 'Teradata'
                     else '{source_dialect_key}'
                 end as source_type,
                 named_struct(
@@ -375,7 +376,8 @@ class ReconCapture:
                     ) else null end,
                     'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 
                         and '{exception_msg}' = '' then
-                        {schema_reconcile_output.is_valid} else null end
+                        {schema_reconcile_output.is_valid} else null end,
+                    'join_columns', array({", ".join(f"'{col}'" for col in table_conf.join_columns)})
                 ) as recon_metrics,
                 named_struct(
                     'status', {status}, 

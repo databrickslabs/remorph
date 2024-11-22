@@ -53,7 +53,7 @@ class HashQueryBuilder(QueryBuilder):
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
 
         key_cols_with_transform = (
-            self._apply_user_transformation(cols_with_alias) if self.user_transformations else cols_with_alias
+            self.add_transformations(cols_with_alias, self.engine)
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
@@ -74,9 +74,12 @@ class HashQueryBuilder(QueryBuilder):
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
         cols_with_transform = self.add_transformations(cols_with_alias, self.engine)
-        col_exprs = exp.select(*cols_with_transform).iter_expressions()
-        concat_expr = concat(list(col_exprs))
+        if len(cols) > 1:
+            col_exprs = exp.select(*cols_with_transform).iter_expressions()
+            hash_expr = concat(list(col_exprs))
+        else:
+            hash_expr = exp.select(*cols_with_transform)
 
-        hash_expr = concat_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
+        hash_expr = hash_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
 
         return build_column(hash_expr, alias=column_alias)

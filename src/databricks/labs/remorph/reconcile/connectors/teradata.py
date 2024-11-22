@@ -20,16 +20,25 @@ _SCHEMA_QUERY = """SELECT
                      CASE 
                         WHEN ColumnType IN ('I') 
                             THEN 'int'
+                        WHEN ColumnType IN ('I1') 
+                            THEN 'byteint'
                         WHEN ColumnType IN ('I2') 
                             THEN 'smallint'
                         WHEN ColumnType IN ('D')
-                            THEN 'decimal(' || 
-                                CAST(DecimalTotalDigits AS VARCHAR(100)) || ',' ||
-                                CAST(DecimalFractionalDigits AS VARCHAR(100)) || ')'
+                            THEN
+                                CASE WHEN DecimalFractionalDigits = 0
+                                        THEN 'int'
+                                    ELSE
+                                        'decimal(' ||
+                                            CAST(DecimalTotalDigits AS VARCHAR(100)) || ',' ||
+                                            CAST(DecimalFractionalDigits AS VARCHAR(100)) || ')'
+                            END
                         WHEN ColumnType IN ('F') 
                                 THEN 'float' 
                         WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC','CV') 
-                                THEN 'varchar(' || CAST(ColumnLength AS VARCHAR(100)) || ')'
+                                THEN 'varchar(' || otranslate(CAST(ColumnLength AS VARCHAR(100)), ',.-_', '') || ')'
+                        WHEN ColumnLength IS NOT NULL AND ColumnType IN ('CF') 
+                                THEN 'varchar(' || otranslate(CAST(ColumnLength AS VARCHAR(100)), ',.-_', '') || ')'
                         WHEN ColumnType IN ('DT', 'DA') 
                                 THEN 'date'
                         WHEN ColumnType IN ('TS')
@@ -44,7 +53,7 @@ _SCHEMA_QUERY = """SELECT
                         DBC.ColumnsV
                     WHERE 
                     LOWER(TableName) = LOWER('{table}')
-                    AND LOWER(DatabaseName) = LOWER('{schema}_tb')
+                    AND LOWER(DatabaseName) = LOWER('{schema}')
               """
 
 
@@ -109,10 +118,19 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         Information Schema object, RunTimeError will be raised:
         "SQL access control error: Insufficient privileges to operate on schema 'DBC.ColumnsV' "
         """
+        def append_or_replace_tb(s):
+            specific_suffixes = ("_rv", "_wt", "_sv")
+            
+            if s.endswith(specific_suffixes):
+                return s[:-len(s.split('_')[-1])] + "tb"
+            elif not s.endswith("_tb"):
+                return s + "_tb"
+            return s
+        
         schema_query = re.sub(
             r'\s+',
             ' ',
-            _SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
+            _SCHEMA_QUERY.format(catalog=catalog, schema=append_or_replace_tb(schema), table=table),
         )
         try:
             logger.debug(f"Fetching schema using query: \n`{schema_query}`")

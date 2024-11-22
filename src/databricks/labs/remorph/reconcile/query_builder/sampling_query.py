@@ -52,7 +52,7 @@ class SamplingQueryBuilder(QueryBuilder):
             for col in cols
         ]
 
-        sql_with_transforms = self.add_transformations(cols_with_alias, self.engine)
+        sql_with_transforms = self.add_transformations(cols_with_alias, self.engine, universal=False)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         if self.layer == "source":
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
@@ -89,11 +89,10 @@ class SamplingQueryBuilder(QueryBuilder):
         for row in df.take(_SAMPLE_ROWS):
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
             column_types_dict = dict(column_types)
+            orig_types_dict = {schema.column_name: schema.data_type for schema in self.schema if schema.column_name not in self.user_transformations}
             row_select = [
                 (
-                    build_literal(this=str(value), alias=col, is_string=_get_is_string(column_types_dict, col))
-                    if value is not None
-                    else exp.Alias(this=exp.Null(), alias=col)
+                    build_literal(this=str(value) if value is not None else exp.Null(), alias=col, is_string=_get_is_string(column_types_dict, col),cast=orig_types_dict.get(col), universal=True)
                 )
                 for col, value in zip(df.columns, row)
             ]

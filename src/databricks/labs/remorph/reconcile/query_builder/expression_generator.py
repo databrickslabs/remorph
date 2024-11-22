@@ -117,7 +117,11 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Express
     return new_expr
 
 
-def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Expression:
+def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None, cast=None, universal=False) -> exp.Expression:
+    if cast:
+        this = exp.Cast(this=this, to=exp.DataType(this=cast))
+    if universal:
+        this = exp.Coalesce(this=this, expressions=[exp.Literal(this="_null_recon_", is_string=True)])
     if alias:
         if isinstance(this, str):
             return exp.Alias(
@@ -127,12 +131,20 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
-def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) -> exp.Expression:
+def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True, cast=None, universal=False) -> exp.Expression:
+    if isinstance(this, exp.Null):
+        lit = this
+    else:
+        lit = exp.Literal(this=this, is_string=is_string)
+    if cast:
+        lit = exp.Cast(this=lit, to=exp.DataType(this=cast))
+    if is_string and cast and "char" in cast.lower():
+        lit = exp.Trim(this=lit)
+    if universal:
+            lit = exp.Coalesce(this=exp.Cast(this=lit, to=exp.DataType(this="varchar(100)")), expressions=[exp.Literal(this="_null_recon_", is_string=True)])
     if alias:
-        return exp.Alias(
-            this=exp.Literal(this=this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted)
-        )
-    return exp.Literal(this=this, is_string=is_string)
+        lit = exp.Alias(this=lit, alias=exp.Identifier(this=alias, quoted=quoted))
+    return lit
 
 
 def transform_expression(
@@ -235,9 +247,10 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
     "teradata": {
         exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
         exp.DataType.Type.DATETIME.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
-        exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
+        exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(19)), '_null_recon_')")],
         exp.DataType.Type.INTERVAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
-        exp.DataType.Type.DECIMAL.value: [partial(anonymous, func="COALESCE(CAST(CAST({} AS INTEGER) AS VARCHAR(50)), '_null_recon_')")],
+        exp.DataType.Type.DECIMAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
+        exp.DataType.Type.INT.value: [partial(anonymous, func="COALESCE(CAST(CAST({} AS INTEGER) AS VARCHAR(50)), '_null_recon_')")],
     },
 }
 
