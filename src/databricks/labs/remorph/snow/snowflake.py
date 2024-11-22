@@ -420,7 +420,6 @@ class Snow(Snowflake):
         FUNCTION_PARSERS = {
             **Snowflake.Parser.FUNCTION_PARSERS,
             "LISTAGG": lambda self: self._parse_list_agg(),
-            #  "TO_CHAR":lambda self: self._build_to_char(),
         }
 
         PLACEHOLDER_PARSERS = {
