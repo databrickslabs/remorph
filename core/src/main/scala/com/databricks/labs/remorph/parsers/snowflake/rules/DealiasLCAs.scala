@@ -29,9 +29,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   private def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
     columns
-      .collect { case a: Alias => a }
-      .filter(alias => !alias.child.isInstanceOf[Literal])
-      .map(alias => alias.name.id -> alias.child)
+      .collect { case Alias(e, name) if !e.isInstanceOf[Literal]=> name.id -> e }
       .toMap
 
   }
@@ -49,18 +47,13 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
   private def dealiasWindow(aliases: Map[String, Expression], window: Window): Expression = {
     val partition = dealiasPartition(aliases, window.partition_spec)
     val sort_order = dealiasSortOrder(aliases, window.sort_order)
-    // above create new sequences so need a deep equal
-    if ((partition == window.partition_spec) && (sort_order == window.sort_order)) {
-      window
-    } else {
-      window.makeCopy(
-        Array(
-          window.window_function.asInstanceOf[AnyRef],
-          partition.asInstanceOf[AnyRef],
-          sort_order.asInstanceOf[AnyRef],
-          window.frame_spec.asInstanceOf[AnyRef],
-          window.ignore_nulls.asInstanceOf[AnyRef]))
-    }
+    window.makeCopy(
+      Array(
+        window.window_function.asInstanceOf[AnyRef],
+        partition.asInstanceOf[AnyRef],
+        sort_order.asInstanceOf[AnyRef],
+        window.frame_spec.asInstanceOf[AnyRef],
+        window.ignore_nulls.asInstanceOf[AnyRef]))
   }
 
   private def dealiasPartition(aliases: Map[String, Expression], partition: Seq[Expression]): Seq[Expression] = {
@@ -73,11 +66,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   private def dealiasSortOrder(aliases: Map[String, Expression], sort_order: SortOrder): SortOrder = {
     val transformed = dealiasExpression(aliases, sort_order.child)
-    if (transformed eq sort_order.child) {
-      sort_order
-    } else {
-      sort_order.makeCopy(Array(transformed, sort_order.direction, sort_order.nullOrdering)).asInstanceOf[SortOrder]
-    }
+    sort_order.makeCopy(Array(transformed, sort_order.direction, sort_order.nullOrdering)).asInstanceOf[SortOrder]
   }
 
   private def dealiasInput(aliases: Map[String, Expression], input: LogicalPlan): LogicalPlan = {
@@ -92,39 +81,23 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
       case in: In => dealiasIn(aliases, in)
       case binary: Binary => dealiasBinary(aliases, binary)
     }
-    if (transformed eq filter.condition) {
-      filter
-    } else {
-      filter.makeCopy(Array(filter.input, transformed)).asInstanceOf[Filter]
-    }
+    filter.makeCopy(Array(filter.input, transformed)).asInstanceOf[Filter]
   }
 
   private def dealiasIn(aliases: Map[String, Expression], in: In): Expression = {
     val transformed = dealiasExpression(aliases, in.left)
-    if (transformed eq in.left) {
-      in
-    } else {
-      in.makeCopy(Array(transformed, in.other))
-    }
+    in.makeCopy(Array(transformed, in.other))
   }
 
   private def dealiasBinary(aliases: Map[String, Expression], binary: Binary): Expression = {
     val head = dealiasExpression(aliases, binary.children.head)
     val last = dealiasExpression(aliases, binary.children.last)
-    if ((head eq binary.children.head) && (last eq binary.children.last)) {
-      binary
-    } else {
-      binary.makeCopy(Array(head, last))
-    }
+    binary.makeCopy(Array(head, last))
   }
 
   private def dealiasCallFunction(aliases: Map[String, Expression], func: CallFunction): CallFunction = {
     val args = func.arguments map { arg => dealiasExpression(aliases, arg) }
-    if (args == func.arguments) {
-      func
-    } else {
-      func.makeCopy(Array(func.function_name, args)).asInstanceOf[CallFunction]
-    }
+    func.makeCopy(Array(func.function_name, args)).asInstanceOf[CallFunction]
   }
 
   private def dealiasName(aliases: Map[String, Expression], name: Name): Expression = {
