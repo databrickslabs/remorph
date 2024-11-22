@@ -36,7 +36,7 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
   private def dealiasExpression(expression: Expression): Expression = {
     expression match {
-      case alias: Alias => alias
+      case alias: Alias => alias // required to avoid crash with default ctor arg
       case name: Name => dealiasName(name)
       case id: Id => dealiasId(id)
       case in: In => dealiasIn(in)
