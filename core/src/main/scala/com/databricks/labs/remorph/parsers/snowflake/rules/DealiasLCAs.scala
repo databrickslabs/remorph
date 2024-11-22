@@ -4,24 +4,16 @@ import com.databricks.labs.remorph.intermediate.{Expression, _}
 
 class Dealiaser(val aliases: Map[String, Expression]) {
 
-  val recursionSafeguards = scala.collection.mutable.Set[String]()
-
   def dealiasProject(project: Project): Project = {
     val input = dealiasInput(project.input)
-    val columns = dealiasColumns(project.columns)
+    val columns = dealiasExpressions(project.columns)
     project.makeCopy(Array(input, columns)).asInstanceOf[Project]
   }
 
   private def dealiasInput(input: LogicalPlan): LogicalPlan = {
     input match {
       case filter: Filter => dealiasFilter(filter)
-      case _ => input
-    }
-  }
-
-  private def dealiasColumns(columns: Seq[Expression]): Seq[Expression] = {
-    columns map {
-      new Dealiaser(aliases).dealiasExpression
+      case _: LogicalPlan => input
     }
   }
 
@@ -36,7 +28,7 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
   private def dealiasExpression(expression: Expression): Expression = {
     expression match {
-      case alias: Alias => alias // required to avoid crash with default ctor arg
+      case alias: Alias => dealiasAlias(alias)
       case name: Name => dealiasName(name)
       case id: Id => dealiasId(id)
       case in: In => dealiasIn(in)
@@ -48,33 +40,31 @@ class Dealiaser(val aliases: Map[String, Expression]) {
     }
   }
 
+  private def dealiasAlias(alias: Alias): Alias = {
+    val filtered = aliases - alias.name.id
+    val expression = new Dealiaser(filtered).dealiasExpression(alias.child)
+    alias.makeCopy(Array(expression.asInstanceOf[AnyRef], alias.name.asInstanceOf[AnyRef])).asInstanceOf[Alias]
+  }
+
+
   private def dealiasName(name: Name): Expression = {
-    if (recursionSafeguards.contains(name.name)) {
+    val alias = aliases.find(p => p._1 == name.name)
+    if (alias.isEmpty) {
       name
     } else {
-      val alias = aliases.find(p => p._1 == name.name)
-      if (alias.isEmpty) {
-        name
-      } else {
-        recursionSafeguards += name.name
-        alias.get._2
-      }
+      alias.get._2
     }
   }
 
   private def dealiasId(id: Id): Expression = {
-    if (recursionSafeguards.contains(id.id)) {
+    val alias = aliases.find(p => p._1 == id.id)
+    if (alias.isEmpty) {
       id
     } else {
-      val alias = aliases.find(p => p._1 == id.id)
-      if (alias.isEmpty) {
-        id
-      } else {
-        recursionSafeguards += id.id
-        alias.get._2
-      }
+      alias.get._2
     }
   }
+
   private def dealiasIn(in: In): Expression = {
     val transformed = dealiasExpression(in.left)
     in.makeCopy(Array(transformed, in.other))
@@ -92,28 +82,8 @@ class Dealiaser(val aliases: Map[String, Expression]) {
   }
 
   private def dealiasCallFunction(func: CallFunction): CallFunction = {
-    val args = func.arguments map { arg => dealiasArgument(arg) }
+    val args = func.arguments map { dealiasExpression }
     func.makeCopy(Array(func.function_name, args)).asInstanceOf[CallFunction]
-  }
-
-  private def dealiasArgument(arg: Expression): Expression = {
-    arg match {
-      case name: Name =>
-        if (recursionSafeguards.contains(name.name)) {
-          name
-        } else {
-          recursionSafeguards += name.name
-          dealiasExpression(name)
-        }
-      case id: Id =>
-        if (recursionSafeguards.contains(id.id)) {
-          id
-        } else {
-          recursionSafeguards += id.id
-          dealiasExpression(id)
-        }
-      case _: Expression => dealiasExpression(arg)
-    }
   }
 
   private def dealiasWindow(window: Window): Expression = {
