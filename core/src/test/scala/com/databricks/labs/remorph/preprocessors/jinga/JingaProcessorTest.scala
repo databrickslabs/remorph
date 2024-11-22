@@ -1,17 +1,16 @@
-package com.databricks.labs.remorph.preprocessor
+package com.databricks.labs.remorph.preprocessors.jinga
 
-import com.databricks.labs.remorph.{OkResult, Parsing}
-import com.databricks.labs.remorph.preprocessor.dbt.DBTPreprocessor
+import com.databricks.labs.remorph.{OkResult, PreProcessing}
 import org.scalatest.wordspec.AnyWordSpec
 
-class DBTProcessorTest extends AnyWordSpec {
+class JingaProcessorTest extends AnyWordSpec {
 
   "Preprocessor" should {
-    "process statement block" in {
+    "pre statement block" in {
 
       // NB: These will be moved to a PreProcessorTestCommon trait
-      val dbtPreProc = new DBTPreprocessor()
-      val input = Parsing("""{%- set payment_methods = dbt_utils.get_column_values(
+      val dbtPreProc = new JingaProcessor()
+      val input = PreProcessing("""{%- set payment_methods = dbt_utils.get_column_values(
                             |                              table=ref('raw_payments'),
                             |                              column='payment_method'
                             |) -%}
@@ -25,11 +24,15 @@ class DBTProcessorTest extends AnyWordSpec {
                             |    from {{ ref('raw_payments') }}
                             |    group by 1
                             |""".stripMargin)
-      val result = dbtPreProc.process(input).run(input)
+      val result = dbtPreProc.pre(input).run(input)
 
       // scalastyle:off
       val processed = result match {
-        case OkResult(output) => dbtPreProc.postProcess(output._2)
+        case OkResult(output) =>
+          dbtPreProc.post(output._2.source).run(output._2) match {
+            case OkResult(output) => output._2
+            case _ => ""
+          }
         case _ => ""
       }
 

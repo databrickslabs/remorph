@@ -8,7 +8,7 @@ import org.scalatest.wordspec.AnyWordSpec
 class TransformationTest extends AnyWordSpec with Matchers with TransformationConstructors {
 
   val stubTranspiler = new Transpiler {
-    override def transpile(input: Parsing): Transformation[String] =
+    override def transpile(input: PreProcessing): Transformation[String] =
       for {
         _ <- set(Parsing("foo"))
         parsed <- lift(PartialResult("bar", UnexpectedNode("foo")))
@@ -23,7 +23,7 @@ class TransformationTest extends AnyWordSpec with Matchers with TransformationCo
 
   "Transformation" should {
     "collect errors in each phase" in {
-      stubTranspiler.transpile(Parsing("foo")).run(Init).map(_._1) shouldBe PartialResult(
+      stubTranspiler.transpile(PreProcessing("foo")).run(Init).map(_._1) shouldBe PartialResult(
         Generating(
           null,
           null,
@@ -36,7 +36,7 @@ class TransformationTest extends AnyWordSpec with Matchers with TransformationCo
               Some(
                 BuildingAst(
                   null,
-                  Some(Parsing("foo", "-- test source --", List(UnexpectedNode("foo")))),
+                  Some(Parsing("foo", "-- test source --", None, List(UnexpectedNode("foo")))),
                   List(UnexpectedNode("bar")))),
               List(UnexpectedNode("qux")))),
           List()),

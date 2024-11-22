@@ -15,12 +15,23 @@ case object Init extends Phase {
   override def recordError(error: RemorphError): Init.type = this
 }
 
-case class Parsing(
+case class PreProcessing(
     source: String,
     filename: String = "-- test source --",
     encounteredErrors: Seq[RemorphError] = Seq.empty)
     extends Phase {
   override val previousPhase: Option[Phase] = Some(Init)
+
+  override def recordError(error: RemorphError): PreProcessing =
+    copy(encounteredErrors = this.encounteredErrors :+ error)
+}
+
+case class Parsing(
+    source: String,
+    filename: String = "-- test source --",
+    previousPhase: Option[PreProcessing] = None,
+    encounteredErrors: Seq[RemorphError] = Seq.empty)
+    extends Phase {
 
   override def recordError(error: RemorphError): Parsing =
     copy(encounteredErrors = this.encounteredErrors :+ error)

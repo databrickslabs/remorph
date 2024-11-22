@@ -1,22 +1,25 @@
-package com.databricks.labs.remorph.preprocessor.dbt
+package com.databricks.labs.remorph.preprocessors.jinga
 
-import com.databricks.labs.remorph.generators.sql.DataTypeGenerator.lift
 import com.databricks.labs.remorph.intermediate.Origin
 import com.databricks.labs.remorph.parsers.preprocessor.DBTPreprocessorLexer
-import com.databricks.labs.remorph.preprocessor.PreProcessor
-import com.databricks.labs.remorph.preprocessor.jinga.{CommentElement, ExpressionElement, StatementElement, TemplateManager}
-import com.databricks.labs.remorph.{OkResult, Transformation}
-import org.antlr.v4.runtime.{CharStream, CommonTokenStream, Lexer, Token}
+import com.databricks.labs.remorph.preprocessors.Processor
+import com.databricks.labs.remorph._
+import org.antlr.v4.runtime._
 
 import scala.util.matching.Regex
 
-class DBTPreprocessor extends PreProcessor {
+class JingaProcessor extends Processor {
 
   val templateManager = new TemplateManager()
 
   override protected def createLexer(input: CharStream): Lexer = new DBTPreprocessorLexer(input)
 
-  override protected def process(tokenStream: CommonTokenStream): Transformation[String] = {
+  override def pre(input: PreProcessing): Transformation[Parsing] = {
+
+    val inputString = CharStreams.fromString(input.source)
+    val tokenizer = createLexer(inputString)
+    val tokenStream = new CommonTokenStream(tokenizer)
+
     val result = new StringBuilder
 
     while (tokenStream.LA(1) != Token.EOF) {
@@ -36,17 +39,17 @@ class DBTPreprocessor extends PreProcessor {
         case _ if token.getType == DBTPreprocessorLexer.WS =>
           result.append(token.getText)
           tokenStream.consume()
-        case _ => // Mismatched template tokens - give an error here
+        case _ => // TODO: Mismatched template tokens - accumulate error for partial result
       }
     }
-    lift(OkResult(result.toString()))
+    update { case _ => input }.flatMap(_ => lift(OkResult(Parsing(result.toString(), input.filename))))
   }
 
-  def postProcess(result: String): String = {
+  def post(input: String): Transformation[String] = {
     val jingaPattern: Regex = """__Jinga(\d{4})""".r
 
     val processedResult = jingaPattern.replaceAllIn(
-      result,
+      input,
       m => {
         val templateRef = m.matched
         templateManager.get(templateRef) match {
@@ -55,7 +58,7 @@ class DBTPreprocessor extends PreProcessor {
         }
       })
 
-    processedResult
+    lift(OkResult(processedResult))
   }
 
   private def accumulate(tokenStream: CommonTokenStream, result: StringBuilder, endType: Int): Unit = {
@@ -75,7 +78,7 @@ class DBTPreprocessor extends PreProcessor {
     val followingWhitespace = hasSpace(tokenStream, 1)
 
     val origin =
-      new Origin(
+      Origin(
         Some(start.getLine),
         Some(start.getCharPositionInLine),
         Some(start.getStartIndex),

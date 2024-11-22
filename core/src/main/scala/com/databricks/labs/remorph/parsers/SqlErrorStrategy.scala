@@ -10,7 +10,7 @@ import org.antlr.v4.runtime.tree.ErrorNodeImpl
  * and don't allow us to create an error message in context. Additionally, we can now implement i18n, should that ever
  * become necessary.</p>
  *
- * <p>At the moment, we require valid SQL as input to the conversion process, but if we ever change that strategy, then
+ * <p>At the moment, we require valid SQL as input to the conversion pre, but if we ever change that strategy, then
  * we can implement custom recovery steps here based upon context, though there is no improvement on the sync()
  * method.</p>
  */

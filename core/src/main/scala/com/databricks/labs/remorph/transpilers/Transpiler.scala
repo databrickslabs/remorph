@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, Transformation, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.preprocessors.jinga.JingaProcessor
+import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, PreProcessing, Transformation, TransformationConstructors, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -12,7 +13,7 @@ import org.json4s.{Formats, NoTypeHints}
 import scala.util.matching.Regex
 
 trait Transpiler {
-  def transpile(input: Parsing): Transformation[String]
+  def transpile(input: PreProcessing): Transformation[String]
 }
 
 class Sed(rules: (String, String)*) {
@@ -51,8 +52,11 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
 
   protected val planParser: PlanParser[_]
   private[this] val generator = new SqlGenerator
+  private[this] val jingaProcessor = new JingaProcessor
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
+
+  protected def pre(input: PreProcessing): Transformation[Parsing] = jingaProcessor.pre(input)
 
   protected def parse(input: Parsing): Transformation[ParserRuleContext] = planParser.parse(input)
 
@@ -80,10 +84,17 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
     }.flatMap { _ =>
       generator.generate(optimizedLogicalPlan)
     }
-
   }
 
-  override def transpile(input: Parsing): Transformation[String] = {
-    set(input).flatMap(_ => parse(input)).flatMap(visit).flatMap(optimize).flatMap(generate)
+  protected def post(input: String): Transformation[String] = jingaProcessor.post(input)
+
+  override def transpile(input: PreProcessing): Transformation[String] = {
+    set(input)
+      .flatMap(_ => pre(input))
+      .flatMap(parse)
+      .flatMap(visit)
+      .flatMap(optimize)
+      .flatMap(generate)
+      .flatMap(post)
   }
 }
