@@ -10,7 +10,6 @@ from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
-from sqlglot.optimizer.annotate_types import annotate_types
 
 from databricks.labs.remorph.snow import local_expression
 
@@ -93,13 +92,7 @@ def _parse_date_add(args: list) -> exp.DateAdd:
 
 
 def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
-    this = seq_get(args, 0)
-    if this and not this.type:
-        annotate_types(this)
-        if this.is_type(*exp.DataType.TEMPORAL_TYPES):
-            return build_formatted_time(exp.ToChar, "snowflake", default=True)(args)
-
-    return exp.ToChar.from_arg_list(args)
+    return build_formatted_time(exp.ToChar, "snowflake", default=True)(args)
 
 
 def _parse_split_part(args: list) -> local_expression.SplitPart:
@@ -427,6 +420,7 @@ class Snow(Snowflake):
         FUNCTION_PARSERS = {
             **Snowflake.Parser.FUNCTION_PARSERS,
             "LISTAGG": lambda self: self._parse_list_agg(),
+            #  "TO_CHAR":lambda self: self._build_to_char(),
         }
 
         PLACEHOLDER_PARSERS = {
@@ -447,6 +441,11 @@ class Snow(Snowflake):
         }
 
         ALTER_PARSERS = {**Snowflake.Parser.ALTER_PARSERS}
+        #
+        # def _build_to_char(self) -> exp.ToChar:
+        #     self.expression()
+        #     args = self._parse_csv(self._parse_conjunction)
+        #     return _build_timetostr_or_tochar(args)
 
         def _parse_list_agg(self) -> exp.GroupConcat:
             if self._match(TokenType.DISTINCT):
