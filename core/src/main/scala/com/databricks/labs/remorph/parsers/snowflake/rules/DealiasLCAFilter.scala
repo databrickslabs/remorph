@@ -46,7 +46,6 @@ class Dealiaser(val aliases: Map[String, Expression]) {
     alias.makeCopy(Array(expression.asInstanceOf[AnyRef], alias.name.asInstanceOf[AnyRef])).asInstanceOf[Alias]
   }
 
-
   private def dealiasName(name: Name): Expression = {
     val alias = aliases.find(p => p._1 == name.name)
     if (alias.isEmpty) {
