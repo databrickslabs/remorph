@@ -73,7 +73,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
       //
       // To rework that is quite a big job. So, for now, we translate &id to $id here.
       // It is not wrong for the id rule to hold the AMP ID alt, but ideally it would produce
-      // an ir.Variable and we would process that at generation time instead of concatenating into strings :(
+      // an ir.Variable and we would pre that at generation time instead of concatenating into strings :(
       ir.Id(s"$$${v.ID().getText}")
     case d if d.LOCAL_ID() != null =>
       ir.Id(s"$$${d.LOCAL_ID().getText.drop(1)}")

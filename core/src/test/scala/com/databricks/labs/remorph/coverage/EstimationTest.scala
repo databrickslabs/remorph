@@ -13,7 +13,7 @@ import java.time.Duration
 
 class EstimationTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
-  "Estimator" should "correctly process query history" in {
+  "Estimator" should "correctly pre query history" in {
     // Mock dependencies
     val mockQueryHistoryProvider = mock[QueryHistoryProvider]
 
