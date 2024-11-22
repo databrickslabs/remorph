@@ -16,7 +16,7 @@ Major Changes:
  - 2024-11 Added placeholders section and explanations
 
 # Table of Contents
-- [A preprocessor for macros, parameters, Jinja templates, and DBT](#a-preprocessor-for-macros-parameters-jinga-templates-and-dbt)
+- [A preprocessor for macros, parameters, Jinja templates, and DBT](#a-preprocessor-for-macros-parameters-jinja-templates-and-dbt)
    - [Motivation](#motivation)
    - [Definitions](#definitions)
    - [Sample Template](#sample-template)
@@ -177,7 +177,7 @@ is present or not:
  - Jinja allows the user to change the delimiters for the templates from the default `{{ }}` to anything else. Hence
    lexical tricks are used such that we can still use an ANTLR based lexer as the basis of the preprocessor.
  - In many cases the templates will be used in place of say, _expressions_, and therefore we can just accept a
-   special token: `NINJAEXPR: 'Jinga_' [0-9]+ ;`. 
+   special token: `NINJAEXPR: 'Jinja_' [0-9]+ ;`. 
    - However, we are going to find both statement and expression
      templates located in places where the current SQL parser will not expect them. In the example above, the statement
      template `{% for payment_method in payment_methods -%}` is located in the middle of a SQL statement. In this case
@@ -297,7 +297,7 @@ process them in any way. However, shoudl the need arise, we can now
 ### Placeholders
 
 The placeholders will be simple strings that are unique to the template. A template manager will
-generate placeholder names in the form: `__JingaNNNN` where `NNNN` is a unique number, generated
+generate placeholder names in the form: `_!JinjaNNNN` where `NNNN` is a unique number, generated
 sequentially. This allows the common lexer to be used for all dialects, as the placeholders will
 always be of the same form. At this point we do not need to distinguish between the types of template
 element (statement, expression, etc.) as they will be replaced via a post-processing step. The IR

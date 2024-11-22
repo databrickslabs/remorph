@@ -8,7 +8,7 @@ class TemplateManager {
 
   def add(template: TemplateElement): String = {
     counter += 1
-    val key = f"__Jinga$counter%04d"
+    val key = f"_!Jinja$counter%04d"
     templates(key) = template
     key
   }

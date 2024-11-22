@@ -46,9 +46,9 @@ class JinjaProcessor extends Processor {
   }
 
   def post(input: String): Transformation[String] = {
-    val jingaPattern: Regex = """__Jinga(\d{4})""".r
+    val jinjaPattern: Regex = """_!Jinja(\d{4})""".r
 
-    val processedResult = jingaPattern.replaceAllIn(
+    val processedResult = jinjaPattern.replaceAllIn(
       input,
       m => {
         val templateRef = m.matched

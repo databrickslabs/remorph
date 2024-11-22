@@ -135,6 +135,7 @@ object TSqlErrorStrategy {
     STRING -> "'String'",
     TEMP_ID -> "Identifier",
     -1 -> "End of batch",
+    JINJA_REF -> "Jinja Template Element",
 
     // When the next thing we expect can be every statement, we just say "statement"
     ALTER -> "Statement",

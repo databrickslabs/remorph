@@ -53,11 +53,11 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
 
   protected val planParser: PlanParser[_]
   private[this] val generator = new SqlGenerator
-  private[this] val jingaProcessor = new JingaProcessor
+  private[this] val jinjaProcessor = new JinjaProcessor
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def pre(input: PreProcessing): Transformation[Parsing] = jingaProcessor.pre(input)
+  protected def pre(input: PreProcessing): Transformation[Parsing] = jinjaProcessor.pre(input)
 
   protected def parse(input: Parsing): Transformation[ParserRuleContext] = planParser.parse(input)
 
@@ -87,7 +87,7 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
     }
   }
 
-  protected def post(input: String): Transformation[String] = jingaProcessor.post(input)
+  protected def post(input: String): Transformation[String] = jinjaProcessor.post(input)
 
   override def transpile(input: PreProcessing): Transformation[String] = {
     set(input)

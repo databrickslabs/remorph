@@ -35,7 +35,7 @@ THE SOFTWARE.
 
 parser grammar TSqlParser;
 
-import procedure, commonparse;
+import procedure, commonparse, jinja;
 
 options {
     tokenVocab = TSqlLexer;
@@ -56,7 +56,7 @@ stringList: string (COMMA string)*
     ;
 
 // expr is just an alias for expression, for Snowflake compatibility
-// TODO: Change Snowflake to use the rule anme expression instead of expr as this is what the Spark parser uses
+// TODO: Change Snowflake to use the rule name expression instead of expr as this is what the Spark parser uses
 expr: expression
     ;
 // ======================================================
@@ -84,6 +84,7 @@ sqlClauses
     | createOrAlterTrigger SEMI*
     | createView SEMI*
     | goStatement SEMI*
+    | jinjaTemplate SEMI*
     ;
 
 dmlClause: withExpression? ( selectStatement | merge | delete | insert | update | bulkStatement)
@@ -2861,13 +2862,16 @@ orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
 optionClause: OPTION lparenOptionList
     ;
 
-selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
+selectList: selectElement += selectListElem ( COMMA selectElementJ += selectListElemJinja)*
     ;
 
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
 expressionElem: columnAlias EQ expression | expression asColumnAlias?
+    ;
+
+selectListElemJinja: COMMA? jinjaTemplate | COMMA selectListElem
     ;
 
 selectListElem

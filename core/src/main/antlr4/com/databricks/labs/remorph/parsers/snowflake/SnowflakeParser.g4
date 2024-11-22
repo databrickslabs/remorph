@@ -31,7 +31,7 @@ THE SOFTWARE.
 // =================================================================================
 parser grammar SnowflakeParser;
 
-import procedure, commonparse;
+import procedure, commonparse, jinja;
 
 options {
     tokenVocab = SnowflakeLexer;
