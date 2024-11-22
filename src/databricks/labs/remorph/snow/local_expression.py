@@ -167,8 +167,7 @@ class ToArray(Func):
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
-    order_col: exp.Column
-    is_order_asc: bool
+    order_cols: list[tuple[exp.Column, bool]]  # List of (column, is ascending)
 
 
 @dataclass
@@ -184,3 +183,11 @@ class MapKeys(Func):
 
 class ArrayExists(Func):
     arg_types = {"this": True, "expression": True}
+
+
+class Locate(Func):
+    arg_types = {"substring": True, "this": True, "position": False}
+
+
+class NamedStruct(Func):
+    arg_types = {"expressions": True}

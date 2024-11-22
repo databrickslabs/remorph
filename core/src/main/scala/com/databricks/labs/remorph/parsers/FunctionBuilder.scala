@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
 import com.databricks.labs.remorph.{intermediate => ir}
 
 sealed trait FunctionType
@@ -277,7 +278,7 @@ abstract class FunctionBuilder {
     case "STRING_ESCAPE" => FunctionDefinition.standard(2)
     case "STUFF" => FunctionDefinition.standard(4)
     case "SUBSTR" => FunctionDefinition.standard(2, 3)
-    case "SUBSTRING" => FunctionDefinition.standard(2, 3)
+    case "SUBSTRING" => FunctionDefinition.standard(2, 3).withConversionStrategy(SynonymOf("SUBSTR"))
     case "SUM" => FunctionDefinition.standard(1)
     case "SUSER_ID" => FunctionDefinition.standard(0, 1)
     case "SUSER_NAME" => FunctionDefinition.standard(0, 1)
