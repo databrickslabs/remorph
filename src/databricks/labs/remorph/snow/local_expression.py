@@ -183,3 +183,11 @@ class MapKeys(Func):
 
 class ArrayExists(Func):
     arg_types = {"this": True, "expression": True}
+
+
+class Locate(Func):
+    arg_types = {"substring": True, "this": True, "position": False}
+
+
+class NamedStruct(Func):
+    arg_types = {"expressions": True}

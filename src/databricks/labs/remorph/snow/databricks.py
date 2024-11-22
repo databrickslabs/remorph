@@ -87,7 +87,46 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
+def _has_parse_json(expression):
+    if expression.find(exp.ParseJSON):
+        return True
+    _select = expression.find_ancestor(exp.Select)
+    if _select:
+        _from = _select.find(exp.From)
+        if _from:
+            _parse_json = _from.find(exp.ParseJSON)
+            if _parse_json:
+                return True
+    return False
+
+
+def _generate_function_str(select_contains_index, has_parse_json, generator_expr, alias, is_outer, alias_str):
+    if select_contains_index:
+        generator_function_str = f"POSEXPLODE({generator_expr})"
+        alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
+    elif has_parse_json and is_outer:
+        generator_function_str = f"VARIANT_EXPLODE_OUTER({generator_expr})"
+    elif has_parse_json:
+        generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
+    else:
+        generator_function_str = f"VIEW EXPLODE({generator_expr})"
+
+    return generator_function_str, alias_str
+
+
+def _generate_lateral_statement(self, select_contains_index, has_parse_json, generator_function_str, alias_str):
+    if select_contains_index:
+        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
+    elif has_parse_json:
+        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    else:
+        lateral_statement = self.sql(f" LATERAL {generator_function_str}{alias_str}")
+
+    return lateral_statement
+
+
 def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
+    has_parse_json = _has_parse_json(expression)
     this = expression.args['this']
     alias = expression.args['alias']
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
@@ -111,19 +150,20 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
             if node == "OUTER":
                 is_outer = True
 
-        if select_contains_index:
-            generator_function_str = f"POSEXPLODE({generator_expr})"
-            alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
-        else:
-            generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
+        if not generator_expr:
+            generator_expr = expression.this.this
 
-    if is_outer:
-        generator_function_str = generator_function_str.replace("VARIANT_EXPLODE", "VARIANT_EXPLODE_OUTER")
+        generator_function_str, alias_str = _generate_function_str(
+            select_contains_index, has_parse_json, generator_expr, alias, is_outer, alias_str
+        )
 
-    if select_contains_index:
-        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
-    else:
-        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    alias_cols = alias.columns if alias else []
+    if len(alias_cols) <= 2:
+        alias_str = f" As {', '.join([item.this for item in alias_cols])}"
+
+    lateral_statement = _generate_lateral_statement(
+        self, select_contains_index, has_parse_json, generator_function_str, alias_str
+    )
     return lateral_statement
 
 
