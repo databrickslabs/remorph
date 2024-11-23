@@ -58,7 +58,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     "transpile to WHERE" in {
       ir.Filter(
         ir.Project(namedTable("t1"), Seq(ir.Id("c1"))),
-        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "SELECT c1 FROM t1 WHERE IS_DATE(c2)"
+        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "(SELECT c1 FROM t1) WHERE IS_DATE(c2)"
     }
   }
 
