@@ -36,6 +36,7 @@ class Dealiaser(val aliases: Map[String, Expression]) {
       case binary: Binary => dealiasBinary(binary)
       case func: CallFunction => dealiasCallFunction(func)
       case window: Window => dealiasWindow(window)
+      case subquery: SubqueryExpression => dealiasSubqueryExpression(subquery)
       case expression: Expression => expression
     }
   }
@@ -65,8 +66,9 @@ class Dealiaser(val aliases: Map[String, Expression]) {
   }
 
   private def dealiasIn(in: In): Expression = {
-    val transformed = dealiasExpression(in.left)
-    in.makeCopy(Array(transformed, in.other))
+    val left = dealiasExpression(in.left)
+    val other = dealiasExpressions(in.other)
+    in.makeCopy(Array(left, other))
   }
 
   private def dealiasUnary(unary: Unary): Expression = {
@@ -97,6 +99,22 @@ class Dealiaser(val aliases: Map[String, Expression]) {
         window.ignore_nulls.asInstanceOf[AnyRef]))
   }
 
+  private def dealiasSubqueryExpression(subquery: SubqueryExpression): Expression = {
+    val plan = subquery.plan match {
+      case project: Project => {
+        val aliases = Dealiaser.collectAliases(project.columns)
+        if (aliases.isEmpty) {
+          project
+        } else {
+          val dealiaser = new Dealiaser(aliases)
+          dealiaser.dealiasProject(project)
+        }
+      }
+      case plan: LogicalPlan => plan // TODO log or raise error ?
+    }
+    subquery.makeCopy(Array(plan))
+  }
+
   private def dealiasSortOrders(sort_order: Seq[SortOrder]): Seq[SortOrder] = {
     sort_order map { sort => dealiasSortOrder(sort) }
   }
@@ -108,6 +126,13 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
 }
 
+object Dealiaser {
+
+  def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
+    columns.collect { case Alias(e, name) if !e.isInstanceOf[Literal] => name.id -> e }.toMap
+  }
+}
+
 class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
@@ -117,17 +142,13 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasProject(project: Project): Project = {
-    val aliases = collectAliases(project.columns)
+    val aliases = Dealiaser.collectAliases(project.columns)
     if (aliases.isEmpty) {
       project
     } else {
       val dealiaser = new Dealiaser(aliases)
       dealiaser.dealiasProject(project)
     }
-  }
-
-  private def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
-    columns.collect { case Alias(e, name) if !e.isInstanceOf[Literal] => name.id -> e }.toMap
   }
 
 }
