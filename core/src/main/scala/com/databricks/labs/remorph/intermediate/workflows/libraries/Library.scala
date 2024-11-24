@@ -13,8 +13,12 @@ case class Library(
     whl: Option[String] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq() ++ cran ++ maven ++ pypi
-  def toSDK: compute.Library = {
-    val raw = new compute.Library()
-    raw
-  }
+  def toSDK: compute.Library = new compute.Library()
+    .setCran(cran.map(_.toSDK).orNull)
+    .setEgg(egg.orNull)
+    .setJar(jar.orNull)
+    .setMaven(maven.map(_.toSDK).orNull)
+    .setPypi(pypi.map(_.toSDK).orNull)
+    .setRequirements(requirements.orNull)
+    .setWhl(whl.orNull)
 }

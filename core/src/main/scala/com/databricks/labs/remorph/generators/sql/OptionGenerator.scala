@@ -5,10 +5,10 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 class OptionGenerator(expr: ExpressionGenerator) {
 
-  def generateOption(ctx: GeneratorContext, option: ir.GenericOption): SQL =
+  def generateOption(option: ir.GenericOption): SQL =
     option match {
       case ir.OptionExpression(id, value, supplement) =>
-        code"$id = ${expr.generate(ctx, value)} ${supplement.map(s => s" $s").getOrElse("")}"
+        code"$id = ${expr.generate(value)} ${supplement.map(s => s" $s").getOrElse("")}"
       case ir.OptionString(id, value) =>
         code"$id = '$value'"
       case ir.OptionOn(id) =>
@@ -23,7 +23,7 @@ class OptionGenerator(expr: ExpressionGenerator) {
         code"$text"
     }
 
-  def generateOptionList(ctx: GeneratorContext, options: Seq[ir.GenericOption]): String =
-    options.map(generateOption(ctx, _)).mkString(", ")
+  def generateOptionList(options: Seq[ir.GenericOption]): String =
+    options.map(generateOption(_)).mkString(", ")
 
 }

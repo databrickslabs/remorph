@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.intermediate.workflows.tasks
 
-import com.databricks.labs.remorph.intermediate.workflows.JobNode
+import scala.collection.JavaConverters._
+import com.databricks.labs.remorph.intermediate.workflows.LeafJobNode
 import com.databricks.sdk.service.jobs
 
 case class PythonWheelTask(
@@ -8,10 +9,11 @@ case class PythonWheelTask(
     entryPoint: String,
     namedParameters: Option[Map[String, String]] = None,
     parameters: Seq[String] = Seq.empty)
-    extends JobNode {
-  override def children: Seq[JobNode] = Seq()
-  def toSDK: jobs.PythonWheelTask = {
-    val raw = new jobs.PythonWheelTask()
-    raw
-  }
+    extends LeafJobNode
+    with CodeAsset {
+  def toSDK: jobs.PythonWheelTask = new jobs.PythonWheelTask()
+    .setPackageName(packageName)
+    .setEntryPoint(entryPoint)
+    .setNamedParameters(namedParameters.getOrElse(Map.empty).asJava)
+    .setParameters(parameters.asJava)
 }

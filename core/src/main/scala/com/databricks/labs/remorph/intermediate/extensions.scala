@@ -6,18 +6,25 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst, replace with Name
-case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
+sealed trait NameOrPosition extends LeafExpression
 
-case class Name(name: String) extends LeafExpression {
+// TODO: (nfx) refactor to align more with catalyst, replace with Name
+case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor with NameOrPosition
+
+case class Name(name: String) extends NameOrPosition {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst
-case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
+case class Position(index: Int) extends ToRefactor with NameOrPosition {}
 
 // TODO: (nfx) refactor to align more with catalyst
-case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
+case class ObjectReference(head: NameOrPosition, tail: NameOrPosition*) extends ToRefactor
+
+// TODO: (nfx) refactor to align more with catalyst
+case class Column(tableNameOrAlias: Option[ObjectReference], columnName: NameOrPosition)
+    extends ToRefactor
+    with AstExtension {}
+
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
 case class DollarAction() extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
@@ -33,6 +40,11 @@ case object NoopNode extends LeafNode {
 // TODO: (nfx) refactor to align more with catalyst, UnaryNode
 // case class UnresolvedWith(child: LogicalPlan, ctes: Seq[(String, SubqueryAlias)])
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = query.output
+  override def children: Seq[LogicalPlan] = ctes :+ query
+}
+
+case class WithRecursiveCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = query.output
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
@@ -176,8 +188,8 @@ case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = 
   override def output: Seq[Attribute] = expr.output
 }
 
-case class Comment(text: String) extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 }
 
 case class Options(
@@ -229,7 +241,7 @@ case object WEEK_INTERVAL extends KnownIntervalType
 case object MONTH_INTERVAL extends KnownIntervalType
 case object YEAR_INTERVAL extends KnownIntervalType
 
-// TSQL - For translation purposes, we cannot use teh standard Catalyst CalendarInterval as it is not
+// TSQL - For translation purposes, we cannot use the standard Catalyst CalendarInterval as it is not
 // meant for code generation and converts everything to microseconds. It is much easier to use an extension
 // to the AST to represent the interval as it is required in TSQL, where we need to know if we were dealing with
 // MONTHS, HOURS, etc.
@@ -237,3 +249,4 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
+

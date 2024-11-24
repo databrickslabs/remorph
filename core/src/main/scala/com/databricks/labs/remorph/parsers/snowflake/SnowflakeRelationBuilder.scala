@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.snowflake.rules.InlineColumnExpression
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -117,12 +118,12 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx).fold(input) { c =>
       val groupingExpressions =
-        c.groupByList()
-          .groupByElem()
-          .asScala
+        Option(c.groupByList()).toSeq
+          .flatMap(_.groupByElem().asScala)
           .map(_.accept(vc.expressionBuilder))
+      val groupType = if (c.ALL() != null) ir.GroupByAll else ir.GroupBy
       val aggregate =
-        ir.Aggregate(child = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+        ir.Aggregate(child = input, group_type = groupType, grouping_expressions = groupingExpressions, pivot = None)
       buildHaving(c.havingClause(), aggregate)
     }
   }
@@ -188,13 +189,13 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
+      buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.dotIdentifier().accept(this)))
   }
 
   override def visitTableRef(ctx: TableRefContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val table = ctx.objectName().accept(this)
+      val table = ctx.dotIdentifier().accept(this)
       Option(ctx.asAlias())
         .map { a =>
           ir.TableAlias(table, a.alias().getText, Seq())
@@ -202,7 +203,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
         .getOrElse(table)
   }
 
-  override def visitObjectName(ctx: ObjectNameContext): ir.LogicalPlan = errorCheck(ctx) match {
+  override def visitDotIdentifier(ctx: DotIdentifierContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
       val tableName = ctx.id().asScala.map(vc.expressionBuilder.buildId).map(_.id).mkString(".")
@@ -324,29 +325,33 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
       .getOrElse(ir.UnspecifiedJoin)
   }
 
-  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
+  override def visitCTETable(ctx: CTETableContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse {
       val tableName = vc.expressionBuilder.buildId(ctx.tableName)
-      val columns = ctx.columns.asScala.map(vc.expressionBuilder.buildId)
+      val columns = ctx.columnList() match {
+        case null => Seq.empty[ir.Id]
+        case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
+      }
+
       val query = ctx.selectStatement().accept(this)
       ir.SubqueryAlias(query, tableName, columns)
-  }
 
-  private def buildNum(ctx: NumContext): BigDecimal = {
-    BigDecimal(ctx.getText)
+    }
+
+  override def visitCTEColumn(ctx: CTEColumnContext): ir.LogicalPlan = {
+    InlineColumnExpression(vc.expressionBuilder.buildId(ctx.id()), ctx.expr().accept(vc.expressionBuilder))
   }
 
   private def buildSampleMethod(ctx: SampleMethodContext): ir.SamplingMethod = ctx match {
-    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(buildNum(c.num()))
-    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(buildNum(c.num()))
-    case c: SampleMethodBlockContext => ir.BlockSampling(buildNum(c.num()))
+    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(BigDecimal(c.INT().getText))
+    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(BigDecimal(c.INT().getText))
+    case c: SampleMethodBlockContext => ir.BlockSampling(BigDecimal(c.INT().getText))
   }
 
   private def buildSample(ctx: SampleContext, input: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx)
       .map { sampleCtx =>
-        val seed = Option(sampleCtx.sampleSeed()).map(s => buildNum(s.num()))
+        val seed = Option(sampleCtx.sampleSeed()).map(s => BigDecimal(s.INT().getText))
         val sampleMethod = buildSampleMethod(sampleCtx.sampleMethod())
         ir.TableSample(input, sampleMethod, seed)
       }

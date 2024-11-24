@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.ParserCommon
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
@@ -65,13 +65,13 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case None =>
       ctx match {
         case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
-        case _ =>
-          // TODO: Implement this style of UNION
-          ir.UnresolvedRelation(
-            ruleText = contextText(ctx),
-            message = s"This style of UNION specification is as yet supported",
-            ruleName = vc.ruleName(ctx),
-            tokenName = Some(tokenName(ctx.getStart)))
+        case qe if qe.queryExpression() != null =>
+          qe.queryExpression().asScala.map(_.accept(this)) match {
+            case Seq(lhs) => lhs
+            case Seq(lhs, rhs) =>
+              val isAll = qe.ALL() != null
+              ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+          }
       }
   }
 

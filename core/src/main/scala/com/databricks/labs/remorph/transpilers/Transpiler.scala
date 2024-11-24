@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{Phase, SourceCode, Transformation, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, Transformation, TransformationConstructors, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -12,7 +12,7 @@ import org.json4s.{Formats, NoTypeHints}
 import scala.util.matching.Regex
 
 trait Transpiler {
-  def transpile(input: SourceCode): Transformation[Phase, String]
+  def transpile(input: Parsing): Transformation[String]
 }
 
 class Sed(rules: (String, String)*) {
@@ -47,27 +47,43 @@ trait Formatter {
   }
 }
 
-abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors[Phase] {
+abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors {
 
   protected val planParser: PlanParser[_]
   private val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def parse(input: SourceCode): Transformation[Phase, ParserRuleContext] = planParser.parse(input)
+  protected def parse(input: Parsing): Transformation[ParserRuleContext] = planParser.parse(input)
 
-  protected def visit(tree: ParserRuleContext): Transformation[Phase, ir.LogicalPlan] = planParser.visit(tree)
+  protected def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = planParser.visit(tree)
 
   // TODO: optimizer really should be its own thing and not part of PlanParser
   // I have put it here for now until we discuss^h^h^h^h^h^h^hSerge dictates where it should go ;)
-  protected def optimize(logicalPlan: ir.LogicalPlan): Transformation[Phase, ir.LogicalPlan] =
+  protected def optimize(logicalPlan: ir.LogicalPlan): Transformation[ir.LogicalPlan] =
     planParser.optimize(logicalPlan)
 
-  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Transformation[Phase, String] = {
-    generator.generate(optimizedLogicalPlan)
+  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Transformation[String] = {
+    update {
+      case o: Optimizing =>
+        Generating(
+          optimizedPlan = optimizedLogicalPlan,
+          currentNode = optimizedLogicalPlan,
+          ctx = generator.initialGeneratorContext,
+          previousPhase = Some(o))
+      case _ =>
+        Generating(
+          optimizedPlan = optimizedLogicalPlan,
+          currentNode = optimizedLogicalPlan,
+          ctx = generator.initialGeneratorContext,
+          previousPhase = None)
+    }.flatMap { _ =>
+      generator.generate(optimizedLogicalPlan)
+    }
+
   }
 
-  override def transpile(input: SourceCode): Transformation[Phase, String] = {
+  override def transpile(input: Parsing): Transformation[String] = {
     set(input).flatMap(_ => parse(input)).flatMap(visit).flatMap(optimize).flatMap(generate)
   }
 }

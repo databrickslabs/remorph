@@ -2,12 +2,12 @@ import logging
 import re
 
 from sqlglot import expressions as exp
-from sqlglot.dialects import hive
 from sqlglot.dialects import databricks as org_databricks
-from sqlglot.dialects.dialect import rename_func
-from sqlglot.errors import ParseError, UnsupportedError
-from sqlglot.helper import apply_index_offset, csv
+from sqlglot.dialects import hive
 from sqlglot.dialects.dialect import if_sql
+from sqlglot.dialects.dialect import rename_func
+from sqlglot.errors import UnsupportedError
+from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
@@ -67,7 +67,7 @@ def _format_create_sql(self, expression: exp.Create) -> str:
 
     # Remove modifiers in order to simplify the schema.  For example, this removes things like "IF NOT EXISTS"
     # from "CREATE TABLE foo IF NOT EXISTS".
-    args_to_delete = ["temporary", "transient", "external", "replace", "exists", "unique", "materialized", "properties"]
+    args_to_delete = ["temporary", "transient", "external", "exists", "unique", "materialized", "properties"]
     for arg_to_delete in args_to_delete:
         if expression.args.get(arg_to_delete):
             del expression.args[arg_to_delete]
@@ -87,7 +87,46 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
+def _has_parse_json(expression):
+    if expression.find(exp.ParseJSON):
+        return True
+    _select = expression.find_ancestor(exp.Select)
+    if _select:
+        _from = _select.find(exp.From)
+        if _from:
+            _parse_json = _from.find(exp.ParseJSON)
+            if _parse_json:
+                return True
+    return False
+
+
+def _generate_function_str(select_contains_index, has_parse_json, generator_expr, alias, is_outer, alias_str):
+    if select_contains_index:
+        generator_function_str = f"POSEXPLODE({generator_expr})"
+        alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
+    elif has_parse_json and is_outer:
+        generator_function_str = f"VARIANT_EXPLODE_OUTER({generator_expr})"
+    elif has_parse_json:
+        generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
+    else:
+        generator_function_str = f"VIEW EXPLODE({generator_expr})"
+
+    return generator_function_str, alias_str
+
+
+def _generate_lateral_statement(self, select_contains_index, has_parse_json, generator_function_str, alias_str):
+    if select_contains_index:
+        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
+    elif has_parse_json:
+        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    else:
+        lateral_statement = self.sql(f" LATERAL {generator_function_str}{alias_str}")
+
+    return lateral_statement
+
+
 def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
+    has_parse_json = _has_parse_json(expression)
     this = expression.args['this']
     alias = expression.args['alias']
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
@@ -111,19 +150,20 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
             if node == "OUTER":
                 is_outer = True
 
-        if select_contains_index:
-            generator_function_str = f"POSEXPLODE({generator_expr})"
-            alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
-        else:
-            generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
+        if not generator_expr:
+            generator_expr = expression.this.this
 
-    if is_outer:
-        generator_function_str = generator_function_str.replace("VARIANT_EXPLODE", "VARIANT_EXPLODE_OUTER")
+        generator_function_str, alias_str = _generate_function_str(
+            select_contains_index, has_parse_json, generator_expr, alias, is_outer, alias_str
+        )
 
-    if select_contains_index:
-        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
-    else:
-        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    alias_cols = alias.columns if alias else []
+    if len(alias_cols) <= 2:
+        alias_str = f" As {', '.join([item.this for item in alias_cols])}"
+
+    lateral_statement = _generate_lateral_statement(
+        self, select_contains_index, has_parse_json, generator_function_str, alias_str
+    )
     return lateral_statement
 
 
@@ -270,6 +310,10 @@ def _to_number(self, expression: local_expression.ToNumber):
         if precision:
             return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
         return func_expr
+    if not precision:
+        precision = 38
+    if not scale:
+        scale = 0
     if not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
@@ -306,30 +350,30 @@ def _get_within_group_params(
 ) -> local_expression.WithinGroupParams:
     has_distinct = isinstance(expr.this, exp.Distinct)
     agg_col = expr.this.expressions[0] if has_distinct else expr.this
-    order_expr = within_group.expression
-    order_col = order_expr.expressions[0].this
-    desc = order_expr.expressions[0].args.get("desc")
-    is_order_asc = not desc or exp.false() == desc
-    # In Snow, if both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.
-    # Ref: https://docs.snowflake.com/en/sql-reference/functions/array_agg#usage-notes
-    # TODO: Check the same restriction applies for other source dialects to be added in the future
-    if has_distinct and agg_col != order_col:
-        raise ParseError("If both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.")
+    order_clause = within_group.expression
+    order_cols = []
+    for e in order_clause.expressions:
+        desc = e.args.get("desc")
+        is_order_a = not desc or exp.false() == desc
+        order_cols.append((e.this, is_order_a))
     return local_expression.WithinGroupParams(
         agg_col=agg_col,
-        order_col=order_col,
-        is_order_asc=is_order_asc,
+        order_cols=order_cols,
     )
 
 
-def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
+def _create_named_struct_for_cmp(wg_params: local_expression.WithinGroupParams) -> exp.Expression:
+    agg_col = wg_params.agg_col
+    order_kv = []
+    for i, (col, _) in enumerate(wg_params.order_cols):
+        order_kv.extend([exp.Literal(this=f"sort_by_{i}", is_string=True), col])
+
     named_struct_func = exp.Anonymous(
         this="named_struct",
         expressions=[
             exp.Literal(this="value", is_string=True),
             agg_col,
-            exp.Literal(this="sort_by", is_string=True),
-            order_col,
+            *order_kv,
         ],
     )
     return named_struct_func
@@ -384,6 +428,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
             exp.FromBase64: rename_func("UNBASE64"),
+            exp.AutoIncrementColumnConstraint: lambda *_: "GENERATED ALWAYS AS IDENTITY",
             local_expression.Parameter: _parm_sfx,
             local_expression.ToBoolean: _to_boolean,
             local_expression.Bracket: _lateral_bracket_sql,
@@ -416,6 +461,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentDate: _current_date,
             exp.Not: _not_sql,
             local_expression.ToArray: to_array,
+            local_expression.ArrayExists: rename_func("EXISTS"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
@@ -469,16 +515,24 @@ class Databricks(org_databricks.Databricks):  #
                 return sql
 
             wg_params = _get_within_group_params(expression, within_group)
-            if wg_params.agg_col == wg_params.order_col:
-                return f"SORT_ARRAY({sql}{'' if wg_params.is_order_asc else ', FALSE'})"
+            if len(wg_params.order_cols) == 1:
+                order_col, is_order_asc = wg_params.order_cols[0]
+                if wg_params.agg_col == order_col:
+                    return f"SORT_ARRAY({sql}{'' if is_order_asc else ', FALSE'})"
 
-            named_struct_func = _create_named_struct_for_cmp(wg_params.agg_col, wg_params.order_col)
+            named_struct_func = _create_named_struct_for_cmp(wg_params)
+            comparisons = []
+            for i, (_, is_order_asc) in enumerate(wg_params.order_cols):
+                comparisons.append(
+                    f"WHEN left.sort_by_{i} < right.sort_by_{i} THEN {'-1' if is_order_asc else '1'} "
+                    f"WHEN left.sort_by_{i} > right.sort_by_{i} THEN {'1' if is_order_asc else '-1'}"
+                )
+
             array_sort = self.func(
                 "ARRAY_SORT",
                 self.func("ARRAY_AGG", named_struct_func),
                 f"""(left, right) -> CASE
-                        WHEN left.sort_by < right.sort_by THEN {'-1' if wg_params.is_order_asc else '1'}
-                        WHEN left.sort_by > right.sort_by THEN {'1' if wg_params.is_order_asc else '-1'}
+                        {' '.join(comparisons)}
                         ELSE 0
                     END""",
             )
@@ -545,7 +599,7 @@ class Databricks(org_databricks.Databricks):  #
 
             return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
 
-        def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
+        def converttimezone_sql(self, expression: exp.ConvertTimezone):
             func = "CONVERT_TIMEZONE"
             expr = expression.args["tgtTZ"]
             if len(expression.args) == 3 and expression.args.get("this"):

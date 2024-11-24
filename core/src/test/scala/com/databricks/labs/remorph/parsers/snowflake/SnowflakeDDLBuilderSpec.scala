@@ -367,10 +367,10 @@ class SnowflakeDDLBuilderSpec
   }
   "SnowflakeDDLBuilder.visitAlter_table" should {
     "handle unexpected child" in {
-      val tableName = parseString("s.t1", _.objectName())
+      val tableName = parseString("s.t1", _.dotIdentifier())
       val alterTable = mock[AlterTableContext]
       val startTok = new CommonToken(ID, "s")
-      when(alterTable.objectName(0)).thenReturn(tableName)
+      when(alterTable.dotIdentifier(0)).thenReturn(tableName)
       when(alterTable.getStart).thenReturn(startTok)
       when(alterTable.getStop).thenReturn(startTok)
       when(alterTable.getRuleIndex).thenReturn(SnowflakeParser.RULE_alterTable)
@@ -380,7 +380,7 @@ class SnowflakeDDLBuilderSpec
         message = "Unknown ALTER TABLE variant",
         ruleName = "alterTable",
         tokenName = Some("ID"))
-      verify(alterTable).objectName(0)
+      verify(alterTable).dotIdentifier(0)
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
       verify(alterTable).getRuleIndex

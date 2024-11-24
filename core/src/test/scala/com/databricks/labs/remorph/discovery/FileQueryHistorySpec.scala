@@ -24,9 +24,12 @@ class FileQueryHistorySpec extends AnyFlatSpec with Matchers {
 
       val queryHistory = fileQueryHistory.history()
 
-      queryHistory.queries should have size 2
-      queryHistory.queries.head.source should include("SELECT * FROM table1;")
-      queryHistory.queries(1).source should include("SELECT * FROM table2;")
+      queryHistory.queries should have size 1
+      queryHistory.queries.head.source shouldBe
+        """
+          |SELECT * FROM table1;
+          |SELECT * FROM table2;
+          |""".stripMargin
 
     } finally {
       // Clean up the temporary directory

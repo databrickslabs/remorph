@@ -4,7 +4,6 @@ import com.databricks.labs.remorph.coverage.EstimationReportRecord
 import com.databricks.labs.remorph.intermediate.{ParsingErrors}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
-import upickle.default._
 
 import scala.util.control.NonFatal
 
@@ -22,29 +21,16 @@ object SqlComplexity {
     case s if s < 120 => COMPLEX
     case _ => VERY_COMPLEX
   }
-
-  implicit val rw: ReadWriter[SqlComplexity] = ReadWriter.merge(
-    macroRW[SqlComplexity.LOW.type],
-    macroRW[SqlComplexity.MEDIUM.type],
-    macroRW[SqlComplexity.COMPLEX.type],
-    macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
 case class ParseFailStats(ruleNameCounts: Map[String, Int], tokenNameCounts: Map[String, Int])
-object ParseFailStats {
-  implicit val rw: ReadWriter[ParseFailStats] = macroRW
-}
 
 case class EstimationStatistics(
     allStats: EstimationStatisticsEntry,
     successStats: EstimationStatisticsEntry,
     pfStats: ParseFailStats)
-
-object EstimationStatistics {
-  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
-}
 
 case class EstimationStatisticsEntry(
     medianScore: Int,
@@ -56,10 +42,6 @@ case class EstimationStatisticsEntry(
     percentile75: Double,
     geometricMeanScore: Double,
     complexity: SqlComplexity)
-
-object EstimationStatisticsEntry {
-  implicit val rw: ReadWriter[EstimationStatisticsEntry] = macroRW
-}
 
 class EstimationAnalyzer extends LazyLogging {
 

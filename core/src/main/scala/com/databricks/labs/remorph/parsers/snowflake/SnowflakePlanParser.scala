@@ -1,16 +1,11 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.{CharStream, Lexer, ParserRuleContext, TokenStream}
 
 class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
-
-  private val exprGenerator = new ExpressionGenerator
-  private val optionGenerator = new OptionGenerator(exprGenerator)
-  private val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
 
   private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 
@@ -30,9 +25,10 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
       new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,
-      new CastParseJsonToFromJson(generator),
+      new CastParseJsonToFromJson,
       new TranslateWithinGroup,
       new FlattenNestedConcat,
-      new CompactJsonAccess)
+      new CompactJsonAccess,
+      new DealiasInlineColumnExpressions)
   }
 }

@@ -1,15 +1,15 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{OkResult, PartialResult, Phase, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, PartialResult, TransformationConstructors, intermediate => ir}
 
 /**
  * @see
  *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
  */
-object DataTypeGenerator extends TransformationConstructors[Phase] {
+object DataTypeGenerator extends TransformationConstructors {
 
-  def generateDataType(ctx: GeneratorContext, dt: ir.DataType): SQL = dt match {
+  def generateDataType(dt: ir.DataType): SQL = dt match {
     case ir.NullType => lift(OkResult("VOID"))
     case ir.BooleanType => lift(OkResult("BOOLEAN"))
     case ir.BinaryType => lift(OkResult("BINARY"))
@@ -30,17 +30,17 @@ object DataTypeGenerator extends TransformationConstructors[Phase] {
     case ir.DateType => lift(OkResult("DATE"))
     case ir.TimestampType => lift(OkResult("TIMESTAMP"))
     case ir.TimestampNTZType => lift(OkResult("TIMESTAMP_NTZ"))
-    case ir.ArrayType(elementType) => code"ARRAY<${generateDataType(ctx, elementType)}>"
+    case ir.ArrayType(elementType) => code"ARRAY<${generateDataType(elementType)}>"
     case ir.StructType(fields) =>
       val fieldTypes = fields
         .map { case ir.StructField(name, dataType, nullable, _) =>
           val isNullable = if (nullable) "" else " NOT NULL"
-          code"$name:${generateDataType(ctx, dataType)}$isNullable"
+          code"$name:${generateDataType(dataType)}$isNullable"
         }
         .mkCode(",")
       code"STRUCT<$fieldTypes>"
     case ir.MapType(keyType, valueType) =>
-      code"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
+      code"MAP<${generateDataType(keyType)}, ${generateDataType(valueType)}>"
     case ir.VarcharType(size) => code"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => code"CHAR${maybeSize(size)}"
     case ir.VariantType => code"VARIANT"

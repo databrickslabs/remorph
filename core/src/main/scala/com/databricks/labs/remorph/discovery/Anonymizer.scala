@@ -2,9 +2,8 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, SourceCode, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Parsing, WorkflowStage}
 import com.typesafe.scalalogging.LazyLogging
-import upickle.default._
 
 import java.security.MessageDigest
 import java.sql.Timestamp
@@ -13,17 +12,11 @@ import java.time.Duration
 object WorkloadType extends Enumeration {
   type WorkloadType = Value
   val ETL, SQL_SERVING, OTHER = Value
-
-  implicit val rw: ReadWriter[WorkloadType] =
-    readwriter[String].bimap[WorkloadType](_.toString, str => WorkloadType.withName(str))
 }
 
 object QueryType extends Enumeration {
   type QueryType = Value
   val DDL, DML, PROC, OTHER = Value
-
-  implicit val rw: ReadWriter[QueryType] =
-    readwriter[String].bimap[QueryType](_.toString, str => QueryType.withName(str))
 }
 
 /**
@@ -48,14 +41,6 @@ case class Fingerprint(
     workloadType: WorkloadType.WorkloadType,
     queryType: QueryType.QueryType) {}
 
-object Fingerprint {
-  implicit val rw: ReadWriter[Fingerprint] = macroRW
-  implicit val timestampRW: ReadWriter[Timestamp] =
-    readwriter[Long].bimap[Timestamp](ts => ts.getTime, millis => new Timestamp(millis))
-  implicit val durationRW: ReadWriter[Duration] =
-    readwriter[Long].bimap[Duration](duration => duration.toMillis, millis => Duration.ofMillis(millis))
-}
-
 case class Fingerprints(fingerprints: Seq[Fingerprint]) {
   def uniqueQueries: Int = fingerprints.map(_.fingerprint).distinct.size
 }
@@ -70,7 +55,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse(SourceCode(query.source)).flatMap(parser.visit).run(SourceCode(query.source)) match {
+    parser.parse(Parsing(query.source)).flatMap(parser.visit).run(Parsing(query.source)) match {
       case KoResult(WorkflowStage.PARSE, error) =>
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
         Fingerprint(

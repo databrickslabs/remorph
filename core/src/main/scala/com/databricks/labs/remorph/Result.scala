@@ -12,41 +12,78 @@ object WorkflowStage {
 }
 
 /**
- * Represents a stateful computation
- * @param runF
- * @tparam State
- * @tparam Out
+ * Represents a stateful computation that will eventually produce an output of type Out. It manages a state of
+ * type Phase along the way. Moreover, by relying on the semantics of Result, it is also able to handle
+ * errors in a controlled way.
+ *
+ * It is important to note that nothing won't get evaluated until the run or runAndDiscardState are called.
+ * @param run
+ *   The computation that will be carried out by this computation. It is basically a function that takes a Phase as
+ *   parameter and returns a Result containing the, possibly updated, State along with the Output.
+ * @tparam Output
+ *   The type of the produced output.
  */
-final class Transformation[State, +Out](val runF: Result[State => Result[(State, Out)]]) {
-
-  def map[B](f: Out => B): Transformation[State, B] = new Transformation(runF.map(_.andThen(_.map { case (s, a) =>
-    (s, f(a))
-  })))
-
-  def flatMap[B](f: Out => Transformation[State, B]): Transformation[State, B] = new Transformation(
-    runF.map(_.andThen(_.flatMap { case (s, a) =>
-      f(a).runF.flatMap(_.apply(s))
-    })))
-
-  def run(initialState: State): Result[(State, Out)] = runF.flatMap(_.apply(initialState))
+final class Transformation[+Output](val run: Phase => Result[(Phase, Output)]) {
 
   /**
-   * Runs the computation and discard the final state,
-   * @param initialState
-   * @return
+   * Modify the output of this transformation using the provided function, without changing the managed state.
+   *
+   * If this transformation results in a KoResult, the provided function won't be evaluated.
    */
-  def runAndDiscardState(initialState: State): Result[Out] = run(initialState).map(_._2)
+  def map[B](f: Output => B): Transformation[B] = new Transformation(run.andThen(_.map { case (s, a) => (s, f(a)) }))
+
+  /**
+   * Chain this transformation with another one by passing this transformation's output to the provided function.
+   *
+   * If this transformation results in a KoResult, the provided function won't be evaluated.
+   */
+  def flatMap[B](f: Output => Transformation[B]): Transformation[B] = new Transformation(run.andThen {
+    case OkResult((s, a)) => f(a).run(s)
+    case p @ PartialResult((s, a), err) => p.flatMap { _ => f(a).run(s.recordError(err)) }
+    case ko: KoResult => ko
+  })
+
+  /**
+   * Runs the computation using the provided initial state and return a Result containing the transformation's output,
+   * discarding the final state.
+   */
+  def runAndDiscardState(initialState: Phase): Result[Output] = run(initialState).map(_._2)
 }
 
-trait TransformationConstructors[S] {
-  def ok[A](a: A): Transformation[S, A] = new Transformation(OkResult(s => OkResult((s, a))))
-  def ko(stage: WorkflowStage, err: RemorphError): Transformation[S, Nothing] = new Transformation(
-    OkResult(s => KoResult(stage, err)))
-  def lift[X](res: Result[X]): Transformation[S, X] = new Transformation(OkResult(s => res.map(x => (s, x))))
-  def get: Transformation[S, S] = new Transformation(OkResult(s => OkResult((s, s))))
-  def set(newState: S): Transformation[S, Unit] = new Transformation(OkResult(_ => OkResult((newState, ()))))
-  def update[T](f: PartialFunction[S, S]): Transformation[S, Unit] = new Transformation(
-    OkResult(s => OkResult((f.applyOrElse(s, identity[S]), ()))))
+trait TransformationConstructors {
+
+  /**
+   * Wraps a value into a successful transformation that ignores its state.
+   */
+  def ok[A](a: A): Transformation[A] = new Transformation(s => OkResult((s, a)))
+
+  /**
+   * Wraps an error into a failed transformation.
+   */
+  def ko(stage: WorkflowStage, err: RemorphError): Transformation[Nothing] = new Transformation(s =>
+    KoResult(stage, err))
+
+  /**
+   * Wraps a Result into a transformation that ignores its state.
+   */
+  def lift[X](res: Result[X]): Transformation[X] = new Transformation(s => res.map(x => (s, x)))
+
+  /**
+   * A tranformation whose output is the current state.
+   */
+  def get: Transformation[Phase] = new Transformation(s => OkResult((s, s)))
+
+  /**
+   * A transformation that replaces the current state with the provided one, and produces no meaningful output.
+   */
+  def set(newState: Phase): Transformation[Unit] = new Transformation(_ => OkResult((newState, ())))
+
+  /**
+   * A transformation that updates the current state using the provided partial function, and produces no meaningful
+   * output. If the provided partial function cannot be applied to the current state, it remains unchanged.
+   */
+  def update(f: PartialFunction[Phase, Phase]): Transformation[Unit] = new Transformation(s =>
+    OkResult((f.applyOrElse(s, identity[Phase]), ())))
 }
 
 sealed trait Result[+A] {

@@ -89,6 +89,13 @@ class SnowflakeExpressionBuilderSpec
           Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
       }
     }
+
+    "translate column positions" should {
+      "$1" in {
+        exampleExpr("$1", _.columnElem(), Column(None, Position(1)))
+      }
+    }
+
     "translate aliases" should {
       "x AS y" in {
         exampleExpr("1 AS y", _.selectListElem(), Alias(Literal(1), Id("y")))
@@ -456,10 +463,10 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       vc.expressionBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
-      verify(literal).DATE()
+      verify(literal).id()
       verify(literal).TIMESTAMP()
       verify(literal).string()
-      verify(literal).DECIMAL()
+      verify(literal).INT()
       verify(literal).FLOAT()
       verify(literal).REAL()
       verify(literal).trueFalse()
