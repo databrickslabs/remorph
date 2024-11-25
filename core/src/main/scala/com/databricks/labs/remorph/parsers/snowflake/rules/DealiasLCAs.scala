@@ -49,7 +49,7 @@ class Dealiaser(val aliases: Map[String, Expression], val isInColumnExpression: 
 
   private def dealiasName(name: Name): Expression = {
     // don't dealias column names when dealing with column expressions
-    if(isInColumnExpression) {
+    if (isInColumnExpression) {
       name
     } else {
       val alias = aliases.find(p => p._1 == name.name)
@@ -64,7 +64,7 @@ class Dealiaser(val aliases: Map[String, Expression], val isInColumnExpression: 
 
   private def dealiasId(id: Id): Expression = {
     // don't dealias column names when dealing with column expressions
-    if(isInColumnExpression) {
+    if (isInColumnExpression) {
       id
     } else {
       val alias = aliases.find(p => p._1 == id.id)
