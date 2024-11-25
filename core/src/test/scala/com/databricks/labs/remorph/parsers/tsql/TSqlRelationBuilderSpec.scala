@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -11,9 +10,9 @@ class TSqlRelationBuilderSpec
     with TSqlParserTestCommon
     with Matchers
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
-  override protected def astBuilder: TSqlRelationBuilder = new TSqlRelationBuilder
+  override protected def astBuilder: TSqlRelationBuilder = vc.relationBuilder
 
   "TSqlRelationBuilder" should {
 
@@ -146,6 +145,40 @@ class TSqlRelationBuilderSpec
             all_columns_as_keys = false,
             within_watermark = false),
           Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
+    }
+
+    "translate right-associative UNION clauses" should {
+      // These are of the form: (queryExpression) [UNION [ALL] query expression]
+      "(SELECT a, b FROM bb) UNION select x, y FROM zz" in {
+        example(
+          "(SELECT a, b FROM bb) UNION select x, y FROM zz",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
+            ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+            ir.UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "(SELECT a, b FROM bb) UNION ALL select x, y FROM zz" in {
+        example(
+          "(SELECT a, b FROM bb) UNION ALL select x, y FROM zz",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
+            ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+            ir.UnionSetOp,
+            is_all = true,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "(SELECT a, b FROM bb)" in {
+        example(
+          "(SELECT a, b FROM bb)",
+          _.queryExpression(),
+          ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))))
+      }
     }
 
     "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')" in {

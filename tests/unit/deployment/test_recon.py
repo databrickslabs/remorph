@@ -41,7 +41,7 @@ def test_install_missing_config(ws):
         dashboard_deployer,
     )
     remorph_config = None
-    recon_deployer.install(remorph_config)
+    recon_deployer.install(remorph_config, ["remorph-x.y.z-py3-none-any.whl"])
     table_deployer.deploy_table_from_ddl_file.assert_not_called()
     job_deployer.deploy_recon_job.assert_not_called()
     dashboard_deployer.deploy.assert_not_called()
@@ -108,7 +108,7 @@ def test_install(ws):
 
     ws.lakeview.trash.side_effect = raise_invalid_parameter_err_for_dashboard
     ws.jobs.delete.side_effect = raise_invalid_parameter_err_for_job
-    recon_deployer.install(reconcile_config)
+    recon_deployer.install(reconcile_config, ["remorph-x.y.z-py3-none-any.whl"])
     table_deployer.deploy_table_from_ddl_file.assert_called()
     job_deployer.deploy_recon_job.assert_called()
     dashboard_deployer.deploy.assert_called()
@@ -116,9 +116,6 @@ def test_install(ws):
     assert "Reconciliation Deprecated Job 1" not in install_state.jobs
     assert "Reconciliation Deprecated Job 2" not in install_state.jobs
     assert "Some other Job" in install_state.jobs
-    assert "Reconciliation Deprecated Dashboard 1" not in install_state.dashboards
-    assert "Reconciliation Deprecated Dashboard 2" not in install_state.dashboards
-    assert "Some other Dashboard" in install_state.dashboards
 
 
 def test_uninstall_missing_config(ws):
@@ -211,5 +208,4 @@ def test_uninstall(ws):
 
     assert "Reconciliation Runner" not in install_state.jobs
     assert "Some other Job" in install_state.jobs
-    assert "Reconciliation Metrics" not in install_state.dashboards
-    assert "Some other Dashboard" in install_state.dashboards
+    assert len(install_state.dashboards.keys()) == 0

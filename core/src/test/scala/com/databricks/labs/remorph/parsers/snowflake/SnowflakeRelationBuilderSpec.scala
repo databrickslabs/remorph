@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
@@ -18,7 +18,7 @@ class SnowflakeRelationBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeRelationBuilder = new SnowflakeRelationBuilder
+  override protected def astBuilder: SnowflakeRelationBuilder = vc.relationBuilder
 
   private def examples[R <: RuleContext](
       queries: Seq[String],
@@ -227,16 +227,13 @@ class SnowflakeRelationBuilderSpec
         example(
           "WITH a AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))), Id("a"), Seq()))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq()))
       }
       "WITH a (b, c) AS (SELECT x, y FROM d)" in {
         example(
           "WITH a (b, c) AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(
-            Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))),
-            Id("a"),
-            Seq(Id("b"), Id("c"))))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq(Id("b"), Id("c"))))
       }
     }
 
@@ -251,7 +248,7 @@ class SnowflakeRelationBuilderSpec
               window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Id("p")),
               sort_order = Seq(SortOrder(Id("o"), Ascending, NullsLast)),
-              frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))),
+              frame_spec = None),
             Literal(1))))
     }
 
@@ -261,7 +258,7 @@ class SnowflakeRelationBuilderSpec
         _.selectStatement(),
         Deduplicate(
           namedTable("t"),
-          column_names = Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb"))),
+          column_names = Seq(Id("a"), Alias(Id("b"), Id("bb"))),
           all_columns_as_keys = false,
           within_watermark = false))
     }
@@ -271,18 +268,14 @@ class SnowflakeRelationBuilderSpec
         example(
           "SELECT TOP 42 a FROM t",
           _.selectStatement(),
-          Project(Limit(namedTable("t"), Literal(42)), Seq(simplyNamedColumn("a"))))
+          Project(Limit(namedTable("t"), Literal(42)), Seq(Id("a"))))
       }
       "SELECT DISTINCT TOP 42 a FROM t" in {
         example(
           "SELECT DISTINCT TOP 42 a FROM t",
           _.selectStatement(),
           Limit(
-            Deduplicate(
-              namedTable("t"),
-              Seq(simplyNamedColumn("a")),
-              all_columns_as_keys = false,
-              within_watermark = false),
+            Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
             Literal(42)))
       }
     }
@@ -292,6 +285,10 @@ class SnowflakeRelationBuilderSpec
         "VALUES ('a', 1), ('b', 2)",
         _.objectRef(),
         Values(Seq(Seq(Literal("a"), Literal(1)), Seq(Literal("b"), Literal(2)))))
+    }
+
+    "do not confuse VALUES clauses with a single row with a function call" in {
+      example("VALUES (1, 2, 3)", _.objectRef(), Values(Seq(Seq(Literal(1), Literal(2), Literal(3)))))
     }
 
     "translate table functions as object references" should {
@@ -304,7 +301,11 @@ class SnowflakeRelationBuilderSpec
               "some_func",
               Seq(Id("some_arg")),
               is_distinct = false,
-              is_user_defined_function = false)))
+              is_user_defined_function = false,
+              ruleText = "some_func(...)",
+              ruleName = "N/A",
+              tokenName = Some("N/A"),
+              message = "Function some_func is not convertible to Databricks SQL")))
       }
       "TABLE(some_func(some_arg)) t(c1, c2, c3)" in {
         example(
@@ -316,7 +317,11 @@ class SnowflakeRelationBuilderSpec
                 "some_func",
                 Seq(Id("some_arg")),
                 is_distinct = false,
-                is_user_defined_function = false)),
+                is_user_defined_function = false,
+                ruleText = "some_func(...)",
+                ruleName = "N/A",
+                tokenName = Some("N/A"),
+                message = "Function some_func is not convertible to Databricks SQL")),
             Id("t"),
             Seq(Id("c1"), Id("c2"), Id("c3"))))
       }
@@ -350,7 +355,14 @@ class SnowflakeRelationBuilderSpec
 
   "Unparsed input" should {
     "be reported as UnresolvedRelation" in {
-      example("MATCH_RECOGNIZE()", _.matchRecognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
+      example(
+        "MATCH_RECOGNIZE()",
+        _.matchRecognize(),
+        UnresolvedRelation(
+          ruleText = "MATCH_RECOGNIZE()",
+          message = "Unimplemented visitor visitMatchRecognize in class SnowflakeRelationBuilder",
+          ruleName = "matchRecognize",
+          tokenName = Some("MATCH_RECOGNIZE")))
     }
   }
 
@@ -359,7 +371,7 @@ class SnowflakeRelationBuilderSpec
       val outerJoin = mock[OuterJoinContext]
       val joinType = mock[JoinTypeContext]
       when(joinType.outerJoin()).thenReturn(outerJoin)
-      astBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
+      vc.relationBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
       verify(outerJoin).LEFT()
       verify(outerJoin).RIGHT()
       verify(outerJoin).FULL()

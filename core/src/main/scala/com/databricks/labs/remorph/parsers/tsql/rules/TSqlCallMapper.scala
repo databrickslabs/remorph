@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 class TSqlCallMapper extends CallMapper {
 
@@ -54,7 +54,7 @@ class TSqlCallMapper extends CallMapper {
     // many strings and aliases for "day", "month", "year", etc. We need to extract this string and
     // perform the translation based on what we get
     val interval = args.head match {
-      case Column(_, id) => id.id.toLowerCase()
+      case Column(_, Id(id, _)) => id.toLowerCase()
       case _ =>
         throw new IllegalArgumentException("DATEADD interval type is not valid. Should be 'day', 'month', 'year', etc.")
     }

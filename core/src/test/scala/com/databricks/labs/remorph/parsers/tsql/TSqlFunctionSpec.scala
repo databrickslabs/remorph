@@ -1,13 +1,12 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
+class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with ir.IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 
   "translate functions with no parameters" in {
     exampleExpr("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
@@ -57,11 +56,18 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     exampleExpr(
       "UNKNOWN_FUNCTION()",
       _.expression(),
-      ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "UNKNOWN_FUNCTION",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "UNKNOWN_FUNCTION(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function UNKNOWN_FUNCTION is not convertible to Databricks SQL"))
   }
 
   "translate functions with invalid function argument counts" in {
-    // Later, we will register a semantic or lint error
     exampleExpr(
       "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
       _.expression(),
@@ -70,7 +76,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.Literal("a"), ir.Literal("b"), ir.Literal("c"), ir.Literal("d")),
         is_distinct = false,
         is_user_defined_function = false,
-        has_incorrect_argc = true))
+        has_incorrect_argc = true,
+        ruleText = "USER_NAME(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Invocation of USER_NAME has incorrect argument count"))
 
     exampleExpr(
       "FLOOR()", // FLOOR requires 1 argument
@@ -80,7 +90,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         List(),
         is_distinct = false,
         is_user_defined_function = false,
-        has_incorrect_argc = true))
+        has_incorrect_argc = true,
+        ruleText = "FLOOR(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Invocation of FLOOR has incorrect argument count"))
   }
 
   "translate functions that we know cannot be converted" in {
@@ -92,7 +106,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         "CONNECTIONPROPERTY",
         List(ir.Literal("property")),
         is_distinct = false,
-        is_user_defined_function = false))
+        is_user_defined_function = false,
+        ruleText = "CONNECTIONPROPERTY(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function CONNECTIONPROPERTY is not convertible to Databricks SQL"))
   }
 
   "translate windowing functions in all forms" in {
@@ -103,7 +121,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.UnspecifiedSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RangeFrame, ir.UnboundedPreceding, ir.CurrentRow))))
     exampleExpr(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
@@ -111,7 +129,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.UnspecifiedSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.NoBoundary))))
 
     exampleExpr(
@@ -120,7 +138,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.UnspecifiedSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.PrecedingN(ir.Literal(66)), ir.NoBoundary))))
 
     exampleExpr(
@@ -131,7 +149,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("AVG", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department_id")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.UnspecifiedSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.CurrentRow))))
 
     exampleExpr(
@@ -142,7 +160,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("sales"))),
         List(),
-        Seq(ir.SortOrder(simplyNamedColumn("month"), ir.Ascending, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("month"), ir.UnspecifiedSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.CurrentRow, ir.FollowingN(ir.Literal(2))))))
 
     exampleExpr(
@@ -174,16 +192,32 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   "translate special keyword functions" in {
     exampleExpr(
-      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@CURSOR_ROWS",
       _.expression(),
-      ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "@@CURSOR_ROWS",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "@@CURSOR_ROWS(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function @@CURSOR_ROWS is not convertible to Databricks SQL"))
 
     exampleExpr(
-      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@FETCH_STATUS",
       _.expression(),
-      ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "@@FETCH_STATUS",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "@@FETCH_STATUS(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function @@FETCH_STATUS is not convertible to Databricks SQL"))
 
     exampleExpr("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
 
@@ -213,7 +247,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         None))
 
     exampleExpr(
-      query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
+      query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary ASC) OVER (PARTITION BY DepartmentID)",
       _.expression(),
       ir.Window(
         ir.WithinGroup(
@@ -240,10 +274,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(1), ir.Literal.True)),
+        ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(1))),
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Descending, ir.SortNullsUnspecified)),
-        None))
+        None,
+        ignore_nulls = true))
 
   }
 
@@ -331,20 +366,44 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     exampleExpr(
       query = "FREETEXTTABLE(table, col, 'search')",
       _.expression(),
-      ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "FREETEXTTABLE",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "FREETEXTTABLE(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function FREETEXTTABLE is not convertible to Databricks SQL"))
   }
 
   "translate $PARTITION functions as inconvertible" in {
     exampleExpr(
       query = "$PARTITION.partitionFunction(col)",
       _.expression(),
-      ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "$PARTITION",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "$PARTITION(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function $PARTITION is not convertible to Databricks SQL"))
   }
 
   "translate HIERARCHYID static method as inconvertible" in {
     exampleExpr(
       query = "HIERARCHYID::Parse('1/2/3')",
       _.expression(),
-      ir.UnresolvedFunction("HIERARCHYID", List.empty, is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "HIERARCHYID",
+        List.empty,
+        is_distinct = false,
+        is_user_defined_function = false,
+        ruleText = "HIERARCHYID(...)",
+        ruleName = "N/A",
+        tokenName = Some("N/A"),
+        message = "Function HIERARCHYID is not convertible to Databricks SQL"))
   }
 }

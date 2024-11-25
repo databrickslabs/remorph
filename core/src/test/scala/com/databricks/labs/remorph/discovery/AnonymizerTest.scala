@@ -13,15 +13,17 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val snow = new SnowflakePlanParser
       val anonymizer = new Anonymizer(snow)
       val query = ExecutedQuery(
-        new Timestamp(1725032011000L),
+        "id",
         "SELECT a, b FROM c WHERE d >= 300 AND e = 'foo'",
+        new Timestamp(1725032011000L),
         Duration.ofMillis(300),
-        "foo")
+        Some("foo"))
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
-          "4e1ebb6993509ec6bb977224ecec02fc9bb6f118",
+          "b0b00569bfa1fe3975afc221a4a24630a0ab4ec9",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.SQL_SERVING,
@@ -33,13 +35,15 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val anonymizer = new Anonymizer(snow)
       val query =
         ExecutedQuery(
-          new Timestamp(1725032011000L),
+          "id",
           "CREATE TABLE foo (a INT, b STRING)",
+          new Timestamp(1725032011000L),
           Duration.ofMillis(300),
-          "foo")
+          Some("foo"))
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
           "828f7eb7d417310ab5c1673c96ec82c47f0231e4",
           Duration.ofMillis(300),
@@ -48,15 +52,17 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
           QueryType.DDL))
     }
 
-    "unknown query" in {
+    "trap an unknown query" in {
       val snow = new SnowflakePlanParser
       val anonymizer = new Anonymizer(snow)
-      val query = ExecutedQuery(new Timestamp(1725032011000L), "THIS IS UNKNOWN;", Duration.ofMillis(300), "foo")
+      val query =
+        ExecutedQuery("id", "THIS IS UNKNOWN;", new Timestamp(1725032011000L), Duration.ofMillis(300), Some("foo"))
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
-          "c11ea6f506aa613d9d653cebf93902340d85d3fb",
+          "290f4d72ca8faeb28873d8fff779ce93ed5cdb69",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,
@@ -71,20 +77,23 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val history = QueryHistory(
         Seq(
           ExecutedQuery(
-            new Timestamp(1725032011000L),
+            "id",
             "SELECT a, b FROM c WHERE d >= 300 AND e = 'foo'",
+            new Timestamp(1725032011000L),
             Duration.ofMillis(300),
-            "foo"),
+            Some("foo")),
           ExecutedQuery(
-            new Timestamp(1725032011001L),
+            "id",
             "SELECT a, b FROM c WHERE d >= 931 AND e = 'bar'",
+            new Timestamp(1725032011001L),
             Duration.ofMillis(300),
-            "foo"),
+            Some("foo")),
           ExecutedQuery(
-            new Timestamp(1725032011002L),
+            "id",
             "SELECT a, b FROM c WHERE d >= 234 AND e = 'something very different'",
+            new Timestamp(1725032011002L),
             Duration.ofMillis(300),
-            "foo")))
+            Some("foo"))))
 
       val fingerprints = anonymizer.apply(history)
       fingerprints.uniqueQueries should equal(1)

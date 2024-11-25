@@ -363,14 +363,14 @@ class ReconCapture:
                     'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') 
                         and '{exception_msg}' = '' then
                      named_struct(
-                        'missing_in_source', {data_reconcile_output.missing_in_src_count},
-                        'missing_in_target', {data_reconcile_output.missing_in_tgt_count}
+                        'missing_in_source', cast({data_reconcile_output.missing_in_src_count} as bigint),
+                        'missing_in_target', cast({data_reconcile_output.missing_in_tgt_count} as bigint)
                     ) else null end,
                     'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') 
                         and '{exception_msg}' = '' then
                     named_struct(
-                        'absolute_mismatch', {data_reconcile_output.mismatch_count},
-                        'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
+                        'absolute_mismatch', cast({data_reconcile_output.mismatch_count} as bigint),
+                        'threshold_mismatch', cast({data_reconcile_output.threshold_output.threshold_mismatch_count} as bigint),
                         'mismatch_columns', '{",".join(mismatch_columns)}'
                     ) else null end,
                     'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 

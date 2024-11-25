@@ -36,3 +36,7 @@ class ReadAndWriteWithVolumeException(PySparkException):
 
 class CleanFromVolumeException(PySparkException):
     """Raise the error when there is a runtime exception thrown while cleaning data from volume"""
+
+
+class InvalidSnowflakePemPrivateKey(Exception):
+    """Raise the error when the input private key is invalid"""

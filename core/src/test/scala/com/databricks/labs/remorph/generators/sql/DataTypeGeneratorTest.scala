@@ -1,14 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{Init, OkResult, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import org.scalatest.wordspec.AnyWordSpec
 
 class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
 
-  val translations = Table(
+  val translations: TableFor2[ir.DataType, String] = Table(
     ("datatype", "expected translation"),
     (ir.NullType, "VOID"),
     (ir.BooleanType, "BOOLEAN"),
@@ -29,6 +28,7 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
     (ir.ArrayType(ir.ArrayType(ir.IntegerType)), "ARRAY<ARRAY<INT>>"),
     (ir.MapType(ir.StringType, ir.DoubleType), "MAP<STRING, DOUBLE>"),
     (ir.MapType(ir.StringType, ir.ArrayType(ir.DateType)), "MAP<STRING, ARRAY<DATE>>"),
+    (ir.VarcharType(Some(10)), "VARCHAR(10)"),
     (
       ir.StructExpr(
         Seq(
@@ -41,8 +41,7 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
   "DataTypeGenerator" should {
     "generate proper SQL data types" in {
       forAll(translations) { (dt, expected) =>
-        val logical = new LogicalPlanGenerator(new ExpressionGenerator())
-        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt) shouldBe expected
+        DataTypeGenerator.generateDataType(dt).runAndDiscardState(Init) shouldBe OkResult(expected)
       }
     }
   }

@@ -118,10 +118,13 @@ def test_lower(expr):
 
 
 def test_get_hash_transform():
-    assert isinstance(get_hash_transform(get_dialect("snowflake")), list) is True
+    assert isinstance(get_hash_transform(get_dialect("snowflake"), "source"), list) is True
 
     with pytest.raises(ValueError):
-        get_hash_transform(get_dialect("trino"))
+        get_hash_transform(get_dialect("trino"), "source")
+
+    with pytest.raises(ValueError):
+        get_hash_transform(get_dialect("snowflake"), "sourc")
 
 
 def test_build_from_clause():

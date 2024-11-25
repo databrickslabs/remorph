@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 
 import java.util.concurrent.atomic.AtomicLong
 
@@ -38,7 +38,7 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
     val percentileColName = s"_percentile$cteSuffix"
     child match {
       case Sort(child, order, _) =>
-        // this is (temporary) hack due to the lack of star resolution. otherwise child.output is fine
+        // TODO: this is (temporary) hack due to the lack of star resolution. otherwise child.output is fine
         val reProject = child.find(_.isInstanceOf[Project]).map(_.asInstanceOf[Project]) match {
           case Some(Project(_, expressions)) => expressions
           case None =>
@@ -49,12 +49,19 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
             SubqueryAlias(child, Id(originalCteName)),
             SubqueryAlias(
               Project(
-                UnresolvedRelation(originalCteName),
+                UnresolvedRelation(originalCteName, message = s"Unresolved $originalCteName"),
                 reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Id(percentileColName)))),
               Id(withPercentileCteName))),
           Filter(
-            Project(UnresolvedRelation(withPercentileCteName), reProject),
-            LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(100)))))
+            Project(
+              UnresolvedRelation(withPercentileCteName, message = s"Unresolved $withPercentileCteName"),
+              reProject),
+            LessThanOrEqual(
+              UnresolvedAttribute(
+                percentileColName,
+                ruleText = percentileColName,
+                message = s"Unresolved $percentileColName"),
+              Divide(percentage, Literal(100)))))
       case _ =>
         // TODO: (jimidle) figure out cases when this is not true
         throw new IllegalArgumentException("TopPercent with ties requires a Sort node")
@@ -69,13 +76,21 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
       Seq(
         SubqueryAlias(child, Id(originalCteName)),
         SubqueryAlias(
-          Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Id("count")))),
+          Project(
+            UnresolvedRelation(ruleText = originalCteName, message = s"Unresolved relation $originalCteName"),
+            Seq(Alias(Count(Seq(Star())), Id("count")))),
           Id(countedCteName))),
       Limit(
-        Project(UnresolvedRelation(originalCteName), Seq(Star())),
+        Project(
+          UnresolvedRelation(ruleText = originalCteName, message = s"Unresolved relation $originalCteName"),
+          Seq(Star())),
         ScalarSubquery(
           Project(
-            UnresolvedRelation(countedCteName),
+            UnresolvedRelation(
+              ruleText = countedCteName,
+              message = s"Unresolved relation $countedCteName",
+              ruleName = "N/A",
+              tokenName = Some("N/A")),
             Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(100)), LongType))))))
   }
 }

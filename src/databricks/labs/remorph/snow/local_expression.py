@@ -41,6 +41,10 @@ class TryToDate(Func):
     arg_types = {"this": True, "format": False}
 
 
+class TryToTimestamp(Func):
+    arg_types = {"this": True, "format": False}
+
+
 class SplitPart(Func):
     arg_types = {"this": True, "expression": False, "partNum": False}
 
@@ -156,11 +160,14 @@ class Ntile(Func):
     arg_types = {"this": True, "is_string": False}
 
 
+class ToArray(Func):
+    arg_types = {"this": True, "expression": False}
+
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
-    order_col: exp.Column
-    is_order_asc: bool
+    order_cols: list[tuple[exp.Column, bool]]  # List of (column, is ascending)
 
 
 @dataclass
@@ -168,3 +175,19 @@ class AliasInfo:
     name: str
     expression: exp.Expression
     is_same_name_as_column: bool
+
+
+class MapKeys(Func):
+    arg_types = {"this": True}
+
+
+class ArrayExists(Func):
+    arg_types = {"this": True, "expression": True}
+
+
+class Locate(Func):
+    arg_types = {"substring": True, "this": True, "position": False}
+
+
+class NamedStruct(Func):
+    arg_types = {"expressions": True}

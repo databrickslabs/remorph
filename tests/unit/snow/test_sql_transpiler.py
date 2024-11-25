@@ -2,7 +2,6 @@ import pytest
 from sqlglot import expressions
 
 from databricks.labs.remorph.snow import local_expression
-from databricks.labs.remorph.snow.experimental import DatabricksExperimental
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 
 
@@ -74,7 +73,10 @@ def test_tokenizer_exception(transpiler, write_dialect):
 def test_procedure_conversion(transpiler, write_dialect):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
     transpiler_result = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
-    assert transpiler_result.transpiled_sql[0] == "CREATE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
+    assert (
+        transpiler_result.transpiled_sql[0]
+        == "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
+    )
 
 
 def test_find_root_tables(transpiler):
@@ -87,9 +89,3 @@ def test_parse_sql_content(transpiler):
     result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
-
-
-def test_experimental_write_dialect(morph_config):
-    morph_config.mode = "experimental"
-    dialect = morph_config.get_write_dialect()
-    assert isinstance(dialect, DatabricksExperimental)

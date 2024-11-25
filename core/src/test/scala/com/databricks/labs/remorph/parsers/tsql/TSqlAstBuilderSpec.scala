@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import org.mockito.Mockito.{mock, when}
@@ -9,7 +9,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.astBuilder
 
   private def example(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), expectedAst)
@@ -218,8 +218,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       when(joinTypeContextMock.INNER()).thenReturn(null)
       when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
 
-      val builder = new TSqlRelationBuilder
-      val result = builder.translateJoinType(joinOnContextMock)
+      val result = vc.relationBuilder.translateJoinType(joinOnContextMock)
       result shouldBe UnspecifiedJoin
     }
 
@@ -360,17 +359,21 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))))
   }
 
-  "Columns specified with dedicated syntax" in {
+  "SELECT NEXT VALUE FOR mySequence As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
       expectedAst = Batch(
         Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+  }
 
+  "SELECT NEXT VALUE FOR var.mySequence As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
       expectedAst = Batch(
         Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+  }
 
+  "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
       expectedAst = Batch(
@@ -380,10 +383,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), UnspecifiedSortDirection, SortNullsUnspecified)),
               None),
             Id("nextVal")))))))
-
   }
 
   "translate CTE select statements" in {
@@ -658,7 +660,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
-
+  }
+  "translate INSERT statement with @LocalVar" in {
     example(
       query = "INSERT INTO @LocalVar (a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -670,7 +673,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
+  }
 
+  "translate insert statements with VALU(pa, irs)" in {
     example(
       query = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",
       expectedAst = Batch(
@@ -682,7 +687,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false))))
+  }
 
+  "translate insert statements with (OPTIONS)" in {
     example(
       query = "INSERT INTO t WITH (TABLOCK) (a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -693,11 +700,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           overwrite = false))))
+  }
 
+  "translate insert statement with DEFAULT VALUES" in {
     example(
       query = "INSERT INTO t DEFAULT VALUES",
       expectedAst = Batch(Seq(InsertIntoTable(namedTable("t"), None, DefaultValues(), None, None, overwrite = false))))
+  }
 
+  "translate INSERT statement with OUTPUT clause" in {
     example(
       query = "INSERT INTO t (a, b) OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b) VALUES (1, 2)",
       expectedAst = Batch(
@@ -713,7 +724,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Some(List(simplyNamedColumn("a"), simplyNamedColumn("b"))))),
           None,
           overwrite = false))))
+  }
 
+  "translate insert statements with CTE" in {
     example(
       query = "WITH wtab AS (SELECT * FROM t) INSERT INTO t (a, b) select * from wtab",
       expectedAst = Batch(
@@ -726,7 +739,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             None,
             None,
             overwrite = false)))))
+  }
 
+  "translate insert statements with SELECT" in {
     example(
       query = """
            INSERT INTO ConsolidatedRecords (ID, Name)
@@ -744,7 +759,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(Seq(Id("ID"), Id("Name"))),
           Project(
             TableAlias(
-              Project(namedTable("TableB"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+              // TODO: This will change when UNION is implemented correctly
+              Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
               "DerivedTable"),
             Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
           None,
@@ -805,7 +821,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               "udf.Transform",
               Seq(Column(None, Id("b"))),
               is_distinct = false,
-              is_user_defined_function = true)),
+              is_user_defined_function = true,
+              ruleText = "udf.Transform(...)",
+              ruleName = "N/A",
+              tokenName = Some("N/A"),
+              message = "Function udf.Transform is not convertible to Databricks SQL")),
           Some(
             Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
           None,
@@ -880,6 +900,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
           List.empty))))
   }
+
   "translate MERGE statements with options" in {
     example(
       query = """
@@ -889,7 +910,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
             | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
       expectedAst = Batch(
-        Seq(WithOptions(
+        Seq(WithModificationOptions(
           MergeIntoTable(
             NamedTable("t", Map(), is_streaming = false),
             NamedTable("s", Map(), is_streaming = false),

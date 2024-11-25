@@ -74,7 +74,7 @@ class ReconcileRunner:
         except NotFound as e:
             err_msg = (
                 "Cannot find recon table configuration in existing `reconcile` installation. "
-                "Please provide the configuration file"
+                f"Please provide the configuration file {filename} in the workspace."
             )
             logger.error(f"{err_msg}. For more details, please refer to {_RECON_README_URL}")
             raise SystemExit(err_msg) from e

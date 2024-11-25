@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, ID, LiteralContext}
+import org.antlr.v4.runtime.CommonToken
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -15,8 +15,7 @@ class SnowflakeExpressionBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder =
-    new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder = vc.expressionBuilder
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" should {
@@ -90,6 +89,13 @@ class SnowflakeExpressionBuilderSpec
           Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
       }
     }
+
+    "translate column positions" should {
+      "$1" in {
+        exampleExpr("$1", _.columnElem(), Column(None, Position(1)))
+      }
+    }
+
     "translate aliases" should {
       "x AS y" in {
         exampleExpr("1 AS y", _.selectListElem(), Alias(Literal(1), Id("y")))
@@ -101,112 +107,92 @@ class SnowflakeExpressionBuilderSpec
 
     "translate simple numeric binary expressions" should {
       "1 + 2" in {
-        exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 + 2", _.expr(), Add(Literal(1), Literal(2)))
       }
       "1 +2" in {
-        exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 +2", _.expr(), Add(Literal(1), Literal(2)))
       }
       "1 - 2" in {
-        exampleExpr("1 - 2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 - 2", _.expr(), Subtract(Literal(1), Literal(2)))
       }
       "1 -2" in {
-        exampleExpr("1 -2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 -2", _.expr(), Subtract(Literal(1), Literal(2)))
       }
       "1 * 2" in {
-        exampleExpr("1 * 2", _.expr(), ir.Multiply(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 * 2", _.expr(), Multiply(Literal(1), Literal(2)))
       }
       "1 / 2" in {
-        exampleExpr("1 / 2", _.expr(), ir.Divide(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 / 2", _.expr(), Divide(Literal(1), Literal(2)))
       }
       "1 % 2" in {
-        exampleExpr("1 % 2", _.expr(), ir.Mod(ir.Literal(1), ir.Literal(2)))
+        exampleExpr("1 % 2", _.expr(), Mod(Literal(1), Literal(2)))
       }
       "'A' || 'B'" in {
-        exampleExpr("'A' || 'B'", _.expr(), ir.Concat(Seq(ir.Literal("A"), ir.Literal("B"))))
+        exampleExpr("'A' || 'B'", _.expr(), Concat(Seq(Literal("A"), Literal("B"))))
       }
     }
 
     "translate complex binary expressions" should {
       "a + b * 2" in {
-        exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(2))))
+        exampleExpr("a + b * 2", _.expr(), Add(Id("a"), Multiply(Id("b"), Literal(2))))
       }
       "(a + b) * 2" in {
-        exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(2)))
+        exampleExpr("(a + b) * 2", _.expr(), Multiply(Add(Id("a"), Id("b")), Literal(2)))
       }
       "a % 3 + b * 2 - c / 5" in {
         exampleExpr(
           "a % 3 + b * 2 - c / 5",
           _.expr(),
-          ir.Subtract(
-            ir.Add(ir.Mod(Id("a"), ir.Literal(3)), ir.Multiply(Id("b"), ir.Literal(2))),
-            ir.Divide(Id("c"), ir.Literal(5))))
+          Subtract(Add(Mod(Id("a"), Literal(3)), Multiply(Id("b"), Literal(2))), Divide(Id("c"), Literal(5))))
       }
       "a || b || c" in {
-        exampleExpr("a || b || c", _.expr(), ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
+        exampleExpr("a || b || c", _.expr(), Concat(Seq(Concat(Seq(Id("a"), Id("b"))), Id("c"))))
       }
     }
 
     "correctly apply operator precedence and associativity" should {
       "1 + -++-2" in {
-        exampleExpr(
-          "1 + -++-2",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(2)))))))
+        exampleExpr("1 + -++-2", _.expr(), Add(Literal(1), UMinus(UPlus(UPlus(UMinus(Literal(2)))))))
       }
       "1 + -2 * 3" in {
-        exampleExpr("1 + -2 * 3", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))))
+        exampleExpr("1 + -2 * 3", _.expr(), Add(Literal(1), Multiply(UMinus(Literal(2)), Literal(3))))
       }
       "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'" in {
         exampleExpr(
           "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'",
           _.expr(),
-          ir.Concat(
+          Concat(
             Seq(
-              ir.Concat(Seq(
-                ir.Concat(Seq(
-                  ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
-                  ir.Literal("leeds1"))),
-                ir.Literal("leeds2"))),
-              ir.Literal("leeds3"))))
+              Concat(
+                Seq(
+                  Concat(
+                    Seq(Add(Add(Literal(1), Multiply(UMinus(Literal(2)), Literal(3))), Literal(7)), Literal("leeds1"))),
+                  Literal("leeds2"))),
+              Literal("leeds3"))))
       }
     }
 
     "correctly respect explicit precedence with parentheses" should {
       "(1 + 2) * 3" in {
-        exampleExpr("(1 + 2) * 3", _.expr(), ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Literal(3)))
+        exampleExpr("(1 + 2) * 3", _.expr(), Multiply(Add(Literal(1), Literal(2)), Literal(3)))
       }
       "1 + (2 * 3)" in {
-        exampleExpr("1 + (2 * 3)", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))))
+        exampleExpr("1 + (2 * 3)", _.expr(), Add(Literal(1), Multiply(Literal(2), Literal(3))))
       }
       "(1 + 2) * (3 + 4)" in {
-        exampleExpr(
-          "(1 + 2) * (3 + 4)",
-          _.expr(),
-          ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Add(ir.Literal(3), ir.Literal(4))))
+        exampleExpr("(1 + 2) * (3 + 4)", _.expr(), Multiply(Add(Literal(1), Literal(2)), Add(Literal(3), Literal(4))))
       }
       "1 + (2 * 3) + 4" in {
-        exampleExpr(
-          "1 + (2 * 3) + 4",
-          _.expr(),
-          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))), ir.Literal(4)))
+        exampleExpr("1 + (2 * 3) + 4", _.expr(), Add(Add(Literal(1), Multiply(Literal(2), Literal(3))), Literal(4)))
       }
       "1 + (2 * 3 + 4)" in {
-        exampleExpr(
-          "1 + (2 * 3 + 4)",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4))))
+        exampleExpr("1 + (2 * 3 + 4)", _.expr(), Add(Literal(1), Add(Multiply(Literal(2), Literal(3)), Literal(4))))
       }
       "1 + (2 * (3 + 4))" in {
-        exampleExpr(
-          "1 + (2 * (3 + 4))",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
+        exampleExpr("1 + (2 * (3 + 4))", _.expr(), Add(Literal(1), Multiply(Literal(2), Add(Literal(3), Literal(4)))))
       }
       "(1 + (2 * (3 + 4)))" in {
-        exampleExpr(
-          "(1 + (2 * (3 + 4)))",
-          _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
+        exampleExpr("(1 + (2 * (3 + 4)))", _.expr(), Add(Literal(1), Multiply(Literal(2), Add(Literal(3), Literal(4)))))
       }
     }
 
@@ -269,7 +255,7 @@ class SnowflakeExpressionBuilderSpec
             window_function = CallFunction("ROW_NUMBER", Seq()),
             partition_spec = Seq(),
             sort_order = Seq(SortOrder(Id("a"), Descending, NullsFirst)),
-            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
+            frame_spec = None))
       }
       "ROW_NUMBER() OVER (PARTITION BY a)" in {
         exampleExpr(
@@ -279,7 +265,7 @@ class SnowflakeExpressionBuilderSpec
             window_function = CallFunction("ROW_NUMBER", Seq()),
             partition_spec = Seq(Id("a")),
             sort_order = Seq(),
-            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
+            frame_spec = None))
       }
       "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)" in {
         exampleExpr(
@@ -299,7 +285,7 @@ class SnowflakeExpressionBuilderSpec
           "LAST_VALUE(col_name) IGNORE NULLS OVER (PARTITION BY a ORDER BY b, c DESC, d)",
           _.rankingWindowedFunction(),
           expectedAst = Window(
-            window_function = CallFunction("LAST_VALUE", Seq(Id("col_name", false))),
+            window_function = CallFunction("LAST_VALUE", Seq(Id("col_name"))),
             partition_spec = Seq(Id("a")),
             sort_order = Seq(
               SortOrder(Id("b"), Ascending, NullsLast),
@@ -370,7 +356,7 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr(
         query = "(SELECT col1 from table_expr)",
         rule = _.expr(),
-        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Column(None, Id("col1"))))))
+        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Id("col1")))))
     }
   }
 
@@ -378,36 +364,36 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsLast))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsLast))
     }
 
     "translate ORDER BY a ASC NULLS FIRST" in {
       val tree = parseString("ORDER BY a ASC NULLS FIRST", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsFirst))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsFirst))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Descending, NullsFirst))
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Ascending, NullsLast),
         SortOrder(Id("b"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a DESC NULLS LAST, b" in {
       val tree = parseString("ORDER BY a DESC NULLS LAST, b", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Descending, NullsLast),
         SortOrder(Id("b"), Ascending, NullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC NULLS LAST, e", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
+      vc.expressionBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Id("a"), Descending, NullsFirst),
         SortOrder(Id("b"), Ascending, NullsLast),
         SortOrder(Id("c"), Ascending, NullsLast),
@@ -475,16 +461,16 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved child" in {
       val literal = mock[LiteralContext]
-      astBuilder.visitLiteral(literal) shouldBe Literal.Null
+      vc.expressionBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
-      verify(literal).DATE_LIT()
-      verify(literal).TIMESTAMP_LIT()
+      verify(literal).id()
+      verify(literal).TIMESTAMP()
       verify(literal).string()
-      verify(literal).DECIMAL()
+      verify(literal).INT()
       verify(literal).FLOAT()
       verify(literal).REAL()
       verify(literal).trueFalse()
-      verify(literal).NULL_()
+      verify(literal).NULL()
       verify(literal).jsonLiteral()
       verify(literal).arrayLiteral()
       verifyNoMoreInteractions(literal)
@@ -494,9 +480,16 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
     "handle unresolved child" in {
       val operator = mock[ComparisonOperatorContext]
-      val dummyTextForOperator = "dummy"
-      when(operator.getText).thenReturn(dummyTextForOperator)
-      astBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(dummyTextForOperator)
+      val startTok = new CommonToken(ID, "%%%")
+      when(operator.getStart).thenReturn(startTok)
+      when(operator.getStop).thenReturn(startTok)
+      when(operator.getRuleIndex).thenReturn(SnowflakeParser.RULE_comparisonOperator)
+      vc.expressionBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(
+        ruleText = "Mocked string",
+        message = "Unknown comparison operator Mocked string in SnowflakeExpressionBuilder.buildComparisonExpression",
+        ruleName = "comparisonOperator",
+        tokenName = Some("ID"))
+
       verify(operator).EQ()
       verify(operator).NE()
       verify(operator).LTGT()
@@ -504,13 +497,15 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LT()
       verify(operator).GE()
       verify(operator).LE()
-      verify(operator).getText
+      verify(operator).getRuleIndex
+      verify(operator, times(5)).getStart
+      verify(operator, times(2)).getStop
       verifyNoMoreInteractions(operator)
     }
   }
 
-  // Note that when we truly handle &vars, we will get ir.Variable here and not Id
-  // and the & parts will not be changed to ${} until we get to the final SQL generation
+  // Note that when we truly handle &vars, we will get Variable here and not 'Id'
+  // and the & parts will not be changed to ${} until we get to the final SQL generation,
   // but we are in a half way house transition state
   "variable substitution" should {
     "&abc" in {
@@ -521,6 +516,21 @@ class SnowflakeExpressionBuilderSpec
     }
     "&{ab_c}.&bc_d" in {
       exampleExpr("&{ab_c}.&bc_d", _.expr(), Dot(Id("$ab_c"), Id("$bc_d")))
+    }
+  }
+
+  "translate :: casts" should {
+    "ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)" in {
+      exampleExpr(
+        "ARRAY_REMOVE([2, 3, 4.00::DOUBLE, 4, NULL], 4)",
+        _.expr(),
+        CallFunction(
+          "ARRAY_REMOVE",
+          Seq(
+            ArrayExpr(
+              Seq(Literal(2), Literal(3), Cast(Literal(4.00), DoubleType), Literal(4), Literal(null)),
+              IntegerType),
+            Literal(4))))
     }
   }
 }

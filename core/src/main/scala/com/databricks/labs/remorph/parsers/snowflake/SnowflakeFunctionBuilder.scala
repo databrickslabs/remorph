@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
-import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 class SnowflakeFunctionBuilder extends FunctionBuilder {
 
@@ -180,6 +181,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DATEDIFF" => FunctionDefinition.standard(3)
     case "DATEFROMPARTS" => FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATE_FROM_PARTS"))
     case "DATE_FROM_PARTS" => FunctionDefinition.standard(3)
+    case "DATE_FORMAT" => FunctionDefinition.standard(2)
     case "DATE_PART" => FunctionDefinition.standard(2)
     case "DATE_TRUNC" => FunctionDefinition.standard(2)
     case "DAY" => FunctionDefinition.standard(1)
@@ -726,7 +728,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "TIME_FROM_PARTS" => FunctionDefinition.standard(3, 4)
     case "TIME_SLICE" => FunctionDefinition.standard(3, 4)
     case "TOP_INSIGHTS (SNOWFLAKE.ML)" => FunctionDefinition.standard(4)
-    case "TO_ARRAY" => FunctionDefinition.standard(1)
+    case "TO_ARRAY" => FunctionDefinition.standard(1, 2)
     case "TO_BINARY" => FunctionDefinition.standard(1, 2)
     case "TO_BOOLEAN" => FunctionDefinition.standard(1)
     case "TO_CHAR , TO_VARCHAR" => FunctionDefinition.standard(4, 5)

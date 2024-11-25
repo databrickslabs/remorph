@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.{intermediate => ir}
 
 sealed trait FunctionType
 case object StandardFunction extends FunctionType
@@ -128,6 +128,7 @@ abstract class FunctionBuilder {
     case "DATEADD" => FunctionDefinition.standard(3)
     case "DATEDIFF" => FunctionDefinition.standard(3)
     case "DATEFROMPARTS" => FunctionDefinition.standard(3)
+    case "DATE_FORMAT" => FunctionDefinition.standard(2)
     case "DATENAME" => FunctionDefinition.standard(2)
     case "DATEPART" => FunctionDefinition.standard(2)
     case "DATETIME2FROMPARTS" => FunctionDefinition.standard(8)
@@ -325,7 +326,15 @@ abstract class FunctionBuilder {
 
     defnOption match {
       case Some(functionDef) if functionDef.functionType == NotConvertibleFunction =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          name,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          ruleText = s"$irName(...)",
+          message = s"Function $irName is not convertible to Databricks SQL",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
 
       case Some(funDef) if FunctionArity.verifyArguments(funDef.arity, args) =>
         applyConversionStrategy(funDef, args, irName)
@@ -337,11 +346,23 @@ abstract class FunctionBuilder {
           args,
           is_distinct = false,
           is_user_defined_function = false,
-          has_incorrect_argc = true)
+          has_incorrect_argc = true,
+          ruleText = s"$irName(...)",
+          message = s"Invocation of $irName has incorrect argument count",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
 
       // Unsupported function
       case None =>
-        ir.UnresolvedFunction(irName, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          irName,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          ruleText = s"$irName(...)",
+          message = s"Function $irName is not convertible to Databricks SQL",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
     }
   }
 

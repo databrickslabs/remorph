@@ -1,4 +1,3 @@
-import copy
 import logging
 import re
 
@@ -54,16 +53,10 @@ DATE_DELTA_INTERVAL = {
 
 rank_functions = (
     local_expression.CumeDist,
-    local_expression.DenseRank,
     exp.FirstValue,
-    exp.Lag,
     exp.LastValue,
-    exp.Lead,
     local_expression.NthValue,
     local_expression.Ntile,
-    local_expression.PercentRank,
-    local_expression.Rank,
-    exp.RowNumber,
 )
 
 
@@ -115,6 +108,13 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
 
     part_num = part_num_if if part_num_if is not None else part_num_literal
     return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
+
+
+def _div0_to_if(args: list) -> exp.If:
+    cond = exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0))
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
 
 
 def _div0null_to_if(args: list) -> exp.If:
@@ -353,6 +353,7 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+            "TRY_TO_TIMESTAMP": local_expression.TryToTimestamp.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_date_add,
@@ -362,6 +363,7 @@ class Snow(Snowflake):
             "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
             "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0": _div0_to_if,
             "DIV0NULL": _div0null_to_if,
             "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
             "BITOR_AGG": local_expression.BitOr.from_arg_list,
@@ -402,6 +404,7 @@ class Snow(Snowflake):
             "RANK": local_expression.Rank.from_arg_list,
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
+            "TO_ARRAY": local_expression.ToArray.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
@@ -418,7 +421,6 @@ class Snow(Snowflake):
 
         COLUMN_OPERATORS = {
             **Snowflake.Parser.COLUMN_OPERATORS,
-            TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
 
         TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
@@ -462,72 +464,6 @@ class Snow(Snowflake):
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self) -> exp.TableAlias | None:
-            """
-            :returns the `table alias` by looping through all the tokens until it finds the `From` token.
-            Example:
-            * SELECT .... FROM persons p => returns `p`
-            * SELECT
-                 ....
-              FROM
-                 dwh.vw_replacement_customer  d  => returns `d`
-            """
-            # Create a deep copy of Parser to avoid any modifications to original one
-            self_copy = copy.deepcopy(self)
-            table_alias = None
-
-            # iterate through all the tokens if tokens are available
-            while self_copy._index < len(self_copy._tokens):
-                self_copy._advance()
-                # get the table alias when FROM token is found
-                if self_copy._match(TokenType.FROM, advance=False):
-                    self_copy._advance()  # advance to next token
-                    # break the loop when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
-                    # instead of table name, For ex: `FROM persons p`
-                    if self_copy._match(TokenType.L_PAREN, advance=False):
-                        break
-                    self_copy._parse_table_parts()  # parse the table parts
-                    table_alias = self_copy._parse_table_alias()  # get to table alias
-                    return table_alias
-
-            return table_alias
-
-        def _json_column_op(self, this, path):
-            """
-            Get the `table alias` using _get_table_alias() and it is used to check whether
-            to remove `.value` from `<COL>.value`. We need to remove `.value` only if it refers
-            to `Lateral View` alias.
-            :return: the expression based on the alias.
-            """
-            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
-            is_name_value = this.name.upper() == "VALUE"
-            is_path_value = path.alias_or_name.upper() == "VALUE"
-
-            if isinstance(this, exp.Column) and this.table:
-                col_table_alias = this.table.upper()
-            elif isinstance(this, local_expression.Bracket) and isinstance(this.this, exp.Column) and this.this.table:
-                col_table_alias = this.this.table.upper()
-            else:
-                col_table_alias = this.name.upper()
-            is_table_alias = col_table_alias == table_alias.upper() if table_alias is not None else False
-
-            if not isinstance(this, exp.Bracket) and is_name_value:
-                # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
-                if table_alias and this.table != table_alias:
-                    return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
-
-                    # if it is referring to `table_alias`, we need to keep `.value`. See below example:
-                    # - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
-                    #    LATERAL VIEW EXPLODE($p.$c.contact) AS f
-
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            if isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            if (isinstance(path, exp.Column)) and (path or is_path_value):
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-
-            return self.expression(exp.Bracket, this=this, expressions=[path])
-
         def _parse_window(self, this: exp.Expression | None, alias: bool = False) -> exp.Expression | None:
             window = super()._parse_window(this=this, alias=alias)
             # Adding default window frame for the rank-related functions in snowflake
@@ -541,3 +477,23 @@ class Snow(Snowflake):
                     end_side="FOLLOWING",
                 )
             return window
+
+        def _parse_alter_table_add(self) -> list[exp.Expression]:
+            index = self._index - 1
+            if self._match_set(self.ADD_CONSTRAINT_TOKENS, advance=False):
+                return self._parse_csv(
+                    lambda: self.expression(exp.AddConstraint, expressions=self._parse_csv(self._parse_constraint))
+                )
+
+            self._retreat(index)
+            if not self.ALTER_TABLE_ADD_REQUIRED_FOR_EACH_COLUMN and self._match_text_seq("ADD"):
+                return self._parse_wrapped_csv(self._parse_field_def, optional=True)
+
+            if self._match_text_seq("ADD", "COLUMN"):
+                schema = self._parse_schema()
+                if schema:
+                    return [schema]
+                # return self._parse_csv in case of COLUMNS are not enclosed in brackets ()
+                return self._parse_csv(self._parse_field_def)
+
+            return self._parse_wrapped_csv(self._parse_add_column, optional=True)

@@ -17,17 +17,17 @@ WITH cte AS (
     SELECT
       id,
       tag,
-      SUM(tag.count) AS item_count
+      SUM(tag:count) AS item_count
     FROM another_table
   )
   SELECT
     id,
     TRANSFORM(
       ARRAY_SORT(
-        ARRAY_AGG(NAMED_STRUCT('value', tag, 'sort_by', item_count)),
+        ARRAY_AGG(NAMED_STRUCT('value', tag, 'sort_by_0', item_count)),
         (left, right) -> CASE
-                                WHEN left.sort_by < right.sort_by THEN 1
-                                WHEN left.sort_by > right.sort_by THEN -1
+                                WHEN left.sort_by_0 < right.sort_by_0 THEN 1
+                                WHEN left.sort_by_0 > right.sort_by_0 THEN -1
                                 ELSE 0
                             END
       ),

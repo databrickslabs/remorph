@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.databricks.labs</groupId>
@@ -23,9 +23,12 @@
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
     <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
-    <ujson.version>4.0.0</ujson.version>
+    <databricks-connect.version>15.1.0</databricks-connect.version>
+    <circe.version>0.14.2</circe.version>
     <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
     <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
+    <os-lib.version>0.10.1</os-lib.version>
+    <scala-csv.version>2.0.0</scala-csv.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -45,20 +48,39 @@
       <version>${antlr.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
-      <version>4.0.7</version>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
       <version>${databricks-sdk-java.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.14.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.databricks</groupId>
+      <artifactId>databricks-connect</artifactId>
+      <version>${databricks-connect.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang</groupId>
+          <artifactId>scala-reflect</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.json4s</groupId>
+          <artifactId>json4s-scalap_${scala.binary.version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -100,10 +122,29 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-core_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-generic_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-generic-extras_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.circe</groupId>
+      <artifactId>circe-jackson215_${scala.binary.version}</artifactId>
+      <version>${circe.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.lihaoyi</groupId>
-      <artifactId>ujson_${scala.binary.version}</artifactId>
-      <version>${ujson.version}</version>
-      <scope>compile</scope>
+      <artifactId>os-lib_${scala.binary.version}</artifactId>
+      <version>${os-lib.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.vertical-blank</groupId>
@@ -114,6 +155,11 @@
       <groupId>net.snowflake</groupId>
       <artifactId>snowflake-jdbc</artifactId>
       <version>${snowflake-jdbc.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tototoshi</groupId>
+      <artifactId>scala-csv_${scala.binary.version}</artifactId>
+      <version>${scala-csv.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
@@ -173,6 +219,15 @@
           <listener>false</listener>
           <sourceDirectory>src/main/antlr4</sourceDirectory>
           <treatWarningsAsErrors>true</treatWarningsAsErrors>
+          <libDirectory>${project.basedir}/src/main/antlr4/com/databricks/labs/remorph/parsers/lib</libDirectory>
+          <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
+          <includes>
+            <include>**/*.g4</include> <!-- Include all .g4 files -->
+          </includes>
+          <excludes>
+            <exclude>**/lib/*.g4</exclude> <!-- But exclude the library grammars-->
+            <exclude>**/basesnowflake.g4</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>
@@ -215,40 +270,71 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.4.1</version>
             <executions>
-              <!-- npm install antlr-format-cli -->
+              <!--              &lt;!&ndash; npm install antlr-format-cli &ndash;&gt;-->
+              <!--              <execution>-->
+              <!--                <id>npm install antlr-format antlr-format-cli</id>-->
+              <!--                <phase>validate</phase>-->
+              <!--                <goals>-->
+              <!--                  <goal>exec</goal>-->
+              <!--                </goals>-->
+              <!--                <configuration>-->
+              <!--                  <executable>${project.build.directory}/node/npm</executable>-->
+              <!--                  <arguments>-->
+              <!--                    <argument>install</argument>-->
+              <!--                    <argument>-g</argument>-->
+              <!--                    <argument>&#45;&#45;save-dev</argument>-->
+              <!--                    <argument>antlr-format</argument>-->
+              <!--                    <argument>antlr-format-cli</argument>-->
+              <!--                  </arguments>-->
+              <!--                </configuration>-->
+              <!--              </execution>-->
+              <!--              &lt;!&ndash; antlr-fmt &ndash;&gt;-->
+              <!--              <execution>-->
+              <!--                <id>antlr-fmt</id>-->
+              <!--                <phase>validate</phase>-->
+              <!--                <goals>-->
+              <!--                  <goal>exec</goal>-->
+              <!--                </goals>-->
+              <!--                <configuration>-->
+              <!--                  <executable>${project.build.directory}/bin/antlr-format</executable>-->
+              <!--                  <arguments>-->
+              <!--                    <argument>-v</argument>-->
+              <!--                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>-->
+              <!--                  </arguments>-->
+              <!--                </configuration>-->
+              <!--              </execution>-->
               <execution>
-                <id>npm install antlr-format antlr-format-cli</id>
-                <phase>validate</phase>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>java</goal>
                 </goals>
-                <configuration>
-                  <executable>${project.build.directory}/node/npm</executable>
-                  <arguments>
-                    <argument>install</argument>
-                    <argument>-g</argument>
-                    <argument>--save-dev</argument>
-                    <argument>antlr-format</argument>
-                    <argument>antlr-format-cli</argument>
-                  </arguments>
-                </configuration>
               </execution>
-              <!-- antlr-fmt -->
+            </executions>
+            <configuration>
+              <mainClass>com.databricks.labs.remorph.Main</mainClass>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.6.0</version>
+            <configuration>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+              <archive>
+                <manifest>
+                  <mainClass>com.databricks.labs.remorph.Main</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+            <executions>
               <execution>
-                <id>antlr-fmt</id>
-                <phase>validate</phase>
+                <phase>package</phase>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>single</goal>
                 </goals>
-                <configuration>
-                  <executable>${project.build.directory}/bin/antlr-format</executable>
-                  <arguments>
-                    <argument>-v</argument>
-                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>
-                  </arguments>
-                </configuration>
               </execution>
             </executions>
           </plugin>

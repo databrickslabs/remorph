@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -11,9 +11,16 @@ class ExpressionGeneratorTest
     extends AnyWordSpec
     with GeneratorTestCommon[ir.Expression]
     with MockitoSugar
-    with IRHelpers {
+    with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
+
+  private val optionGenerator = new OptionGenerator(generator)
+
+  private val logical = new LogicalPlanGenerator(generator, optionGenerator)
+
+  override protected def initialState(expr: ir.Expression) =
+    Generating(optimizedPlan = ir.Batch(Seq.empty), currentNode = expr, ctx = GeneratorContext(logical))
 
   "options" in {
     ir.Options(
@@ -64,6 +71,10 @@ class ExpressionGeneratorTest
     "s.t.a" in {
       ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
     }
+
+    "$1" in {
+      ir.Column(None, ir.Position(1)).doesNotTranspile
+    }
   }
 
   "arithmetic" should {
@@ -107,16 +118,18 @@ class ExpressionGeneratorTest
 
   "like" should {
     "a LIKE 'b%'" in {
-      ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
+      ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%"), None) generates "a LIKE 'b%'"
     }
     "a LIKE b ESCAPE '/'" in {
-      ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
+      ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), Some(ir.Literal('/'))) generates
+        "a LIKE b ESCAPE '/'"
     }
     "a ILIKE 'b%'" in {
-      ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a ILIKE 'b%'"
+      ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%"), None) generates "a ILIKE 'b%'"
     }
     "a ILIKE b ESCAPE '/'" in {
-      ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a ILIKE b ESCAPE '/'"
+      ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), Some(ir.Literal('/'))) generates
+        "a ILIKE b ESCAPE '/'"
     }
     "a LIKE ANY ('b%', 'c%')" in {
       ir.LikeAny(
@@ -278,6 +291,16 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "ARRAY_REMOVE",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ARRAY_REMOVE(a, b)"
+    }
+
+    "ARRAY_REMOVE([2, 3, 4::DOUBLE, 4, NULL], 4)" in {
+      ir.CallFunction(
+        "ARRAY_REMOVE",
+        Seq(
+          ir.ArrayExpr(
+            Seq(ir.Literal(2), ir.Literal(3), ir.Cast(ir.Literal(4), ir.DoubleType), ir.Literal(4), ir.Literal(null)),
+            ir.IntegerType),
+          ir.Literal(4))) generates "ARRAY_REMOVE(ARRAY(2, 3, CAST(4 AS DOUBLE), 4, NULL), 4)"
     }
 
     "ARRAY_REPEAT(a, b)" in {
@@ -1591,6 +1614,10 @@ class ExpressionGeneratorTest
       ir.Literal("abc") generates "'abc'"
     }
 
+    "string containing single quotes" in {
+      ir.Literal("a'b'c") generates "'a\\'b\\'c'"
+    }
+
     "CAST('2024-07-23 18:03:21' AS TIMESTAMP)" in {
       ir.Literal(new Timestamp(1721757801L)) generates "CAST('2024-07-23 18:03:21' AS TIMESTAMP)"
     }
@@ -1684,4 +1711,47 @@ class ExpressionGeneratorTest
     }
   }
 
+  "JSON_ACCESS" should {
+
+    "handle valid identifier" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal("a")) generates "c1['a']"
+    }
+
+    "handle invalid identifier" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Id("1", caseSensitive = true)) generates "c1[\"1\"]"
+    }
+
+    "handle integer literal" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal(123)) generates "c1[123]"
+    }
+
+    "handle string literal" in {
+      ir.JsonAccess(ir.Id("c1"), ir.Literal("abc")) generates "c1['abc']"
+    }
+
+    "handle dot expression" in {
+      ir.JsonAccess(ir.Dot(ir.Id("c1"), ir.Id("c2")), ir.Literal("a")) generates "c1.c2['a']"
+    }
+
+    "be generated" in {
+      ir.JsonAccess(ir.JsonAccess(ir.Id("c1"), ir.Literal("a")), ir.Literal("b")) generates "c1['a']['b']"
+
+      ir.JsonAccess(
+        ir.JsonAccess(
+          ir.JsonAccess(ir.Dot(ir.Id("demo"), ir.Id("level_key")), ir.Literal("level_1_key")),
+          ir.Literal("level_2_key")),
+        ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
+    }
+  }
+
+  "error node in expression tree" should {
+    "generate inline error message comment for a and bad text" in {
+      ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
+        """a AND /* The following issues were detected:
+         |
+         |   some error message
+         |    bad text
+         | */""".stripMargin
+    }
+  }
 }

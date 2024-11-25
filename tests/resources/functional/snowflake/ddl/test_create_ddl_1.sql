@@ -5,7 +5,8 @@ CREATE TABLE employee (employee_id INT,
   birth_date DATE,
   hire_date DATE,
   salary DECIMAL(10, 2),
-  department_id INT)
+  department_id INT,
+  remarks VARIANT)
 ;
 
 -- databricks sql:
@@ -16,5 +17,6 @@ CREATE TABLE employee (
   birth_date DATE,
   hire_date DATE,
   salary DECIMAL(10, 2),
-  department_id DECIMAL(38, 0)
+  department_id DECIMAL(38, 0),
+  remarks VARIANT
 );

@@ -19,7 +19,6 @@ WITH cteTable1 (col1, col2, col3count)
          )
 SELECT col2, col1, col3count, cteTable2.colx, cteTable2.coly, cteTable2.colxcount
 FROM cteTable1
-GO
 
 -- databricks sql:
 WITH cteTable1 (col1, col2, col3count)
@@ -35,4 +34,4 @@ WITH cteTable1 (col1, col2, col3count)
              FROM Table2
          )
 SELECT col2, col1, col3count, cteTable2.colx, cteTable2.coly, cteTable2.colxcount
-FROM cteTable1
+FROM cteTable1;

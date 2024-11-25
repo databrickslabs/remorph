@@ -3,6 +3,7 @@ from functools import cached_property
 
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.upgrades import Upgrades
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.lsql.backends import SqlBackend
@@ -123,4 +124,10 @@ class ApplicationContext:
             self.prompts,
             self.installation,
             self.recon_deployment,
+            self.product_info,
+            self.upgrades,
         )
+
+    @cached_property
+    def upgrades(self):
+        return Upgrades(self.product_info, self.installation)

@@ -32,18 +32,18 @@ class JobDeployment:
         self._install_state = install_state
         self._product_info = product_info
 
-    def deploy_recon_job(self, name, recon_config: ReconcileConfig):
+    def deploy_recon_job(self, name, recon_config: ReconcileConfig, remorph_wheel_path: str):
         logger.info("Deploying reconciliation job.")
-        job_id = self._update_or_create_recon_job(name, recon_config)
+        job_id = self._update_or_create_recon_job(name, recon_config, remorph_wheel_path)
         logger.info(f"Reconciliation job deployed with job_id={job_id}")
         logger.info(f"Job URL: {self._ws.config.host}#job/{job_id}")
         self._install_state.save()
 
-    def _update_or_create_recon_job(self, name, recon_config: ReconcileConfig) -> str:
+    def _update_or_create_recon_job(self, name, recon_config: ReconcileConfig, remorph_wheel_path: str) -> str:
         description = "Run the reconciliation process"
         task_key = "run_reconciliation"
 
-        job_settings = self._recon_job_settings(name, task_key, description, recon_config)
+        job_settings = self._recon_job_settings(name, task_key, description, recon_config, remorph_wheel_path)
         if name in self._install_state.jobs:
             try:
                 job_id = int(self._install_state.jobs[name])
@@ -53,7 +53,7 @@ class JobDeployment:
             except InvalidParameterValue:
                 del self._install_state.jobs[name]
                 logger.warning(f"Job `{name}` does not exist anymore for some reason")
-                return self._update_or_create_recon_job(name, recon_config)
+                return self._update_or_create_recon_job(name, recon_config, remorph_wheel_path)
 
         logger.info(f"Creating new job configuration for job `{name}`")
         new_job = self._ws.jobs.create(**job_settings)
@@ -67,6 +67,7 @@ class JobDeployment:
         task_key: str,
         description: str,
         recon_config: ReconcileConfig,
+        remorph_wheel_path: str,
     ) -> dict[str, Any]:
         latest_lts_spark = self._ws.clusters.select_spark_version(latest=True, long_term_support=True)
         version = self._product_info.version()
@@ -100,15 +101,16 @@ class JobDeployment:
                         job_cluster_key="Remorph_Reconciliation_Cluster",
                     ),
                     recon_config,
+                    remorph_wheel_path,
                 ),
             ],
             "max_concurrent_runs": 2,
             "parameters": [JobParameterDefinition(name="operation_name", default="reconcile")],
         }
 
-    def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig) -> Task:
+    def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig, remorph_wheel_path: str) -> Task:
         libraries = [
-            compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph")),
+            compute.Library(whl=remorph_wheel_path),
         ]
         source = recon_config.data_source
         if source == ReconSourceType.ORACLE.value:
