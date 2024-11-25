@@ -2,7 +2,6 @@ package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, TestFile}
 import org.scalatest.Ignore
-// import org.scalatest.Ignore
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.{Path, Paths}
