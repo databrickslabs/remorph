@@ -191,3 +191,7 @@ class Locate(Func):
 
 class NamedStruct(Func):
     arg_types = {"expressions": True}
+
+
+class GetJsonObject(Func):
+    arg_types = {"this": True, "path": True}
