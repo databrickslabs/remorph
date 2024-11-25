@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.{Expression, _}
 
-class Dealiaser(val aliases: Map[String, Expression]) {
+class Dealiaser(val aliases: Map[String, Expression], val isInColumnExpression: Boolean = false) {
 
   def dealiasProject(project: Project): Project = {
     val input = dealiasInput(project.input)
@@ -43,25 +43,37 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
   private def dealiasAlias(alias: Alias): Alias = {
     val filtered = aliases - alias.name.id
-    val expression = new Dealiaser(filtered).dealiasExpression(alias.child)
+    val expression = new Dealiaser(filtered, true).dealiasExpression(alias.child)
     alias.makeCopy(Array(expression.asInstanceOf[AnyRef], alias.name.asInstanceOf[AnyRef])).asInstanceOf[Alias]
   }
 
   private def dealiasName(name: Name): Expression = {
-    val alias = aliases.find(p => p._1 == name.name)
-    if (alias.isEmpty) {
+    // don't dealias column names when dealing with column expressions
+    if(isInColumnExpression) {
       name
     } else {
-      alias.get._2
+      val alias = aliases.find(p => p._1 == name.name)
+      if (alias.isEmpty) {
+        name
+      } else {
+        val filtered = aliases - name.name
+        new Dealiaser(filtered).dealiasExpression(alias.get._2)
+      }
     }
   }
 
   private def dealiasId(id: Id): Expression = {
-    val alias = aliases.find(p => p._1 == id.id)
-    if (alias.isEmpty) {
+    // don't dealias column names when dealing with column expressions
+    if(isInColumnExpression) {
       id
     } else {
-      alias.get._2
+      val alias = aliases.find(p => p._1 == id.id)
+      if (alias.isEmpty) {
+        id
+      } else {
+        val filtered = aliases - id.id
+        new Dealiaser(filtered).dealiasExpression(alias.get._2)
+      }
     }
   }
 
@@ -88,15 +100,20 @@ class Dealiaser(val aliases: Map[String, Expression]) {
   }
 
   private def dealiasWindow(window: Window): Expression = {
-    val partition = dealiasExpressions(window.partition_spec)
-    val sort_order = dealiasSortOrders(window.sort_order)
-    window.makeCopy(
-      Array(
-        window.window_function.asInstanceOf[AnyRef],
-        partition.asInstanceOf[AnyRef],
-        sort_order.asInstanceOf[AnyRef],
-        window.frame_spec.asInstanceOf[AnyRef],
-        window.ignore_nulls.asInstanceOf[AnyRef]))
+    if (isInColumnExpression) {
+      // window expressions need to be dealiased, so switch to dealiasing behavior
+      new Dealiaser(aliases).dealiasWindow(window)
+    } else {
+      val partition = dealiasExpressions(window.partition_spec)
+      val sort_order = dealiasSortOrders(window.sort_order)
+      window.makeCopy(
+        Array(
+          window.window_function.asInstanceOf[AnyRef],
+          partition.asInstanceOf[AnyRef],
+          sort_order.asInstanceOf[AnyRef],
+          window.frame_spec.asInstanceOf[AnyRef],
+          window.ignore_nulls.asInstanceOf[AnyRef]))
+    }
   }
 
   private def dealiasSubqueryExpression(subquery: SubqueryExpression): Expression = {
