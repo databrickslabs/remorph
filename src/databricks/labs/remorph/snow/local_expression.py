@@ -167,8 +167,7 @@ class ToArray(Func):
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
-    order_col: exp.Column
-    is_order_asc: bool
+    order_cols: list[tuple[exp.Column, bool]]  # List of (column, is ascending)
 
 
 @dataclass

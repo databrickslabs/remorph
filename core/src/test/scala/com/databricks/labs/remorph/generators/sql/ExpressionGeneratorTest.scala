@@ -1614,6 +1614,10 @@ class ExpressionGeneratorTest
       ir.Literal("abc") generates "'abc'"
     }
 
+    "string containing single quotes" in {
+      ir.Literal("a'b'c") generates "'a\\'b\\'c'"
+    }
+
     "CAST('2024-07-23 18:03:21' AS TIMESTAMP)" in {
       ir.Literal(new Timestamp(1721757801L)) generates "CAST('2024-07-23 18:03:21' AS TIMESTAMP)"
     }
