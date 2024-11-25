@@ -475,17 +475,23 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
       buildId(ctx)
   }
 
-  private[tsql] def buildId(ctx: IdContext): ir.Id =
+  private[tsql] def buildId(ctx: IdContext): ir.Id = {
     ctx match {
-      case c if c.ID() != null => ir.Id(ctx.getText)
-      case c if c.TEMP_ID() != null => ir.Id(ctx.getText)
-      case c if c.DOUBLE_QUOTE_ID() != null =>
-        ir.Id(ctx.getText.trim.stripPrefix("\"").stripSuffix("\""), caseSensitive = true)
-      case c if c.SQUARE_BRACKET_ID() != null =>
-        ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
-      case c if c.RAW() != null => ir.Id(ctx.getText)
-      case _ => ir.Id(removeQuotes(ctx.getText))
+      case i if i.ide != null =>
+        i.ide match {
+          case c if c.ID() != null => ir.Id(ctx.getText)
+          case c if c.TEMP_ID() != null => ir.Id(ctx.getText)
+          case c if c.DOUBLE_QUOTE_ID() != null =>
+            ir.Id(ctx.getText.trim.stripPrefix("\"").stripSuffix("\""), caseSensitive = true)
+          case c if c.SQUARE_BRACKET_ID() != null =>
+            ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
+          case c if c.RAW() != null => ir.Id(ctx.getText)
+          case _ => ir.Id(removeQuotes(ctx.getText))
+        }
+      case template if template.templateId() != null =>
+        ir.Id(ctx.templateId().getText) // TODO: Actually need to change this whole buildId call to handle templates
     }
+  }
 
   private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")

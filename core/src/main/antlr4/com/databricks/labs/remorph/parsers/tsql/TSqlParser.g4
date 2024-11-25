@@ -2862,16 +2862,23 @@ orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
 optionClause: OPTION lparenOptionList
     ;
 
-selectList: selectElement += selectListElem ( COMMA selectElementJ += selectListElemJinja)*
+// Note that comma is optional to cater for complications added by Jinja template element
+// references, which, if they are specifying the presence of COMMA or not, will look consecutive
+// elements without a COMMA, such as:
+//
+// select
+//    order_id,
+//    {%- for payment_method in payment_methods %}
+//    sum(case when payment_method = '{{payment_method}}' then amount end) as {{payment_method}}_amount
+//    {%- if not loop.last %},{% endif -%}
+//    {% endfor %}
+selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
     ;
 
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
 expressionElem: columnAlias EQ expression | expression asColumnAlias?
-    ;
-
-selectListElemJinja: COMMA? jinjaTemplate | COMMA selectListElem
     ;
 
 selectListElem
@@ -3086,7 +3093,7 @@ withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
 
 // The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
 // but trails certain windowing functions such as LAG and LEAD. However, all such functions
-// must use the OVER clause, so it is included here to make build the IR simpler.
+// must use the OVER clause, so it is included here to make building the IR simpler.
 overClause
     : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
@@ -3208,7 +3215,24 @@ dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
 constant: con = (STRING | HEX | INT | REAL | FLOAT | MONEY) | parameter
     ;
 
-id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
+id: ide | templateId
+    ;
+
+ide: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
+;
+
+// caters for the complications of Jinja templates being placed anywhere by
+// only selects templateID if ide is followed by a template or there is a template
+// first. Otherwise ide will be predicted in the id rule because of the + in alternatice
+// two in this rule. This rule is therefore able to parse and is selected when we see
+//
+// JINJA_TEMPLATE
+// JINJA_TEMPLATE ID
+// ID JINJA_TEMPLATE
+// ID JINJA_TEMPLATE (ID | JINJA_TEMPLATE)...
+templateId
+    : jinjaTemplate ide
+    | ide jinjaTemplate
     ;
 
 simpleId: ID

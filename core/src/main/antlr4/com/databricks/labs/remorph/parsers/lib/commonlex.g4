@@ -1437,7 +1437,7 @@ DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 JINJA_REF: '_!Jinja' [0-9]+;
 
 // This lexer rule is needed so that any unknown character in the lexicon does not
-// cause an incomprehensible error message from teh lexer. This rule will allow the parser to issue
+// cause an incomprehensible error message from the lexer. This rule will allow the parser to issue
 // something more meaningful and perform error recovery as the lexer CANNOT raise an error - it
 // will alwys match at least one character using this catch-all rule.
 //

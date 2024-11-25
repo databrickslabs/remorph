@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph.transpilers.TSqlToDatabricksTranspiler
-import com.databricks.labs.remorph.{OkResult, PreProcessing}
+import com.databricks.labs.remorph.{OkResult, PartialResult, PreProcessing}
 import org.scalatest.wordspec.AnyWordSpec
 
 class JinjaProcessorTest extends AnyWordSpec {
 
   "Preprocessor" should {
-    "pre statement block" ignore {
+    "pre statement block" in {
 
       val transpiler = new TSqlToDatabricksTranspiler
       val input = PreProcessing("""{%- set payment_methods = dbt_utils.get_column_values(
@@ -29,6 +29,8 @@ class JinjaProcessorTest extends AnyWordSpec {
       // scalastyle:off
       val processed = result match {
         case OkResult(output) =>
+          output
+        case PartialResult(output, error) =>
           output
         case _ => ""
       }

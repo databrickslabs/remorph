@@ -22,7 +22,7 @@ class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
         ("'hello'", TSqlLexer.STRING),
         (""""quoted""id"""", TSqlLexer.DOUBLE_QUOTE_ID),
         ("\"quote\"\"andunquote\"\"\"", TSqlLexer.DOUBLE_QUOTE_ID),
-        ("_!Jinja(0001)", TSqlLexer.JINJA_REF))
+        ("_!Jinja0001", TSqlLexer.JINJA_REF))
 
       forAll(testInput) { (input: String, expected: Int) =>
         val inputString = CharStreams.fromString(input)
