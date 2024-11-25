@@ -92,7 +92,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
       // A single column definition could also hold an ErrorNode that it recovered from so we collect all of them
       val columns: Seq[ir.Expression] =
-        ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
+        vc.expressionBuilder.buildSelectList(ctx.selectList())
       // Note that ALL is the default so we don't need to check for it
       ctx match {
         case c if c.DISTINCT() != null =>

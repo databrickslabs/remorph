@@ -2798,8 +2798,7 @@ queryExpression
     | querySpecification                                     # querySimple
     ;
 
-querySpecification
-    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)* selectOptionalClauses
+querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptionalClauses
     ;
 
 selectOptionalClauses
@@ -2872,7 +2871,10 @@ optionClause: OPTION lparenOptionList
 //    sum(case when payment_method = '{{payment_method}}' then amount end) as {{payment_method}}_amount
 //    {%- if not loop.last %},{% endif -%}
 //    {% endfor %}
-selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
+selectList: selectListElem selectElemTempl*
+    ;
+
+selectElemTempl: COMMA selectListElem | COMMA? jinjaTemplate selectListElem?
     ;
 
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
@@ -3219,7 +3221,7 @@ id: ide | templateId
     ;
 
 ide: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
-;
+    ;
 
 // caters for the complications of Jinja templates being placed anywhere by
 // only selects templateID if ide is followed by a template or there is a template
@@ -3230,9 +3232,7 @@ ide: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
 // JINJA_TEMPLATE ID
 // ID JINJA_TEMPLATE
 // ID JINJA_TEMPLATE (ID | JINJA_TEMPLATE)...
-templateId
-    : jinjaTemplate ide
-    | ide jinjaTemplate
+templateId: jinjaTemplate ide? | ide jinjaTemplate
     ;
 
 simpleId: ID

@@ -62,6 +62,22 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     //       generate UnresolvedExpression
   }
 
+  private[tsql] def buildSelectList(ctx: TSqlParser.SelectListContext): Seq[ir.Expression] = {
+    val first = buildSelectListElem(ctx.selectListElem())
+    val rest = ctx.selectElemTempl().asScala.flatMap(buildSelectListElemTempl)
+    first ++ rest
+  }
+
+  private def buildSelectListElemTempl(ctx: TSqlParser.SelectElemTemplContext): Seq[ir.Expression] = {
+    val errors = errorCheck(ctx)
+    val templ = Option(ctx.jinjaTemplate()).map(_.accept(this)).toSeq
+    val elem = Option(ctx.selectListElem()).map(buildSelectListElem).toSeq.flatten
+    errors match {
+      case Some(errorResult) => Seq(errorResult) ++ templ ++ elem
+      case None => templ ++ elem
+    }
+  }
+
   private[tsql] def buildSelectListElem(ctx: TSqlParser.SelectListElemContext): Seq[ir.Expression] = {
 
     // If this node has an error such as an extra comma, then don't discard it, prefix it with the errorNode
