@@ -147,6 +147,128 @@ class TSqlRelationBuilderSpec
           Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
     }
 
+    "translate set operations" should {
+      /* These are of the form:
+       *   querySpecification (UNION [ALL] | EXCEPT | INTERSECT) querySpecification [...]
+       *
+       * Need tests for:
+       *  - UNION
+       *  - UNION ALL
+       *  - EXCEPT
+       *  - INTERSECT
+       *  - Chaining multiple.
+       *  - With and without parentheses on the RHS.
+       */
+      "SELECT 1 UNION SELECT 2" in {
+        example(
+          "SELECT 1 UNION SELECT 2",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+            ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+            ir.UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 UNION ALL SELECT 2" in {
+        example(
+          "SELECT 1 UNION ALL SELECT 2",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+            ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+            ir.UnionSetOp,
+            is_all = true,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 EXCEPT SELECT 2" in {
+        example(
+          "SELECT 1 EXCEPT SELECT 2",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+            ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+            ir.ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 INTERSECT SELECT 2" in {
+        example(
+          "SELECT 1 INTERSECT SELECT 2",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+            ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+            ir.IntersectSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 UNION SELECT 2 UNION ALL SELECT 3 EXCEPT SELECT 4 INTERSECT SELECT 5" in {
+        example(
+          "SELECT 1 UNION SELECT 2 UNION ALL SELECT 3 EXCEPT SELECT 4 INTERSECT SELECT 5",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.SetOperation(
+              ir.SetOperation(
+                ir.SetOperation(
+                  ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+                  ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+                  ir.UnionSetOp,
+                  is_all = false,
+                  by_name = false,
+                  allow_missing_columns = false),
+                ir.Project(ir.NoTable(), Seq(ir.Literal(3, ir.IntegerType))),
+                ir.UnionSetOp,
+                is_all = true,
+                by_name = false,
+                allow_missing_columns = false),
+              ir.Project(ir.NoTable(), Seq(ir.Literal(4, ir.IntegerType))),
+              ir.ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.Project(ir.NoTable(), Seq(ir.Literal(5, ir.IntegerType))),
+            ir.IntersectSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) EXCEPT (SELECT 4 INTERSECT SELECT 5)" in {
+        example(
+          "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) EXCEPT (SELECT 4 INTERSECT SELECT 5)",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.SetOperation(
+              ir.Project(ir.NoTable(), Seq(ir.Literal(1, ir.IntegerType))),
+              ir.SetOperation(
+                ir.Project(ir.NoTable(), Seq(ir.Literal(2, ir.IntegerType))),
+                ir.Project(ir.NoTable(), Seq(ir.Literal(3, ir.IntegerType))),
+                ir.UnionSetOp,
+                is_all = true,
+                by_name = false,
+                allow_missing_columns = false),
+              ir.UnionSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.SetOperation(
+              ir.Project(ir.NoTable(), Seq(ir.Literal(4, ir.IntegerType))),
+              ir.Project(ir.NoTable(), Seq(ir.Literal(5, ir.IntegerType))),
+              ir.IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+    }
+
     "translate right-associative UNION clauses" should {
       // These are of the form: (queryExpression) [UNION [ALL] query expression]
       "(SELECT a, b FROM bb) UNION select x, y FROM zz" in {
