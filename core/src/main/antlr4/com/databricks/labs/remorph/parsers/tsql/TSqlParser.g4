@@ -2214,7 +2214,9 @@ killStatsJob: STATS JOB INT
 executeStatement: EXECUTE executeBody SEMI?
     ;
 
-executeBodyBatch: dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
+executeBodyBatch
+    : jinjaTemplate
+    | dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
 executeBody

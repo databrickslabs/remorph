@@ -830,7 +830,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+      NamedArgumentExpression(ctx.assocId().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = errorCheck(ctx) match {

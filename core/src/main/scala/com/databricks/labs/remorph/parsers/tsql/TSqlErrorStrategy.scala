@@ -206,6 +206,8 @@ object TSqlErrorStrategy {
 
   private[TSqlErrorStrategy] val ruleTranslation: Map[String, String] = Map(
     "tSqlFile" -> "T-SQL batch",
+    "executeBodyBatch" -> "Stored procedure call",
+    "jingjaTemplate" -> "Jinja template element",
     "selectStatement" -> "SELECT statement",
     "selectStatementStandalone" -> "SELECT statement",
     "selectList" -> "SELECT list",

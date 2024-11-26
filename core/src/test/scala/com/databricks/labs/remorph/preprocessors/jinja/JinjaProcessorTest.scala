@@ -35,7 +35,8 @@ class JinjaProcessorTest extends AnyWordSpec {
         case _ => ""
       }
 
-      println(processed)
+      println(s"====\n$processed\n====")
+      println(s"${transpiler.format(processed)}")
       // scalastyle:on
 
       assert(input.source == processed)

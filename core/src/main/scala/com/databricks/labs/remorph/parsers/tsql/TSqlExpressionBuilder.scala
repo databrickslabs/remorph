@@ -509,6 +509,12 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     }
   }
 
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.Expression = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ir.JinjaAsExpression(ctx.getText)
+  }
+
   private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }

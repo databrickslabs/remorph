@@ -240,6 +240,7 @@ keyword
     | ENCRYPTED_VALUE
     | ENCRYPTION
     | ENCRYPTION_TYPE
+    | END
     | ENDPOINT
     | ENDPOINT_URL
     | ERROR
@@ -327,6 +328,7 @@ keyword
     | INCLUDE_NULL_VALUES
     | INCREMENT
     | INCREMENTAL
+    | INDEX
     | INFINITE
     | INIT
     | INITIATOR
@@ -346,6 +348,7 @@ keyword
     | KEEPDEFAULTS
     | KEEPIDENTITY
     | KERBEROS
+    | KEY
     | KEY_PATH
     | KEY_SOURCE
     | KEY_STORE_PROVIDER_NAME
@@ -532,6 +535,7 @@ keyword
     | PROPERTY
     | PROVIDER
     | PROVIDER_KEY_NAME
+    | PUBLIC
     | QUERY
     | QUEUE
     | QUEUE_DELAY
