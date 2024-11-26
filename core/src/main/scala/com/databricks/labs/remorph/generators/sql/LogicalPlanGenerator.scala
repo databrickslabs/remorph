@@ -72,7 +72,7 @@ class LogicalPlanGenerator(
     seqSql.map { seq =>
       seq
         .map { elem =>
-          if (!elem.endsWith("*/")) s"$elem;"
+          if (!elem.endsWith("*/") && !elem.startsWith("_!Jinja")) s"$elem;"
           else elem
         }
         .mkString("\n")

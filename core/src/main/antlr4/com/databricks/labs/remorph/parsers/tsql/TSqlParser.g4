@@ -3207,7 +3207,11 @@ sendConversation
     )? SEMI?
     ;
 
-dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType
+    : jinjaTemplate
+    | dataTypeIdentity
+    | XML LPAREN id RPAREN
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
 dataTypeList: dataType (COMMA dataType)*

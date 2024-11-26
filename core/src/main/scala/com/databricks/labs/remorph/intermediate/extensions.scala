@@ -257,3 +257,5 @@ case class JinjaAsStatement(text: String) extends LeafNode {
 case class JinjaAsExpression(text: String) extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
+
+case class JinjaAsDataType(text: String) extends DataType
