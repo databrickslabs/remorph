@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.{Expression, _}
 
-class Dealiaser(val aliases: Map[String, Expression]) {
+class Dealiaser(val aliases: Map[String, Expression], val isInColumnExpression: Boolean = false) {
 
   def dealiasProject(project: Project): Project = {
     val input = dealiasInput(project.input)
@@ -36,37 +36,51 @@ class Dealiaser(val aliases: Map[String, Expression]) {
       case binary: Binary => dealiasBinary(binary)
       case func: CallFunction => dealiasCallFunction(func)
       case window: Window => dealiasWindow(window)
+      case subquery: SubqueryExpression => dealiasSubqueryExpression(subquery)
       case expression: Expression => expression
     }
   }
 
   private def dealiasAlias(alias: Alias): Alias = {
     val filtered = aliases - alias.name.id
-    val expression = new Dealiaser(filtered).dealiasExpression(alias.child)
+    val expression = new Dealiaser(filtered, true).dealiasExpression(alias.child)
     alias.makeCopy(Array(expression.asInstanceOf[AnyRef], alias.name.asInstanceOf[AnyRef])).asInstanceOf[Alias]
   }
 
   private def dealiasName(name: Name): Expression = {
-    val alias = aliases.find(p => p._1 == name.name)
-    if (alias.isEmpty) {
+    // don't dealias column names when dealing with column expressions
+    if (isInColumnExpression) {
       name
     } else {
-      alias.get._2
+      val alias = aliases.find(p => p._1 == name.name)
+      if (alias.isEmpty) {
+        name
+      } else {
+        val filtered = aliases - name.name
+        new Dealiaser(filtered).dealiasExpression(alias.get._2)
+      }
     }
   }
 
   private def dealiasId(id: Id): Expression = {
-    val alias = aliases.find(p => p._1 == id.id)
-    if (alias.isEmpty) {
+    // don't dealias column names when dealing with column expressions
+    if (isInColumnExpression) {
       id
     } else {
-      alias.get._2
+      val alias = aliases.find(p => p._1 == id.id)
+      if (alias.isEmpty) {
+        id
+      } else {
+        val filtered = aliases - id.id
+        new Dealiaser(filtered).dealiasExpression(alias.get._2)
+      }
     }
   }
 
   private def dealiasIn(in: In): Expression = {
-    val transformed = dealiasExpression(in.left)
-    in.makeCopy(Array(transformed, in.other))
+    val left = dealiasExpression(in.left)
+    val other = dealiasExpressions(in.other)
+    in.makeCopy(Array(left, other))
   }
 
   private def dealiasUnary(unary: Unary): Expression = {
@@ -86,15 +100,36 @@ class Dealiaser(val aliases: Map[String, Expression]) {
   }
 
   private def dealiasWindow(window: Window): Expression = {
-    val partition = dealiasExpressions(window.partition_spec)
-    val sort_order = dealiasSortOrders(window.sort_order)
-    window.makeCopy(
-      Array(
-        window.window_function.asInstanceOf[AnyRef],
-        partition.asInstanceOf[AnyRef],
-        sort_order.asInstanceOf[AnyRef],
-        window.frame_spec.asInstanceOf[AnyRef],
-        window.ignore_nulls.asInstanceOf[AnyRef]))
+    if (isInColumnExpression) {
+      // window expressions need to be dealiased, so switch to dealiasing behavior
+      new Dealiaser(aliases).dealiasWindow(window)
+    } else {
+      val partition = dealiasExpressions(window.partition_spec)
+      val sort_order = dealiasSortOrders(window.sort_order)
+      window.makeCopy(
+        Array(
+          window.window_function.asInstanceOf[AnyRef],
+          partition.asInstanceOf[AnyRef],
+          sort_order.asInstanceOf[AnyRef],
+          window.frame_spec.asInstanceOf[AnyRef],
+          window.ignore_nulls.asInstanceOf[AnyRef]))
+    }
+  }
+
+  private def dealiasSubqueryExpression(subquery: SubqueryExpression): Expression = {
+    val plan = subquery.plan match {
+      case project: Project => {
+        val aliases = Dealiaser.collectAliases(project.columns)
+        if (aliases.isEmpty) {
+          project
+        } else {
+          val dealiaser = new Dealiaser(aliases)
+          dealiaser.dealiasProject(project)
+        }
+      }
+      case plan: LogicalPlan => plan // TODO log or raise error ?
+    }
+    subquery.makeCopy(Array(plan))
   }
 
   private def dealiasSortOrders(sort_order: Seq[SortOrder]): Seq[SortOrder] = {
@@ -108,6 +143,13 @@ class Dealiaser(val aliases: Map[String, Expression]) {
 
 }
 
+object Dealiaser {
+
+  def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
+    columns.collect { case Alias(e, name) if !e.isInstanceOf[Literal] => name.id -> e }.toMap
+  }
+}
+
 class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
@@ -117,7 +159,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
   }
 
   private def dealiasProject(project: Project): Project = {
-    val aliases = collectAliases(project.columns)
+    val aliases = Dealiaser.collectAliases(project.columns)
     if (aliases.isEmpty) {
       project
     } else {

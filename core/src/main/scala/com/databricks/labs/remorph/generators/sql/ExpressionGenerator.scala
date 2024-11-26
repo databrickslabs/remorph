@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators._
-import com.databricks.labs.remorph.{Generating, OkResult, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, Transformation, TransformationConstructors, intermediate => ir}
 
 import java.time._
 import java.time.format.DateTimeFormatter
@@ -371,11 +371,29 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def in(inExpr: ir.In): SQL = {
     val values = commas(inExpr.other)
-    code"${expression(inExpr.left)} IN ($values)"
+    val enclosed = new Transformation[String]({
+      case g: Generating => {
+        values.run(g) match {
+          case OkResult((_, s)) =>
+            // don't enclose already enclosed values
+            if (s.charAt(0) == '(' && s.charAt(s.length - 1) == ')') {
+              OkResult((g, s))
+            } else {
+              OkResult((g, "(" + s + ")"))
+            }
+          case r => r
+        }
+      }
+      case p => values.run(p)
+    })
+    code"${expression(inExpr.left)} IN ${enclosed}"
   }
 
   private def scalarSubquery(subquery: ir.ScalarSubquery): SQL = {
-    withGenCtx(ctx => ctx.logical.generate(subquery.relation))
+    withGenCtx(ctx => {
+      val subcode = ctx.logical.generate(subquery.relation)
+      code"(${subcode})"
+    })
   }
 
   private def window(window: ir.Window): SQL = {
