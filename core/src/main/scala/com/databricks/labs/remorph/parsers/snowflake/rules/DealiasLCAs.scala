@@ -168,8 +168,4 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
     }
   }
 
-  private def collectAliases(columns: Seq[Expression]): Map[String, Expression] = {
-    columns.collect { case Alias(e, name) if !e.isInstanceOf[Literal] => name.id -> e }.toMap
-  }
-
 }
