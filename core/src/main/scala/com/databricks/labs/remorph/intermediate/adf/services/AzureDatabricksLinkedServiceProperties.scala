@@ -3,12 +3,12 @@ package com.databricks.labs.remorph.intermediate.adf.services
 import com.databricks.labs.remorph.intermediate.adf.PipelineNode
 
 case class AzureDatabricksLinkedServiceProperties(
-    annotations: Map[String, String],
-    connectVia: Option[IntegrationRuntimeReference],
-    description: Option[String],
-    parameters: Map[String, String],
-    linkedServiceType: Option[String],
-    version: Option[String],
+    override val linkedServiceType: String,
+    override val annotations: Map[String, String],
+    override val connectVia: Option[IntegrationRuntimeReference],
+    override val description: Option[String],
+    override val parameters: Map[String, String],
+    override val version: Option[String],
     accessToken: Option[AzureKeyVaultSecretReference],
     authentication: Option[String],
     credential: Option[CredentialReference],
@@ -28,7 +28,7 @@ case class AzureDatabricksLinkedServiceProperties(
     newClusterVersion: Option[String],
     policyId: Option[String],
     workspaceResourceId: Option[String])
-    extends LinkedServiceProperties(annotations, connectVia, description, parameters, linkedServiceType, version) {
-  override def children: Seq[PipelineNode] = super.children ++ accessToken ++
+    extends LinkedServiceProperties {
+  override def children: Seq[PipelineNode] = Seq() ++ accessToken ++
     connectVia ++ credential
 }
