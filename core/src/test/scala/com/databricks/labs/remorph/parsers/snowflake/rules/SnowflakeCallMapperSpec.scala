@@ -202,6 +202,9 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
           Some(ir.Literal(0))),
         Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right")))))
 
+    ir.CallFunction("SUBSTR", Seq(ir.Literal("Hello"), ir.Literal(1), ir.Literal(3))) becomes
+      ir.Substring(ir.Literal("Hello"), ir.Literal(1), Some(ir.Literal(3)))
+
     "ARRAY_SLICE index shift" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.IntLiteral(0), ir.IntLiteral(2))) becomes ir.Slice(
         ir.Id("arr1"),
