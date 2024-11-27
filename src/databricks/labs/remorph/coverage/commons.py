@@ -190,6 +190,7 @@ def _prepare_report_entry(
 
     return report_entry
 
+
 def collect_transpilation_stats(
     project: str,
     commit_hash: str,
