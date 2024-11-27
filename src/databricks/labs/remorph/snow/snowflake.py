@@ -477,3 +477,23 @@ class Snow(Snowflake):
                     end_side="FOLLOWING",
                 )
             return window
+
+        def _parse_alter_table_add(self) -> list[exp.Expression]:
+            index = self._index - 1
+            if self._match_set(self.ADD_CONSTRAINT_TOKENS, advance=False):
+                return self._parse_csv(
+                    lambda: self.expression(exp.AddConstraint, expressions=self._parse_csv(self._parse_constraint))
+                )
+
+            self._retreat(index)
+            if not self.ALTER_TABLE_ADD_REQUIRED_FOR_EACH_COLUMN and self._match_text_seq("ADD"):
+                return self._parse_wrapped_csv(self._parse_field_def, optional=True)
+
+            if self._match_text_seq("ADD", "COLUMN"):
+                schema = self._parse_schema()
+                if schema:
+                    return [schema]
+                # return self._parse_csv in case of COLUMNS are not enclosed in brackets ()
+                return self._parse_csv(self._parse_field_def)
+
+            return self._parse_wrapped_csv(self._parse_add_column, optional=True)
