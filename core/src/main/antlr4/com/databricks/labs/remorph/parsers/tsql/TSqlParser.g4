@@ -2803,6 +2803,7 @@ querySpecification
     ;
 
 selectOptionalClauses
+    // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
     : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
     ;
 
