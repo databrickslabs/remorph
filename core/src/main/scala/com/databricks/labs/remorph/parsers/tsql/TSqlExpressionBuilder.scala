@@ -279,7 +279,7 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      ir.DollarAction()
+      ir.DollarAction
   }
 
   override def visitExprStar(ctx: ExprStarContext): ir.Expression = errorCheck(ctx) match {
