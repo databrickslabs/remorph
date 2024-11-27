@@ -77,8 +77,9 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   }
 
   @tailrec
-  private[this] def buildIntersectOperations(lhs: ir.LogicalPlan,
-                                             remainingContexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
+  private[this] def buildIntersectOperations(
+      lhs: ir.LogicalPlan,
+      remainingContexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
     /*
      * The sqlUnion* rule needs to be handled carefully because the grammar does not completely implement the
      * precedence rules for set operations:
