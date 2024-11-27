@@ -161,25 +161,7 @@ case class Cast(
     type_str: String = "",
     returnNullOnError: Boolean = false,
     timeZoneId: Option[String] = None)
-    extends Unary(expr) {
-
-  override def makeCopy(newArgs: Array[AnyRef]): Expression = {
-    var args = newArgs
-    if (args.length == 1) {
-      args = args :+ this.dataType
-    }
-    if (args.length == 2) {
-      args = args :+ this.type_str
-    }
-    if (args.length == 3) {
-      args = args :+ this.returnNullOnError.asInstanceOf[AnyRef]
-    }
-    if (args.length == 4) {
-      args = args :+ this.timeZoneId
-    }
-    super.makeCopy(args)
-  }
-}
+    extends Unary(expr)
 
 case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends LeafExpression {
   override def dataType: DataType = CalendarIntervalType
@@ -211,14 +193,6 @@ trait StarOrAlias
 
 case class Alias(expr: Expression, name: Id) extends Unary(expr) with StarOrAlias {
   override def dataType: DataType = expr.dataType
-
-  override def makeCopy(newArgs: Array[AnyRef]): Expression = {
-    var args = newArgs
-    if (args.length == 1) {
-      args = args :+ this.name
-    }
-    super.makeCopy(args)
-  }
 }
 
 case class LambdaFunction(function: Expression, arguments: Seq[UnresolvedNamedLambdaVariable]) extends Expression {

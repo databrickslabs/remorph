@@ -136,14 +136,6 @@ case class Timezone(expression: Expression, timeZone: Expression) extends Binary
 
 case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Unary(expression) {
   override def dataType: DataType = expression.dataType
-
-  override def makeCopy(newArgs: Array[AnyRef]): Expression = {
-    var args = newArgs
-    if (args.length == 1) {
-      args = args :+ this.order
-    }
-    super.makeCopy(args)
-  }
 }
 
 sealed trait SamplingMethod
