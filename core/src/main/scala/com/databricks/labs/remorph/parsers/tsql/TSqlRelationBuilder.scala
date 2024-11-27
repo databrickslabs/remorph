@@ -267,9 +267,10 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     }
   }
 
-  private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
+  private[tsql] def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
       case c if c.id() != null => vc.expressionBuilder.buildId(c.id())
+      case t if t.jinjaTemplate() != null => ir.Id(vc.expressionBuilder.removeQuotes(ctx.jinjaTemplate.getText))
       case _ => ir.Id(vc.expressionBuilder.removeQuotes(ctx.getText))
     }
   }
@@ -295,6 +296,18 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
         ctx.selectStatement().accept(this)
       }
       result
+  }
+
+  override def visitTsiJinja(ctx: TsiJinjaContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx.jinjaTemplate().accept(this)
+  }
+
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ir.JinjaAsStatement(ctx.getText)
   }
 
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = errorCheck(ctx) match {
@@ -540,6 +553,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     // correct source code to be given to remorph.
     val aggregateFunction = ctx.pivotClause().expression().accept(vc.expressionBuilder)
     val column = ctx.pivotClause().fullColumnName().accept(vc.expressionBuilder)
+    // TODO: All other aliases are handled as ir.Id, but here we use ir.Literal - should it change?
     val values = ctx.pivotClause().columnAliasList().columnAlias().asScala.map(c => buildLiteral(c.getText))
     ir.Aggregate(
       child = left,

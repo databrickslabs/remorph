@@ -1529,7 +1529,7 @@ outputClause
     )?
     ;
 
-outputDmlListElem: (expression | asterisk) asColumnAlias?
+outputDmlListElem: (expression | asterisk) (AS? columnAlias)?
     ;
 
 createDatabase
@@ -2734,6 +2734,7 @@ expression
     | DOLLAR_ACTION                                           # exprDollar
     | STAR                                                    # exprStar
     | id                                                      # exprId
+    | jinjaTemplate                                           # exprJinja
     ;
 
 // TODO: Implement this ?
@@ -2882,7 +2883,7 @@ selectElemTempl: COMMA selectListElem | COMMA? jinjaTemplate selectListElem?
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
-expressionElem: columnAlias EQ expression | expression asColumnAlias?
+expressionElem: columnAlias EQ expression | expression (AS? columnAlias)?
     ;
 
 selectListElem
@@ -2917,6 +2918,7 @@ tsiElement
     | openJson                                                    # tsiOpenJson
     | dotIdentifier? DOUBLE_COLON functionCall                    # tsiDoubleColonFunctionCall
     | LPAREN tableSource RPAREN                                   # tsiParenTableSource
+    | jinjaTemplate                                               # tsiJinja
     ;
 
 openJson
@@ -3062,10 +3064,7 @@ nodesMethod
 switchSection: WHEN searchCondition THEN expression
     ;
 
-asColumnAlias: AS? columnAlias
-    ;
-
-asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
+asTableAlias: AS? (jinjaTemplate | id | DOUBLE_QUOTE_ID)
     ;
 
 withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
@@ -3080,7 +3079,7 @@ tableHint
 columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
-columnAlias: id | STRING
+columnAlias: jinjaTemplate | id | STRING
     ;
 
 tableValueConstructor: VALUES tableValueRow (COMMA tableValueRow)*
@@ -3223,22 +3222,7 @@ dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
 constant: con = (STRING | HEX | INT | REAL | FLOAT | MONEY) | parameter
     ;
 
-id: ide | templateId
-    ;
-
-ide: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
-    ;
-
-// caters for the complications of Jinja templates being placed anywhere by
-// only selects templateID if ide is followed by a template or there is a template
-// first. Otherwise ide will be predicted in the id rule because of the + in alternatice
-// two in this rule. This rule is therefore able to parse and is selected when we see
-//
-// JINJA_TEMPLATE
-// JINJA_TEMPLATE ID
-// ID JINJA_TEMPLATE
-// ID JINJA_TEMPLATE (ID | JINJA_TEMPLATE)...
-templateId: jinjaTemplate ide? | ide jinjaTemplate
+id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
     ;
 
 simpleId: ID

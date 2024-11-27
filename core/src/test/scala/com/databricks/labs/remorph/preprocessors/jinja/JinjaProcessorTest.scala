@@ -4,12 +4,20 @@ import com.databricks.labs.remorph.transpilers.TSqlToDatabricksTranspiler
 import com.databricks.labs.remorph.{OkResult, PartialResult, PreProcessing}
 import org.scalatest.wordspec.AnyWordSpec
 
+// Note that this test is as much for debugging purposes as anything else, but it does create the more complex
+// cases of template use.
+// Integration tests are really where it's at
 class JinjaProcessorTest extends AnyWordSpec {
 
   "Preprocessor" should {
     "pre statement block" in {
 
       val transpiler = new TSqlToDatabricksTranspiler
+
+      // Note that template replacement means that token lines and offsets will be out of sync with the start point
+      // and we will need to insert positional tokens in a subsequent PR, so that the lexer can account for the missing
+      // text. Another option may be to pas the replacement _!Jinja9999 with spaces and newlines to match the length
+      // of the text they are replacing.
       val input = PreProcessing("""{%- set payment_methods = dbt_utils.get_column_values(
                             |                              table=ref('raw_payments'),
                             |                              column='payment_method'
@@ -24,50 +32,20 @@ class JinjaProcessorTest extends AnyWordSpec {
                             |    from {{ ref('raw_payments') }}
                             |    group by 1
                             |""".stripMargin)
-      val input2 = PreProcessing("""with base as (
-                                   |
-                                   |    select *
-                                   |    from {{ ref('stg_twilio__address_tmp') }}
-                                   |),
-                                   |
-                                   |fields as (
-                                   |
-                                   |    select
-                                   |        {{
-                                   |            fivetran_utils.fill_staging_columns(
-                                   |                source_columns=adapter.get_columns_in_relation(ref('stg_twilio__address_tmp')),
-                                   |                staging_columns=get_address_columns()
-                                   |            )
-                                   |        }}
-                                   |    from base
-                                   |),
-                                   |
-                                   |final as (
-                                   |
-                                   |    select
-                                   |        _fivetran_synced,
-                                   |        account_id,
-                                   |        city,
-                                   |        created_at,
-                                   |        customer_name,
-                                   |        emergency_enabled,
-                                   |        friendly_name,
-                                   |        cast(id as {{ dbt.type_string() }}) as address_id,
-                                   |        iso_country,
-                                   |        postal_code,
-                                   |        region,
-                                   |        street,
-                                   |        updated_at,
-                                   |        validated,
-                                   |        verified
-                                   |    from fields
-                                   |)
-                                   |
-                                   |select *
-                                   |from final""".stripMargin)
-      val result = transpiler.transpile(input2).runAndDiscardState(input)
 
-      // scalastyle:off
+      // Note that we cannot format the output because the Scala based formatter we have does not handle DBT/Jinja
+      // templates and therefore breaks the output
+      val output = """{%- set payment_methods = dbt_utils.get_column_values(
+                     |                              table=ref('raw_payments'),
+                     |                              column='payment_method'
+                     |) -%}
+                     |""".stripMargin +
+        """|SELECT order_id, {%- for payment_method in payment_methods %}, """.stripMargin +
+        """|SUM(CASE WHEN payment_method = '{{payment_method}}' THEN amount END) AS """.stripMargin +
+        """|{{payment_method}}_amount{%- if not loop.last %}, {% endif -%}{% endfor %} """.stripMargin +
+        """|FROM {{ ref('raw_payments') }} GROUP BY 1;""".stripMargin
+      val result = transpiler.transpile(input).runAndDiscardState(input)
+
       val processed = result match {
         case OkResult(output) =>
           output
@@ -75,17 +53,7 @@ class JinjaProcessorTest extends AnyWordSpec {
           output
         case _ => ""
       }
-
-      println(s"====\n$processed\n====")
-
-      // Show that we cannot use this formatter on Jinja templated SQL
-      println(s"${transpiler.format(processed)}")
-      // scalastyle:on
-
-      assert(input.source == processed)
-
+      assert(output == processed)
     }
-
   }
-
 }

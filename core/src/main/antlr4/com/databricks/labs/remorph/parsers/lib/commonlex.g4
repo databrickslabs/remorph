@@ -1433,8 +1433,11 @@ LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(HIDDEN);
 ID              : ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 
-// Jinja Template Elements
-JINJA_REF: '_!Jinja' [0-9]+;
+// Jinja Template Elements - note that composite elements whereby an identifier
+// is constricted at runtime, fall out by eating the following text here. The post
+// processor will only replace the template identifier. So:
+// {{ ref("something") }}_mysuffix will be tokenized as the template reference
+JINJA_REF: '_!Jinja' [0-9]+ ID?;
 
 // This lexer rule is needed so that any unknown character in the lexicon does not
 // cause an incomprehensible error message from the lexer. This rule will allow the parser to issue

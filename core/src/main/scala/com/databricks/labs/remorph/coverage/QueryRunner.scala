@@ -17,13 +17,16 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
       exampleQuery: ExampleQuery,
       output: String,
       error: Option[RemorphError] = None): ReportEntryReport = {
-    val expected = exampleQuery.expectedTranslation.getOrElse("")
+    val expected = exampleQuery.expectedTranslation
     val parsed = if (error.isEmpty) 1 else 0
-    if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
+    val formattedOutput = if (exampleQuery.shouldFormat) format(output) else output
+    val formattedExpected = expected.map(e => if (exampleQuery.shouldFormat) format(e) else e)
+
+    if (formattedExpected.exists(_ != formattedOutput)) {
       ReportEntryReport(
         parsed = parsed,
         statements = 1,
-        failures = Some(UnexpectedOutput(format(expected), format(output))))
+        failures = Some(UnexpectedOutput(formattedExpected.get, formattedOutput)))
     } else {
       ReportEntryReport(
         parsed = parsed,
