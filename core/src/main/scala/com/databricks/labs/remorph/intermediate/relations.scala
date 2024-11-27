@@ -354,7 +354,7 @@ case class AsOfJoin(
   override def output: Seq[Attribute] = left.output ++ right.output
 }
 
-case class Unknown() extends LeafNode {
+case object Unknown extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
