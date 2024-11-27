@@ -1,6 +1,6 @@
 # Implementing Snowflake and Other SQL Dialects AST -> Intermediate Representation
 
-Here's a guideline for incrementally improving the Snowflake -> IR translation in `SnowflakeAstBuilder`, et al., 
+Here's a guideline for incrementally improving the Snowflake -> IR translation in `SnowflakeAstBuilder`, et al.,
 and the equivalent builders for additional dialects.
 
 ## Table of Contents
@@ -16,16 +16,16 @@ and the equivalent builders for additional dialects.
 ## Changing the ANTLR grammars
 
 Changing the ANTLR grammars is a specialized task, and only a few team members have permission to do so.
-Do not attempt to change the grammars unless you have been given explicit permission to do so. 
+Do not attempt to change the grammars unless you have been given explicit permission to do so.
 
-It is unfortunately, easy to add parser rules without realizing the full implications of the change, 
+It is unfortunately, easy to add parser rules without realizing the full implications of the change,
 and this can lead to performance problems, incorrect IR and incorrect code gen.
-Performance problems usually come from the fact that ANTLR will manage to make a working parser 
-out of almost any input specification. However, the resulting parser may then be very slow, 
+Performance problems usually come from the fact that ANTLR will manage to make a working parser
+out of almost any input specification. However, the resulting parser may then be very slow,
 or may not be able to handle certain edge cases.
 
-After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines. 
-We use (for now at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool is run as part of the 
+After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines.
+We use (for now at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool is run as part of the
 maven build process, if you are using the 'format' maven profile. You can also run it from the command line
 via make:
 
@@ -39,7 +39,7 @@ or:
 make fmt-scala
 ```
 
-Also, there is a Databricks specific ANTLR linter, which you MUST run before checking in. 
+Also, there is a Databricks specific ANTLR linter, which you MUST run before checking in.
 
 It can be run from the command line with:
 
@@ -54,27 +54,27 @@ as it must assume that they will be called from outside the grammar.
 
 ## Checking ANTLR changes
 
-If you make changes to the ANTLR grammar, you should check the following things 
+If you make changes to the ANTLR grammar, you should check the following things
 (this is a good order to check them in):
 
  - Have you defined any new TOKENS used in the PARSER?
    - If so, did you define them in the LEXER?
- - Have you eliminated the use of any tokens (this is generally a good thing - such as replacing 
+ - Have you eliminated the use of any tokens (this is generally a good thing - such as replacing
    a long list of option keywords with an id rule, which is then checked later in the process)?
    - If so, have you removed them from the lexer?
  - Have you added any new rules? If so:
    - have you checked that you have not duplicated some syntactic structure that is already defined
-     and could be reused? 
+     and could be reused?
    - have you checked that they are used in the parser (the IntelliJ plugin will highlight unused rules)?
  - Have you orphaned any rules? If so:
-   - did you mean to do so? 
+   - did you mean to do so?
    - have you removed them (the IntelliJ plugin will highlight unused rules)?
    - are you sure that removing them is the right thing to do? If you can create
      a shared rule that cuts down on the number of rules, that is generally a good thing.
 
 You must create tests at each stage for any syntax changes. IR generation tests, coverage tests, and
 transpilation tests are all required. Make sure there are tests covering all variants of the syntax you have
-added or changed. It is generally be a good idea to write the tests before changing the grammar. 
+added or changed. It is generally be a good idea to write the tests before changing the grammar.
 
 ### Examples
 
@@ -136,7 +136,7 @@ expression  :
 You should now check to see if `jsonExtract` is used anywhere else for a number of reasons:
     - it may be that it is no longer needed and can be removed
     - it may be that it is used in other places and needs to be refactored to `expression`
-      everywhere. 
+      everywhere.
     - it may be that it is used in other places and needs to be left as is because it is
       a different use case.
 
@@ -176,8 +176,8 @@ For instance:
 ```antlrv4
 tSqlFile: batch? EOF
     ;
-```    
-#### labels 
+```
+#### labels
 Use of labels where they are not needed is discouraged. They are overused in the current
 grammars. Use them where it makes it much easier to check in the ParserContext received by
 the visit method. This is because a label creates a new variable, getters and associated
@@ -222,21 +222,21 @@ for certain which `id` you are looking at.
 
 In some cases, you may see that rules repeat long sequences of tokens. This is generally a bad
 thing, and you should strive to merge them in to a common rule. Two to four tokens is generally
-OK, but much longer than that, and you should consider refactoring. As of writing for instance, 
+OK, but much longer than that, and you should consider refactoring. As of writing for instance,
 there are many TSQL grammar rules for `create` vs `altet` where the original author has
 repeated all the tokens and options. They will eventually be refactored into common rules.
 
 Do not separate longer sequences of tokens into separate rules unless there is in fact
 commonality between two or more rules. At runtime, a new rule will generate as a new method and
-incur the setup and teardown time involved in calling a new rule. 
+incur the setup and teardown time involved in calling a new rule.
 
 If you see an opportunity to refactor, and it is because you have added a new rule or syntax
 then do so. Refactoring outside the scope of your PR requires a second PR, or raise an issue.
 
-In the current TSQL grammar, we can see that: 
+In the current TSQL grammar, we can see that:
  - there are two rules using a common sequence of tokens that we can refactor into a common rule
  - that it is probably not worth doing that for `createLoginAzure`
- - `labels=` have been used for no reason. 
+ - `labels=` have been used for no reason.
 
 ```antlrv4
 alterLoginAzureSql
@@ -278,7 +278,7 @@ createLoginAzureSql: CREATE LOGIN loginName = id WITH PASSWORD EQ STRING ( SID E
 alterLoginAzureSqlDwAndPdw
     : ALTER LOGIN id passwordClause
     ;
-    
+
 passWordClause:
         (ENABLE | DISABLE)?
         | WITH (
@@ -287,10 +287,10 @@ passWordClause:
             )?
             | NAME EQ  id
         )
-    ;    
+    ;
 ```
 
-In passwdClause we know in the visitor that ctx.STRING(0) is the password, and 
+In passwdClause we know in the visitor that ctx.STRING(0) is the password, and
 ctx.STRING(1) is the old password. We can also check if ctx.MUST_CHANGE() or ctx.UNLOCK()
 are present and because they are optional, we can share the passwdClause between the
 two rules even though `alterLoginAzureSql` does not support them. The visitor can check
@@ -321,7 +321,7 @@ npm install -g antlr-format-cli
 
 ### Running antlr-format
 
-The formatter is trivial to run from the directory containing your changed grammar: 
+The formatter is trivial to run from the directory containing your changed grammar:
 
 ```bash
 ~/databricks/remorph/core/src/main/antlr4/../parsers/tsql (feature/antlrformatdocs ✘)✹ ᐅ antlr-format *.g4
@@ -333,13 +333,13 @@ formatting 2 file(s)...
 done [82 ms]
 ```
 
-Note that the formatting configuration is contained in the .g4 files themselves, so there is no need to 
+Note that the formatting configuration is contained in the .g4 files themselves, so there is no need to
 provide a configuration file. Please do not change the formatting rules.
 
 ### Caveat
 
 Some of the grammar definitions (`src/main/antlr4/com/databricks/labs/remorph/parsers/<dialect>/<dialect>Parser.g4`)
-may still be works-in-progress and, as such, may contain rules that are either incorrect or simply 
+may still be works-in-progress and, as such, may contain rules that are either incorrect or simply
 _get in the way_ of implementing the <dialect> -> IR translation.
 
 When stumbling upon such a case, one should:
@@ -355,7 +355,7 @@ Here is the methodology used to effect changes to IR generation.
 
 ### Step 1: add a test
 
-Let say we want to add support for a new type of query, for the sake of simplicity we'll take 
+Let say we want to add support for a new type of query, for the sake of simplicity we'll take
 `SELECT a FROM b` in SnowFlake, as an example (even though this type of query is already supported).
 
 The first thing to do is to add an example in `SnowflakeAstBuilderSpec`:
@@ -371,9 +371,9 @@ The first thing to do is to add an example in `SnowflakeAstBuilderSpec`:
 
 ### Step 2: figure out the expected IR
 
-Next we need to figure out the intermediate AST we want to produce for this specific type of query. 
-In this simple example, the expected output would be 
-`Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Column("a")))` 
+Next we need to figure out the intermediate AST we want to produce for this specific type of query.
+In this simple example, the expected output would be
+`Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Column("a")))`
 so we update our test with:
 
 ```scala
@@ -382,16 +382,16 @@ so we update our test with:
 // ...
 ```
 
-Less trivial cases may require careful exploration of the available data types in 
+Less trivial cases may require careful exploration of the available data types in
 `com.databricks.labs.remorph.parsers.intermediate` to find to proper output structure.
 
-It may also happen that the desired structure is missing in `com.databricks.labs.remorph.parsers.intermediate`. 
-In such a case, **we should not add/modify anything to/in the existing AST**, as it will eventually be generated 
+It may also happen that the desired structure is missing in `com.databricks.labs.remorph.parsers.intermediate`.
+In such a case, **we should not add/modify anything to/in the existing AST**, as it will eventually be generated
 from an external definition. Instead, we should add our new AST node as an extension in `src/main/scala/com/databricks/labs/remorph/parsers/intermediate/extensions.scala`.
 
 ### Step 3: run the test
 
-Our new test is now ready to be run (we expect it to fail). But before running it, you may want to uncomment the 
+Our new test is now ready to be run (we expect it to fail). But before running it, you may want to uncomment the
 `println(tree.toStringTree(parser))` line in the `parseString` method of `SnowflakeAstBuilderSpec`.
 
 It will print out the parser's output for your query in a LISP-like format:
@@ -406,39 +406,39 @@ so you do not always need to override some intermediate method, just to call acc
 
 ### Step 4: modify <Dialect><thing>Builder
 
-Method names in `<Dialect><something>Builder` follow the names that appear in the parser's output above. For example, 
-one would realize that the content of the `columnName` node is what will ultimately get translated as an IR `Column`. 
+Method names in `<Dialect><something>Builder` follow the names that appear in the parser's output above. For example,
+one would realize that the content of the `columnName` node is what will ultimately get translated as an IR `Column`.
 To do so, they therefore need to override the `visitColumnName` method of `SnowflakeExpressionBuilder`.
 
 Rather than have a single big visitor for every possible node in the parser's output, the nodes are handled by
 specialized visitors. For instance `TSqlExpressionBuilder` and `SnowflakeExpressionBuilder`. An instance of the `<dialect>ExpressionBuilder`
-is injected into the `<dialect>AstBuilder`, which in turn calls accept using the expressionBuilder on a node that 
-will be an expression within a larger production, such as visitSelect. 
+is injected into the `<dialect>AstBuilder`, which in turn calls accept using the expressionBuilder on a node that
+will be an expression within a larger production, such as visitSelect.
 
 The <something> builders have one `visit*` method for every node in the parser's output that the builder is responsible
-for handling. Methods that are not overridden simply return the result of visiting children nodes. So in our example, 
+for handling. Methods that are not overridden simply return the result of visiting children nodes. So in our example,
 even though we haven't overridden the `visitColumnElem` method, our `visitColumnName` method will get called as expected
 because ANTLR creates a default implementation of `visitColumnElem` tha that calls `accept(this)` on the `columnName` node.
 
-However, note that if a rule can produce multiple children using the default `visit`, you will need to override the 
+However, note that if a rule can produce multiple children using the default `visit`, you will need to override the
 method that corresponds to that rule and produce the single IR node that represents that production.
 
-A rule of thumb for picking the right method to override is therefore to look for the narrowest node (in the parser's output) 
+A rule of thumb for picking the right method to override is therefore to look for the narrowest node (in the parser's output)
 that contains all the information we need. Once you override a `visit` function, you are then responsible for either
-calling `accept(<visitor>)` on its child nodes or otherwise processing them using a specialized `build<something>` method. 
+calling `accept(<visitor>)` on its child nodes or otherwise processing them using a specialized `build<something>` method.
 
-Here, the `(id_ a)` node is "too narrow" as `id_` appears in many different places where it could be translated as 
+Here, the `(id_ a)` node is "too narrow" as `id_` appears in many different places where it could be translated as
 something else than a `Column` so we go for the parent `columnName` instead.
 
-Moving forward, we may realize that there are more ways to build a `Column` than we initially expected so we may 
+Moving forward, we may realize that there are more ways to build a `Column` than we initially expected so we may
 have to override the `visitColumnElem` as well, but we will still be able to reuse our `visitColumnName` method, and
 have `visitColumnElem` call `accept(expressionBuilder)` on the `columnName` node.
 
 ### Step 5: test, commit, improve
 
-At this point, we should have come up with an implementation of `<Dialect><something>Builder` that makes our new test pass. 
-It is a good time for committing our changes. 
+At this point, we should have come up with an implementation of `<Dialect><something>Builder` that makes our new test pass.
+It is a good time for committing our changes.
 
-It isn't the end of the story though. We should add more tests with slight variations of our initial query 
-(like `SELECT a AS aa FROM b` for example) and see how our new implementation behaves. This may in turn make us 
+It isn't the end of the story though. We should add more tests with slight variations of our initial query
+(like `SELECT a AS aa FROM b` for example) and see how our new implementation behaves. This may in turn make us
 change our implementation, repeating the above steps a few times more.
