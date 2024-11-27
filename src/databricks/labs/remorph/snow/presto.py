@@ -118,6 +118,68 @@ def _build_array_average(args: list) -> exp.Reduce:
     )
 
 
+def _build_json_size(args: list):
+    return exp.Case(
+        ifs=[
+            exp.If(
+                this=exp.Like(
+                    this=local_expression.GetJsonObject(
+                        this=exp.Column(this=seq_get(args, 0)),
+                        path=exp.Column(this=seq_get(args, 1)),
+                    ),
+                    expression=exp.Literal(this="{%", is_string=True),
+                ),
+                true=exp.ArraySize(
+                    this=exp.Anonymous(
+                        this="from_json",
+                        expressions=[
+                            local_expression.GetJsonObject(
+                                this=exp.Column(this=seq_get(args, 0)),
+                                path=exp.Column(this=seq_get(args, 1)),
+                            ),
+                            exp.Literal(this="map<string,string>", is_string=True),
+                        ],
+                    )
+                ),
+            ),
+            exp.If(
+                this=exp.Like(
+                    this=local_expression.GetJsonObject(
+                        this=exp.Column(this=seq_get(args, 0)),
+                        path=exp.Column(this=seq_get(args, 1)),
+                    ),
+                    expression=exp.Literal(this="[%", is_string=True),
+                ),
+                true=exp.ArraySize(
+                    this=exp.Anonymous(
+                        this="from_json",
+                        expressions=[
+                            local_expression.GetJsonObject(
+                                this=exp.Column(this=seq_get(args, 0)),
+                                path=exp.Column(this=seq_get(args, 1)),
+                            ),
+                            exp.Literal(this="array<string>", is_string=True),
+                        ],
+                    )
+                ),
+            ),
+            exp.If(
+                this=exp.Not(
+                    this=exp.Is(
+                        this=local_expression.GetJsonObject(
+                            this=exp.Column(this=seq_get(args, 0)),
+                            path=exp.Column(this=seq_get(args, 1)),
+                        ),
+                        expression=exp.Null(),
+                    )
+                ),
+                true=exp.Literal(this="0", is_string=False),
+            ),
+        ],
+        default=exp.Null(),
+    )
+
+
 class Presto(presto):
 
     class Parser(presto.Parser):
@@ -129,6 +191,7 @@ class Presto(presto):
             "STRPOS": _build_str_position,
             "ANY_KEYS_MATCH": _build_any_keys_match,
             "ARRAY_AVERAGE": _build_array_average,
+            "JSON_SIZE": _build_json_size,
         }
 
     class Tokenizer(presto.Tokenizer):
