@@ -4,8 +4,6 @@
 -- 2. INTERSECT
 -- 3. UNION and EXCEPT, evaluated left to right.
 --
--- TODO: Verify that TSQL also evaluates INTERSECT from left-to-right.
---
 
 -- tsql sql:
 
