@@ -71,7 +71,7 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
       code""
     } else {
       val body = statements.map(generate(_))
-      val separatedItems = body.tail.foldLeft[Python](body.head) { case (agg, item) =>
+      val separatedItems = body.reduceLeft[Python] { case (agg, item) =>
         code"$agg\n$item"
       }
       code"$separatedItems$finish"

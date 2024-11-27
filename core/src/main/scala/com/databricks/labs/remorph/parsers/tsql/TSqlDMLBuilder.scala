@@ -49,7 +49,7 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
 
       val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
       val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(vc.relationBuilder))
-      val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
+      val sourcePlan = tableSourcesPlan.reduceLeft(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
       // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
@@ -140,10 +140,9 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
       val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
       val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
+      val sourceRelation = tableSourcesOption.map(
+        _.reduceLeft(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false))))
 
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
@@ -163,10 +162,9 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
 
       val output = Option(ctx.outputClause()).map(buildOutputClause)
       val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
+      val sourceRelation = tableSourcesOption.map(
+        _.reduceLeft(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false))))
 
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
