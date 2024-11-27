@@ -3152,6 +3152,7 @@ selectStatement
     ;
 
 setOperators
+    // TODO: Handle INTERSECT precedence in the grammar; it has higher precedence than EXCEPT and UNION ALL.
     : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
     ;
 

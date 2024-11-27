@@ -2794,6 +2794,7 @@ queryExpression
     ;
 
 sqlUnion
+    // TODO: Handle INTERSECT precedence in the grammar; it has higher precedence than EXCEPT and UNION ALL.
     : (UNION ALL? | EXCEPT | INTERSECT) (querySpecification | (LPAREN queryExpression RPAREN))
     ;
 
