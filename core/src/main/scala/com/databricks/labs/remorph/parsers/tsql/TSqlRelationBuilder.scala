@@ -67,47 +67,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       ctx match {
         case qs if qs.querySpecification() != null =>
           val lhs = qs.querySpecification().accept(this)
-          /*
-           * The sqlUnion* rule needs to be handled carefully because the grammar does not completely implement the
-           * precedence rules:
-           * 1. Brackets.
-           * 2. INTERSECT
-           * 3. UNION and EXCEPT, from left to right.
-           *
-           * Specifically the grammar treats INTERSECT as having the same precedence as UNION and EXCEPT, so we need to
-           * handle that specially. (Brackets and left-right precedence is handled by the grammar.)
-           */
-          val allSqlUnionContexts = qs.sqlUnion().asScala
-          @tailrec
-          def splitAndBuild(lhs: ir.LogicalPlan, contexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
-            // Start by finding the contexts up to the first INTERSECT op (if any), and gather them into the LHS
-            // of the INTERSECT op.
-            val (beforeFirstIntersect, fromFirstIntersect) = contexts.span(_.INTERSECT() == null)
-            val gatheredLhs = beforeFirstIntersect.foldLeft(lhs)(buildSetOperation)
-
-            // If there is no INTERSECT operation, nothing further to do.
-            if (fromFirstIntersect.isEmpty) {
-              gatheredLhs
-            } else {
-              // Before proceeding, we need to account for subsequent INTERSECT operations: to preserve left-to-right
-              // precedence we can only immediately handle up to the next INTERSECT operation, if any.
-              val (beforeSecondIntersect, fromSecondIntersect) = fromFirstIntersect.tail.span(_.INTERSECT() == null)
-              val thisLogicalPlan = fromFirstIntersect.head match {
-                case qs if qs.querySpecification() != null => qs.querySpecification().accept(this)
-                case qe if qe.queryExpression() != null => qe.queryExpression().accept(this)
-              }
-              val gatheredRhs = beforeSecondIntersect.foldLeft(thisLogicalPlan)(buildSetOperation)
-              val thisOp = ir.SetOperation(
-                gatheredLhs,
-                gatheredRhs,
-                ir.IntersectSetOp,
-                is_all = false,
-                by_name = false,
-                allow_missing_columns = false)
-              splitAndBuild(thisOp, fromSecondIntersect)
-            }
-          }
-          splitAndBuild(lhs, allSqlUnionContexts)
+          buildIntersectOperations(lhs, qs.sqlUnion().asScala)
         case qe if qe.queryExpression() != null =>
           qe.queryExpression().asScala.map(_.accept(this)).reduceLeft { (lhs, rhs) =>
             val isAll = qe.ALL() != null
@@ -116,16 +76,59 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
   }
 
+  @tailrec
+  private[this] def buildIntersectOperations(lhs: ir.LogicalPlan,
+                                             remainingContexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
+    /*
+     * The sqlUnion* rule needs to be handled carefully because the grammar does not completely implement the
+     * precedence rules for set operations:
+     * 1. Brackets.
+     * 2. INTERSECT
+     * 3. UNION and EXCEPT, from left to right.
+     *
+     * Specifically the grammar treats INTERSECT as having the same precedence as UNION and EXCEPT, so we need to
+     * handle that specially. (Brackets and left-right precedence is handled by the grammar.)
+     */
+    // Start by finding the contexts up to the first INTERSECT op (if any), and gather them into a plan covering the LHS
+    // of the INTERSECT op.
+    val (beforeFirstIntersect, fromFirstIntersect) = remainingContexts.span(_.INTERSECT() == null)
+    val gatheredLhs = beforeFirstIntersect.foldLeft(lhs)(buildSetOperation)
+
+    // If there is no INTERSECT operation, nothing further to do.
+    if (fromFirstIntersect.isEmpty) {
+      gatheredLhs
+    } else {
+      // Before proceeding, we need to account for subsequent INTERSECT operations: to preserve left-to-right
+      // precedence we can only immediately handle up to the next INTERSECT operation, if any.
+      val (beforeNextIntersect, fromNextIntersect) = fromFirstIntersect.tail.span(_.INTERSECT() == null)
+      val thisLogicalPlan = thisSetOperation(fromFirstIntersect.head)
+      val gatheredRhs = beforeNextIntersect.foldLeft(thisLogicalPlan)(buildSetOperation)
+      val thisOp = ir.SetOperation(
+        gatheredLhs,
+        gatheredRhs,
+        ir.IntersectSetOp,
+        is_all = false,
+        by_name = false,
+        allow_missing_columns = false)
+      buildIntersectOperations(thisOp, fromNextIntersect)
+    }
+  }
+
+  private[this] def thisSetOperation(ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
+    val rhsContext = ctx match {
+      case qs if qs.querySpecification() != null => qs.querySpecification()
+      case qe if qe.queryExpression() != null => qe.queryExpression()
+    }
+    rhsContext.accept(this)
+  }
+
   private[this] def buildSetOperation(lhs: ir.LogicalPlan, ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
     val setOp = ctx match {
       case u if u.UNION() != null => ir.UnionSetOp
       case e if e.EXCEPT() != null => ir.ExceptSetOp
     }
     val isAll = ctx.ALL() != null
-    val rhs = ctx match {
-      case qs if qs.querySpecification() != null => qs.querySpecification().accept(this)
-      case qe if qe.queryExpression() != null => qe.queryExpression().accept(this)
-    }
+    val rhs = thisSetOperation(ctx)
     ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
   }
 
