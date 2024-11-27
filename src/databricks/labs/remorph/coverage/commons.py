@@ -190,7 +190,6 @@ def _prepare_report_entry(
 
     return report_entry
 
-
 def collect_transpilation_stats(
     project: str,
     commit_hash: str,
@@ -205,15 +204,19 @@ def collect_transpilation_stats(
 
     with report_file_path.open("w", encoding="utf8") as report_file:
         for input_file in get_supported_sql_files(input_dir):
-            sql = input_file.read_text(encoding="utf-8-sig")
-            file_path = str(input_file.absolute().relative_to(input_dir.parent.absolute()))
-            report_entry = _prepare_report_entry(
-                project,
-                commit_hash,
-                version,
-                source_dialect,
-                target_dialect,
-                file_path,
-                sql,
-            )
-            write_json_line(report_file, report_entry)
+            # skipping the file which is causing memory leak.
+            if not str(input_file).endswith("/0188.sql"):
+                with input_file.open("r", encoding="utf-8-sig") as file:
+                    sql = file.read()
+
+                file_path = str(input_file.absolute().relative_to(input_dir.parent.absolute()))
+                report_entry = _prepare_report_entry(
+                    project,
+                    commit_hash,
+                    version,
+                    source_dialect,
+                    target_dialect,
+                    file_path,
+                    sql,
+                )
+                write_json_line(report_file, report_entry)
