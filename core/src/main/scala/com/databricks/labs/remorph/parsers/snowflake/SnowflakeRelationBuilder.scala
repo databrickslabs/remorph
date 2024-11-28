@@ -24,7 +24,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     case None =>
       // Note that the optional select clauses may be null on very simple statements
       // such as SELECT 1;
-      val select = Option(ctx.selectOptionalClauses()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val select = Option(ctx.selectOptionalClauses()).map(_.accept(this)).getOrElse(ir.NoTable)
       val relation = buildLimitOffset(ctx.limitClause(), select)
       val (top, allOrDistinct, selectListElements) = ctx match {
         case c if ctx.selectClause() != null =>
@@ -82,7 +82,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable)
       buildOrderBy(
         ctx.orderByClause(),
         buildQualify(

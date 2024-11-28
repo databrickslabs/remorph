@@ -396,4 +396,34 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |    t;""".stripMargin
   }
 
+  "Batch statements" should {
+    "survive invalid SQL" in {
+      """
+        |CREATE TABLE t1 (x VARCHAR);
+        |SELECT x y z;
+        |SELECT 3 FROM t3;
+        |""".stripMargin transpilesTo ("""
+        |CREATE TABLE t1 (x STRING);
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECTxyz
+        | */
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECT
+        |    Unparsable text: x
+        |    Unparsable text: y
+        |    Unparsable text: z
+        |    Unparsable text: parser recovered by ignoring: SELECTxyz;
+        | */
+        | SELECT
+        |  3
+        |FROM
+        |  t3;""".stripMargin, false)
+
+    }
+  }
+
 }
