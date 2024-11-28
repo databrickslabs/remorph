@@ -3153,6 +3153,7 @@ selectStatement
 
 setOperators
     // TODO: Handle INTERSECT precedence in the grammar; it has higher precedence than EXCEPT and UNION ALL.
+    // Reference: https://docs.snowflake.com/en/sql-reference/operators-query#:~:text=precedence
     : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
     ;
 
