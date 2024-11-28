@@ -43,8 +43,8 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   private def dealiasExpression(expr: Expression, aliases: Map[String, Expression]): Expression = {
     expr transformUp {
-      case id: Id =>
-        aliases.getOrElse(id.id, id)
+      case id: Id => aliases.getOrElse(id.id, id)
+      case n: Name => aliases.getOrElse(n.name, n)
       case e: Exists => Exists(transformPlan(e.relation))
       case s: ScalarSubquery => ScalarSubquery(transformPlan(s.plan))
     }
