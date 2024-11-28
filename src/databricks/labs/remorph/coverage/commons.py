@@ -205,7 +205,6 @@ def collect_transpilation_stats(
 
     with report_file_path.open("w", encoding="utf8") as report_file:
         for input_file in get_supported_sql_files(input_dir):
-            # skipping the file which is causing memory leak.
             with input_file.open("r", encoding="utf-8-sig") as file:
                 sql = file.read()
 
