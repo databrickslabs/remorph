@@ -139,11 +139,7 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
       val output = Option(ctx.outputClause()).map(buildOutputClause)
       val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
-      val sourceRelation = tableSourcesOption.map(
-        _.reduceLeft(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false))))
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
@@ -161,14 +157,19 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
       }
 
       val output = Option(ctx.outputClause()).map(buildOutputClause)
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
-      val sourceRelation = tableSourcesOption.map(
-        _.reduceLeft(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false))))
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
+  }
+
+  private[this] def buildTableSourcesPlan(tableSources: Option[TableSourcesContext]): Option[ir.LogicalPlan] = {
+    val sources = tableSources
+      .map(_.tableSource().asScala)
+      .getOrElse(Seq())
+      .map(_.accept(vc.relationBuilder))
+    sources.reduceLeftOption(
+      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
   }
 
   override def visitInsert(ctx: InsertContext): ir.Modification = errorCheck(ctx) match {
