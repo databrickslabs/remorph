@@ -12,13 +12,13 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
     checkError(query, _.tSqlFile(), errContains)
 
   "TSqlErrorStrategy" should {
-    "pre an invalid match parser exception" in {
+    "process an invalid match parser exception" in {
       checkError(query = "SELECT * FROM", errContains = "was unexpected")
     }
-    "pre an extraneous input exception" in {
+    "process an extraneous input exception" in {
       checkError(query = "*", errContains = "unexpected extra input")
     }
-    "pre a missing input exception" in {
+    "process a missing input exception" in {
       checkError(query = "SELECT * FROM FRED As X Y ", errContains = "unexpected extra input")
     }
   }
