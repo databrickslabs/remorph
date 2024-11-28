@@ -1436,7 +1436,7 @@ LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(HIDDEN);
 // as if the ID is a composite of a template reference and a static string, we cannot use them
 // to say build a schema for a table etc.
 ID              : IDFORM JINJA_REF_FORM?;
-DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"' JINJA_REF_FORM?;
+DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 
 // Jinja Template Elements - note that composite elements whereby an identifier
 // is constricted at runtime, fall out by eating the following text here. The post
