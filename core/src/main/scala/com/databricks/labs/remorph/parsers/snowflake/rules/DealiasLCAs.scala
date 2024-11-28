@@ -20,7 +20,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
           // LCA aren't supported in WINDOW clauses, so we must dealias them
           val dw = dealiasWindow(expr, aliases)
           val accumulatedExprs = exprs :+ Alias(dw, name)
-          // An aliased expression may refer to an previous LCA, so before storing the mapping,
+          // An aliased expression may refer to a previous LCA, so before storing the mapping,
           // we must dealias the expression to ensure that mapped expressions are fully dealiased.
           val newFoundAlias = dealiasExpression(dw, aliases)
           val updatedAliases = aliases + (name.id -> newFoundAlias)
