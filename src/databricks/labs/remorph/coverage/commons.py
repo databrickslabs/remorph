@@ -122,7 +122,9 @@ def get_current_time_utc() -> datetime:
 
 
 def parse_sql(sql: str, dialect: type[Dialect]) -> list[Expression]:
-    return [expression for expression in sqlglot.parse(sql, read=dialect, error_level=ErrorLevel.IMMEDIATE) if expression]
+    return [
+        expression for expression in sqlglot.parse(sql, read=dialect, error_level=ErrorLevel.IMMEDIATE) if expression
+    ]
 
 
 def generate_sql(expressions: list[Expression], dialect: type[Dialect]) -> list[str]:
