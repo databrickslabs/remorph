@@ -165,7 +165,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable)
       buildOrderBy(
         ctx.selectOrderByClause(),
         buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))

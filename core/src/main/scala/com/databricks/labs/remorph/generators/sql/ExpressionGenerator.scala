@@ -371,11 +371,21 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def in(inExpr: ir.In): SQL = {
     val values = commas(inExpr.other)
-    code"${expression(inExpr.left)} IN ($values)"
+    val enclosed = values.map { sql =>
+      if (sql.charAt(0) == '(' && sql.charAt(sql.length - 1) == ')') {
+        sql
+      } else {
+        "(" + sql + ")"
+      }
+    }
+    code"${expression(inExpr.left)} IN ${enclosed}"
   }
 
   private def scalarSubquery(subquery: ir.ScalarSubquery): SQL = {
-    withGenCtx(ctx => ctx.logical.generate(subquery.relation))
+    withGenCtx(ctx => {
+      val subcode = ctx.logical.generate(subquery.relation)
+      code"(${subcode})"
+    })
   }
 
   private def window(window: ir.Window): SQL = {

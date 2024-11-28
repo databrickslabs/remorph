@@ -17,7 +17,7 @@ class TSqlRelationBuilderSpec
   "TSqlRelationBuilder" should {
 
     "translate query with no FROM clause" in {
-      example("", _.selectOptionalClauses(), ir.NoTable())
+      example("", _.selectOptionalClauses(), ir.NoTable)
     }
 
     "translate FROM clauses" should {
