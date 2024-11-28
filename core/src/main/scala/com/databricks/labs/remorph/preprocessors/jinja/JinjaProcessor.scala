@@ -97,7 +97,7 @@ class JinjaProcessor extends Processor {
     // and just delete them, because the postfix will accumulate the original whitespace and newlines in the
     // template text
     if (!hasTrailingComma(tokenStream, 1)) {
-      regex.append("[\n\t\f ]*[,]?")
+      regex.append("[\n\t\f ]*[,]?[ ]?")
     }
 
     // Preserve new lines and space in the template text as it is much easier than doing this at replacement time
@@ -146,12 +146,14 @@ class JinjaProcessor extends Processor {
   private def preFix(tokenStream: CommonTokenStream, index: Int): String = {
     val builder = new StringBuilder
     var token = tokenStream.LT(index)
+    var i = 1
     while (token != null && (token.getType == DBTPreprocessorLexer.WS || token.getText == "\n")) {
-      builder.append(token.getText)
-      token = tokenStream.LT(index - builder.length)
+      builder.insert(0, token.getText)
+      token = tokenStream.LT(index - i)
+      i += 1
     }
 
-    // WQe do not accumulate the prefix if the immediately preceding context was another
+    // We do not accumulate the prefix if the immediately preceding context was another
     // template element as that template will have accumulated the whitespace etc in its
     // postfix
     if (token != null && (token.getType == DBTPreprocessorLexer.STATEMENT_END ||

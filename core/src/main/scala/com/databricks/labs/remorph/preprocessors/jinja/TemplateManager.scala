@@ -42,7 +42,9 @@ class TemplateManager {
     // can preserve at least the rudimentary formatting of the generator output.
     val replacements: Seq[(String, String)] = templates.toSeq.map { case (key, template) =>
       (template.regex, template.text)
-    }
+    } ++
+      // In certain situations, these replacements will orphan trailing whitespace, which we remove with this regex
+      Seq(("[ ]+\n", "\n"))
     val replace = new Sed(replacements: _*)
     replace(generated)
   }
