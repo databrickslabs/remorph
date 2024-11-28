@@ -17,4 +17,9 @@ select
                               table=ref('raw_payments'),
                               column='payment_method'
 ) -%}
-SELECT order_id, {%- for payment_method in payment_methods %}, SUM(CASE WHEN payment_method = '{{payment_method}}' THEN amount END) AS {{payment_method}}_amount{%- if not loop.last %}, {% endif -%}{% endfor %} FROM {{ ref('raw_payments') }} GROUP BY 1;
+
+SELECT order_id,     {%- for payment_method in payment_methods %}
+     SUM(CASE WHEN payment_method = '{{payment_method}}' THEN amount END) AS  {{payment_method}}_amount    {%- if not loop.last %},{% endif -%}
+    {% endfor %}
+    FROM  {{ ref('raw_payments') }}
+    GROUP BY 1;

@@ -19,7 +19,7 @@ object WorkflowStage {
  * It is important to note that nothing won't get evaluated until the run or runAndDiscardState are called.
  * @param run
  *   The computation that will be carried out by this computation. It is basically a function that takes a Phase as
- *   parameter and returns a Result containing the, possibly updated, State along with the Output.
+ *   parameter and returns a Result containing the - possibly updated - State along with the Output.
  * @tparam Output
  *   The type of the produced output.
  */

@@ -5,8 +5,7 @@ import com.databricks.labs.remorph.intermediate.Origin
 sealed trait TemplateElement {
   def origin: Origin
   def text: String
-  def hasPrecedingWS: Boolean
-  def hasTrailingWS: Boolean
+  def regex: String
 
   def appendText(text: String): TemplateElement = {
     this match {
@@ -15,41 +14,22 @@ sealed trait TemplateElement {
       case c: CommentElement => c.copy(text = this.text + text)
       case l: LineElement => l.copy(text = this.text + text)
       case ls: LineStatementElement => ls.copy(text = this.text + text)
-      case lc: LineCommonElement => lc.copy(text = this.text + text)
+      case lc: LineCommentElement => lc.copy(text = this.text + text)
     }
   }
 }
 
-case class StatementElement(
-    origin: Origin,
-    text: String,
-    hasPrecedingWS: Boolean = false,
-    hasTrailingWS: Boolean = false)
-    extends TemplateElement
+case class StatementElement(origin: Origin, text: String, regex: String) extends TemplateElement
 
-case class ExpressionElement(
-    origin: Origin,
-    text: String,
-    hasPrecedingWS: Boolean = false,
-    hasTrailingWS: Boolean = false)
-    extends TemplateElement
+case class ExpressionElement(origin: Origin, text: String, regex: String) extends TemplateElement
 
-case class CommentElement(origin: Origin, text: String, hasPrecedingWS: Boolean = false, hasTrailingWS: Boolean = false)
-    extends TemplateElement
+case class CommentElement(origin: Origin, text: String, regex: String) extends TemplateElement
 
-case class LineElement(origin: Origin, text: String, hasPrecedingWS: Boolean = false, hasTrailingWS: Boolean = false)
-    extends TemplateElement
+// TODO: We don't support # line elements yet
+case class LineElement(origin: Origin, text: String, regex: String) extends TemplateElement
 
-case class LineStatementElement(
-    origin: Origin,
-    text: String,
-    hasPrecedingWS: Boolean = false,
-    hasTrailingWS: Boolean = false)
-    extends TemplateElement
+// TODO: We don't support # line statements yet
+case class LineStatementElement(origin: Origin, text: String, regex: String) extends TemplateElement
 
-case class LineCommonElement(
-    origin: Origin,
-    text: String,
-    hasPrecedingWS: Boolean = false,
-    hasTrailingWS: Boolean = false)
-    extends TemplateElement
+// TODO: We don't support # line comment elements yet
+case class LineCommentElement(origin: Origin, text: String, regex: String) extends TemplateElement
