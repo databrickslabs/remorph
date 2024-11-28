@@ -2805,6 +2805,7 @@ querySpecification
 
 selectOptionalClauses
     // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
     : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
     ;
 
