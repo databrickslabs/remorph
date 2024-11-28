@@ -49,6 +49,7 @@ class TSqlDMLBuilder(override val vc: TSqlVisitorCoordinator)
 
       val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
       val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(vc.relationBuilder))
+      // Reduce is safe: Grammar rule for tableSources ensures that there is always at least one tableSource.
       val sourcePlan = tableSourcesPlan.reduceLeft(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
