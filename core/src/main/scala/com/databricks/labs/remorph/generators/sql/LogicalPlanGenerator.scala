@@ -278,7 +278,7 @@ class LogicalPlanGenerator(
   }
 
   private def project(proj: ir.Project): SQL = {
-    val fromClause = if (proj.input != ir.NoTable()) {
+    val fromClause = if (proj.input != ir.NoTable) {
       code" FROM ${generate(proj.input)}"
     } else {
       code""
