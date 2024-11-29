@@ -431,7 +431,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       {
         val actual = functionBuilder.functionDefinition(functionName)
         actual.nonEmpty shouldEqual true
-        actual.get.arity shouldEqual expectedArity.arity
+        actual.map(_.arity) shouldEqual Some(expectedArity.arity)
       }
     }
   }

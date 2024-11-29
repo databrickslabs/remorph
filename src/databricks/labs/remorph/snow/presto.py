@@ -192,6 +192,7 @@ class Presto(presto):
             "ANY_KEYS_MATCH": _build_any_keys_match,
             "ARRAY_AVERAGE": _build_array_average,
             "JSON_SIZE": _build_json_size,
+            "FORMAT_DATETIME": local_expression.DateFormat.from_arg_list,
         }
 
     class Tokenizer(presto.Tokenizer):
