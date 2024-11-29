@@ -25,7 +25,7 @@ def test_transpile_exception(transpiler, write_dialect):
     transpiler_result = transpiler.transpile(
         write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
     )
-    assert transpiler_result.transpiled_sql[0] == ""
+    assert len(transpiler_result.transpiled_sql[0])
     assert transpiler_result.parse_error_list[0].file_name == "file.sql"
     assert "Error Parsing args" in transpiler_result.parse_error_list[0].exception
 
@@ -64,7 +64,7 @@ def test_parse_invalid_query(transpiler):
 
 def test_tokenizer_exception(transpiler, write_dialect):
     transpiler_result = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
-    assert transpiler_result.transpiled_sql[0] == ""
+    assert len(transpiler_result.transpiled_sql[0])
     assert transpiler_result.parse_error_list[0].file_name == "file.sql"
     assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
@@ -88,3 +88,27 @@ def test_parse_sql_content(transpiler):
     result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
+
+
+def test_partial_transpile(transpiler, write_dialect):
+    transpiler_result, error = transpiler.partial_transpile(
+        write_dialect, "SELECT * from Tab1; SELECT1 * from Tabl2;", "file.sql", []
+    )
+    assert len(transpiler_result) == 2
+    assert transpiler_result[0] == "SELECT\n  *\nFROM Tab1"
+    assert "PARSING ERROR" in transpiler_result[1]
+    assert "PARSING ERROR" in error[0].exception
+
+
+def test_safe_parse(transpiler, write_dialect):
+    dialect = transpiler.read_dialect
+    result, error = transpiler.safe_parse("SELECT col1 from tab1;SELECT11 col1 from tab2", dialect)
+    expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
+    expected_from_result = expressions.From(
+        this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    for exp in result:
+        if exp:
+            assert repr(exp.args["expressions"]) == repr(expected_result)
+            assert repr(exp.args["from"]) == repr(expected_from_result)
+    assert "PARSING ERROR" in error[0]
