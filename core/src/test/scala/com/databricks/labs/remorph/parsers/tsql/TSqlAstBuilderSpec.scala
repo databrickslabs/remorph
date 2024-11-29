@@ -759,8 +759,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(Seq(Id("ID"), Id("Name"))),
           Project(
             TableAlias(
-              // TODO: This will change when UNION is implemented correctly
-              Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+              SetOperation(
+                Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+                Project(namedTable("TableB"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+                UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
               "DerivedTable"),
             Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
           None,

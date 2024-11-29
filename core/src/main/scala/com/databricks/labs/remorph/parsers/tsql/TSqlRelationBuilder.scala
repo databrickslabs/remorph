@@ -6,6 +6,7 @@ import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, Top
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
@@ -64,15 +65,72 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       ctx match {
-        case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
+        case qs if qs.querySpecification() != null =>
+          val lhs = qs.querySpecification().accept(this)
+          buildIntersectOperations(lhs, qs.sqlUnion().asScala)
         case qe if qe.queryExpression() != null =>
-          qe.queryExpression().asScala.map(_.accept(this)) match {
-            case Seq(lhs) => lhs
-            case Seq(lhs, rhs) =>
-              val isAll = qe.ALL() != null
-              ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+          qe.queryExpression().asScala.map(_.accept(this)).reduceLeft { (lhs, rhs) =>
+            val isAll = qe.ALL() != null
+            ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
           }
       }
+  }
+
+  @tailrec
+  private[this] def buildIntersectOperations(
+      lhs: ir.LogicalPlan,
+      remainingContexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
+    /*
+     * The sqlUnion* rule needs to be handled carefully because the grammar does not completely implement the
+     * precedence rules for set operations:
+     * 1. Brackets.
+     * 2. INTERSECT
+     * 3. UNION and EXCEPT, from left to right.
+     *
+     * Specifically the grammar treats INTERSECT as having the same precedence as UNION and EXCEPT, so we need to
+     * handle that specially. (Brackets and left-right precedence is handled by the grammar.)
+     */
+    // Start by finding the contexts up to the first INTERSECT op (if any), and gather them into a plan covering the LHS
+    // of the INTERSECT op.
+    val (beforeFirstIntersect, fromFirstIntersect) = remainingContexts.span(_.INTERSECT() == null)
+    val gatheredLhs = beforeFirstIntersect.foldLeft(lhs)(buildSetOperation)
+
+    // If there is no INTERSECT operation, nothing further to do.
+    if (fromFirstIntersect.isEmpty) {
+      gatheredLhs
+    } else {
+      // Before proceeding, we need to account for subsequent INTERSECT operations: to preserve left-to-right
+      // precedence we can only immediately handle up to the next INTERSECT operation, if any.
+      val (beforeNextIntersect, fromNextIntersect) = fromFirstIntersect.tail.span(_.INTERSECT() == null)
+      val thisLogicalPlan = thisSetOperation(fromFirstIntersect.head)
+      val gatheredRhs = beforeNextIntersect.foldLeft(thisLogicalPlan)(buildSetOperation)
+      val thisOp = ir.SetOperation(
+        gatheredLhs,
+        gatheredRhs,
+        ir.IntersectSetOp,
+        is_all = false,
+        by_name = false,
+        allow_missing_columns = false)
+      buildIntersectOperations(thisOp, fromNextIntersect)
+    }
+  }
+
+  private[this] def thisSetOperation(ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
+    val rhsContext = ctx match {
+      case qs if qs.querySpecification() != null => qs.querySpecification()
+      case qe if qe.queryExpression() != null => qe.queryExpression()
+    }
+    rhsContext.accept(this)
+  }
+
+  private[this] def buildSetOperation(lhs: ir.LogicalPlan, ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
+    val setOp = ctx match {
+      case u if u.UNION() != null => ir.UnionSetOp
+      case e if e.EXCEPT() != null => ir.ExceptSetOp
+    }
+    val isAll = ctx.ALL() != null
+    val rhs = thisSetOperation(ctx)
+    ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
   }
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = errorCheck(
@@ -313,7 +371,8 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
       val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
       val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
-      val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
+      // Reduce is safe: Grammar rule for tableSources ensures that there is always at least one tableSource.
+      val sourcePlan = tableSourcesPlan.reduceLeft(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
       // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
@@ -403,12 +462,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       val output = Option(ctx.outputClause()).map(_.accept(this))
       val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
@@ -426,15 +480,19 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
 
       val output = Option(ctx.outputClause()).map(_.accept(this))
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
+  }
+
+  private[this] def buildTableSourcesPlan(tableSources: Option[TableSourcesContext]): Option[ir.LogicalPlan] = {
+    val sources = tableSources
+      .map(_.tableSource().asScala)
+      .getOrElse(Seq())
+      .map(_.accept(vc.relationBuilder))
+    sources.reduceLeftOption(
+      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
   }
 
   override def visitInsert(ctx: InsertContext): ir.LogicalPlan = errorCheck(ctx) match {
