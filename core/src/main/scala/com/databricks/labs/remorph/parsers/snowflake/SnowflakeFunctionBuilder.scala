@@ -593,7 +593,6 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "ST_Y" => FunctionDefinition.standard(1)
     case "ST_YMAX" => FunctionDefinition.standard(1)
     case "ST_YMIN" => FunctionDefinition.standard(1)
-    case "SUBSTR , SUBSTRING" => FunctionDefinition.standard(3)
     case "SUM" => FunctionDefinition.standard(1)
     case "SUMMARIZE (SNOWFLAKE.CORTEX)" => FunctionDefinition.standard(1)
     case "SYSDATE" => FunctionDefinition.standard(0)

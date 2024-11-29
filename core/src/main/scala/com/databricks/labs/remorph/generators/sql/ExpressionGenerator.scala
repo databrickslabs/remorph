@@ -371,11 +371,21 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def in(inExpr: ir.In): SQL = {
     val values = commas(inExpr.other)
-    code"${expression(inExpr.left)} IN ($values)"
+    val enclosed = values.map { sql =>
+      if (sql.charAt(0) == '(' && sql.charAt(sql.length - 1) == ')') {
+        sql
+      } else {
+        "(" + sql + ")"
+      }
+    }
+    code"${expression(inExpr.left)} IN ${enclosed}"
   }
 
   private def scalarSubquery(subquery: ir.ScalarSubquery): SQL = {
-    withGenCtx(ctx => ctx.logical.generate(subquery.relation))
+    withGenCtx(ctx => {
+      val subcode = ctx.logical.generate(subquery.relation)
+      code"(${subcode})"
+    })
   }
 
   private def window(window: ir.Window): SQL = {
@@ -480,7 +490,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
     }
     code"{${ref.map(_.toUpperCase(Locale.getDefault()))}_SCHEMA}"
   }
-  private def singleQuote(s: String): SQL = code"'$s'"
+  private def singleQuote(s: String): SQL = code"'${s.replace("'", "\\'")}'"
   private def isValidIdentifier(s: String): Boolean =
     (s.head.isLetter || s.head == '_') && s.forall(x => x.isLetterOrDigit || x == '_')
 

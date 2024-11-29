@@ -49,7 +49,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(
                 Literal(42),
                 Literal(65535),
@@ -80,16 +80,16 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
       example(
         query = "SELECT t.*",
-        expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some(ObjectReference(Id("t")))))))))
+        expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some(ObjectReference(Id("t")))))))))
 
       example(
         query = "SELECT x..b.y.*",
         expectedAst =
-          Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some(ObjectReference(Id("x"), Id("b"), Id("y")))))))))
+          Batch(Seq(Project(NoTable, Seq(Star(objectName = Some(ObjectReference(Id("x"), Id("b"), Id("y")))))))))
 
       // TODO: Add tests for OUTPUT clause once implemented - invalid semantics here to force coverage
-      example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Inserted(Star(None)))))))
-      example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Deleted(Star(None)))))))
+      example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Inserted(Star(None)))))))
+      example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Deleted(Star(None)))))))
     }
 
     "infer a cross join" in {
@@ -259,7 +259,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a = 1, @b = 2, @c = 3",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(Identifier("@a", isQuoted = false), Literal(1)),
               Assign(Identifier("@b", isQuoted = false), Literal(2)),
@@ -269,7 +269,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a += 1, @b -= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(Identifier("@a", isQuoted = false), Add(Identifier("@a", isQuoted = false), Literal(1))),
               Assign(Identifier("@b", isQuoted = false), Subtract(Identifier("@b", isQuoted = false), Literal(2))))))))
@@ -278,7 +278,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a *= 1, @b /= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(Identifier("@a", isQuoted = false), Multiply(Identifier("@a", isQuoted = false), Literal(1))),
               Assign(Identifier("@b", isQuoted = false), Divide(Identifier("@b", isQuoted = false), Literal(2))))))))
@@ -288,7 +288,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 Mod(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
@@ -298,7 +298,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseAnd(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
@@ -308,7 +308,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseXor(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
@@ -318,7 +318,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseOr(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
@@ -363,14 +363,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
       expectedAst = Batch(
-        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+        Seq(Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
   }
 
   "SELECT NEXT VALUE FOR var.mySequence As nextVal" in {
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
       expectedAst = Batch(
-        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
+        Seq(Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
   }
 
   "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal" in {
@@ -378,7 +378,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
       expectedAst = Batch(
         Seq(Project(
-          NoTable(),
+          NoTable,
           Seq(Alias(
             Window(
               CallFunction("ROW_NUMBER", List.empty),
@@ -759,8 +759,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(Seq(Id("ID"), Id("Name"))),
           Project(
             TableAlias(
-              // TODO: This will change when UNION is implemented correctly
-              Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+              SetOperation(
+                Project(namedTable("TableA"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+                Project(namedTable("TableB"), Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
+                UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
               "DerivedTable"),
             Seq(simplyNamedColumn("ID"), simplyNamedColumn("Name"))),
           None,

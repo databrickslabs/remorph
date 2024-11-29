@@ -122,7 +122,9 @@ def get_current_time_utc() -> datetime:
 
 
 def parse_sql(sql: str, dialect: type[Dialect]) -> list[Expression]:
-    return [expression for expression in sqlglot.parse(sql, read=dialect, error_level=ErrorLevel.RAISE) if expression]
+    return [
+        expression for expression in sqlglot.parse(sql, read=dialect, error_level=ErrorLevel.IMMEDIATE) if expression
+    ]
 
 
 def generate_sql(expressions: list[Expression], dialect: type[Dialect]) -> list[str]:
@@ -205,7 +207,9 @@ def collect_transpilation_stats(
 
     with report_file_path.open("w", encoding="utf8") as report_file:
         for input_file in get_supported_sql_files(input_dir):
-            sql = input_file.read_text(encoding="utf-8-sig")
+            with input_file.open("r", encoding="utf-8-sig") as file:
+                sql = file.read()
+
             file_path = str(input_file.absolute().relative_to(input_dir.parent.absolute()))
             report_entry = _prepare_report_entry(
                 project,

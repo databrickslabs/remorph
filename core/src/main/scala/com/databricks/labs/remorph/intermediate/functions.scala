@@ -274,7 +274,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("STDDEV", args) => StddevSamp(args.head)
     case CallFunction("STDDEV_POP", args) => StddevPop(args.head)
     case CallFunction("STR_TO_MAP", args) => StringToMap(args.head, args(1), args(2))
-    case CallFunction("SUBSTR", args) => Substring(args.head, args(1), args(2))
+    case CallFunction("SUBSTR", args) => Substring(args.head, args(1), args.lift(2))
     case CallFunction("SUBSTRING_INDEX", args) => SubstringIndex(args.head, args(1), args(2))
     case CallFunction("SUM", args) => Sum(args.head)
     case CallFunction("TAN", args) => Tan(args.head)
@@ -286,7 +286,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("TO_DATE", args) => ParseToDate(args.head, args.lift(1))
     case CallFunction("TO_JSON", args) => StructsToJson(args.head, args.lift(1))
     case CallFunction("TO_NUMBER", args) => ToNumber(args.head, args(1))
-    case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args(1))
+    case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args.lift(1))
     case CallFunction("TO_UNIX_TIMESTAMP", args) => ToUnixTimestamp(args.head, args(1))
     case CallFunction("TO_UTC_TIMESTAMP", args) => ToUTCTimestamp(args.head, args(1))
     case CallFunction("TRANSFORM", args) => ArrayTransform(args.head, args(1))
@@ -1384,9 +1384,9 @@ case class StringToMap(left: Expression, right: Expression, c: Expression) exten
  * substr(str FROM pos[ FOR len]]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the
  * slice of byte array that starts at `pos` and is of length `len`.
  */
-case class Substring(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class Substring(str: Expression, pos: Expression, len: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "SUBSTR"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(str, pos) ++ len.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2237,9 +2237,10 @@ case class ParseToDate(left: Expression, right: Option[Expression]) extends Expr
  * to_timestamp(timestamp_str[, fmt]) - Parses the `timestamp_str` expression with the `fmt` expression to a timestamp.
  * Returns null with invalid input. By default, it follows casting rules to a timestamp if the `fmt` is omitted.
  */
-case class ParseToTimestamp(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class ParseToTimestamp(left: Expression, right: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "TO_TIMESTAMP"
   override def dataType: DataType = UnresolvedType
+  override def children: Seq[Expression] = Seq(left) ++ right.toSeq
 }
 
 /** to_unix_timestamp(timeExp[, fmt]) - Returns the UNIX timestamp of the given time. */
@@ -2511,9 +2512,10 @@ case class TryToNumber(expr: Expression, fmt: Expression) extends Binary(expr, f
  * try_to_timestamp(expr, fmt) - Returns expr cast to a timestamp using an optional formatting, or NULL if the cast
  * fails.
  */
-case class TryToTimestamp(expr: Expression, fmt: Expression) extends Binary(expr, fmt) with Fn {
+case class TryToTimestamp(expr: Expression, fmt: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "TRY_TO_TIMESTAMP"
   override def dataType: DataType = TimestampType
+  override def children: Seq[Expression] = Seq(expr) ++ fmt.toSeq
 }
 
 /**
@@ -2540,4 +2542,12 @@ case class TryCast(expr: Expression, override val dataType: DataType) extends Ex
 case class ParseJson(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "PARSE_JSON"
   override def dataType: DataType = VariantType
+}
+
+/**
+ * startswith(expr, startExpr) - Returns true if expr begins with startExpr.
+ */
+case class StartsWith(expr: Expression, startExpr: Expression) extends Binary(expr, startExpr) with Fn {
+  override def prettyName: String = "STARTSWITH"
+  override def dataType: DataType = BooleanType
 }

@@ -43,7 +43,7 @@ jobs:
         run: hatch run test
 
       - name: Publish test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           codecov_yml_path: codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -176,7 +176,7 @@ jobs:
         continue-on-error: true
 
       - name: Publish test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 

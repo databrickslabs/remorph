@@ -33,7 +33,7 @@ class SnowflakeRelationBuilderSpec
   "SnowflakeRelationBuilder" should {
 
     "translate query with no FROM clause" in {
-      example("", _.selectOptionalClauses(), NoTable())
+      example("", _.selectOptionalClauses(), NoTable)
     }
 
     "translate FROM clauses" should {

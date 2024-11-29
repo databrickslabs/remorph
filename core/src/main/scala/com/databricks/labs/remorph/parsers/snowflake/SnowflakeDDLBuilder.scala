@@ -251,7 +251,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   private def buildDefaultValue(ctx: DefaultValueContext): ir.Constraint = {
     ctx match {
-      case c if c.DEFAULT() != null => ir.GeneratedAlways(c.expr().accept(vc.expressionBuilder))
+      case c if c.DEFAULT() != null => ir.DefaultValueConstraint(c.expr().accept(vc.expressionBuilder))
       case c if c.AUTOINCREMENT() != null => ir.IdentityConstraint(None, None, always = true)
       case c if c.IDENTITY() != null =>
         ir.IdentityConstraint(Some(ctx.startWith().getText), Some(ctx.incrementBy().getText), false, true)

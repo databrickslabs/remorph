@@ -26,7 +26,7 @@ case class Column(tableNameOrAlias: Option[ObjectReference], columnName: NameOrP
     with AstExtension {}
 
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
-case class DollarAction() extends ToRefactor with AstExtension {}
+case object DollarAction extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
 
 case object Noop extends LeafExpression {
@@ -61,7 +61,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 }
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends LeafNode {
+case object NoTable extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 

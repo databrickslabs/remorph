@@ -11,10 +11,16 @@ trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
   protected def transpiler: Transpiler
 
   implicit class TranspilerTestOps(input: String) {
-    def transpilesTo(expectedOutput: String): Assertion = {
+
+    def transpilesTo(expectedOutput: String, failOnError: Boolean = true): Assertion = {
       transpiler.transpile(Parsing(input)).runAndDiscardState(Init) match {
         case OkResult(output) => format(output) shouldBe format(expectedOutput)
-        case PartialResult(_, err) => fail(err.asJson.noSpaces)
+        case PartialResult(output, err) =>
+          if (failOnError) {
+            fail(err.asJson.noSpaces)
+          } else {
+            format(output) shouldBe format(expectedOutput)
+          }
         case KoResult(_, err) => fail(err.asJson.noSpaces)
       }
     }
