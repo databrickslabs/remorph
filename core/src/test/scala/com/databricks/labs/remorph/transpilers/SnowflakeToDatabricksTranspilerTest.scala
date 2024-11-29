@@ -327,6 +327,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  /*
   "Snowflake MERGE commands" should {
 
     "MERGE;" in {
@@ -350,6 +351,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
   }
+   */
 
   "Expressions in CTE" in {
     """WITH

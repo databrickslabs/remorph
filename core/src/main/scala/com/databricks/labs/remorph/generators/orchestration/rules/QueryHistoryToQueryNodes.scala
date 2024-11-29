@@ -15,8 +15,7 @@ class QueryHistoryToQueryNodes(val parser: PlanParser[_]) extends Rule[JobNode] 
   private def executedQuery(query: ExecutedQuery): JobNode = {
     val state = Parsing(query.source, query.id)
     parser
-      .parse(state)
-      .flatMap(parser.visit)
+      .parseLogicalPlan(state)
       .flatMap(parser.optimize)
       .run(state) match {
       case OkResult((_, plan)) => QueryPlan(plan, query)

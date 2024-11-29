@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.intermediate.{Binary, DataType, Expression, N
 
 // this is a subset of https://docs.python.org/3/library/ast.html
 
-abstract class Statement extends Plan[Statement] {
+abstract class Statement extends Plan[Statement]() {
   override def output: Seq[IRAttribute] = Nil
 }
 

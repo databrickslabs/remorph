@@ -386,6 +386,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               List(SortOrder(simplyNamedColumn("myColumn"), UnspecifiedSortDirection, SortNullsUnspecified)),
               None),
             Id("nextVal")))))))
+
   }
 
   "translate CTE select statements" in {
