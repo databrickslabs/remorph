@@ -17,6 +17,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
 logger = logging.getLogger(__name__)
 
 _HASH_COLUMN_NAME = "hash_value_recon"
+_JOIN_COLUMN_HASH_NAME = "join_hash_value_recon"
+
 _SAMPLE_ROWS = 50
 
 
@@ -48,7 +50,7 @@ def reconcile_data(
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = [_HASH_COLUMN_NAME]
+        key_columns = [_JOIN_COLUMN_HASH_NAME]
     df = (
         source.alias(source_alias)
         .join(
@@ -69,7 +71,7 @@ def reconcile_data(
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
 
     missing_in_src = (
-        df.filter(col(f"{source_alias}_{_HASH_COLUMN_NAME}").isNull())
+        df.filter(col(f"{source_alias}_{_JOIN_COLUMN_HASH_NAME}").isNull())
         .select(
             *[
                 col(col_name).alias(col_name.replace(f'{target_alias}_', '').lower())
@@ -77,11 +79,11 @@ def reconcile_data(
                 if col_name.startswith(f'{target_alias}_')
             ]
         )
-        .drop(_HASH_COLUMN_NAME)
+        .drop(_HASH_COLUMN_NAME, _JOIN_COLUMN_HASH_NAME)
     )
 
     missing_in_tgt = (
-        df.filter(col(f"{target_alias}_{_HASH_COLUMN_NAME}").isNull())
+        df.filter(col(f"{target_alias}_{_JOIN_COLUMN_HASH_NAME}").isNull())
         .select(
             *[
                 col(col_name).alias(col_name.replace(f'{source_alias}_', '').lower())
@@ -89,7 +91,7 @@ def reconcile_data(
                 if col_name.startswith(f'{source_alias}_')
             ]
         )
-        .drop(_HASH_COLUMN_NAME)
+        .drop(_HASH_COLUMN_NAME, _JOIN_COLUMN_HASH_NAME)
     )
     mismatch_count = 0
     if mismatch:
@@ -111,6 +113,10 @@ def reconcile_data(
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
     return (
         df.filter(
+            col(f"{src_alias}_{_JOIN_COLUMN_HASH_NAME}")
+            == col(f"{tgt_alias}_{_JOIN_COLUMN_HASH_NAME}")
+        )
+        .filter(
             (col(f"{src_alias}_{_HASH_COLUMN_NAME}").isNotNull())
             & (col(f"{tgt_alias}_{_HASH_COLUMN_NAME}").isNotNull())
         )
@@ -126,7 +132,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFra
                 if col_name.startswith(f'{src_alias}_')
             ]
         )
-        .drop(_HASH_COLUMN_NAME)
+        .drop(_HASH_COLUMN_NAME, _JOIN_COLUMN_HASH_NAME)
     )
 
 

@@ -134,6 +134,8 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None, ca
 def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True, cast=None, universal=False) -> exp.Expression:
     if isinstance(this, exp.Null):
         lit = this
+    elif this == "_null_recon_" and cast and "char" not in cast:
+        lit = exp.Null()
     else:
         lit = exp.Literal(this=this, is_string=is_string)
     if cast:
@@ -245,12 +247,13 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
         exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
     },
     "teradata": {
-        exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
-        exp.DataType.Type.DATETIME.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
-        exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(19)), '_null_recon_')")],
+        exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CAST(TO_CHAR({}, 'YYYY-MM-DD') AS VARCHAR(10)), '_null_recon_')")],
+        exp.DataType.Type.DATETIME.value: [partial(anonymous, func="COALESCE(CAST(TO_CHAR({}, 'YYYY-MM-DD HH24:MI:SS') AS VARCHAR(19)), '_null_recon_')")],
+        exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST(TO_CHAR({}, 'YYYY-MM-DD HH24:MI:SS') AS VARCHAR(19)), '_null_recon_')")],
         exp.DataType.Type.INTERVAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
         exp.DataType.Type.DECIMAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
         exp.DataType.Type.INT.value: [partial(anonymous, func="COALESCE(CAST(CAST({} AS INTEGER) AS VARCHAR(50)), '_null_recon_')")],
+        exp.DataType.Type.VARCHAR.value: [partial(anonymous, func="COALESCE(TRIM(CAST({} AS VARCHAR(100))), '_null_recon_')")],
     },
 }
 

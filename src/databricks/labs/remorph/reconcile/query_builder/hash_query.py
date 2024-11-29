@@ -24,6 +24,7 @@ def _hash_transform(
 
 
 _HASH_COLUMN_NAME = "hash_value_recon"
+_JOIN_COLUMN_HASH_NAME = "join_hash_value_recon"
 
 
 class HashQueryBuilder(QueryBuilder):
@@ -49,16 +50,24 @@ class HashQueryBuilder(QueryBuilder):
             {"this": col, "alias": self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)}
             for col in hash_cols
         ]
+        join_hash_cols_with_alias = [
+            {"this": col, "alias": self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)}
+            for col in _join_columns
+        ]
         sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])
+        sorted_join_hash_cols_with_alias = sorted(join_hash_cols_with_alias, key=lambda column: column["alias"])
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
+        join_hashcols_sorted_as_src_seq = [column["this"] for column in sorted_join_hash_cols_with_alias]
 
         key_cols_with_transform = (
             self.add_transformations(cols_with_alias, self.engine)
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
+        
+        key_hash_cols_with_transform = [self._generate_hash_algorithm(join_hashcols_sorted_as_src_seq, _JOIN_COLUMN_HASH_NAME)]
 
         res = (
-            exp.select(*hash_col_with_transform + key_cols_with_transform)
+            exp.select(*hash_col_with_transform + key_cols_with_transform + key_hash_cols_with_transform)
             .from_(":tbl")
             .where(self.filter)
             .sql(dialect=self.engine)
@@ -78,7 +87,7 @@ class HashQueryBuilder(QueryBuilder):
             col_exprs = exp.select(*cols_with_transform).iter_expressions()
             hash_expr = concat(list(col_exprs))
         else:
-            hash_expr = exp.select(*cols_with_transform)
+            hash_expr = cols_with_transform[0]
 
         hash_expr = hash_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
 
