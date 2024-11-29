@@ -104,17 +104,18 @@ def refactor_hexadecimal_chars(input_string: str) -> str:
     return output_string
 
 
-def format_error_message(error_message: Exception, error_sql: str) -> str:
+def format_error_message(error_type: str, error_message: Exception, error_sql: str) -> str:
     """
     Formats the error message with the error SQL.
+    :param error_type: Error Type
     :param error_message: Error message
     :param error_sql: Error SQL
     :return: Formatted error message
     """
     error_str = (
-        "------------------------ Transpilation Error Start:------------------------\n"
+        f"------------------------ {error_type} Start:------------------------\n"
         f"/*\n{str(error_message)}\n*/\n\n"
         f"/*\nOriginal Query:\n\n{str(error_sql)}\n*/\n"
-        "------------------------ Transpilation Error End:------------------------"
+        f"------------------------- {error_type} End:-------------------------"
     ).strip()
     return error_str
