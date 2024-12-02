@@ -6,12 +6,41 @@ import java.util.Locale
 
 trait Fn extends Expression {
   def prettyName: String
+  def isIdempotent: Boolean = false
 }
 
 case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression with Fn {
   override def children: Seq[Expression] = arguments
   override def dataType: DataType = UnresolvedType
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
+  override def isIdempotent: Boolean = {
+    if (arguments.exists {
+      case fn: Fn => !fn.isIdempotent
+      case _ => false
+    }) {
+      false
+    } else {
+      isIdempotent(function_name)
+    }
+  }
+  def isIdempotent(function_name: String): Boolean = function_name.toUpperCase match {
+    // collection functions
+    case "LEAST" => true
+    case "COUNT" => true
+    case "LAST_VALUE" => true
+    // string functions
+    case "CONCAT" => true
+    case "SUBSTR" => true
+    case "SUBSTRING" => true
+    // time functions
+    case "MONTHS_BETWEEN" => true
+    case "ROW_NUMBER" => false // true if called multiple times for the same row, but we can't assume that -> false
+    case "CURRENT_TIMESTAMP" => true // see https://docs.databricks.com/en/sql/language-manual/functions/current_timestamp.html
+    case "CURRENT_DATE" => true // transpiles to CURRENT_TIMESTAMP
+    case "LOCALTIMESTAMP" => true // transpiles to CURRENT_TIMESTAMP
+    // TODO add more function names deemed idempotent
+    case _ => false
+  }
 }
 
 class CallMapper extends Rule[LogicalPlan] with IRHelpers {
