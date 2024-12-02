@@ -613,6 +613,33 @@ class Databricks(org_databricks.Databricks):  #
 
             return result
 
+        def columnconstraint_sql(self, expression: exp.ColumnConstraint) -> str:
+            this = self.sql(expression, "this")
+            kind_sql = self.sql(expression, "kind").strip()
+            match expression.kind:
+                case exp.CharacterSetColumnConstraint():
+                    return ""
+                case exp.CaseSpecificColumnConstraint():
+                    return ""
+                case exp.CompressColumnConstraint():
+                    return ""
+                case exp.DateFormatColumnConstraint():
+                    return ""
+                case exp.TitleColumnConstraint():
+                    comment = re.split(r"'|'", kind_sql)[1]
+                    return f"COMMENT '{comment}'"
+                case exp.DefaultColumnConstraint():
+                    if kind_sql == "DEFAULT DATE":
+                        return "DEFAULT CURRENT_DATE()"
+                    elif kind_sql == "DEFAULT TIME":
+                        return "DEFAULT (DATE_FORMAT(CURRENT_TIMESTAMP(), 'hh:mm:ss'))"
+                    elif kind_sql == "DEFAULT USER":
+                        return "DEFAULT CURRENT_USER()"
+                    return kind_sql
+                case _:
+                    return f"CONSTRAINT {this} {kind_sql}" if this else kind_sql
+
+
         def strtok_sql(self, expression: local_expression.StrTok) -> str:
             """
             :param expression: local_expression.StrTok expression to be parsed
