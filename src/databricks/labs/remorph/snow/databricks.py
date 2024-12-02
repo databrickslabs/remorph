@@ -473,6 +473,10 @@ class Databricks(org_databricks.Databricks):  #
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)
 
+        def create_sql(self, expression: exp.Create) -> str:
+            expression.args["indexes"] = None #Removing indexes from create statement
+            return super().create_sql(expression)
+
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`
             Added logic to handle Lateral View
