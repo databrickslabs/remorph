@@ -91,7 +91,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
@@ -249,4 +249,3 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
-

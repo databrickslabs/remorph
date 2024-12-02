@@ -13,13 +13,17 @@ trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
   implicit class TranspilerTestOps(input: String) {
 
     def transpilesTo(expectedOutput: String, failOnError: Boolean = true): Assertion = {
+      val formattedExpectedOutput = format(expectedOutput)
       transpiler.transpile(Parsing(input)).runAndDiscardState(Init) match {
-        case OkResult(output) => format(output) shouldBe format(expectedOutput)
+        case OkResult(output) =>
+          val formattedOutput = format(output)
+          formattedOutput shouldBe formattedExpectedOutput
         case PartialResult(output, err) =>
           if (failOnError) {
             fail(err.asJson.noSpaces)
           } else {
-            format(output) shouldBe format(expectedOutput)
+            val formattedOutput = format(output)
+            formattedOutput shouldBe formattedExpectedOutput
           }
         case KoResult(_, err) => fail(err.asJson.noSpaces)
       }
