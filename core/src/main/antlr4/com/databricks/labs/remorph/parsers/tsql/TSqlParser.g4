@@ -2789,21 +2789,12 @@ predicate
     ;
 
 queryExpression
-    : unionExpression sqlIntersection*
-    | LPAREN queryExpression RPAREN (INTERSECT queryExpression)?
-    ;
-
-unionExpression
-    : querySpecification sqlUnion*
-    | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
-    ;
-
-sqlIntersection
-    : INTERSECT (unionExpression | (LPAREN queryExpression RPAREN))
-    ;
-
-sqlUnion
-    : (UNION ALL? | EXCEPT) (querySpecification | (LPAREN queryExpression RPAREN))
+    // INTERSECT has higher precedence than EXCEPT and UNION ALL.
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
+    : LPAREN queryExpression RPAREN                          #inParen
+    | queryExpression (UNION ALL? | EXCEPT) queryExpression  #union
+    | queryExpression INTERSECT queryExpression              #intersect
+    | querySpecification                                     #simple
     ;
 
 querySpecification
