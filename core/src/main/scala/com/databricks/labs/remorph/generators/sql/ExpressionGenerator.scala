@@ -8,8 +8,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TransformationConstructors {
-  private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
+  private[this] val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private[this] val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def generate(tree: ir.Expression): SQL =
     expression(tree)

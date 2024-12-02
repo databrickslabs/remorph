@@ -9,8 +9,8 @@ import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.languages.Dialect
 
 class ReformatCode extends Rule[JobNode] {
-  private val ruff = new RuffFormatter()
-  private val sqlf = SqlFormatter.of(Dialect.SparkSql)
+  private[this] val ruff = new RuffFormatter()
+  private[this] val sqlf = SqlFormatter.of(Dialect.SparkSql)
 
   override def apply(tree: JobNode): JobNode = tree transformUp {
     case SuccessSQL(name, code) => SuccessSQL(name, sqlf.format(code))

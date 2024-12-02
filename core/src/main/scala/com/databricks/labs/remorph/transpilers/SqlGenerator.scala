@@ -12,9 +12,9 @@ import scala.util.control.NonFatal
 //       and it may need changes before it is considered finished anyway, such as implementing a trait
 class SqlGenerator extends TransformationConstructors {
 
-  private val exprGenerator = new ExpressionGenerator
-  private val optionGenerator = new OptionGenerator(exprGenerator)
-  private val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
+  private[this] val exprGenerator = new ExpressionGenerator
+  private[this] val optionGenerator = new OptionGenerator(exprGenerator)
+  private[this] val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
 
   def initialGeneratorContext: GeneratorContext = GeneratorContext(generator)
 

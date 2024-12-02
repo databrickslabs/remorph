@@ -8,7 +8,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
-  private val functionBuilder = new TSqlFunctionBuilder
+  private[this] val functionBuilder = new TSqlFunctionBuilder
 
   // While this appears to be somewhat redundant, it will catch any changes in the functionArity method
   // that happen through typos or other mistakes such as deletion.

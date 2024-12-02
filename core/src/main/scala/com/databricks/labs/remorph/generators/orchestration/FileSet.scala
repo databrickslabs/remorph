@@ -5,7 +5,7 @@ import java.nio.file.Files
 import scala.collection.mutable
 
 class FileSet {
-  private val files = new mutable.HashMap[String, String]()
+  private[this] val files = new mutable.HashMap[String, String]()
 
   def withFile(name: String, content: String): FileSet = {
     files(name) = content
