@@ -36,11 +36,14 @@ class JvmProxy:
             self._recompile()
         classpath = self._root / 'core/target/classpath.txt'
         classes = self._root / 'core/target/scala-2.12/classes'
+        jar_path = self._root / 'core/target/remorph.jar'
+        print(f"Classpath: {classpath}")
+        print(f"{self.root}")
         # TODO: use the os-specific path separator
         args = [
             "java",
-            "--class-path",
-            f'{classes.as_posix()}:{classpath.read_text()}',
+            "--jar",
+            f'{jar_path.as_posix()}',
             "com.databricks.labs.remorph.Main",
             sys.argv[1],
         ]
