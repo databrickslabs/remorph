@@ -6,16 +6,51 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
+  "transpile TO_NUMBER and TO_DECIMAL" should {
+    "transpile TO_NUMBER" in {
+      "select TO_NUMBER(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_NUMBER with precision and scale" in {
+      "select TO_NUMBER(EXPR,38,0) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_DECIMAL" in {
+      "select TO_DECIMAL(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+  }
+
   "snowsql commands" should {
 
     "transpile BANG with semicolon" in {
-      "!set error_flag = true;" transpilesTo "-- !set error_flag = true;"
+      "!set error_flag = true;" transpilesTo
+        """/* The following issues were detected:
+          |
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !set error_flag = true;
+          | */""".stripMargin
     }
     "transpile BANG without semicolon" in {
-      "!print Include This Text" transpilesTo "-- !print Include This Text;"
+      "!print Include This Text" transpilesTo
+        """/* The following issues were detected:
+        |
+        |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+        |    !print Include This Text
+        | */""".stripMargin
     }
     "transpile BANG with options" in {
-      "!options catch=true" transpilesTo "-- !options catch=true;"
+      "!options catch=true" transpilesTo
+        """/* The following issues were detected:
+          |
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !options catch=true
+          | */""".stripMargin
     }
     "transpile BANG with negative scenario unknown command" in {
       "!test unknown command".failsTranspilation
@@ -135,7 +170,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
         |FROM t1;""".stripMargin transpilesTo
         s"""SELECT
-           |  LAST_VALUE(c1) IGNORE NULLS OVER (
+           |  LAST(c1) IGNORE NULLS OVER (
            |    PARTITION BY
            |      t1.c2
            |    ORDER BY
@@ -223,6 +258,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
     }
 
+    "GROUP BY ALL" in {
+      "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;" transpilesTo
+        "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
+    }
+
   }
 
   "Snowflake transpile function with optional brackets" should {
@@ -279,7 +319,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     "EXECUTE TASK task1;" in {
       "EXECUTE TASK task1;" transpilesTo
-        s"""-- EXECUTE TASK task1;""".stripMargin
+        """/* The following issues were detected:
+          |
+          |   Execute Task is not yet supported
+          |    EXECUTE TASK task1
+          | */""".stripMargin
     }
   }
 
@@ -304,6 +348,57 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  DELETE
            |WHEN NOT MATCHED THEN
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
+    }
+  }
+
+  "Expressions in CTE" in {
+    """WITH
+      |    a AS (1),
+      |    b AS (2),
+      |    t (d, e) AS (SELECT 4, 5),
+      |    c AS (3)
+      |SELECT
+      |    a + b,
+      |    a * c,
+      |    a * t.d
+      |FROM t;""".stripMargin transpilesTo
+      """WITH
+        |    t (d, e) AS (SELECT 4, 5)
+        |SELECT
+        |    1 + 2,
+        |    1 * 3,
+        |    1 * t.d
+        |FROM
+        |    t;""".stripMargin
+  }
+
+  "Batch statements" should {
+    "survive invalid SQL" in {
+      """
+        |CREATE TABLE t1 (x VARCHAR);
+        |SELECT x y z;
+        |SELECT 3 FROM t3;
+        |""".stripMargin transpilesTo ("""
+        |CREATE TABLE t1 (x STRING);
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECTxyz
+        | */
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECT
+        |    Unparsable text: x
+        |    Unparsable text: y
+        |    Unparsable text: z
+        |    Unparsable text: parser recovered by ignoring: SELECTxyz;
+        | */
+        | SELECT
+        |  3
+        |FROM
+        |  t3;""".stripMargin, false)
+
     }
   }
 

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {
@@ -9,11 +10,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   protected val optionGenerator = new OptionGenerator(expressionGenerator)
   override protected val generator = new LogicalPlanGenerator(expressionGenerator, optionGenerator)
 
+  override protected def initialState(plan: ir.LogicalPlan) =
+    Generating(optimizedPlan = plan, currentNode = plan, ctx = GeneratorContext(generator))
   "Project" should {
     "transpile to SELECT" in {
       ir.Project(namedTable("t1"), Seq(ir.Id("c1"))) generates "SELECT c1 FROM t1"
       ir.Project(namedTable("t1"), Seq(ir.Star(None))) generates "SELECT * FROM t1"
-      ir.Project(ir.NoTable(), Seq(ir.Literal(1))) generates "SELECT 1"
+      ir.Project(ir.NoTable, Seq(ir.Literal(1))) generates "SELECT 1"
     }
 
     "transpile to SELECT with COMMENTS" in {
@@ -55,7 +58,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     "transpile to WHERE" in {
       ir.Filter(
         ir.Project(namedTable("t1"), Seq(ir.Id("c1"))),
-        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "SELECT c1 FROM t1 WHERE IS_DATE(c2)"
+        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "(SELECT c1 FROM t1) WHERE IS_DATE(c2)"
     }
   }
 

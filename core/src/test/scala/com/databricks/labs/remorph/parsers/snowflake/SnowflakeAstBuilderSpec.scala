@@ -6,9 +6,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder = new SnowflakeAstBuilder
+  override protected def astBuilder: SnowflakeAstBuilder = vc.astBuilder
 
-  private def singleQueryExample(query: String, expectedAst: LogicalPlan) =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeAstBuilder" should {
@@ -181,8 +181,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-            is_global = false),
+            Seq(SortOrder(Id("a"), Ascending, NullsLast))),
           Seq(Id("a"), CallFunction("COUNT", Seq(Id("b"))))))
     }
 
@@ -205,40 +204,28 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-              is_global = false),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsLast))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC" in {
         singleQueryExample(
           "SELECT a FROM b ORDER BY a DESC",
           Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsFirst)),
-              is_global = false),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a NULLS FIRST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a NULLS FIRST",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Ascending, NullsFirst)),
-              is_global = false),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsFirst))),
             Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC NULLS LAST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
           expectedAst = Project(
-            Sort(
-              NamedTable("b", Map.empty, is_streaming = false),
-              Seq(SortOrder(Id("a"), Descending, NullsLast)),
-              is_global = false),
+            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsLast))),
             Seq(Id("a"))))
       }
     }
@@ -443,8 +430,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
           Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
-          None,
-          overwrite = false))
+          None))
     }
 
     "translate DELETE commands" in {
@@ -459,14 +445,64 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UpdateTable(namedTable("t1"), None, Seq(Assign(Column(None, Id("c1")), Literal(42))), None, None, None))
     }
 
+    "survive an invalid command" in {
+      example(
+        """
+          |CREATE TABLE t1 (x VARCHAR);
+          |SELECT x y z;
+          |SELECT 3 FROM t3;
+          |""".stripMargin,
+        _.snowflakeFile(),
+        Batch(
+          Seq(
+            CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
+            UnresolvedRelation("Unparsable text: SELECTxyz", message = "Unparsed input - ErrorNode encountered"),
+            UnresolvedRelation(
+              "Unparsable text: SELECT\nUnparsable text: x\nUnparsable text: y\nUnparsable text: z\nUnparsable text: parser recovered by ignoring: SELECTxyz;",
+              message = "Unparsed input - ErrorNode encountered"),
+            Project(namedTable("t3"), Seq(Literal(3))))),
+        failOnErrors = false)
+
+    }
+
     "translate BANG to Unresolved Expression" in {
-      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true;"))
-      example("!set dfsdfds", _.snowSqlCommand(), UnresolvedCommand("!set dfsdfds"))
+
+      example(
+        "!set error_flag = true;",
+        _.snowSqlCommand(),
+        UnresolvedCommand(
+          ruleText = "!set error_flag = true;",
+          ruleName = "snowSqlCommand",
+          tokenName = Some("SQLCOMMAND"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
+
+      example(
+        "!set dfsdfds",
+        _.snowSqlCommand(),
+        UnresolvedCommand(
+          ruleText = "!set dfsdfds",
+          ruleName = "snowSqlCommand",
+          tokenName = Some("SQLCOMMAND"),
+          message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
       assertThrows[Exception] {
-        example("!", _.snowSqlCommand(), UnresolvedCommand("!"))
+        example(
+          "!",
+          _.snowSqlCommand(),
+          UnresolvedCommand(
+            ruleText = "!",
+            ruleName = "snowSqlCommand",
+            tokenName = Some("SQLCOMMAND"),
+            message = "Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand"))
       }
       assertThrows[Exception] {
-        example("!badcommand", _.snowSqlCommand(), UnresolvedCommand("!badcommand"))
+        example(
+          "!badcommand",
+          _.snowSqlCommand(),
+          UnresolvedCommand(
+            ruleText = "!badcommand",
+            ruleName = "snowSqlCommand",
+            tokenName = Some("SQLCOMMAND"),
+            message = "Unknown command in SnowflakeAstBuilder.visitSqlCommand"))
       }
     }
 
@@ -477,6 +513,57 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           // Note when we truly process &vars we should get Variable, not Id
           Project(Filter(namedTable("a"), Equals(Id("b"), Id("$ids"))), Seq(Star())))
       }
+    }
+
+    "translate with recursive" should {
+      """WITH RECURSIVE employee_hierarchy""".stripMargin in {
+        singleQueryExample(
+          """WITH RECURSIVE employee_hierarchy AS (
+                             |    SELECT
+                             |        employee_id,
+                             |        manager_id,
+                             |        employee_name,
+                             |        1 AS level
+                             |    FROM
+                             |        employees
+                             |    WHERE
+                             |        manager_id IS NULL
+                             |    UNION ALL
+                             |    SELECT
+                             |        e.employee_id,
+                             |        e.manager_id,
+                             |        e.employee_name,
+                             |        eh.level + 1 AS level
+                             |    FROM
+                             |        employees e
+                             |    INNER JOIN
+                             |        employee_hierarchy eh ON e.manager_id = eh.employee_id
+                             |)
+                             |SELECT *
+                             |FROM employee_hierarchy
+                             |ORDER BY level, employee_id;""".stripMargin,
+          WithRecursiveCTE(
+            Seq(
+              SubqueryAlias(
+                Project(
+                  Filter(NamedTable("employees", Map.empty, false), IsNull(Id("manager_id", false))),
+                  Seq(
+                    Id("employee_id", false),
+                    Id("manager_id", false),
+                    Id("employee_name", false),
+                    Alias(Literal(1, IntegerType), Id("level", false)))),
+                Id("employee_hierarchy", false),
+                Seq.empty)),
+            Project(
+              Sort(
+                NamedTable("employee_hierarchy", Map.empty, false),
+                Seq(
+                  SortOrder(Id("level", false), Ascending, NullsLast),
+                  SortOrder(Id("employee_id", false), Ascending, NullsLast)),
+                false),
+              Seq(Star(None)))))
+      }
+
     }
   }
 }

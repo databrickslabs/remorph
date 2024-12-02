@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
+import org.antlr.v4.runtime.CommonToken
 import org.mockito.Mockito._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
@@ -14,7 +15,7 @@ class SnowflakeDDLBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
+  override protected def astBuilder: SnowflakeDDLBuilder = vc.ddlBuilder
 
   private def example(query: String, expectedAst: Catalog): Unit = example(query, _.ddlCommand(), expectedAst)
 
@@ -72,7 +73,7 @@ class SnowflakeDDLBuilderSpec
                   |$$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "py_udf",
-          returnType = UnparsedType("VARIANT"),
+          returnType = VariantType,
           parameters = Seq(),
           runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
@@ -280,30 +281,48 @@ class SnowflakeDDLBuilderSpec
 
     "translate Unresolved COMMAND" should {
       "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
-        example("ALTER SESSION SET QUERY_TAG = 'TAG';", UnresolvedCommand("ALTER SESSION SET QUERY_TAG = 'TAG'"))
+        example(
+          "ALTER SESSION SET QUERY_TAG = 'TAG';",
+          UnresolvedCommand(
+            ruleText = "ALTER SESSION SET QUERY_TAG = 'TAG'",
+            message = "Unknown ALTER command variant",
+            ruleName = "alterCommand",
+            tokenName = Some("ALTER")))
       }
 
       "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
         example(
           "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
-          UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
+          UnresolvedCommand(
+            ruleText = "ALTER STREAM mystream SET COMMENT = 'New comment for stream'",
+            message = "Unknown ALTER command variant",
+            ruleName = "alterCommand",
+            tokenName = Some("ALTER")))
       }
 
       "CREATE STREAM mystream ON TABLE mytable" in {
         example(
           "CREATE STREAM mystream ON TABLE mytable;",
-          UnresolvedCommand("CREATE STREAM mystream ON TABLE mytable"))
+          UnresolvedCommand(
+            ruleText = "CREATE STREAM mystream ON TABLE mytable",
+            message = "CREATE STREAM UNSUPPORTED",
+            ruleName = "createStream",
+            tokenName = Some("STREAM")))
       }
 
       "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
         example(
           "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP);",
-          UnresolvedCommand("CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)"))
+          UnresolvedCommand(
+            ruleText = "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)",
+            message = "CREATE TASK UNSUPPORTED",
+            ruleName = "createTask",
+            tokenName = Some("TASK")))
       }
     }
 
     "wrap unknown AST in UnresolvedCommand" in {
-      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCommand]
+      vc.ddlBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCommand]
     }
   }
 
@@ -315,7 +334,7 @@ class SnowflakeDDLBuilderSpec
       when(outOfLineConstraint.columnListInParentheses(0)).thenReturn(columnList)
       val dummyInputTextForOutOfLineConstraint = "dummy"
       when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
-      val result = astBuilder.buildOutOfLineConstraints(outOfLineConstraint)
+      val result = vc.ddlBuilder.buildOutOfLineConstraints(outOfLineConstraint)
       result shouldBe Seq(
         "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
@@ -337,32 +356,37 @@ class SnowflakeDDLBuilderSpec
       val inlineConstraint = mock[InlineConstraintContext]
       val dummyInputTextForInlineConstraint = "dummy"
       when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
-      val result = astBuilder.buildInlineConstraint(inlineConstraint)
+      val result = vc.ddlBuilder.buildInlineConstraint(inlineConstraint)
       result shouldBe UnresolvedConstraint(dummyInputTextForInlineConstraint)
       verify(inlineConstraint).UNIQUE()
       verify(inlineConstraint).primaryKey()
       verify(inlineConstraint).foreignKey()
       verify(inlineConstraint).getText
       verifyNoMoreInteractions(inlineConstraint)
-
     }
   }
-
   "SnowflakeDDLBuilder.visitAlter_table" should {
     "handle unexpected child" in {
-      val tableName = parseString("s.t1", _.objectName())
+      val tableName = parseString("s.t1", _.dotIdentifier())
       val alterTable = mock[AlterTableContext]
-      when(alterTable.objectName(0)).thenReturn(tableName)
-      val dummyTextForAlterTable = "dummy"
-      when(alterTable.getText).thenReturn(dummyTextForAlterTable)
-      val result = astBuilder.visitAlterTable(alterTable)
-      result shouldBe UnresolvedCatalog(dummyTextForAlterTable)
-      verify(alterTable).objectName(0)
+      val startTok = new CommonToken(ID, "s")
+      when(alterTable.dotIdentifier(0)).thenReturn(tableName)
+      when(alterTable.getStart).thenReturn(startTok)
+      when(alterTable.getStop).thenReturn(startTok)
+      when(alterTable.getRuleIndex).thenReturn(SnowflakeParser.RULE_alterTable)
+      val result = vc.ddlBuilder.visitAlterTable(alterTable)
+      result shouldBe UnresolvedCommand(
+        ruleText = "Mocked string",
+        message = "Unknown ALTER TABLE variant",
+        ruleName = "alterTable",
+        tokenName = Some("ID"))
+      verify(alterTable).dotIdentifier(0)
       verify(alterTable).tableColumnAction()
       verify(alterTable).constraintAction()
-      verify(alterTable).getText
+      verify(alterTable).getRuleIndex
+      verify(alterTable, times(3)).getStart
+      verify(alterTable).getStop
       verifyNoMoreInteractions(alterTable)
-
     }
   }
 
@@ -371,16 +395,25 @@ class SnowflakeDDLBuilderSpec
       val tableColumnAction = mock[TableColumnActionContext]
       when(tableColumnAction.alterColumnClause())
         .thenReturn(java.util.Collections.emptyList[AlterColumnClauseContext]())
-      val dummyTextForTableColumnAction = "dummy"
-      when(tableColumnAction.getText).thenReturn(dummyTextForTableColumnAction)
-      val result = astBuilder.buildColumnActions(tableColumnAction)
-      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForTableColumnAction))
+      val startTok = new CommonToken(ID, "s")
+      when(tableColumnAction.getStart).thenReturn(startTok)
+      when(tableColumnAction.getStop).thenReturn(startTok)
+      when(tableColumnAction.getRuleIndex).thenReturn(SnowflakeParser.RULE_tableColumnAction)
+      val result = vc.ddlBuilder.buildColumnActions(tableColumnAction)
+      result shouldBe Seq(
+        UnresolvedTableAlteration(
+          ruleText = "Mocked string",
+          message = "Unknown COLUMN action variant",
+          ruleName = "tableColumnAction",
+          tokenName = Some("ID")))
       verify(tableColumnAction).alterColumnClause()
       verify(tableColumnAction).ADD()
       verify(tableColumnAction).alterColumnClause()
       verify(tableColumnAction).DROP()
       verify(tableColumnAction).RENAME()
-      verify(tableColumnAction).getText
+      verify(tableColumnAction).getRuleIndex
+      verify(tableColumnAction, times(3)).getStart
+      verify(tableColumnAction).getStop
       verifyNoMoreInteractions(tableColumnAction)
     }
   }
@@ -390,15 +423,23 @@ class SnowflakeDDLBuilderSpec
       val columnName = parseString("a", _.columnName())
       val alterColumnClause = mock[AlterColumnClauseContext]
       when(alterColumnClause.columnName()).thenReturn(columnName)
-      val dummyTextForAlterColumnClause = "dummy"
-      when(alterColumnClause.getText).thenReturn(dummyTextForAlterColumnClause)
-      val result = astBuilder.buildColumnAlterations(alterColumnClause)
-      result shouldBe UnresolvedTableAlteration(dummyTextForAlterColumnClause)
+      val startTok = new CommonToken(ID, "s")
+      when(alterColumnClause.getStart).thenReturn(startTok)
+      when(alterColumnClause.getStop).thenReturn(startTok)
+      when(alterColumnClause.getRuleIndex).thenReturn(SnowflakeParser.RULE_alterColumnClause)
+      val result = vc.ddlBuilder.buildColumnAlterations(alterColumnClause)
+      result shouldBe UnresolvedTableAlteration(
+        ruleText = "Mocked string",
+        message = "Unknown ALTER COLUMN variant",
+        ruleName = "alterColumnClause",
+        tokenName = Some("ID"))
       verify(alterColumnClause).columnName()
       verify(alterColumnClause).dataType()
       verify(alterColumnClause).DROP()
       verify(alterColumnClause).NULL()
-      verify(alterColumnClause).getText
+      verify(alterColumnClause).getRuleIndex
+      verify(alterColumnClause, times(3)).getStart
+      verify(alterColumnClause).getStop
       verifyNoMoreInteractions(alterColumnClause)
     }
   }
@@ -406,14 +447,23 @@ class SnowflakeDDLBuilderSpec
   "SnowflakeDDLBuilder.buildConstraintActions" should {
     "handle unexpected child" in {
       val constraintAction = mock[ConstraintActionContext]
-      val dummyTextForConstraintAction = "dummy"
-      when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
-      val result = astBuilder.buildConstraintActions(constraintAction)
-      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForConstraintAction))
+      val startTok = new CommonToken(ID, "s")
+      when(constraintAction.getStart).thenReturn(startTok)
+      when(constraintAction.getStop).thenReturn(startTok)
+      when(constraintAction.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
+      val result = vc.ddlBuilder.buildConstraintActions(constraintAction)
+      result shouldBe Seq(
+        UnresolvedTableAlteration(
+          ruleText = "Mocked string",
+          message = "Unknown CONSTRAINT variant",
+          ruleName = "constraintAction",
+          tokenName = Some("ID")))
       verify(constraintAction).ADD()
       verify(constraintAction).DROP()
       verify(constraintAction).RENAME()
-      verify(constraintAction).getText
+      verify(constraintAction).getRuleIndex
+      verify(constraintAction, times(3)).getStart
+      verify(constraintAction).getStop
       verifyNoMoreInteractions(constraintAction)
     }
   }
@@ -422,15 +472,24 @@ class SnowflakeDDLBuilderSpec
     "handle unexpected child" in {
       val constraintAction = mock[ConstraintActionContext]
       when(constraintAction.id()).thenReturn(java.util.Collections.emptyList[IdContext])
-      val dummyTextForConstraintAction = "dummy"
-      when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
-      val result = astBuilder.buildDropConstraints(constraintAction)
-      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForConstraintAction))
+      val startTok = new CommonToken(ID, "s")
+      when(constraintAction.getStart).thenReturn(startTok)
+      when(constraintAction.getStop).thenReturn(startTok)
+      when(constraintAction.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
+      val result = vc.ddlBuilder.buildDropConstraints(constraintAction)
+      result shouldBe Seq(
+        UnresolvedTableAlteration(
+          ruleText = "Mocked string",
+          message = "Unknown DROP constraint variant",
+          ruleName = "constraintAction",
+          tokenName = Some("ID")))
       verify(constraintAction).columnListInParentheses()
       verify(constraintAction).primaryKey()
       verify(constraintAction).UNIQUE()
       verify(constraintAction).id()
-      verify(constraintAction).getText
+      verify(constraintAction).getRuleIndex
+      verify(constraintAction, times(3)).getStart
+      verify(constraintAction).getStop
       verifyNoMoreInteractions(constraintAction)
     }
   }

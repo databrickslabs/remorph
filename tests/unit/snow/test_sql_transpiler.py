@@ -73,7 +73,10 @@ def test_tokenizer_exception(transpiler, write_dialect):
 def test_procedure_conversion(transpiler, write_dialect):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
     transpiler_result = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
-    assert transpiler_result.transpiled_sql[0] == "CREATE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
+    assert (
+        transpiler_result.transpiled_sql[0]
+        == "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
+    )
 
 
 def test_find_root_tables(transpiler):

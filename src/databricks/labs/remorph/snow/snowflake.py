@@ -53,16 +53,10 @@ DATE_DELTA_INTERVAL = {
 
 rank_functions = (
     local_expression.CumeDist,
-    local_expression.DenseRank,
     exp.FirstValue,
-    exp.Lag,
     exp.LastValue,
-    exp.Lead,
     local_expression.NthValue,
     local_expression.Ntile,
-    local_expression.PercentRank,
-    local_expression.Rank,
-    exp.RowNumber,
 )
 
 
@@ -114,6 +108,13 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
 
     part_num = part_num_if if part_num_if is not None else part_num_literal
     return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
+
+
+def _div0_to_if(args: list) -> exp.If:
+    cond = exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0))
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
 
 
 def _div0null_to_if(args: list) -> exp.If:
@@ -352,6 +353,7 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+            "TRY_TO_TIMESTAMP": local_expression.TryToTimestamp.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_date_add,
@@ -361,6 +363,7 @@ class Snow(Snowflake):
             "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
             "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0": _div0_to_if,
             "DIV0NULL": _div0null_to_if,
             "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
             "BITOR_AGG": local_expression.BitOr.from_arg_list,
@@ -474,3 +477,23 @@ class Snow(Snowflake):
                     end_side="FOLLOWING",
                 )
             return window
+
+        def _parse_alter_table_add(self) -> list[exp.Expression]:
+            index = self._index - 1
+            if self._match_set(self.ADD_CONSTRAINT_TOKENS, advance=False):
+                return self._parse_csv(
+                    lambda: self.expression(exp.AddConstraint, expressions=self._parse_csv(self._parse_constraint))
+                )
+
+            self._retreat(index)
+            if not self.ALTER_TABLE_ADD_REQUIRED_FOR_EACH_COLUMN and self._match_text_seq("ADD"):
+                return self._parse_wrapped_csv(self._parse_field_def, optional=True)
+
+            if self._match_text_seq("ADD", "COLUMN"):
+                schema = self._parse_schema()
+                if schema:
+                    return [schema]
+                # return self._parse_csv in case of COLUMNS are not enclosed in brackets ()
+                return self._parse_csv(self._parse_field_def)
+
+            return self._parse_wrapped_csv(self._parse_add_column, optional=True)

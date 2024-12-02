@@ -19,6 +19,45 @@ While minimizing external dependencies is essential, exceptions can be made case
 justified, such as when a well-established and actively maintained library provides significant benefits, like time savings, performance improvements, 
 or specialized functionality unavailable in standard libraries.
 
+## GPG signing
+The Remorph project requires any commit to be signed-off using GPG signing.
+Before you submit any commit, please make sure you are properly setup, as follows.
+
+If you don't already have one, create a GPG key:
+ - on MacOS, install the GPG Suite from https://gpgtools.org/
+ - from the Applications folder, launch the GPG Keychain app
+ - create a new GPG key, using your Databricks email  
+ - Right-click on the created key and select Export, to save the key
+ - Check the key using TextEdit, it should start with -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+Register your PGP key in GitHub: 
+ - In GitHub, select Settings from your picture at the top-right
+   - select SSH and PGP key
+     - click on New key, and paste the text content of the exported key
+   - select Emails
+     - if your databricks email is not registered, register it
+     - complete the verification before the next steps
+
+Tell local git to signoff your commits using your PGP key
+    - see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
+    - in short, you need to run the following commands from a terminal:
+        - git config --global --unset gpg.format
+        - gpg --list-secret-keys --keyid-format=long
+        - git config --global user.signingkey <KEY.ID.FROM.ABOVE>
+        - git config --global commit.gpgsign true
+    
+Once all this is done, you can verify it's correct as follows:
+    - create a branch and use it
+    - create a file <FILENAME> with some content
+    - git add <FILENAME>
+    - git commit -m "test PGP"
+    - git verify-commit <COMMIT>
+The last command should display something like the following:
+`gpg: Signature made Tue Nov 26 11:34:23 2024 CET
+gpg:                using RSA key FD4D754BB2B1D4F09F2BF658F4B0C73DFC65A17B
+gpg: Good signature from "GitHub <your.email@databricks.com>" [ultimate]
+`
+
 ## Change management
 
 When you introduce a change in the code, specifically a deeply technical one, please ensure that the change provides same or improved set of capabilities.
@@ -73,8 +112,34 @@ Map(log_level -> disabled, name -> foo)
 
 This section provides a step-by-step guide to set up and start working on the project. These steps will help you set up your project environment and dependencies for efficient development.
 
-To begin, run `make dev` to install [Hatch](https://github.com/pypa/hatch), create the default environment and install development dependencies, assuming you've already cloned the github repo.
+To begin, install prerequisites:
 
+`wget` is required by the maven installer
+```shell
+brew install wget
+```
+
+`maven` is the dependency manager for JVM based languages
+```shell
+brew install maven
+```
+
+`jdk11` is the jdk used by remorph
+download it from [OpenJDK11](https://www.openlogic.com/openjdk-downloads?field_java_parent_version_target_id=406&field_operating_system_target_id=431&field_architecture_target_id=391&field_java_package_target_id=396) and install it
+
+`python` is the dependency manager for JVM based languages
+```shell
+brew install maven
+```
+
+`hatch` is a Python project manager
+```shell
+pip install hatch
+```
+
+Then run project-specific install scripts
+
+`make dev` creates the default environment and installs development dependencies, assuming you've already cloned the github repo.
 ```shell
 make dev
 ```
@@ -89,7 +154,13 @@ To ensure your integrated development environment (IDE) uses the newly created v
 hatch run python -c "import sys; print(sys.executable)"
 ```
 
-Configure your IDE to use this Python path so that you work within the virtual environment when developing the project:
+As of writing, we only support IntelliJ IDEA CE 2024.1. Development using more recent versions doesn't work (yet!).
+Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
+
+Configure your IDE to:
+ - use OpenJDK11 as the SDK for the project
+ - install the IntelliJ Scala plugin version 2024.1.25. Do not use more recent versions, they don't work!!! 
+ - use this Python venv path so that you work within the virtual environment when developing the project:
 ![IDE Setup](docs/img/remorph_intellij.gif)
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:

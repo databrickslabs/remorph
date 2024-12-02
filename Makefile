@@ -4,7 +4,6 @@ clean:
 	rm -fr .venv clean htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
 
 dev:
-	pip3 install hatch
 	hatch env create
 	hatch run pip install -e '.[test]'
 	hatch run which python
@@ -37,7 +36,7 @@ integration:
 coverage:
 	hatch run coverage && open htmlcov/index.html
 
-build_core_jar:
+build_core_jar: dev-cli
 	mvn --file pom.xml -pl core package
 
 clean_coverage_dir:
@@ -62,4 +61,4 @@ dev-cli:
 	mvn -f core/pom.xml dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
 
 estimate-coverage: build_core_jar
-	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "debug-estimate", "flags":{"dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "snowflake", "console-output": "true"}}'
+	databricks labs remorph debug-estimate --dst $(abspath ${OUTPUT_DIR}) --dialect snowflake --console-output true

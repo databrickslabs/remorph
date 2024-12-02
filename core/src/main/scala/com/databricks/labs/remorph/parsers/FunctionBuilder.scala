@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
 import com.databricks.labs.remorph.{intermediate => ir}
 
 sealed trait FunctionType
@@ -276,7 +277,8 @@ abstract class FunctionBuilder {
     case "STRING_AGG" => FunctionDefinition.standard(2, 3)
     case "STRING_ESCAPE" => FunctionDefinition.standard(2)
     case "STUFF" => FunctionDefinition.standard(4)
-    case "SUBSTRING" => FunctionDefinition.standard(2, 3)
+    case "SUBSTR" => FunctionDefinition.standard(2, 3)
+    case "SUBSTRING" => FunctionDefinition.standard(2, 3).withConversionStrategy(SynonymOf("SUBSTR"))
     case "SUM" => FunctionDefinition.standard(1)
     case "SUSER_ID" => FunctionDefinition.standard(0, 1)
     case "SUSER_NAME" => FunctionDefinition.standard(0, 1)
@@ -326,7 +328,15 @@ abstract class FunctionBuilder {
 
     defnOption match {
       case Some(functionDef) if functionDef.functionType == NotConvertibleFunction =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          name,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          ruleText = s"$irName(...)",
+          message = s"Function $irName is not convertible to Databricks SQL",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
 
       case Some(funDef) if FunctionArity.verifyArguments(funDef.arity, args) =>
         applyConversionStrategy(funDef, args, irName)
@@ -338,11 +348,23 @@ abstract class FunctionBuilder {
           args,
           is_distinct = false,
           is_user_defined_function = false,
-          has_incorrect_argc = true)
+          has_incorrect_argc = true,
+          ruleText = s"$irName(...)",
+          message = s"Invocation of $irName has incorrect argument count",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
 
       // Unsupported function
       case None =>
-        ir.UnresolvedFunction(irName, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          irName,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          ruleText = s"$irName(...)",
+          message = s"Function $irName is not convertible to Databricks SQL",
+          ruleName = "N/A",
+          tokenName = Some("N/A"))
     }
   }
 

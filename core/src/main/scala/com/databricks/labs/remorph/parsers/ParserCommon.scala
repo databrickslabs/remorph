@@ -1,13 +1,17 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
-import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ParseTree, ParseTreeVisitor, RuleNode}
-import org.antlr.v4.runtime.{ParserRuleContext, RuleContext}
+import org.antlr.v4.runtime.tree._
+import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
 
 trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: AbstractParseTreeVisitor[A] =>
+
+  val vc: VisitorCoordinator
+
   protected def occursBefore(a: ParseTree, b: ParseTree): Boolean = {
     a != null && b != null && a.getSourceInterval.startsBeforeDisjoint(b.getSourceInterval)
   }
@@ -20,15 +24,14 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    *   unresolved input that we have no visitor for. This is used in the default visitor to wrap the
    *   unresolved input.
    * </p>
-   * @param msg What message the unresolved object should contain
+   * @param ruleText Which piece of source code the unresolved object represents
+   * @param message What message the unresolved object should contain, such as missing visitor
    * @return An instance of the type returned by the implementing visitor
    */
-  protected def unresolved(msg: String): A
+  protected def unresolved(ruleText: String, message: String): A
 
   protected override def defaultResult(): A = {
-    unresolved(
-      s"Unimplemented visitor $caller in class $implementor" +
-        s" for ${contextText(currentNode.getRuleContext)}")
+    unresolved(contextText(currentNode.getRuleContext), s"Unimplemented visitor $caller in class $implementor")
   }
 
   /**
@@ -40,21 +43,35 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
    *   recorded by the parser.
    * </p>
    */
-  def contextText(ctx: RuleContext): String = ctx match {
-    case ctx: ParserRuleContext =>
-      ctx.start.getInputStream.getText(new Interval(ctx.start.getStartIndex, ctx.stop.getStopIndex))
-    case _ => "Unsupported RuleContext type - cannot generate source string"
+  def contextText(ctx: RuleContext): String = try {
+    ctx match {
+      case ctx: ParserRuleContext =>
+        ctx.getStart.getInputStream.getText(new Interval(ctx.getStart.getStartIndex, ctx.getStop.getStopIndex))
+      case _ => "Unsupported RuleContext type - cannot generate source string"
+    }
+  } catch {
+    // Anything that does this will have been mocked and the mockery will be huge to get the above code to work
+    case _: Throwable => "Mocked string"
   }
 
   /**
-   * Used in visitor methods when they detect that they are unable to handle some
-   * part of the input, or they are placeholders for a real implementation that has not yet been
-   * implemented
-   * @param unparsedInput The RuleNode that we wish to indicate is unsupported right now
-   * @return An  instance of the Unresolved representation of the type returned by the implementing visitor
+   * <p>
+   *   Returns the rule name that a particular context represents.
+   * </p>
+   * <p>
+   *   We can do this by referencing the vocab stored in the visitor coordinator
+   * </p>
+   * @param ctx The context for which we want the rule name
+   * @return the rule name for the context
    */
-  protected def wrapUnresolvedInput(unparsedInput: RuleNode): A =
-    unresolved(contextText(unparsedInput.getRuleContext))
+  def contextRuleName(ctx: ParserRuleContext): String =
+    vc.ruleName(ctx)
+
+  /**
+   * Given a token, return its symbolic name (what it is called in the lexer)
+   */
+  def tokenName(tok: Token): String =
+    vc.tokenName(tok)
 
   /**
    * <p>
@@ -95,6 +112,41 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
       s"Unimplemented visitor for method: $caller in class: $implementor" +
         s" for: ${contextText(node.getRuleContext)}")
     currentNode = node
-    super.visitChildren(node)
+    val result = super.visitChildren(node)
+    result match {
+      case c: ir.Unresolved[A] =>
+        node match {
+          case ctx: ParserRuleContext =>
+            c.annotate(contextRuleName(ctx), Some(tokenName(ctx.getStart)))
+        }
+      case _ =>
+        result
+    }
+  }
+
+  /**
+   * If the parser recognizes a syntax error, then it generates an ErrorNode. The ErrorNode represents unparsable text
+   * and contains a manufactured token that encapsulates all the text that the parser ignored when it recovered
+   * from the error. Note that if the error recovery strategy inserts a token rather than deletes one, then an
+   * error node will not be created; those errors will only be reported via the ErrorCollector
+   * TODO: It may be reasonable to add a check for inserted tokens and generate an error node in that case
+   *
+   * @param ctx the context to check for error nodes
+   * @return The unresolved object representing the error and containing the text that was skipped
+   */
+  def errorCheck(ctx: ParserRuleContext): Option[A] = {
+    val unparsedText = Option(ctx.children)
+      .map(_.asScala)
+      .getOrElse(Seq.empty)
+      .collect { case e: ErrorNode =>
+        s"Unparsable text: ${e.getSymbol.getText}"
+      }
+      .mkString("\n")
+
+    if (unparsedText.nonEmpty) {
+      Some(unresolved(unparsedText, "Unparsed input - ErrorNode encountered"))
+    } else {
+      None
+    }
   }
 }
