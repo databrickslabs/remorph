@@ -13,7 +13,6 @@ class Teradata(org_Teradata):
         STATEMENT_PARSERS = {
             **org_Teradata.Parser.STATEMENT_PARSERS,
             TokenType.CREATE: lambda self: self._parse_create(),
-            # TokenType.WITH: lambda self: self._parse_with(),
         }
 
         CONSTRAINT_PARSERS = {
@@ -68,7 +67,7 @@ class Teradata(org_Teradata):
             if create_token.token_type in (TokenType.FUNCTION, TokenType.PROCEDURE):
                 this = self._parse_user_defined_function(kind=create_token.token_type)
 
-                # exp.Properties.Location.POST_SCHEMA ("schema" here is the UDF's type signature)
+
                 extend_props(self._parse_properties())
 
                 self._match(TokenType.ALIAS)
@@ -80,8 +79,6 @@ class Teradata(org_Teradata):
                     return_ = self._match_text_seq("RETURN")
 
                     if self._match(TokenType.STRING, advance=False):
-                        # Takes care of BigQuery's JavaScript UDF definitions that end in an OPTIONS property
-                        # # https://cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language#create_function_statement
                         expression = self._parse_string()
                         extend_props(self._parse_properties())
                     else:
@@ -96,13 +93,11 @@ class Teradata(org_Teradata):
             elif create_token.token_type in self.DB_CREATABLES:
                 table_parts = self._parse_table_parts(schema=True)
 
-                # exp.Properties.Location.POST_NAME
                 self._match(TokenType.COMMA)
                 extend_props(self._parse_properties(before=True))
 
                 this = self._parse_schema(this=table_parts)
 
-                # exp.Properties.Location.POST_SCHEMA and POST_WITH
                 extend_props(self._parse_properties())
 
                 self._match(TokenType.ALIAS)
@@ -157,19 +152,6 @@ class Teradata(org_Teradata):
                 clone=clone,
             )
 
-        # def _parse_types(
-        #     self, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
-        # ) -> t.Optional[exp.Expression]:
-        #     this = super()._parse_types(check_func=check_func, schema=schema, allow_identifiers=allow_identifiers)
-        #
-        #     if (
-        #         isinstance(this, exp.DataType)
-        #         and this.is_type("numeric", "decimal", "number", "integer", "int", "smallint", "bigint")
-        #         and not this.expressions
-        #     ):
-        #         return exp.DataType.build("DECIMAL(38,0)")
-        #
-        #     return this
 
         def _parse_compress(self) -> exp.CompressColumnConstraint:
             if self._match(TokenType.L_PAREN, advance=False):
@@ -179,7 +161,6 @@ class Teradata(org_Teradata):
             return self.expression(exp.CompressColumnConstraint, this=this_expr)
 
         def _parse_map_property(self) -> exp.MapProperty:
-
             return self.expression(exp.MapProperty, this=self)
 
 
