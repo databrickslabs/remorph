@@ -2794,6 +2794,8 @@ queryExpression
     ;
 
 sqlUnion
+    // TODO: Handle INTERSECT precedence in the grammar; it has higher precedence than EXCEPT and UNION ALL.
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
     : (UNION ALL? | EXCEPT | INTERSECT) (querySpecification | (LPAREN queryExpression RPAREN))
     ;
 
@@ -2802,6 +2804,8 @@ querySpecification
     ;
 
 selectOptionalClauses
+    // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
     : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
     ;
 

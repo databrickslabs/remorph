@@ -74,5 +74,6 @@ def _upgrade_reconcile_workflow(app_context: ApplicationContext):
 
 def upgrade(installation: Installation, ws: WorkspaceClient):
     app_context = ApplicationContext(ws)
-    _upgrade_reconcile_metadata_main_table(installation, ws, app_context)
-    _upgrade_reconcile_workflow(app_context)
+    if app_context.recon_config is not None:
+        _upgrade_reconcile_metadata_main_table(installation, ws, app_context)
+        _upgrade_reconcile_workflow(app_context)

@@ -132,8 +132,8 @@ def test_query_with_same_alias_and_column_name():
     sql = """
     select ca_zip
      from (
-      SELECT 
-      substr(ca_zip,1,5) ca_zip, 
+      SELECT
+      substr(ca_zip,1,5) ca_zip,
       trim(name) as name,
       count(*) over( partition by ca_zip)
       FROM customer_address

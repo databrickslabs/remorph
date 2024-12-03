@@ -388,7 +388,7 @@ def _current_date(self, expression: exp.CurrentDate) -> str:
 
 def _not_sql(self, expression: exp.Not) -> str:
     if isinstance(expression.this, exp.Is):
-        return f"{expression.this.this} IS NOT {self.sql(expression.this, 'expression')}"
+        return f"{self.sql(expression.this, 'this')} IS NOT {self.sql(expression.this, 'expression')}"
     return f"NOT {self.sql(expression, 'this')}"
 
 

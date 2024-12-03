@@ -17,8 +17,14 @@ class LogicalPlanGenerator(
       case w: ir.WithCTE => cte(w)
       case p: ir.Project => project(p)
       case ir.NamedTable(id, _, _) => lift(OkResult(id))
-      case ir.Filter(input, condition) =>
-        code"${generate(input)} WHERE ${expr.generate(condition)}"
+      case ir.Filter(input, condition) => {
+        val source = input match {
+          // enclose subquery in parenthesis
+          case project: ir.Project => code"(${generate(project)})"
+          case _ => code"${generate(input)}"
+        }
+        code"${source} WHERE ${expr.generate(condition)}"
+      }
       case ir.Limit(input, limit) =>
         code"${generate(input)} LIMIT ${expr.generate(limit)}"
       case ir.Offset(child, offset) =>
@@ -278,7 +284,7 @@ class LogicalPlanGenerator(
   }
 
   private def project(proj: ir.Project): SQL = {
-    val fromClause = if (proj.input != ir.NoTable()) {
+    val fromClause = if (proj.input != ir.NoTable) {
       code" FROM ${generate(proj.input)}"
     } else {
       code""
