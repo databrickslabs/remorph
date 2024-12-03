@@ -89,6 +89,7 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
         case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
         case cv if cv.createView() != null => cv.createView().accept(this)
         case go if go.goStatement() != null => go.goStatement().accept(this)
+        case jimja if jimja.jinjaTemplate() != null => jimja.jinjaTemplate().accept(this)
         case _ =>
           ir.UnresolvedRelation(
             ruleText = contextText(ctx),

@@ -65,6 +65,9 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
+  override def visitJinjaTemplate(ctx: JinjaTemplateContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ir.JinjaAsStatement(ctx.getText))
+
   // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
     errorCheck(ctx) match {

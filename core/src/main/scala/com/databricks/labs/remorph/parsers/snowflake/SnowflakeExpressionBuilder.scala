@@ -80,6 +80,9 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case id => ir.Id(id.getText)
   }
 
+  override def visitJinjaTemplate(ctx: JinjaTemplateContext): ir.Expression =
+    errorCheck(ctx).getOrElse(ir.JinjaAsExpression(ctx.getText))
+
   override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
@@ -402,6 +405,9 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     case None =>
       ctx.primitiveExpression().accept(this)
   }
+
+  override def visitExprJinja(ctx: ExprJinjaContext): ir.Expression =
+    errorCheck(ctx).getOrElse(ctx.jinjaTemplate().accept(this))
 
   override def visitExprFuncCall(ctx: ExprFuncCallContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult

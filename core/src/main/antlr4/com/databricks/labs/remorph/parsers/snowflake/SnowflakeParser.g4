@@ -61,6 +61,7 @@ sqlClauses
     | showCommand
     | useCommand
     | describeCommand
+    | jinjaTemplate
     | otherCommand
     | snowSqlCommand
     ;
@@ -2994,6 +2995,7 @@ expression
     | DISTINCT expression                                   # exprDistinct
     | LPAREN subquery RPAREN                                # exprSubquery
     | primitiveExpression                                   # exprPrimitive
+    | jinjaTemplate                                         # exprJinja
     ;
 
 withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
@@ -3015,7 +3017,8 @@ arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
     ;
 
 dataType
-    : OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
+    : jinjaTemplate
+    | OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
     | ARRAY (LPAREN dataType RPAREN)?
     | id discard? (LPAREN INT (COMMA INT)? RPAREN)?
     ;
@@ -3174,7 +3177,10 @@ selectListNoTop: allDistinct? selectList
 selectListTop: allDistinct? topClause? selectList
     ;
 
-selectList: selectListElem (COMMA selectListElem)*
+selectList: selectListElem selectElemTempl*
+    ;
+
+selectElemTempl: COMMA selectListElem | COMMA? jinjaTemplate selectListElem?
     ;
 
 selectListElem
@@ -3233,6 +3239,7 @@ objectRef
     | valuesTable tableAlias?                                                      # objRefValues
     | LATERAL? (functionCall | (LPAREN subquery RPAREN)) pivotUnpivot? tableAlias? # objRefSubquery
     | dotIdentifier START WITH searchCondition CONNECT BY priorList?               # objRefStartWith
+    | jinjaTemplate                                                                # objRefJinja
     ;
 
 tableAlias: AS? alias (LPAREN id (COMMA id)* RPAREN)?
@@ -3278,7 +3285,7 @@ defaultAppendOnly: DEFAULT | APPEND_ONLY
 partitionBy: PARTITION BY exprList
     ;
 
-alias: id
+alias: id | jinjaTemplate
     ;
 
 exprAliasList: expr AS? alias (COMMA expr AS? alias)*
