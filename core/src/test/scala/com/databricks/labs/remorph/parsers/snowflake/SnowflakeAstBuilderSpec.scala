@@ -300,6 +300,23 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               SubqueryAlias(Project(namedTable("f"), Seq(Id("xx"), Id("yy"))), Id("aa"), Seq(Id("bb"), Id("cc")))),
             Project(namedTable("a"), Seq(Id("b"), Id("c"), Id("d")))))
       }
+      "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT x, y, z FROM e UNION SELECT b, c, d FROM a" in {
+        singleQueryExample(
+          query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT x, y, z FROM e UNION SELECT b, c, d FROM a",
+          expectedAst = WithCTE(
+            Seq(
+              SubqueryAlias(
+                Project(namedTable("e"), Seq(Id("x"), Id("y"), Id("z"))),
+                Id("a"),
+                Seq(Id("b"), Id("c"), Id("d")))),
+            SetOperation(
+              Project(namedTable("e"), Seq(Id("x"), Id("y"), Id("z"))),
+              Project(namedTable("a"), Seq(Id("b"), Id("c"), Id("d"))),
+              UnionSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false)))
+      }
     }
 
     "translate a query with WHERE, GROUP BY, HAVING, QUALIFY" in {
