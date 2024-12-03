@@ -24,17 +24,17 @@ class JinjaProcessor extends Processor {
       val token = tokenStream.LT(1)
 
       // TODO: Line statements and comments
-      token match {
-        case _ if token.getType == DBTPreprocessorLexer.STATEMENT =>
+      token.getType match {
+        case DBTPreprocessorLexer.STATEMENT =>
           accumulate(tokenStream, result, DBTPreprocessorLexer.STATEMENT_END)
-        case _ if token.getType == DBTPreprocessorLexer.EXPRESSION =>
+        case DBTPreprocessorLexer.EXPRESSION =>
           accumulate(tokenStream, result, DBTPreprocessorLexer.EXPRESSION_END)
-        case _ if token.getType == DBTPreprocessorLexer.COMMENT =>
+        case DBTPreprocessorLexer.COMMENT =>
           accumulate(tokenStream, result, DBTPreprocessorLexer.COMMENT_END)
-        case _ if token.getType == DBTPreprocessorLexer.C =>
+        case DBTPreprocessorLexer.C =>
           result.append(token.getText)
           tokenStream.consume()
-        case _ if token.getType == DBTPreprocessorLexer.WS =>
+        case DBTPreprocessorLexer.WS =>
           result.append(token.getText)
           tokenStream.consume()
         case _ => // TODO: Mismatched template tokens - accumulate error for partial result

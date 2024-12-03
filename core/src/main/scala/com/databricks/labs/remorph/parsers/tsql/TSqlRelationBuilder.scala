@@ -298,17 +298,11 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       result
   }
 
-  override def visitTsiJinja(ctx: TsiJinjaContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx.jinjaTemplate().accept(this)
-  }
+  override def visitTsiJinja(ctx: TsiJinjaContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ctx.jinjaTemplate().accept(this))
 
-  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ir.JinjaAsStatement(ctx.getText)
-  }
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ir.JinjaAsStatement(ctx.getText))
 
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult

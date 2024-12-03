@@ -5,8 +5,8 @@ import com.databricks.labs.remorph.utils.Sed
 import scala.collection.mutable
 
 class TemplateManager {
-  private val templates = mutable.Map[String, TemplateElement]()
-  private var counter = 0
+  private[this] val templates = mutable.Map[String, TemplateElement]()
+  private[this] var counter = 0
 
   def nextKey: String = {
     counter += 1

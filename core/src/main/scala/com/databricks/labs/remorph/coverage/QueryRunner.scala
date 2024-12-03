@@ -22,18 +22,19 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
     val formattedOutput = if (exampleQuery.shouldFormat) format(output) else output
     val formattedExpected = expected.map(e => if (exampleQuery.shouldFormat) format(e) else e)
 
-    if (formattedExpected.exists(_ != formattedOutput)) {
-      ReportEntryReport(
-        parsed = parsed,
-        statements = 1,
-        failures = Some(UnexpectedOutput(formattedExpected.get, formattedOutput)))
-    } else {
-      ReportEntryReport(
-        parsed = parsed,
-        transpiled = if (parsed == 1) 1 else 0,
-        statements = 1,
-        transpiled_statements = 1,
-        failures = error)
+    formattedExpected match {
+      case Some(`formattedOutput`) | None =>
+        ReportEntryReport(
+          parsed = parsed,
+          transpiled = parsed,
+          statements = 1,
+          transpiled_statements = 1,
+          failures = error)
+      case Some(expectedOutput) =>
+        ReportEntryReport(
+          parsed = parsed,
+          statements = 1,
+          failures = Some(UnexpectedOutput(expectedOutput, formattedOutput)))
     }
   }
 

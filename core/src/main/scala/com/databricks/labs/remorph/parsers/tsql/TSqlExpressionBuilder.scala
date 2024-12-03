@@ -69,13 +69,9 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
   }
 
   private def buildSelectListElemTempl(ctx: TSqlParser.SelectElemTemplContext): Seq[ir.Expression] = {
-    val errors = errorCheck(ctx)
     val templ = Option(ctx.jinjaTemplate()).map(_.accept(this)).toSeq
-    val elem = Option(ctx.selectListElem()).map(buildSelectListElem).toSeq.flatten
-    errors match {
-      case Some(errorResult) => Seq(errorResult) ++ templ ++ elem
-      case None => templ ++ elem
-    }
+    val elem = Option(ctx.selectListElem()).toSeq.flatMap(buildSelectListElem)
+    errorCheck(ctx).toSeq ++ templ ++ elem
   }
 
   private[tsql] def buildSelectListElem(ctx: TSqlParser.SelectListElemContext): Seq[ir.Expression] = {

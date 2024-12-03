@@ -64,7 +64,7 @@ object Strings {
 }
 
 class Sed(rules: (String, String)*) {
-  private val compiledRules: Seq[(Regex, String)] = rules.map { case (regex, replace) =>
+  private[this] val compiledRules: Seq[(Regex, String)] = rules.map { case (regex, replace) =>
     (regex.r, replace)
   }
 
