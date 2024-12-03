@@ -2,13 +2,13 @@
 CREATE PROCEDURE my_schema.my_stored_procedure_GET_DATA_LIMIT
 AS
 BEGIN
-    WITH temp_result AS 
+    WITH temp_result AS
     (
         SELECT *
-        FROM 
+        FROM
         (
-            VALUES 
-            (1, 'test'), 
+            VALUES
+            (1, 'test'),
             (2, 'test2')
         ) AS t (id, name)
     )

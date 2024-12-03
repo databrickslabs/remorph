@@ -4,9 +4,9 @@ WITH TempResult AS (
     UNION ALL
     SELECT 'Jane', 'Doe', '456 Elm St'
 )
-SELECT 
-    FirstName, 
-    LastName, 
+SELECT
+    FirstName,
+    LastName,
     Address
 INTO #TempTable
 FROM TempResult;

@@ -8,8 +8,8 @@ WITH temp_result AS (
     UNION ALL
     SELECT '2022/01/04', 1644012600, 'value4'
 )
-SELECT 
-    CONVERT(DATE, date_part, 103) AS date_part, 
-    timestamp, 
+SELECT
+    CONVERT(DATE, date_part, 103) AS date_part,
+    timestamp,
     col2
 FROM temp_result;

@@ -13,19 +13,19 @@ CustomerData AS (
     UNION ALL
     SELECT 3, 'Bob Smith'
 )
-SELECT 
+SELECT
     sd.OrderID,
     cd.CustomerName,
     sd.TotalAmount,
     sd.OrderDate,
     SUM(sd.TotalAmount) OVER (PARTITION BY cd.CustomerID) AS TotalCustomerSales,
     AVG(sd.TotalAmount) OVER () AS AverageSaleAmount
-FROM 
+FROM
     SalesData sd
     INNER JOIN CustomerData cd ON sd.OrderID = cd.CustomerID
-WHERE 
+WHERE
     sd.TotalAmount > 50
-ORDER BY 
+ORDER BY
     sd.OrderID
 OFFSET 0 ROWS
 FETCH NEXT 10 ROWS ONLY;

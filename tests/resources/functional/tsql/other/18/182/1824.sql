@@ -9,7 +9,7 @@ WITH XMLData AS (
 </ProductDescription>
 </Root>') AS myDoc
 )
-SELECT 
+SELECT
   myDoc.value('(/Root/ProductDescription/@ProductID)[1]', 'int') AS ProdID
 FROM XMLData;
 -- REMORPH CLEANUP: DROP TABLE XMLData;

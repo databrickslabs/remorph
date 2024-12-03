@@ -8,7 +8,7 @@ SET @current_username = USER_NAME();
 
 REVERT;
 
-SELECT 
+SELECT
     @current_user AS [current_user],
     @current_username AS current_username,
     'customer1' AS customer_name,

@@ -10,10 +10,10 @@ WITH OrderedPoints AS (
                (1, 0, 2, 2)
     ) AS Points (x, y, line, seq)
 )
-SELECT 
+SELECT
     line,
-    geometry::STGeomFromText('LINESTRING(' + 
-    (SELECT STRING_AGG(CONVERT(VARCHAR(10), x) + ' ' + CONVERT(VARCHAR(10), y), ', ') 
+    geometry::STGeomFromText('LINESTRING(' +
+    (SELECT STRING_AGG(CONVERT(VARCHAR(10), x) + ' ' + CONVERT(VARCHAR(10), y), ', ')
      FROM OrderedPoints AS p2
      WHERE p2.line = p1.line) + ')', 0).STAsText() AS LineString
 FROM OrderedPoints AS p1

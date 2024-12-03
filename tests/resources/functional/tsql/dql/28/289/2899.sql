@@ -9,7 +9,7 @@ WITH temp_result AS (
 SELECT name
 FROM temp_result
 WHERE (
-    name LIKE 'customer[_]%' OR name LIKE 'supplier[_]%' 
+    name LIKE 'customer[_]%' OR name LIKE 'supplier[_]%'
 )
 AND name LIKE '%[_]status%'
 AND type = 'V'

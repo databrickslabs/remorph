@@ -6,8 +6,8 @@ WITH dates AS (
   FROM dates
   WHERE d < '2022-01-31'
 )
-SELECT 
-  d AS [Date], 
+SELECT
+  d AS [Date],
   DATENAME(WEEKDAY, d) AS [Day],
   DATEPART(WEEKDAY, d) AS [DOW],
   DATEADD(day, -DATEPART(WEEKDAY, d) + 1, d) AS [Trunc Date],

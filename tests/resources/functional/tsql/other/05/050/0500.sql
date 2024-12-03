@@ -19,23 +19,23 @@ temp_lineitem AS (
     UNION ALL
     SELECT 2 AS l_orderkey, 1002 AS l_suppkey, 200.00 AS l_extendedprice, 0.2 AS l_discount
 )
-SELECT 
-    T1.suppkey, 
-    T1.s_name, 
+SELECT
+    T1.suppkey,
+    T1.s_name,
     SUM(T2.l_extendedprice * (1 - T2.l_discount)) AS revenue,
     T1.total_revenue,
     T3.n_name,
-    'Address1' AS s_address, 
-    'Phone1' AS s_phone, 
+    'Address1' AS s_address,
+    'Phone1' AS s_phone,
     'Comment1' AS s_comment
 FROM T1
 JOIN T2 ON T1.suppkey = T2.l_suppkey
 JOIN T3 ON T1.suppkey = T3.n_nationkey  -- Assuming suppkey matches n_nationkey for simplicity
 WHERE T1.total_revenue > 0.00
 AND T2.l_orderkey IN (
-    SELECT l_orderkey 
-    FROM temp_lineitem 
-    GROUP BY l_orderkey 
+    SELECT l_orderkey
+    FROM temp_lineitem
+    GROUP BY l_orderkey
     HAVING SUM(l_extendedprice * (1 - l_discount)) > 100000.00
 )
 GROUP BY T1.suppkey, T1.s_name, T1.total_revenue, T3.n_name

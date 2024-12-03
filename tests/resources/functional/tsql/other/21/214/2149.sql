@@ -6,12 +6,12 @@ WITH temp_result AS (
 )
 
 -- Use the IF-ELSE statement and PRINT statement
-SELECT 
-    @result = 
-    CASE 
+SELECT
+    @result =
+    CASE
         WHEN boolean_expression = 1 THEN 'Boolean_expression is true.'
         ELSE 'Boolean_expression is false.'
-    END 
+    END
 FROM temp_result;
 
 PRINT @result;

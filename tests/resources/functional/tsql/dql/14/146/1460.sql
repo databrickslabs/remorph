@@ -3,12 +3,12 @@ DECLARE @Grouping nvarchar(50);
 SET @Grouping = N'CountryRegionCode Total';
 
 WITH SalesData AS (
-    SELECT 
+    SELECT
         T.[Group],
         T.CountryRegionCode,
         S.Name AS N'Store',
         (
-            SELECT P.FirstName + ' ' + P.LastName 
+            SELECT P.FirstName + ' ' + P.LastName
             FROM (
                 VALUES ('John', 'Doe', 1),
                        ('Jane', 'Doe', 2),
@@ -32,14 +32,14 @@ WITH SalesData AS (
                (2, 2, 200.0),
                (3, 3, 300.0)
     ) AS H (SalesPersonID, CustomerID, TotalDue) ON S.BusinessEntityID = H.CustomerID
-    GROUP BY 
+    GROUP BY
         T.[Group],
         T.CountryRegionCode,
         S.Name,
         H.SalesPersonID
 )
 
-SELECT 
+SELECT
     MAX(T.[Group]) AS [Group],
     MAX(T.CountryRegionCode) AS CountryRegionCode,
     MAX(T.Store) AS Store,
@@ -47,7 +47,7 @@ SELECT
     MAX(T.TotalSold) AS TotalSold,
     CAST(GROUPING(T.[Group]) AS char(1)) + CAST(GROUPING(T.CountryRegionCode) AS char(1)) + CAST(GROUPING(T.Store) AS char(1)) + CAST(GROUPING(T.[Sales Person]) AS char(1)) AS N'GROUPING base-2',
     GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) AS N'GROUPING_ID',
-    CASE 
+    CASE
         WHEN GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) = 15 THEN N'Grand Total'
         WHEN GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) = 14 THEN N'SalesPerson Total'
         WHEN GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) = 13 THEN N'Store Total'
@@ -57,11 +57,11 @@ SELECT
         ELSE N'Error'
     END AS N'Level'
 FROM SalesData AS T
-GROUP BY 
+GROUP BY
     GROUPING SETS ((T.Store, T.[Sales Person]), (T.[Sales Person]), (T.Store), (T.[Group]), (T.CountryRegionCode), ())
-HAVING 
+HAVING
     GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) = (
-        CASE @Grouping 
+        CASE @Grouping
             WHEN N'Grand Total' THEN 15
             WHEN N'SalesPerson Total' THEN 14
             WHEN N'Store Total' THEN 13
@@ -71,6 +71,6 @@ HAVING
             ELSE 0
         END
     )
-ORDER BY 
+ORDER BY
     GROUPING_ID(T.Store, T.[Sales Person]),
     GROUPING_ID((T.[Group]), (T.CountryRegionCode), (T.Store), (T.[Sales Person])) ASC;

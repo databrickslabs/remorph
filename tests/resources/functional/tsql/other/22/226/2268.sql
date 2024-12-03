@@ -2,7 +2,7 @@
 WITH customer_orders AS (
   SELECT c_custkey, c_name, SUM(o_totalprice) AS total_revenue
   FROM (
-    VALUES 
+    VALUES
       (1, 'Customer1', 100.0),
       (2, 'Customer2', 200.0),
       (3, 'Customer3', 300.0)

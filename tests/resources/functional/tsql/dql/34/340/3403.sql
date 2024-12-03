@@ -5,14 +5,14 @@ WITH OrderDetails AS (
 OrderHeaders AS (
     SELECT 1 AS OrderID, '2022-01-01' AS OrderDate
 )
-SELECT 
+SELECT
     od.OrderID,
     od.ProductID,
     od.OrderQty,
     oh.OrderDate,
     DATEDIFF(day, MIN(oh.OrderDate) OVER (PARTITION BY oh.OrderID), SYSDATETIME()) AS Total
-FROM 
+FROM
     OrderDetails od
     INNER JOIN OrderHeaders oh ON od.OrderID = oh.OrderID
-WHERE 
+WHERE
     oh.OrderID IN (1);

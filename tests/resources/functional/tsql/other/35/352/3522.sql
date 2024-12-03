@@ -19,29 +19,29 @@ nation AS (
   UNION ALL
   SELECT 2, 'Canada'
 )
-SELECT 
-  c.c_custkey, 
-  c.c_name, 
-  SUM(l.l_extendedprice * (1 - 0.0)) AS revenue, 
-  c.c_acctbal, 
-  n.n_name, 
-  c.c_address, 
-  c.c_phone, 
+SELECT
+  c.c_custkey,
+  c.c_name,
+  SUM(l.l_extendedprice * (1 - 0.0)) AS revenue,
+  c.c_acctbal,
+  n.n_name,
+  c.c_address,
+  c.c_phone,
   c.c_comment
-FROM 
+FROM
   customer c
   INNER JOIN orders o ON c.c_custkey = o.o_custkey
   INNER JOIN lineitem l ON o.o_orderkey = l.l_orderkey
   INNER JOIN nation n ON c.c_nationkey = n.n_nationkey
-WHERE 
+WHERE
   l.l_returnflag = 'R'
-GROUP BY 
-  c.c_custkey, 
-  c.c_name, 
-  c.c_acctbal, 
-  c.c_phone, 
-  n.n_name, 
-  c.c_address, 
+GROUP BY
+  c.c_custkey,
+  c.c_name,
+  c.c_acctbal,
+  c.c_phone,
+  n.n_name,
+  c.c_address,
   c.c_comment
-ORDER BY 
+ORDER BY
   revenue DESC;

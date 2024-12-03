@@ -9,8 +9,8 @@ FROM (
            (0.10, 300, 3000, 30000, 3, 'c')
 ) AS temp (l_discount, l_extendedprice, l_linenumber, l_quantity, l_orderkey, l_shipmode);
 
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN l_discount = 0.01 THEN 'Low'
         WHEN l_discount = 0.05 THEN 'Medium'
         ELSE 'High'

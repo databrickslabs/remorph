@@ -16,7 +16,7 @@ CREATE TABLE employees (
 );
 
 INSERT INTO contractors (contractor_first, contractor_last, worknum, city, zip_code)
-VALUES 
+VALUES
 ('John', 'Doe', '123-456-7890', 'New York', '10001'),
 ('Jane', 'Doe', '987-654-3210', 'Los Angeles', '90001');
 

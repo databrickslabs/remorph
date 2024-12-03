@@ -11,8 +11,8 @@ WITH sales_data AS (
     SELECT 'Asia', 3000
 )
 
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN SUM(CASE WHEN region = 'Europe' THEN sales ELSE 0 END) > SUM(CASE WHEN region = 'Asia' THEN sales ELSE 0 END) THEN 'Europe has more total sales'
         WHEN SUM(CASE WHEN region = 'Europe' THEN sales ELSE 0 END) < SUM(CASE WHEN region = 'Asia' THEN sales ELSE 0 END) THEN 'Asia has more total sales'
         ELSE 'Europe and Asia have the same total sales'

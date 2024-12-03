@@ -10,7 +10,7 @@ CREATE TABLE customer_table
 
 INSERT INTO customer_table (customer_ID, last_name, first_name, address_ID)
 SELECT * FROM (
-    VALUES 
+    VALUES
         (201, 'Smith', 'John', 1),
         (202, 'Johnson', 'Mary', 2),
         (203, 'Williams', 'David', 3)

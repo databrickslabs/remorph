@@ -13,11 +13,11 @@ lineitem AS (
   UNION ALL
   SELECT 3, 30.0, 0.3
 )
-SELECT 
-  CASE 
-    WHEN T1.orderpriority = '1-URGENT' OR T1.orderpriority = '2-HIGH' 
-    THEN 'High' 
-    ELSE 'Low' 
+SELECT
+  CASE
+    WHEN T1.orderpriority = '1-URGENT' OR T1.orderpriority = '2-HIGH'
+    THEN 'High'
+    ELSE 'Low'
   END AS order_priority,
   SUM(T2.extendedprice * (1 - T2.discount)) AS revenue,
   T1.orderdate,
@@ -25,11 +25,11 @@ SELECT
 FROM orders AS T1
 JOIN lineitem AS T2 ON T1.orderkey = T2.orderkey
 WHERE T1.orderdate >= '1993-01-01' AND T1.orderdate < '1994-01-01'
-GROUP BY 
-  CASE 
-    WHEN T1.orderpriority = '1-URGENT' OR T1.orderpriority = '2-HIGH' 
-    THEN 'High' 
-    ELSE 'Low' 
+GROUP BY
+  CASE
+    WHEN T1.orderpriority = '1-URGENT' OR T1.orderpriority = '2-HIGH'
+    THEN 'High'
+    ELSE 'Low'
   END,
   T1.orderdate,
   T1.shippriority

@@ -9,7 +9,7 @@ WITH DataToEncrypt AS (
            (6, 1005), (7, 1006), (8, 1007), (9, 1008), (10, 1009)
   ) AS Orders(o_orderkey, o_custkey)
 )
-SELECT 
+SELECT
   o_orderkey,
   o_custkey,
   ENCRYPTBYKEY(KEY_GUID('TPC_H_CERT'), CONVERT(varchar, o_custkey)) AS Encrypted_custkey

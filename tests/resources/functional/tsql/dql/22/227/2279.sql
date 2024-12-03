@@ -7,7 +7,7 @@ WITH dates AS (
          CAST('2022-05-08 12:35:29.1234567 +12:15' AS DATETIME2(7)) AS datetime2,
          CAST('2022-05-08 12:35:29.1234567 +12:15' AS DATETIMEOFFSET(7)) AS datetimeoffset
 )
-SELECT 
+SELECT
   CAST(dates.time AS TIME(7)) AS time,
   CAST(dates.date AS DATE) AS date,
   CAST(dates.smalldatetime AS SMALLDATETIME) AS smalldatetime,

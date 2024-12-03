@@ -5,7 +5,7 @@ SET @Order = '<order><customerID>123</customerID><orderDate>2022-01-01</orderDat
 WITH OrderCTE AS (
     SELECT @Order AS OrderXML
 )
-SELECT 
+SELECT
     OrderXML.value('(/order/customerID)[1]', 'int') AS CustomerID,
     OrderXML.value('(/order/orderDate)[1]', 'date') AS OrderDate,
     OrderXML.value('(/order/total)[1]', 'decimal(10, 2)') AS Total

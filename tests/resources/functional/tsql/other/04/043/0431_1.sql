@@ -25,7 +25,7 @@ WITH CustomerData AS
     SELECT 8 AS CustomerID, 'Sophia' AS CustomerName, 800 AS OrderTotal
 )
 INSERT INTO #CustomerTable (CustomerID, CustomerName, OrderTotal)
-SELECT 
+SELECT
     CustomerID,
     CustomerName,
     OrderTotal

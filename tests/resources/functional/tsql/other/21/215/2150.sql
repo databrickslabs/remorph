@@ -6,8 +6,8 @@ WITH temp_result AS (
   SELECT 1 AS boolean_expression
 )
 -- Use the temporary result set in the query
-SELECT 
-  @result = CASE 
+SELECT
+  @result = CASE
     WHEN boolean_expression = 1 THEN 'Boolean_expression is true.'
     ELSE 'Boolean_expression is false.'
   END

@@ -14,14 +14,14 @@ WITH week_data AS (
         )
     ) AS dates(d)
 )
-SELECT 
+SELECT
     d AS [Date],
     DATENAME(WEEKDAY, d) AS [Day],
     DATEPART(WEEK, d) AS [WOY],
     DATEPART(ISOWK, d) AS [WOY (ISO)],
     YEAR(d) AS [YOW],
-    CASE 
-        WHEN DATEPART(WEEK, d) = 1 AND MONTH(d) = 12 THEN YEAR(d) + 1 
-        ELSE YEAR(d) 
+    CASE
+        WHEN DATEPART(WEEK, d) = 1 AND MONTH(d) = 12 THEN YEAR(d) + 1
+        ELSE YEAR(d)
     END AS [YOW (Adjusted)]
 FROM week_data;

@@ -11,7 +11,7 @@ SELECT      [CustomerKey],
            [CompanyName],
            [AddressLine1]
 FROM      (
-            VALUES 
+            VALUES
             (1, 'Customer 1', 'Address 1'),
             (2, 'Customer 2', 'Address 2'),
             (3, 'Customer 3', 'Address 3')
@@ -23,7 +23,7 @@ USING (
     ,           [CompanyName],
     ,           [AddressLine1]
     FROM      (
-                VALUES 
+                VALUES
                 (4, 'Customer 4', 'Address 4'),
                 (5, 'Customer 5', 'Address 5'),
                 (6, 'Customer 6', 'Address 6')

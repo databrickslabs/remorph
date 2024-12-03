@@ -6,9 +6,9 @@ WITH geography_data AS (
   UNION ALL
   SELECT geography::Point(50, 60, 4326) AS g
 )
-SELECT 
-  g, 
-  g.Long AS ST_X_g, 
+SELECT
+  g,
+  g.Long AS ST_X_g,
   g.Lat AS ST_Y_g
 FROM geography_data
 ORDER BY g.Long;

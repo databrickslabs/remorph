@@ -20,7 +20,7 @@ CREATE TABLE #OrderDetails
 );
 
 INSERT INTO #OrderDetails (OrderID, ProductID, UnitPrice, OrderQuantity, ReceivedQuantity, RejectedQuantity, DueDate)
-SELECT 
+SELECT
     O.OrderID,
     P.ProductID,
     CAST(10.99 AS decimal(10, 2)),

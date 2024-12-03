@@ -11,7 +11,7 @@ CREATE TABLE daily_revenue (
 
 INSERT INTO daily_revenue (id, category, sales, profit, expenses, tax)
 SELECT id, category, sales, profit, expenses, tax
-FROM (VALUES 
+FROM (VALUES
     (1, 'food', 500.00, 200.00, 150.00, 50.00),
     (2, 'beverages', 300.00, 100.00, 75.00, 25.00),
     (3, 'snacks', 200.00, 50.00, 25.00, 10.00)

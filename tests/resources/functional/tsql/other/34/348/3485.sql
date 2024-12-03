@@ -19,38 +19,38 @@ nation_data AS (
     UNION ALL
     SELECT 2, 'Nation2'
 )
-SELECT 
-    c.c_custkey, 
-    c.c_name, 
-    SUM(l.l_extendedprice * (1 - l.l_discount)) AS revenue, 
-    c.c_acctbal, 
-    n.n_name, 
-    c.c_address, 
-    c.c_phone, 
+SELECT
+    c.c_custkey,
+    c.c_name,
+    SUM(l.l_extendedprice * (1 - l.l_discount)) AS revenue,
+    c.c_acctbal,
+    n.n_name,
+    c.c_address,
+    c.c_phone,
     c.c_comment
-FROM 
+FROM
     customer_data c
-JOIN 
+JOIN
     order_data o ON c.c_custkey = o.o_custkey
-JOIN 
+JOIN
     lineitem_data l ON o.o_orderkey = l.l_orderkey
-JOIN 
+JOIN
     nation_data n ON c.c_nationkey = n.n_nationkey
-WHERE 
-    c.c_acctbal > 0.00 
+WHERE
+    c.c_acctbal > 0.00
     AND l.l_orderkey IN (
-        SELECT l_orderkey 
-        FROM lineitem_data 
-        GROUP BY l_orderkey 
+        SELECT l_orderkey
+        FROM lineitem_data
+        GROUP BY l_orderkey
         HAVING SUM(l_extendedprice * (1 - l_discount)) > 100000.00
     )
-GROUP BY 
-    c.c_custkey, 
-    c.c_name, 
-    c.c_acctbal, 
-    n.n_name, 
-    c.c_address, 
-    c.c_phone, 
+GROUP BY
+    c.c_custkey,
+    c.c_name,
+    c.c_acctbal,
+    n.n_name,
+    c.c_address,
+    c.c_phone,
     c.c_comment
-ORDER BY 
+ORDER BY
     revenue DESC;

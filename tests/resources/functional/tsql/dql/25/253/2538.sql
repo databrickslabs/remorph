@@ -1,12 +1,12 @@
 --Query type: DQL
 WITH SalesData AS (
-  SELECT 
+  SELECT
     DATEPART(yyyy, OrderDate) AS OrderYear,
     DATEPART(mm, OrderDate) AS OrderMonth,
     DATEPART(dd, OrderDate) AS OrderDay,
     TotalDue
   FROM (
-    VALUES 
+    VALUES
       ('2007-01-01', 100.00),
       ('2007-01-02', 200.00),
       ('2007-02-01', 300.00),
@@ -17,16 +17,16 @@ WITH SalesData AS (
       ('2008-02-02', 800.00)
   ) AS Orders (OrderDate, TotalDue)
 )
-SELECT 
+SELECT
   DATEPART(yyyy, OrderYear) AS N'Year',
   DATEPART(mm, OrderMonth) AS N'Month',
   DATEPART(dd, OrderDay) AS N'Day',
   SUM(TotalDue) AS N'Total Due',
-  CAST(GROUPING(OrderDay) AS CHAR(1)) + 
-  CAST(GROUPING(OrderMonth) AS CHAR(1)) + 
+  CAST(GROUPING(OrderDay) AS CHAR(1)) +
+  CAST(GROUPING(OrderMonth) AS CHAR(1)) +
   CAST(GROUPING(OrderYear) AS CHAR(1)) AS N'Bit Vector(base-2)',
   GROUPING_ID(OrderYear, OrderMonth, OrderDay) AS N'Integer Equivalent',
-  CASE 
+  CASE
     WHEN GROUPING_ID(OrderYear, OrderMonth, OrderDay) = 0 THEN N'Year Month Day'
     WHEN GROUPING_ID(OrderYear, OrderMonth, OrderDay) = 1 THEN N'Year Month'
     WHEN GROUPING_ID(OrderYear, OrderMonth, OrderDay) = 2 THEN N'Year Day'

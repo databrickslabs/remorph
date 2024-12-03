@@ -8,7 +8,7 @@ CREATE TABLE ExampleTable (
 INSERT INTO ExampleTable (ID, Text)
 SELECT ID, Text
 FROM (
-    VALUES 
+    VALUES
         (1, 'Text in single quotes'),
         (2, 'Text in single quotes'),
         (3, 'Text with 2 '' single quotes'),

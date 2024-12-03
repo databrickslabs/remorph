@@ -4,13 +4,13 @@ CREATE PROCEDURE Sales.GetOrderDetails
 AS
 BEGIN
     WITH OrderDetails AS (
-        SELECT 
+        SELECT
             OrderID,
             ProductName,
             UnitPrice
-        FROM 
+        FROM
             (
-                VALUES 
+                VALUES
                     (1, 'Product A', 10.99),
                     (2, 'Product B', 5.99),
                     (3, 'Product C', 7.99),
@@ -18,13 +18,13 @@ BEGIN
                     (5, 'Product E', 8.99)
             ) AS SourceTable(OrderID, ProductName, UnitPrice)
     )
-    SELECT 
+    SELECT
         OrderID,
         ProductName,
         UnitPrice
-    FROM 
+    FROM
         OrderDetails
-    WHERE 
+    WHERE
         ProductName LIKE @SearchTerm;
 END;
 

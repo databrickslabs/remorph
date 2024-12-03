@@ -18,31 +18,31 @@ WITH temp_result AS (
     HAVING SUM(l_extendedprice * (1 - l_discount)) > 100000.00
 )
 
-SELECT 
-    T1.suppkey, 
-    T1.s_name, 
-    SUM(T2.l_extendedprice * (1 - T2.l_discount)) AS revenue, 
-    T1.s_acctbal, 
-    T3.n_name, 
-    T1.s_address, 
-    T1.s_phone, 
+SELECT
+    T1.suppkey,
+    T1.s_name,
+    SUM(T2.l_extendedprice * (1 - T2.l_discount)) AS revenue,
+    T1.s_acctbal,
+    T3.n_name,
+    T1.s_address,
+    T1.s_phone,
     T1.s_comment
-FROM 
+FROM
     temp_result AS T1
-JOIN 
+JOIN
     temp_result2 AS T2 ON T1.suppkey = T2.l_suppkey
-JOIN 
+JOIN
     (VALUES (1, 'Nation#1')) AS T3 (n_nationkey, n_name) ON T1.s_nationkey = T3.n_nationkey
-WHERE 
-    T1.s_acctbal > 0.00 
+WHERE
+    T1.s_acctbal > 0.00
     AND T2.l_suppkey IN (SELECT l_suppkey FROM temp_result3)
-GROUP BY 
-    T1.suppkey, 
-    T1.s_name, 
-    T1.s_acctbal, 
-    T3.n_name, 
-    T1.s_address, 
-    T1.s_phone, 
+GROUP BY
+    T1.suppkey,
+    T1.s_name,
+    T1.s_acctbal,
+    T3.n_name,
+    T1.s_address,
+    T1.s_phone,
     T1.s_comment
-ORDER BY 
+ORDER BY
     revenue DESC;

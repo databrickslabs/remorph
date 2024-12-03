@@ -5,13 +5,13 @@ WITH EmployeeCTE AS (
 PersonCTE AS (
     SELECT 1 AS BusinessEntityID, 'Mr.' AS Title
 )
-SELECT 
+SELECT
     e.FirstName,
     e.LastName,
     SUBSTRING(p.Title, 1, 25) AS Title,
     CAST(e.SickLeaveHours AS CHAR(1)) AS [Sick Leave]
-FROM 
+FROM
     EmployeeCTE e
     INNER JOIN PersonCTE p ON e.EmployeeID = p.BusinessEntityID
-WHERE 
+WHERE
     NOT e.EmployeeID > 5

@@ -9,10 +9,10 @@ sql_text AS (
     UNION ALL
     SELECT 'BACKUP LOG'
 )
-SELECT 
-    query = st.text, 
-    start_time, 
-    percent_complete = 50, 
+SELECT
+    query = st.text,
+    start_time,
+    percent_complete = 50,
     eta = DATEADD(second, r.estimated_completion_time/1000, GETDATE())
 FROM requests r
 CROSS APPLY sql_text st

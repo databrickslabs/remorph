@@ -7,7 +7,7 @@ WHILE @counter < 5
 BEGIN
     SELECT POWER(@value, @counter) AS result
     FROM (VALUES (1)) AS temp(value);
-    
+
     SET NOCOUNT ON;
     SET @counter = @counter + 1;
     SET NOCOUNT OFF;

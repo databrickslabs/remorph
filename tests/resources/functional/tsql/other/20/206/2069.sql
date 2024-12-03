@@ -14,7 +14,7 @@ FETCH NEXT FROM cur_servers INTO @server_name, @server_type;
 WHILE @@FETCH_STATUS = 0
 BEGIN
     EXEC sp_addlinkedserver @server_name, @server_type;
-    
+
     FETCH NEXT FROM cur_servers INTO @server_name, @server_type;
 END
 
