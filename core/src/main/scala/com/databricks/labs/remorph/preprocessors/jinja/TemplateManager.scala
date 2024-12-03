@@ -6,17 +6,13 @@ import scala.collection.mutable
 
 class TemplateManager {
   private[this] val templates = mutable.Map[String, TemplateElement]()
-  private[this] var counter = 0
 
   def nextKey: String = {
-    counter += 1
-    f"_!Jinja$counter%04d"
+    f"_!Jinja${templates.size + 1}%04d"
   }
 
-  def add(key: String, template: TemplateElement): String = {
-    val key = f"_!Jinja$counter%04d"
+  def add(key: String, template: TemplateElement): Unit = {
     templates += (key -> template)
-    key
   }
 
   def get(key: String): Option[TemplateElement] = {

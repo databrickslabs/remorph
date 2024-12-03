@@ -26,11 +26,11 @@ class JinjaProcessor extends Processor {
       // TODO: Line statements and comments
       token.getType match {
         case DBTPreprocessorLexer.STATEMENT =>
-          accumulate(tokenStream, result, DBTPreprocessorLexer.STATEMENT_END)
+          result.append(buildElement(tokenStream, DBTPreprocessorLexer.STATEMENT_END))
         case DBTPreprocessorLexer.EXPRESSION =>
-          accumulate(tokenStream, result, DBTPreprocessorLexer.EXPRESSION_END)
+          result.append(buildElement(tokenStream, DBTPreprocessorLexer.EXPRESSION_END))
         case DBTPreprocessorLexer.COMMENT =>
-          accumulate(tokenStream, result, DBTPreprocessorLexer.COMMENT_END)
+          result.append(buildElement(tokenStream, DBTPreprocessorLexer.COMMENT_END))
         case DBTPreprocessorLexer.C =>
           result.append(token.getText)
           tokenStream.consume()
@@ -49,14 +49,15 @@ class JinjaProcessor extends Processor {
   }
 
   /**
-   * Accumulates tokens from the token stream into the result, building a regex to match the template element.
+   * Accumulates tokens from the token stream into the template element, while building a regex to match the template element.
    * It handles preceding and trailing whitespace, and optionally elides trailing commas.
+   * An accumulated template definition is added to the template manager, and it returns the placeholder name
+   * of the template to be used instead of the raw template text.
    *
    * @param tokenStream the token stream to process
-   * @param result the StringBuilder to accumulate the placeholder into
    * @param endType the token type that signifies the end of the template element
    */
-  private def accumulate(tokenStream: CommonTokenStream, result: StringBuilder, endType: Int): Unit = {
+  private def buildElement(tokenStream: CommonTokenStream, endType: Int): String = {
 
     // Builds the regex that matches the template element
     val regex = new StringBuilder
@@ -118,8 +119,8 @@ class JinjaProcessor extends Processor {
       case DBTPreprocessorLexer.COMMENT_END =>
         CommentElement(origin, text, regex.toString())
     }
-    val templateRef = templateManager.add(templateKey, template)
-    result.append(templateRef)
+    templateManager.add(templateKey, template)
+    templateKey
   }
 
   /**
