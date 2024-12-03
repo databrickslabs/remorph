@@ -12,9 +12,9 @@ class JinjaProcessor extends Processor {
 
   override protected def createLexer(input: CharStream): Lexer = new DBTPreprocessorLexer(input)
 
-  override def pre(input: PreProcessing): Transformation[Parsing] = {
+  override def preprocess(input: String): Transformation[String] = {
 
-    val inputString = CharStreams.fromString(input.source)
+    val inputString = CharStreams.fromString(input)
     val tokenizer = createLexer(inputString)
     val tokenStream = new CommonTokenStream(tokenizer)
 
@@ -40,7 +40,7 @@ class JinjaProcessor extends Processor {
         case _ => // TODO: Mismatched template tokens - accumulate error for partial result
       }
     }
-    update { case _ => input }.flatMap(_ => lift(OkResult(Parsing(result.toString(), input.filename))))
+    ok(result.toString())
   }
 
   def post(input: String): Transformation[String] = {

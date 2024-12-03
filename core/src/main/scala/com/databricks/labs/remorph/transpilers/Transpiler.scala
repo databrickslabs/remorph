@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.preprocessors.jinga.JingaProcessor
 import com.databricks.labs.remorph.preprocessors.jinja.JinjaProcessor
 import com.databricks.labs.remorph.utils.Sed
-import com.databricks.labs.remorph.{Generating, Optimizing, Parsing, PreProcessing, Transformation, TransformationConstructors, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, Optimizing, PreProcessing, Transformation, TransformationConstructors, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
@@ -43,9 +43,9 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  protected def pre(input: PreProcessing): Transformation[Parsing] = jinjaProcessor.pre(input)
+  protected def pre: Transformation[Unit] = jinjaProcessor.pre
 
-  protected def parse(input: Parsing): Transformation[ParserRuleContext] = planParser.parse(input)
+  protected def parse: Transformation[ParserRuleContext] = planParser.parse
 
   protected def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = planParser.visit(tree)
 
@@ -77,8 +77,8 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
 
   override def transpile(input: PreProcessing): Transformation[String] = {
     set(input)
-      .flatMap(_ => pre(input))
-      .flatMap(parse)
+      .flatMap(_ => pre)
+      .flatMap(_ => parse)
       .flatMap(visit)
       .flatMap(optimize)
       .flatMap(generate)

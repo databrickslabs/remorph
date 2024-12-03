@@ -24,28 +24,28 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
 
   /**
    * Parse the input source code into a Parse tree
-   * @param input The source code with filename
    * @return Returns a parse tree on success otherwise a description of the errors
    */
-  def parse(input: Parsing): Transformation[ParserRuleContext] = {
-    val inputString = CharStreams.fromString(input.source)
-    val lexer = createLexer(inputString)
-    val tokenStream = new CommonTokenStream(lexer)
-    val parser = createParser(tokenStream)
-    addErrorStrategy(parser)
-    val errListener = new ProductionErrorCollector(input.source, input.filename)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errListener)
+  def parse: Transformation[ParserRuleContext] = {
 
-    update { case _ =>
-      input
-    }.flatMap { _ =>
-      val tree = createTree(parser)
-      if (errListener.errorCount > 0) {
-        lift(PartialResult(tree, ParsingErrors(errListener.errors)))
-      } else {
-        lift(OkResult(tree))
-      }
+
+    get.flatMap {
+      case Parsing(source, filename, _, _) =>
+        val inputString = CharStreams.fromString(source)
+        val lexer = createLexer(inputString)
+        val tokenStream = new CommonTokenStream(lexer)
+        val parser = createParser(tokenStream)
+        addErrorStrategy(parser)
+        val errListener = new ProductionErrorCollector(source, filename)
+        parser.removeErrorListeners()
+        parser.addErrorListener(errListener)
+        val tree = createTree(parser)
+        if (errListener.errorCount > 0) {
+          lift(PartialResult(tree, ParsingErrors(errListener.errors)))
+        } else {
+          lift(OkResult(tree))
+        }
+      case other => ko(WorkflowStage.PARSE, ir.IncoherentState(other, classOf[Parsing]))
     }
   }
 

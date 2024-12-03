@@ -62,7 +62,7 @@ class ExampleDebugger(parser: PlanParser[_], prettyPrinter: Any => Unit, dialect
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _, _)) =>
-        parser.parse(Parsing(query)).flatMap(parser.visit).run(Parsing(query)) match {
+        parser.parse.flatMap(parser.visit).run(Parsing(query)) match {
           case com.databricks.labs.remorph.KoResult(_, error) =>
             logger.error(s"Failed to parse query: $query ${error.msg}")
           case PartialResult((_, plan), error) =>
