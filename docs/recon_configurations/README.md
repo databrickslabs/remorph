@@ -18,6 +18,7 @@ when comparing the source with the Databricks target.
     * [table_thresholds](#table_thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
+* [Key Considerations for Oracle JDBC Reader Options](#key-considerations-for-oracle-jdbc-reader-options)
 * [Reconciliation Example](#reconciliation-example)
 * [DataFlow Example](#dataflow-example)
 * [Aggregates Reconcile](#remorph-aggregates-reconciliation)
