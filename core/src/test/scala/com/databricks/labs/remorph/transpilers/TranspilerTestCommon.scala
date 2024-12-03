@@ -14,7 +14,8 @@ trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
     def transpilesTo(expectedOutput: String, failOnError: Boolean = true): Assertion = {
       val formattedExpectedOutput = format(expectedOutput)
       transpiler.transpile(PreProcessing(input)).runAndDiscardState(Init) match {
-        case OkResult(output) => format(output)
+        case OkResult(output) =>
+          format(output)
           val formattedOutput = format(output)
           formattedOutput shouldBe formattedExpectedOutput
         case PartialResult(output, err) =>
