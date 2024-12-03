@@ -80,7 +80,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = expr)
     }.flatMap(_ => sql)
   }

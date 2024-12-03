@@ -13,7 +13,7 @@ trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
   implicit class TranspilerTestOps(input: String) {
     def transpilesTo(expectedOutput: String, failOnError: Boolean = true): Assertion = {
       val formattedExpectedOutput = format(expectedOutput)
-      transpiler.transpile(PreProcessing(input)).runAndDiscardState(Init) match {
+      transpiler.transpile(PreProcessing(input)).runAndDiscardState(TranspilerState()) match {
         case OkResult(output) =>
           format(output)
           val formattedOutput = format(output)
@@ -29,7 +29,7 @@ trait TranspilerTestCommon extends Matchers with Formatter with ErrorEncoders {
       }
     }
     def failsTranspilation: Assertion = {
-      transpiler.transpile(PreProcessing(input)).runAndDiscardState(Init) match {
+      transpiler.transpile(PreProcessing(input)).runAndDiscardState(TranspilerState()) match {
         case KoResult(_, _) => succeed
         case PartialResult(_, _) => succeed
         case x =>

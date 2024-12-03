@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph.transpilers.TSqlToDatabricksTranspiler
-import com.databricks.labs.remorph.{OkResult, PartialResult, PreProcessing}
+import com.databricks.labs.remorph.{OkResult, PartialResult, PreProcessing, TranspilerState}
 import org.scalatest.wordspec.AnyWordSpec
 
 // Note that this test is as much for debugging purposes as anything else, but it does create the more complex
@@ -48,7 +48,7 @@ class JinjaProcessorTest extends AnyWordSpec {
                      |    FROM  {{ ref('raw_payments') }}
                      |    GROUP BY 1;""".stripMargin
 
-      val result = transpiler.transpile(input).runAndDiscardState(input)
+      val result = transpiler.transpile(input).runAndDiscardState(TranspilerState(input))
 
       val processed = result match {
         case OkResult(output) =>

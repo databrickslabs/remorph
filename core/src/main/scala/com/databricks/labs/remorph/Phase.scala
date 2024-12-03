@@ -2,7 +2,12 @@ package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, RemorphError, TreeNode}
+import com.databricks.labs.remorph.preprocessors.jinja.TemplateManager
 import org.antlr.v4.runtime.ParserRuleContext
+
+case class TranspilerState(currentPhase: Phase = Init, templateManager: TemplateManager = new TemplateManager) {
+  def recordError(error: RemorphError): TranspilerState = copy(currentPhase = currentPhase.recordError(error))
+}
 
 sealed trait Phase {
   def previousPhase: Option[Phase]

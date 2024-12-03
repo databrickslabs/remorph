@@ -62,7 +62,7 @@ class LogicalPlanGenerator(
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = tree)
     }.flatMap(_ => sql)
   }

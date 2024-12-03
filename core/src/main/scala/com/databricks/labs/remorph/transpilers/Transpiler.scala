@@ -13,6 +13,7 @@ import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 trait Transpiler {
+  // TODO: get rid of the parameter, the initial phase should be provided by `run` or `runAndDiscardState`
   def transpile(input: PreProcessing): Transformation[String]
 }
 
@@ -55,7 +56,7 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
     planParser.optimize(logicalPlan)
 
   protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Transformation[String] = {
-    update {
+    updatePhase {
       case o: Optimizing =>
         Generating(
           optimizedPlan = optimizedLogicalPlan,
@@ -76,7 +77,7 @@ abstract class BaseTranspiler extends Transpiler with Formatter with Transformat
   protected def post(input: String): Transformation[String] = jinjaProcessor.post(input)
 
   override def transpile(input: PreProcessing): Transformation[String] = {
-    set(input)
+    setPhase(input)
       .flatMap(_ => pre)
       .flatMap(_ => parse)
       .flatMap(visit)

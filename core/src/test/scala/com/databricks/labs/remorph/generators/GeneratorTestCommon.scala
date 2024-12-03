@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.{Generating, OkResult, intermediate => ir}
+import com.databricks.labs.remorph.{Generating, OkResult, TranspilerState, intermediate => ir}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 
@@ -11,13 +11,13 @@ trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
 
   implicit class TestOps(t: T) {
     def generates(expectedOutput: String): Assertion = {
-      generator.generate(t).runAndDiscardState(initialState(t)) shouldBe OkResult(expectedOutput)
+      generator.generate(t).runAndDiscardState(TranspilerState(initialState(t))) shouldBe OkResult(expectedOutput)
     }
 
     def doesNotTranspile: Assertion = {
       generator
         .generate(t)
-        .runAndDiscardState(initialState(t))
+        .runAndDiscardState(TranspilerState(initialState(t)))
         .isInstanceOf[OkResult[_]] shouldBe false
     }
   }

@@ -28,8 +28,7 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
    */
   def parse: Transformation[ParserRuleContext] = {
 
-
-    get.flatMap {
+    getCurrentPhase.flatMap {
       case Parsing(source, filename, _, _) =>
         val inputString = CharStreams.fromString(source)
         val lexer = createLexer(inputString)
@@ -55,7 +54,7 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
    * @return Returns a logical plan on success otherwise a description of the errors
    */
   def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = {
-    update {
+    updatePhase {
       case p: Parsing => BuildingAst(tree, Some(p))
       case _ => BuildingAst(tree)
     }.flatMap { _ =>
@@ -76,7 +75,7 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
    * @return Returns an optimized logical plan on success otherwise a description of the errors
    */
   def optimize(logicalPlan: ir.LogicalPlan): Transformation[ir.LogicalPlan] = {
-    update {
+    updatePhase {
       case b: BuildingAst => Optimizing(logicalPlan, Some(b))
       case _ => Optimizing(logicalPlan)
     }.flatMap { _ =>
