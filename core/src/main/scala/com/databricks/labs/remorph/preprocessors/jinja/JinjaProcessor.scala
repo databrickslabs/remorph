@@ -1,10 +1,12 @@
 package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph._
-import com.databricks.labs.remorph.intermediate.Origin
+import com.databricks.labs.remorph.intermediate.{Origin, PreParsingError, RemorphErrors}
 import com.databricks.labs.remorph.parsers.preprocessor.DBTPreprocessorLexer
 import com.databricks.labs.remorph.preprocessors.Processor
 import org.antlr.v4.runtime._
+
+import scala.collection.mutable.ListBuffer
 
 class JinjaProcessor extends Processor {
 
@@ -18,6 +20,7 @@ class JinjaProcessor extends Processor {
     val tokenizer = createLexer(inputString)
     val tokenStream = new CommonTokenStream(tokenizer)
 
+    val errors: ListBuffer[PreParsingError] = ListBuffer()
     val result = new StringBuilder
 
     while (tokenStream.LA(1) != Token.EOF) {
@@ -37,10 +40,20 @@ class JinjaProcessor extends Processor {
         case DBTPreprocessorLexer.WS =>
           result.append(token.getText)
           tokenStream.consume()
-        case _ => // TODO: Mismatched template tokens - accumulate error for partial result
+        case _ =>
+          errors.append(
+            PreParsingError(
+              token.getLine,
+              token.getCharPositionInLine,
+              token.getText,
+              "Malformed template element was unexpected"))
       }
     }
-    ok(result.toString())
+    if (errors.nonEmpty) {
+      lift(PartialResult(result.toString(), RemorphErrors(errors.toList)))
+    } else {
+      ok(result.toString())
+    }
   }
 
   def post(input: String): Transformation[String] = {
