@@ -67,7 +67,6 @@ class Teradata(org_Teradata):
             if create_token.token_type in (TokenType.FUNCTION, TokenType.PROCEDURE):
                 this = self._parse_user_defined_function(kind=create_token.token_type)
 
-
                 extend_props(self._parse_properties())
 
                 self._match(TokenType.ALIAS)
@@ -152,7 +151,6 @@ class Teradata(org_Teradata):
                 clone=clone,
             )
 
-
         def _parse_compress(self) -> exp.CompressColumnConstraint:
             if self._match(TokenType.L_PAREN, advance=False):
                 return self.expression(exp.CompressColumnConstraint, this=self._parse_wrapped_csv(self._parse_bitwise))
@@ -161,6 +159,6 @@ class Teradata(org_Teradata):
             return self.expression(exp.CompressColumnConstraint, this=this_expr)
 
         def _parse_map_property(self) -> exp.MapProperty:
-            return self.expression(exp.MapProperty, this=self)
-
+            self._match(TokenType.EQ)
+            return self.expression(exp.MapProperty, this = "MAP", name=self._parse_var(any_token=False,tokens=[TokenType.VAR]))
 
