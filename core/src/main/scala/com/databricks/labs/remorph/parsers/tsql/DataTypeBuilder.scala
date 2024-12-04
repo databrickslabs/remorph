@@ -5,12 +5,13 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 class DataTypeBuilder {
 
-  def build(ctx: DataTypeContext): ir.DataType = {
-    ctx.dataTypeIdentity() match {
-      case context: TSqlParser.DataTypeIdentityContext => buildIdentity(context)
+  def build(ctx: DataTypeContext): ir.DataType =
+    ctx match {
+      case ident if ident.dataTypeIdentity() != null => buildIdentity(ident.dataTypeIdentity())
+      case template if template.jinjaTemplate() != null => buildTemplate(template.jinjaTemplate())
       case _ => buildScalar(ctx)
+
     }
-  }
 
   private def buildScalar(ctx: DataTypeContext): ir.DataType = {
 
@@ -54,4 +55,6 @@ class DataTypeBuilder {
     // As of right now, there is no way to implement the IDENTITY property declared as a column type in TSql
     ir.UnparsedType(ctx.getText)
 
+  private def buildTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.DataType =
+    ir.JinjaAsDataType(ctx.getText)
 }

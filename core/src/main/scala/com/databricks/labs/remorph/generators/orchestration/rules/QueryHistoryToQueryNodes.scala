@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.generators.orchestration.rules
 
-import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, PartialResult}
+import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, PartialResult, TranspilerState}
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
-import com.databricks.labs.remorph.generators.orchestration.rules.history.{FailedQuery, RawMigration, Migration, PartialQuery, QueryPlan}
+import com.databricks.labs.remorph.generators.orchestration.rules.history.{FailedQuery, Migration, PartialQuery, QueryPlan, RawMigration}
 import com.databricks.labs.remorph.intermediate.Rule
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 import com.databricks.labs.remorph.parsers.PlanParser
@@ -13,9 +13,8 @@ class QueryHistoryToQueryNodes(val parser: PlanParser[_]) extends Rule[JobNode] 
   }
 
   private def executedQuery(query: ExecutedQuery): JobNode = {
-    val state = Parsing(query.source, query.id)
-    parser
-      .parse(state)
+    val state = TranspilerState(Parsing(query.source, query.id))
+    parser.parse
       .flatMap(parser.visit)
       .flatMap(parser.optimize)
       .run(state) match {

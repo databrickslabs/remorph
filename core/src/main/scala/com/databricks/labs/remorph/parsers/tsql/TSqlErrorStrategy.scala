@@ -135,6 +135,7 @@ object TSqlErrorStrategy {
     STRING -> "'String'",
     TEMP_ID -> "Identifier",
     -1 -> "End of batch",
+    JINJA_REF -> "Jinja Template Element",
 
     // When the next thing we expect can be every statement, we just say "statement"
     ALTER -> "Statement",
@@ -205,6 +206,8 @@ object TSqlErrorStrategy {
 
   private[TSqlErrorStrategy] val ruleTranslation: Map[String, String] = Map(
     "tSqlFile" -> "T-SQL batch",
+    "executeBodyBatch" -> "Stored procedure call",
+    "jingjaTemplate" -> "Jinja template element",
     "selectStatement" -> "SELECT statement",
     "selectStatementStandalone" -> "SELECT statement",
     "selectList" -> "SELECT list",
