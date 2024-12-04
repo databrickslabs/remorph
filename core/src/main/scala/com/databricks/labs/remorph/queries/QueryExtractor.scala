@@ -22,7 +22,7 @@ class WholeFileQueryExtractor extends QueryExtractor {
 
 class CommentBasedQueryExtractor(inputDialect: String, targetDialect: String) extends QueryExtractor {
 
-  private val markerCommentPattern = "--\\s*(\\S+)\\s+sql:".r
+  private[this] val markerCommentPattern = "--\\s*(\\S+)\\s+sql:".r
 
   override def extractQuery(file: File): Option[ExampleQuery] = {
     val source = Source.fromFile(file)

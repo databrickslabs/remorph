@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.generators.py
 import com.databricks.labs.remorph.generators.{CodeInterpolator, TBASeqOps}
 import com.databricks.labs.remorph.intermediate.Expression
 
-class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
+class StatementGenerator(private[this] val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
   override def generate(tree: Statement): Python = {
     withGenCtx { ctx =>
       code"${ctx.ws}${statement(tree)}"

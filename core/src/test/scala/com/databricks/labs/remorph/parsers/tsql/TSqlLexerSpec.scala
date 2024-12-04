@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
 
-  private val lexer = new TSqlLexer(null)
+  private[this] val lexer = new TSqlLexer(null)
 
   // TODO: Expand this test to cover all token types, and maybe all tokens
   "TSqlLexer" should {

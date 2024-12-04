@@ -49,7 +49,7 @@ object Main extends App with ApplicationContext {
   def flags: Map[String, String] = cliFlags
 
   // placeholder for global CLI flags
-  private var cliFlags: Map[String, String] = Map.empty
+  private[this] var cliFlags: Map[String, String] = Map.empty
 
   // parse json from the last CLI argument
   private def route: Payload = {
