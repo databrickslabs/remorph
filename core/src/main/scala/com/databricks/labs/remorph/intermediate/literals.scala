@@ -8,7 +8,7 @@ object Literal {
   val True: Literal = Literal(true, BooleanType)
   val False: Literal = Literal(false, BooleanType)
   val Null: Literal = Literal(null, NullType)
-  private val byteType = ByteType(Some(1))
+  private[this] val byteType = ByteType(Some(1))
   private[intermediate] val defaultDecimal = DecimalType(38, 18)
 
   // this factory returns Expression instead of Literal, because array and map literals have children

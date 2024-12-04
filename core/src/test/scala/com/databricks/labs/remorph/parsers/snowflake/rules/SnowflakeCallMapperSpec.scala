@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
 
-  private val snowflakeCallMapper = new SnowflakeCallMapper
+  private[this] val snowflakeCallMapper = new SnowflakeCallMapper
 
   implicit class CallMapperOps(fn: ir.Fn) {
     def becomes(expected: ir.Expression): Assertion = {

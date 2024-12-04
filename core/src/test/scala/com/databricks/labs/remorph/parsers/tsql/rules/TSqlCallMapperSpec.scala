@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlCallMapperSpec extends AnyWordSpec with Matchers with ir.IRHelpers {
 
-  private val tsqlCallMapper = new TSqlCallMapper
+  private[this] val tsqlCallMapper = new TSqlCallMapper
 
   implicit class CallMapperOps(fn: ir.Fn) {
     def becomes(expected: ir.Expression): Assertion = {
