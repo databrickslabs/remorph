@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.preprocessors.jinga.JingaProcessor
 import com.databricks.labs.remorph.preprocessors.jinja.JinjaProcessor
 import com.databricks.labs.remorph.utils.Sed
 import com.databricks.labs.remorph.{Generating, Optimizing, PreProcessing, Transformation, TransformationConstructors, intermediate => ir}

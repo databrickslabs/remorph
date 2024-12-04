@@ -2795,10 +2795,10 @@ predicate
 queryExpression
     // INTERSECT has higher precedence than EXCEPT and UNION ALL.
     // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
-    : LPAREN queryExpression RPAREN                          # queryInParenthesis
-    | queryExpression (UNION ALL? | EXCEPT) queryExpression  # queryUnion
-    | queryExpression INTERSECT queryExpression              # queryIntersect
-    | querySpecification                                     # querySimple
+    : LPAREN queryExpression RPAREN                         # queryInParenthesis
+    | queryExpression (UNION ALL? | EXCEPT) queryExpression # queryUnion
+    | queryExpression INTERSECT queryExpression             # queryIntersect
+    | querySpecification                                    # querySimple
     ;
 
 querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptionalClauses
@@ -2807,7 +2807,7 @@ querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptiona
 selectOptionalClauses
     // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
     : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
-        // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
     ;
 
 groupByClause
