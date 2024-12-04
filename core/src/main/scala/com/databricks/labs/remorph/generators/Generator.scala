@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators
 
-import com.databricks.labs.remorph.{Generating, KoResult, OkResult, Transformation, TransformationConstructors, WorkflowStage}
+import com.databricks.labs.remorph.{Generating, KoResult, OkResult, Transformation, TransformationConstructors, TranspilerState, WorkflowStage}
 import com.databricks.labs.remorph.intermediate.{IncoherentState, TreeNode, UnexpectedNode}
 
 trait Generator[In <: TreeNode[In], Out] extends TransformationConstructors {
@@ -35,8 +35,8 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    *     - fails if the current Phase is different from Generating.
    */
   def updateGenCtx(f: GeneratorContext => GeneratorContext): Transformation[Unit] = new Transformation({
-    case g: Generating => OkResult((g.copy(ctx = f(g.ctx)), ()))
-    case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
+    case TranspilerState(g: Generating, tm) => OkResult((TranspilerState(g.copy(ctx = f(g.ctx)), tm), ()))
+    case s => KoResult(WorkflowStage.GENERATE, IncoherentState(s.currentPhase, classOf[Generating]))
   })
 
   /**
@@ -82,7 +82,7 @@ trait CodeGenerator[In <: TreeNode[In]] extends Generator[In, String] {
    */
   def withGenCtx(transfoUsingCtx: GeneratorContext => Transformation[String]): Transformation[String] =
     new Transformation[GeneratorContext]({
-      case g: Generating => OkResult((g, g.ctx))
-      case p => KoResult(WorkflowStage.GENERATE, IncoherentState(p, classOf[Generating]))
+      case TranspilerState(g: Generating, tm) => OkResult((TranspilerState(g, tm), g.ctx))
+      case s => KoResult(WorkflowStage.GENERATE, IncoherentState(s.currentPhase, classOf[Generating]))
     }).flatMap(transfoUsingCtx)
 }

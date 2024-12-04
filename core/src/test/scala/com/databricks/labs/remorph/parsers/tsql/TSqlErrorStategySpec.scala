@@ -32,7 +32,7 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
       checkError(
         query = "*",
         errContains = "unexpected extra input '*' while parsing a T-SQL batch\n" +
-          "expecting one of: End of batch, Identifier, Select Statement, Statement, ")
+          "expecting one of: End of batch, Identifier, Jinja Template Element, Select Statement, ")
 
       checkError(
         query = "SELECT * FROM",
