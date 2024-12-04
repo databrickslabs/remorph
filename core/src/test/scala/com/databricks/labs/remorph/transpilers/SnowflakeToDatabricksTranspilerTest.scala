@@ -352,7 +352,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
   }
 
   "Common Table Expressions (CTEs)" should {
-    """support expressions""" in {
+    "support expressions" in {
       """WITH
         |    a AS (1),
         |    b AS (2),
@@ -372,7 +372,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           |FROM
           |    t;""".stripMargin
     }
-    """have lower precedence than set operations""" in {
+    "have lower precedence than set operations" in {
       """WITH
         |   a AS (SELECT b, c, d),
         |   e AS (SELECT f, g, h)
