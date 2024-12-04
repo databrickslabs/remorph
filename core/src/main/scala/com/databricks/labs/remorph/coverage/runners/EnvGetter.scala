@@ -11,7 +11,7 @@ import java.io.{File, FileNotFoundException}
 case class DebugEnv(ucws: Map[String, String])
 
 class EnvGetter extends LazyLogging {
-  private val env = getDebugEnv()
+  private[this] val env = getDebugEnv()
 
   def get(key: String): String = env.getOrElse(key, throw new RuntimeException(s"not in env: $key"))
 

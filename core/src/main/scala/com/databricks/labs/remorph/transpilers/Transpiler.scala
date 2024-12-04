@@ -16,7 +16,7 @@ trait Transpiler {
 }
 
 class Sed(rules: (String, String)*) {
-  private val compiledRules: Seq[(Regex, String)] = rules.map { case (regex, replace) =>
+  private[this] val compiledRules: Seq[(Regex, String)] = rules.map { case (regex, replace) =>
     (regex.r, replace)
   }
 
@@ -29,17 +29,17 @@ class Sed(rules: (String, String)*) {
 }
 
 trait Formatter {
-  private val sqlFormat = FormatConfig
+  private[this] val sqlFormat = FormatConfig
     .builder()
     .indent("  ")
     .uppercase(true)
     .maxColumnLength(100)
     .build()
 
-  private val formatter = SqlFormatter.of(Dialect.SparkSql)
+  private[this] val formatter = SqlFormatter.of(Dialect.SparkSql)
 
   // sometimes we cannot just ignore legacy SQLGlot formatter and have to add hacks
-  private val hacks = new Sed("EXISTS\\(" -> s"EXISTS (")
+  private[this] val hacks = new Sed("EXISTS\\(" -> s"EXISTS (")
 
   def format(input: String): String = {
     val pretty = formatter.format(input, sqlFormat)
@@ -50,7 +50,7 @@ trait Formatter {
 abstract class BaseTranspiler extends Transpiler with Formatter with TransformationConstructors {
 
   protected val planParser: PlanParser[_]
-  private val generator = new SqlGenerator
+  private[this] val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 

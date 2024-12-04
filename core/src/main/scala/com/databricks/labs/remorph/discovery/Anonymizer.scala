@@ -46,7 +46,7 @@ case class Fingerprints(fingerprints: Seq[Fingerprint]) {
 }
 
 class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
-  private val placeholder = Literal("?", UnresolvedType)
+  private[this] val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
   def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)

@@ -21,7 +21,7 @@ class EmptyErrorCollector extends ErrorCollector
 class DefaultErrorCollector extends ErrorCollector {
 
   var count: Int = 0
-  private val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
+  private[this] val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
 
   override def syntaxError(
       recognizer: Recognizer[_, _],

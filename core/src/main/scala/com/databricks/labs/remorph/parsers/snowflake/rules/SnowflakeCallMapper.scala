@@ -7,8 +7,8 @@ import java.time.format.DateTimeFormatter
 import scala.util.Try
 
 class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
-  private val zeroLiteral: ir.Literal = ir.IntLiteral(0)
-  private val oneLiteral: ir.Literal = ir.IntLiteral(1)
+  private[this] val zeroLiteral: ir.Literal = ir.IntLiteral(0)
+  private[this] val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
   override def convert(call: ir.Fn): ir.Expression = {
     withNormalizedName(call) match {
@@ -342,7 +342,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   // Timestamp formats that can be automatically inferred by Snowflake but not by Databricks
-  private val unsupportedAutoTimestampFormats = Seq(
+  private[this] val unsupportedAutoTimestampFormats = Seq(
     "yyyy-MM-dd'T'HH:mmXXX",
     "yyyy-MM-dd HH:mmXXX",
     "EEE, dd MMM yyyy HH:mm:ss ZZZ",
@@ -356,7 +356,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     "M/dd/yyyy HH:mm:ss",
     "EEE MMM dd HH:mm:ss ZZZ yyyy")
 
-  private val unsupportedAutoTimeFormats =
+  private[this] val unsupportedAutoTimeFormats =
     Seq("HH:MM:ss.SSSSSSSSS", "HH:MM:ss", "HH:MM", "hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
 
   // In Snowflake, when TO_TIME/TO_TIMESTAMP is called without a specific format, the system is capable of inferring the
@@ -401,7 +401,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       ir.TryToTimestamp(expr, Some(ir.Literal(javaDateTimeFormatString)))
     }
 
-  private val temporalFormatMapping = Seq(
+  private[this] val temporalFormatMapping = Seq(
     "YYYY" -> "yyyy",
     "YY" -> "yy",
     "MON" -> "MMM",

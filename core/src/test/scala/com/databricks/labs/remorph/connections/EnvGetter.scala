@@ -7,7 +7,7 @@ import io.circe.jackson
 import java.io.{File, FileNotFoundException}
 
 class EnvGetter extends LazyLogging {
-  private val env = getDebugEnv
+  private[this] val env = getDebugEnv
 
   def get(key: String): String = env.getOrElse(key, throw new TestCanceledException(s"not in env: $key", 3))
 
