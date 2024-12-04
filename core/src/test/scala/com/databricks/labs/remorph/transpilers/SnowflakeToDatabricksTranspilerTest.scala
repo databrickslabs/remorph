@@ -351,25 +351,41 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
-  "Expressions in CTE" in {
-    """WITH
-      |    a AS (1),
-      |    b AS (2),
-      |    t (d, e) AS (SELECT 4, 5),
-      |    c AS (3)
-      |SELECT
-      |    a + b,
-      |    a * c,
-      |    a * t.d
-      |FROM t;""".stripMargin transpilesTo
+  "Common Table Expressions (CTEs)" should {
+    "support expressions" in {
       """WITH
-        |    t (d, e) AS (SELECT 4, 5)
+        |    a AS (1),
+        |    b AS (2),
+        |    t (d, e) AS (SELECT 4, 5),
+        |    c AS (3)
         |SELECT
-        |    1 + 2,
-        |    1 * 3,
-        |    1 * t.d
-        |FROM
-        |    t;""".stripMargin
+        |    a + b,
+        |    a * c,
+        |    a * t.d
+        |FROM t;""".stripMargin transpilesTo
+        """WITH
+          |    t (d, e) AS (SELECT 4, 5)
+          |SELECT
+          |    1 + 2,
+          |    1 * 3,
+          |    1 * t.d
+          |FROM
+          |    t;""".stripMargin
+    }
+    "have lower precedence than set operations" in {
+      """WITH
+        |   a AS (SELECT b, c, d FROM e),
+        |   f AS (SELECT g, h, i FROM j)
+        |SELECT * FROM a
+        |UNION
+        |SELECT * FROM f;""".stripMargin transpilesTo
+        """WITH
+          |   a AS (SELECT b, c, d FROM e),
+          |   f AS (SELECT g, h, i FROM j)
+          |(SELECT * FROM a)
+          |UNION
+          |(SELECT * FROM f);""".stripMargin
+    }
   }
 
   "Batch statements" should {
@@ -401,5 +417,4 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     }
   }
-
 }
