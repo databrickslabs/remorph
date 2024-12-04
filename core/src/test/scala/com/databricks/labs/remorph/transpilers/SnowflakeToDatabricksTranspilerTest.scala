@@ -374,17 +374,17 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
     "have lower precedence than set operations" in {
       """WITH
-        |   a AS (SELECT b, c, d),
-        |   e AS (SELECT f, g, h)
+        |   a AS (SELECT b, c, d FROM e),
+        |   f AS (SELECT g, h, i FROM j)
         |SELECT * FROM a
         |UNION
-        |SELECT * FROM e;""".stripMargin transpilesTo
+        |SELECT * FROM f;""".stripMargin transpilesTo
         """WITH
-          |   a AS (SELECT b, c, d),
-          |   e AS (SELECT f, g, h)
+          |   a AS (SELECT b, c, d FROM e),
+          |   f AS (SELECT g, h, i FROM j)
           |(SELECT * FROM a)
           |UNION
-          |(SELECT * FROM e);""".stripMargin
+          |(SELECT * FROM f);""".stripMargin
     }
   }
 
