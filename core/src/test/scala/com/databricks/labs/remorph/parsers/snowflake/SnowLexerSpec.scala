@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
 
-  private val lexer = new SnowflakeLexer(null)
+  private[this] val lexer = new SnowflakeLexer(null)
 
   private def fillTokens(input: String): List[Token] = {
     val inputString = CharStreams.fromString(input)

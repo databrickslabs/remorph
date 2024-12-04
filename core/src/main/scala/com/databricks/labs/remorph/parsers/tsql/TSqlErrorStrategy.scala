@@ -66,7 +66,7 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
     } else ""
   }
 
-  private val vowels = Set('a', 'e', 'i', 'o', 'u')
+  private[this] val vowels = Set('a', 'e', 'i', 'o', 'u')
 
   def articleFor(word: String): String = {
     if (word.nonEmpty && vowels.contains(word.head.toLower)) "an" else "a"
@@ -122,7 +122,7 @@ object TSqlErrorStrategy {
 
   // A map that will override teh default display name for tokens that represent text with
   // pattern matches like IDENTIFIER, STRING, etc.
-  private val tokenTranslation: Map[Int, String] = Map(
+  private[TSqlErrorStrategy] val tokenTranslation: Map[Int, String] = Map(
     AAPSEUDO -> "@@Reference",
     DOUBLE_QUOTE_ID -> "Identifier",
     FLOAT -> "Float",
@@ -203,7 +203,7 @@ object TSqlErrorStrategy {
     PLUS -> "Operator",
     SE -> "Operator")
 
-  private val ruleTranslation: Map[String, String] = Map(
+  private[TSqlErrorStrategy] val ruleTranslation: Map[String, String] = Map(
     "tSqlFile" -> "T-SQL batch",
     "selectStatement" -> "SELECT statement",
     "selectStatementStandalone" -> "SELECT statement",
@@ -257,7 +257,7 @@ object TSqlErrorStrategy {
     "tableSource" -> "table source",
     "tableSourceItem" -> "table source")
 
-  private val keywordIDs: IntervalSet = new IntervalSet(
+  private[TSqlErrorStrategy] val keywordIDs: IntervalSet = new IntervalSet(
     ABORT,
     ABORT_AFTER_WAIT,
     ABSENT,

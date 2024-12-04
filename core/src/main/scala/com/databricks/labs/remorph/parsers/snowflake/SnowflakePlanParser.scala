@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.{CharStream, Lexer, ParserRuleContext, TokenStream}
 
 class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
 
-  private val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
+  private[this] val vc = new SnowflakeVisitorCoordinator(SnowflakeParser.VOCABULARY, SnowflakeParser.ruleNames)
 
   override protected def createLexer(input: CharStream): Lexer = new SnowflakeLexer(input)
   override protected def createParser(stream: TokenStream): SnowflakeParser = new SnowflakeParser(stream)

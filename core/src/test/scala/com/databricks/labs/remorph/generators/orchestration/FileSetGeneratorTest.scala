@@ -12,10 +12,10 @@ import java.sql.Timestamp
 import java.time.Duration
 
 class FileSetGeneratorTest extends AnyWordSpec with Matchers {
-  private val parser = new SnowflakePlanParser()
-  private val sqlGen = new SqlGenerator
-  private val pyGen = new PySparkGenerator
-  private val queryHistory = QueryHistory(
+  private[this] val parser = new SnowflakePlanParser()
+  private[this] val sqlGen = new SqlGenerator
+  private[this] val pyGen = new PySparkGenerator
+  private[this] val queryHistory = QueryHistory(
     Seq(
       ExecutedQuery(
         "query1",

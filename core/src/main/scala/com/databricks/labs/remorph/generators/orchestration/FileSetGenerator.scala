@@ -10,11 +10,11 @@ import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
 
 class FileSetGenerator(
-    private val parser: PlanParser[_],
-    private val sqlGen: SqlGenerator,
-    private val pyGen: PySparkGenerator)
+    private[this] val parser: PlanParser[_],
+    private[this] val sqlGen: SqlGenerator,
+    private[this] val pyGen: PySparkGenerator)
     extends Generator[JobNode, FileSet] {
-  private val rules = Rules(
+  private[this] val rules = Rules(
     new QueryHistoryToQueryNodes(parser),
     new DefineSchemas(),
     new ExtractVariables(),
