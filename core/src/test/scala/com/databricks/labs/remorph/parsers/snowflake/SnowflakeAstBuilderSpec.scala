@@ -42,7 +42,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT t.a FROM table_x t",
         expectedAst =
-          Project(TableAlias(NamedTable("table_x", Map.empty, is_streaming = false), "t"), Seq(Dot(Id("t"), Id("a")))))
+          Project(TableAlias(NamedTable("table_x"), "t"), Seq(Dot(Id("t"), Id("a")))))
     }
 
     "translate a SELECT query involving a column alias and a table alias" in {
