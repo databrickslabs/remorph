@@ -2,17 +2,14 @@ package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph.utils.Sed
 
-import scala.collection.mutable
-
-class TemplateManager {
-  private[this] val templates = mutable.Map[String, TemplateElement]()
+case class TemplateManager(templates: Map[String, TemplateElement] = Map.empty) {
 
   def nextKey: String = {
     f"_!Jinja${templates.size + 1}%04d"
   }
 
-  def add(key: String, template: TemplateElement): Unit = {
-    templates += (key -> template)
+  def add(key: String, template: TemplateElement): TemplateManager = {
+    copy(templates = templates + (key -> template))
   }
 
   def get(key: String): Option[TemplateElement] = {

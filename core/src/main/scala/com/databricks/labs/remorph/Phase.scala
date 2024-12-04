@@ -3,7 +3,7 @@ package com.databricks.labs.remorph
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, RemorphError, TreeNode}
 import com.databricks.labs.remorph.preprocessors.jinja.TemplateManager
-import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.{CommonTokenStream, ParserRuleContext}
 
 case class TranspilerState(currentPhase: Phase = Init, templateManager: TemplateManager = new TemplateManager) {
   def recordError(error: RemorphError): TranspilerState = copy(currentPhase = currentPhase.recordError(error))
@@ -23,7 +23,9 @@ case object Init extends Phase {
 case class PreProcessing(
     source: String,
     filename: String = "-- test source --",
-    encounteredErrors: Seq[RemorphError] = Seq.empty)
+    encounteredErrors: Seq[RemorphError] = Seq.empty,
+    tokenStream: Option[CommonTokenStream] = None,
+    preprocessedInputSoFar: String = "")
     extends Phase {
   override val previousPhase: Option[Phase] = Some(Init)
 

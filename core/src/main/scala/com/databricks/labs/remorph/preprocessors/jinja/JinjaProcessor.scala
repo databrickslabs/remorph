@@ -1,16 +1,12 @@
 package com.databricks.labs.remorph.preprocessors.jinja
 
 import com.databricks.labs.remorph._
-import com.databricks.labs.remorph.intermediate.{Origin, PreParsingError, RemorphErrors}
+import com.databricks.labs.remorph.intermediate.{IncoherentState, Origin, PreParsingError}
 import com.databricks.labs.remorph.parsers.preprocessor.DBTPreprocessorLexer
 import com.databricks.labs.remorph.preprocessors.Processor
 import org.antlr.v4.runtime._
 
-import scala.collection.mutable.ListBuffer
-
 class JinjaProcessor extends Processor {
-
-  val templateManager = new TemplateManager()
 
   override protected def createLexer(input: CharStream): Lexer = new DBTPreprocessorLexer(input)
 
@@ -20,45 +16,59 @@ class JinjaProcessor extends Processor {
     val tokenizer = createLexer(inputString)
     val tokenStream = new CommonTokenStream(tokenizer)
 
-    val errors: ListBuffer[PreParsingError] = ListBuffer()
-    val result = new StringBuilder
+    updatePhase { case p: PreProcessing =>
+      p.copy(tokenStream = Some(tokenStream))
+    }.flatMap(_ => loop)
 
-    while (tokenStream.LA(1) != Token.EOF) {
-      val token = tokenStream.LT(1)
+  }
 
-      // TODO: Line statements and comments
-      token.getType match {
-        case DBTPreprocessorLexer.STATEMENT =>
-          result.append(buildElement(tokenStream, DBTPreprocessorLexer.STATEMENT_END))
-        case DBTPreprocessorLexer.EXPRESSION =>
-          result.append(buildElement(tokenStream, DBTPreprocessorLexer.EXPRESSION_END))
-        case DBTPreprocessorLexer.COMMENT =>
-          result.append(buildElement(tokenStream, DBTPreprocessorLexer.COMMENT_END))
-        case DBTPreprocessorLexer.C =>
-          result.append(token.getText)
-          tokenStream.consume()
-        case DBTPreprocessorLexer.WS =>
-          result.append(token.getText)
-          tokenStream.consume()
-        case _ =>
-          errors.append(
-            PreParsingError(
-              token.getLine,
-              token.getCharPositionInLine,
-              token.getText,
-              "Malformed template element was unexpected"))
-      }
-    }
-    if (errors.nonEmpty) {
-      lift(PartialResult(result.toString(), RemorphErrors(errors.toList)))
-    } else {
-      ok(result.toString())
+  def loop: Transformation[String] = {
+    getCurrentPhase.flatMap {
+      case PreProcessing(_, _, _, Some(tokenStream), preprocessedSoFar) =>
+        if (tokenStream.LA(1) == Token.EOF) {
+          ok(preprocessedSoFar)
+        } else {
+          val token = tokenStream.LT(1)
+
+          // TODO: Line statements and comments
+          token.getType match {
+            case DBTPreprocessorLexer.STATEMENT =>
+              loopStep(tokenStream, DBTPreprocessorLexer.STATEMENT_END, preprocessedSoFar)
+            case DBTPreprocessorLexer.EXPRESSION =>
+              loopStep(tokenStream, DBTPreprocessorLexer.EXPRESSION_END, preprocessedSoFar)
+            case DBTPreprocessorLexer.COMMENT =>
+              loopStep(tokenStream, DBTPreprocessorLexer.COMMENT_END, preprocessedSoFar)
+            case DBTPreprocessorLexer.C | DBTPreprocessorLexer.WS =>
+              updatePhase { case p: PreProcessing =>
+                tokenStream.consume()
+                p.copy(preprocessedInputSoFar = preprocessedSoFar + token.getText)
+              }.flatMap(_ => loop)
+            case _ =>
+              lift(
+                PartialResult(
+                  preprocessedSoFar,
+                  PreParsingError(
+                    token.getLine,
+                    token.getCharPositionInLine,
+                    token.getText,
+                    "Malformed template element was unexpected")))
+          }
+        }
+      case other => ko(WorkflowStage.PARSE, IncoherentState(other, classOf[PreProcessing]))
     }
   }
 
+  def loopStep(tokenStream: CommonTokenStream, token: Int, preprocessedSoFar: String): Transformation[String] =
+    buildElement(tokenStream, token)
+      .flatMap { elem =>
+        updatePhase { case p: PreProcessing =>
+          p.copy(preprocessedInputSoFar = preprocessedSoFar + elem)
+        }
+      }
+      .flatMap(_ => loop)
+
   def post(input: String): Transformation[String] = {
-    val processedResult = templateManager.rebuild(input)
-    lift(OkResult(processedResult))
+    getTemplateManager.map(tm => tm.rebuild(input))
   }
 
   /**
@@ -70,70 +80,72 @@ class JinjaProcessor extends Processor {
    * @param tokenStream the token stream to process
    * @param endType the token type that signifies the end of the template element
    */
-  private def buildElement(tokenStream: CommonTokenStream, endType: Int): String = {
+  private def buildElement(tokenStream: CommonTokenStream, endType: Int): Transformation[String] = {
 
-    // Builds the regex that matches the template element
-    val regex = new StringBuilder
+    getTemplateManager
+      .flatMap { templateManager =>
+        // Builds the regex that matches the template element
+        val regex = new StringBuilder
 
-    // Was there any preceding whitespace? We need to know if this template element was specified like this:
-    //   sometext_{{ expression }}
-    // or like this:
-    //   sometext_ {{ expression }}
-    //
-    // So that our regular expression can elide any whitespace that was inserted by the SQL generator
-    if (!hasSpace(tokenStream, -1)) {
-      regex.append("[\t\f ]*")
-    }
+        // Was there any preceding whitespace? We need to know if this template element was specified like this:
+        //   sometext_{{ expression }}
+        // or like this:
+        //   sometext_ {{ expression }}
+        //
+        // So that our regular expression can elide any whitespace that was inserted by the SQL generator
+        if (!hasSpace(tokenStream, -1)) {
+          regex.append("[\t\f ]*")
+        }
 
-    // Preserve new lines etc in the template text as it is much easier than doing this at replacement time
-    val preText = preFix(tokenStream, -1)
+        // Preserve new lines etc in the template text as it is much easier than doing this at replacement time
+        val preText = preFix(tokenStream, -1)
 
-    val start = tokenStream.LT(1)
-    var token = start
-    do {
-      tokenStream.consume()
-      token = tokenStream.LT(1)
-    } while (token.getType != endType)
-    tokenStream.consume()
+        val start = tokenStream.LT(1)
+        var token = start
+        do {
+          tokenStream.consume()
+          token = tokenStream.LT(1)
+        } while (token.getType != endType)
+        tokenStream.consume()
 
-    // What is the next template placeholder?
-    val templateKey = templateManager.nextKey
-    regex.append(templateKey)
+        // What is the next template placeholder?
+        val templateKey = templateManager.nextKey
+        regex.append(templateKey)
 
-    // If there is no trailing space following the template element definition, then we need to elide any
-    // that are inserted by the SQL generator
-    if (!hasSpace(tokenStream, 1)) {
-      regex.append("[\t\f ]*")
-    }
+        // If there is no trailing space following the template element definition, then we need to elide any
+        // that are inserted by the SQL generator
+        if (!hasSpace(tokenStream, 1)) {
+          regex.append("[\t\f ]*")
+        }
 
-    // If there is no trailing comma after the template element definition, then we need to elide any
-    // that are automatically inserted by the SQL generator - we therefore match any whitespace and newlines
-    // and just delete them, because the postfix will accumulate the original whitespace and newlines in the
-    // template text
-    if (!hasTrailingComma(tokenStream, 1)) {
-      regex.append("[\n\t\f ]*[,]?[ ]?")
-    }
+        // If there is no trailing comma after the template element definition, then we need to elide any
+        // that are automatically inserted by the SQL generator - we therefore match any whitespace and newlines
+        // and just delete them, because the postfix will accumulate the original whitespace and newlines in the
+        // template text
+        if (!hasTrailingComma(tokenStream, 1)) {
+          regex.append("[\n\t\f ]*[,]?[ ]?")
+        }
 
-    // Preserve new lines and space in the template text as it is much easier than doing this at replacement time
-    val text = preText + tokenStream.getText(start, token) + postFix(tokenStream, 1)
+        // Preserve new lines and space in the template text as it is much easier than doing this at replacement time
+        val text = preText + tokenStream.getText(start, token) + postFix(tokenStream, 1)
 
-    val origin =
-      Origin(
-        Some(start.getLine),
-        Some(start.getCharPositionInLine),
-        Some(start.getStartIndex),
-        Some(token.getStopIndex),
-        Some(text))
-    val template = endType match {
-      case DBTPreprocessorLexer.STATEMENT_END =>
-        StatementElement(origin, text, regex.toString())
-      case DBTPreprocessorLexer.EXPRESSION_END =>
-        ExpressionElement(origin, text, regex.toString())
-      case DBTPreprocessorLexer.COMMENT_END =>
-        CommentElement(origin, text, regex.toString())
-    }
-    templateManager.add(templateKey, template)
-    templateKey
+        val origin =
+          Origin(
+            Some(start.getLine),
+            Some(start.getCharPositionInLine),
+            Some(start.getStartIndex),
+            Some(token.getStopIndex),
+            Some(text))
+        val template = endType match {
+          case DBTPreprocessorLexer.STATEMENT_END =>
+            StatementElement(origin, text, regex.toString())
+          case DBTPreprocessorLexer.EXPRESSION_END =>
+            ExpressionElement(origin, text, regex.toString())
+          case DBTPreprocessorLexer.COMMENT_END =>
+            CommentElement(origin, text, regex.toString())
+        }
+        updateTemplateManager(_.add(templateKey, template)).map(_ => templateKey)
+      }
   }
 
   /**

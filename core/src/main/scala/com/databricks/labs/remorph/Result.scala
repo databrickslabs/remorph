@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.intermediate.RemorphError
+import com.databricks.labs.remorph.preprocessors.jinja.TemplateManager
 
 sealed trait WorkflowStage
 object WorkflowStage {
@@ -88,6 +89,10 @@ trait TransformationConstructors {
     OkResult((newState, ()))
   })
 
+  def getTemplateManager: Transformation[TemplateManager] = new Transformation(s => OkResult((s, s.templateManager)))
+
+  def updateTemplateManager(updateFunc: TemplateManager => TemplateManager): Transformation[Unit] =
+    new Transformation(s => OkResult((s.copy(templateManager = updateFunc(s.templateManager)), ())))
 }
 
 sealed trait Result[+A] {
