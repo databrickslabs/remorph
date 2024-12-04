@@ -47,15 +47,15 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
       case n: Name => aliases.getOrElse(n.name, n)
       case e: Exists => CurrentOrigin.withOrigin(e.origin)(Exists(transformPlan(e.relation)))
       case s: ScalarSubquery => CurrentOrigin.withOrigin(s.origin)(ScalarSubquery(transformPlan(s.plan)))
-      case f: CallFunction => dealiasFunction(f, aliases)
+      case f: Fn => dealiasFunction(f, aliases)
     }
   }
 
-  private def dealiasFunction(func: CallFunction, aliases: Map[String, Expression]): Expression = {
-    if(func.isIdempotent) {
+  private def dealiasFunction(func: Fn, aliases: Map[String, Expression]): Expression = {
+    if (func.isIdempotent) {
       func.mapChildren(dealiasExpression(_, aliases))
     } else {
-      throw new IllegalArgumentException("Function " + func.function_name + " may not be idempotent!")
+      throw new IllegalArgumentException("Function " + func.prettyName + " may not be idempotent!")
     }
   }
 

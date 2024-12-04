@@ -6,41 +6,19 @@ import java.util.Locale
 
 trait Fn extends Expression {
   def prettyName: String
-  def isIdempotent: Boolean = false
+  def isIdempotent: Boolean = true
+}
+
+trait NonIdempotent extends Fn {
+  override final def isIdempotent: Boolean = false
 }
 
 case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression with Fn {
   override def children: Seq[Expression] = arguments
   override def dataType: DataType = UnresolvedType
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
-  override def isIdempotent: Boolean = {
-    if (arguments.exists {
-      case fn: Fn => !fn.isIdempotent
-      case _ => false
-    }) {
-      false
-    } else {
-      isIdempotent(function_name)
-    }
-  }
-  def isIdempotent(function_name: String): Boolean = function_name.toUpperCase match {
-    // collection functions
-    case "LEAST" => true
-    case "COUNT" => true
-    case "LAST_VALUE" => true
-    // string functions
-    case "CONCAT" => true
-    case "SUBSTR" => true
-    case "SUBSTRING" => true
-    // time functions
-    case "MONTHS_BETWEEN" => true
-    case "ROW_NUMBER" => false // true if called multiple times for the same row, but we can't assume that -> false
-    case "CURRENT_TIMESTAMP" => true // see https://docs.databricks.com/en/sql/language-manual/functions/current_timestamp.html
-    case "CURRENT_DATE" => true // transpiles to CURRENT_TIMESTAMP
-    case "LOCALTIMESTAMP" => true // transpiles to CURRENT_TIMESTAMP
-    // TODO add more function names deemed idempotent
-    case _ => false
-  }
+  // TODO: this should return false, finding a CallFunction when calling isIdempotent means that said function wasn't caught by the CallMapper
+  override def isIdempotent: Boolean = true
 }
 
 class CallMapper extends Rule[LogicalPlan] with IRHelpers {
@@ -255,8 +233,8 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("QUARTER", args) => Quarter(args.head)
     case CallFunction("RADIANS", args) => ToRadians(args.head)
     case CallFunction("RAISE_ERROR", args) => RaiseError(args.head)
-    case CallFunction("RAND", args) => Rand(args.head)
-    case CallFunction("RANDN", args) => Randn(args.head)
+    case CallFunction("RAND", args) => Rand(args.headOption)
+    case CallFunction("RANDN", args) => Randn(args.headOption)
     case CallFunction("RANK", args) => Rank(args)
     case CallFunction("REGEXP_EXTRACT", args) => RegExpExtract(args.head, args(1), args(2))
     case CallFunction("REGEXP_EXTRACT_ALL", args) => RegExpExtractAll(args.head, args(1), args(2))
@@ -1056,7 +1034,7 @@ case class Remainder(left: Expression, right: Expression) extends Binary(left, r
  * data frame has less than 1 billion partitions, and each partition has less than 8 billion records. The function is
  * non-deterministic because its result depends on partition IDs.
  */
-case class MonotonicallyIncreasingID() extends LeafExpression with Fn {
+case class MonotonicallyIncreasingID() extends LeafExpression with Fn with NonIdempotent {
   override def prettyName: String = "MONOTONICALLY_INCREASING_ID"
   override def dataType: DataType = UnresolvedType
 }
@@ -1162,7 +1140,7 @@ case class ToRadians(left: Expression) extends Unary(left) with Fn {
 }
 
 /** raise_error(expr) - Throws an exception with `expr`. */
-case class RaiseError(left: Expression) extends Unary(left) with Fn {
+case class RaiseError(left: Expression) extends Unary(left) with Fn with NonIdempotent {
   override def prettyName: String = "RAISE_ERROR"
   override def dataType: DataType = UnresolvedType
 }
@@ -1171,18 +1149,22 @@ case class RaiseError(left: Expression) extends Unary(left) with Fn {
  * rand([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
  * values in [0, 1).
  */
-case class Rand(left: Expression) extends Unary(left) with Fn {
+case class Rand(seed: Option[Expression]) extends Fn {
   override def prettyName: String = "RAND"
   override def dataType: DataType = UnresolvedType
+  override def children: Seq[Expression] = seed.toSeq
+  override def isIdempotent: Boolean = seed.isDefined
 }
 
 /**
  * randn([seed]) - Returns a random value with independent and identically distributed (i.i.d.) values drawn from the
  * standard normal distribution.
  */
-case class Randn(left: Expression) extends Unary(left) with Fn {
+case class Randn(seed: Option[Expression]) extends Fn {
   override def prettyName: String = "RANDN"
   override def dataType: DataType = UnresolvedType
+  override def children: Seq[Expression] = seed.toSeq
+  override def isIdempotent: Boolean = seed.isDefined
 }
 
 /**
@@ -1530,7 +1512,7 @@ case class Unhex(left: Expression) extends Unary(left) with Fn {
  * uuid() - Returns an universally unique identifier (UUID) string. The value is returned as a canonical UUID
  * 36-character string.
  */
-case class Uuid() extends LeafExpression with Fn {
+case class Uuid() extends LeafExpression with Fn with NonIdempotent {
   override def prettyName: String = "UUID"
   override def dataType: DataType = UnresolvedType
 }
@@ -2004,7 +1986,7 @@ case class Sequence(left: Expression, right: Expression, c: Expression) extends 
 }
 
 /** shuffle(array) - Returns a random permutation of the given array. */
-case class Shuffle(left: Expression) extends Unary(left) with Fn {
+case class Shuffle(left: Expression) extends Unary(left) with Fn with NonIdempotent {
   override def prettyName: String = "SHUFFLE"
   override def dataType: DataType = UnresolvedType
 }
