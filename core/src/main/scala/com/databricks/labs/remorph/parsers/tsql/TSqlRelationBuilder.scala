@@ -6,7 +6,6 @@ import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, Top
 import com.databricks.labs.remorph.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
@@ -61,76 +60,27 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
   }
 
-  override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case qs if qs.querySpecification() != null =>
-          val lhs = qs.querySpecification().accept(this)
-          buildIntersectOperations(lhs, qs.sqlUnion().asScala)
-        case qe if qe.queryExpression() != null =>
-          qe.queryExpression().asScala.map(_.accept(this)).reduceLeft { (lhs, rhs) =>
-            val isAll = qe.ALL() != null
-            ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
-          }
-      }
+  override def visitQueryInParenthesis(ctx: TSqlParser.QueryInParenthesisContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse(visit(ctx.queryExpression()))
   }
 
-  @tailrec
-  private[this] def buildIntersectOperations(
-      lhs: ir.LogicalPlan,
-      remainingContexts: Seq[TSqlParser.SqlUnionContext]): ir.LogicalPlan = {
-    /*
-     * The sqlUnion* rule needs to be handled carefully because the grammar does not completely implement the
-     * precedence rules for set operations:
-     * 1. Brackets.
-     * 2. INTERSECT
-     * 3. UNION and EXCEPT, from left to right.
-     *
-     * Specifically the grammar treats INTERSECT as having the same precedence as UNION and EXCEPT, so we need to
-     * handle that specially. (Brackets and left-right precedence is handled by the grammar.)
-     */
-    // Start by finding the contexts up to the first INTERSECT op (if any), and gather them into a plan covering the LHS
-    // of the INTERSECT op.
-    val (beforeFirstIntersect, fromFirstIntersect) = remainingContexts.span(_.INTERSECT() == null)
-    val gatheredLhs = beforeFirstIntersect.foldLeft(lhs)(buildSetOperation)
-
-    // If there is no INTERSECT operation, nothing further to do.
-    if (fromFirstIntersect.isEmpty) {
-      gatheredLhs
-    } else {
-      // Before proceeding, we need to account for subsequent INTERSECT operations: to preserve left-to-right
-      // precedence we can only immediately handle up to the next INTERSECT operation, if any.
-      val (beforeNextIntersect, fromNextIntersect) = fromFirstIntersect.tail.span(_.INTERSECT() == null)
-      val thisLogicalPlan = thisSetOperation(fromFirstIntersect.head)
-      val gatheredRhs = beforeNextIntersect.foldLeft(thisLogicalPlan)(buildSetOperation)
-      val thisOp = ir.SetOperation(
-        gatheredLhs,
-        gatheredRhs,
-        ir.IntersectSetOp,
-        is_all = false,
-        by_name = false,
-        allow_missing_columns = false)
-      buildIntersectOperations(thisOp, fromNextIntersect)
-    }
-  }
-
-  private[this] def thisSetOperation(ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
-    val rhsContext = ctx match {
-      case qs if qs.querySpecification() != null => qs.querySpecification()
-      case qe if qe.queryExpression() != null => qe.queryExpression()
-    }
-    rhsContext.accept(this)
-  }
-
-  private[this] def buildSetOperation(lhs: ir.LogicalPlan, ctx: TSqlParser.SqlUnionContext): ir.LogicalPlan = {
+  override def visitQueryUnion(ctx: TSqlParser.QueryUnionContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(visit)
     val setOp = ctx match {
       case u if u.UNION() != null => ir.UnionSetOp
       case e if e.EXCEPT() != null => ir.ExceptSetOp
     }
     val isAll = ctx.ALL() != null
-    val rhs = thisSetOperation(ctx)
     ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+  }
+
+  override def visitQueryIntersect(ctx: TSqlParser.QueryIntersectContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(visit)
+    ir.SetOperation(lhs, rhs, ir.IntersectSetOp, is_all = false, by_name = false, allow_missing_columns = false)
+  }
+
+  override def visitQuerySimple(ctx: TSqlParser.QuerySimpleContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    visitQuerySpecification(ctx.querySpecification())
   }
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = errorCheck(
