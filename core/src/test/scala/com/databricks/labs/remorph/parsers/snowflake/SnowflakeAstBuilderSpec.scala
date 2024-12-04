@@ -49,7 +49,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT t.a, t.b as b FROM table_x t",
         expectedAst = Project(
-          TableAlias(NamedTable("table_x", Map.empty, is_streaming = false), "t"),
+          TableAlias(NamedTable("table_x"), "t"),
           Seq(Dot(Id("t"), Id("a")), Alias(Dot(Id("t"), Id("b")), Id("b")))))
     }
 
