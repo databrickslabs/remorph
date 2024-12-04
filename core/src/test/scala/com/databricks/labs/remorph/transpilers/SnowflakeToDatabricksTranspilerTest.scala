@@ -264,8 +264,8 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
 
     "transpile LCA replacing aliases" in {
-      "SELECT column_a as alias_a FROM table_a where alias_a = '123';" transpilesTo
-        "SELECT column_a as alias_a FROM table_a where column_a = '123';"
+      "SELECT column_a AS alias_a FROM table_a WHERE alias_a = '123';" transpilesTo
+        "SELECT column_a AS alias_a FROM table_a WHERE column_a = '123';"
     }
 
     "transpile LCA replacing aliased literals" in {
