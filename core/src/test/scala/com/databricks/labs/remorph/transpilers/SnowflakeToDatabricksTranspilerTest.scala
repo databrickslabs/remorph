@@ -372,7 +372,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           |FROM
           |    t;""".stripMargin
     }
-    """be visible to all subsequent set operations""" in {
+    """have lower precedence than set operations""" in {
       """WITH
         |   a AS (SELECT b, c, d),
         |   e AS (SELECT f, g, h)
