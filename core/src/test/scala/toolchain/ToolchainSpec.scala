@@ -7,9 +7,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.nio.file.Paths
 
 class ToolchainSpec extends AnyWordSpec with Matchers {
-  private val projectBaseDir = Paths.get(".").toAbsolutePath.normalize
-  private val moduleBaseDir = if (projectBaseDir.endsWith("core")) projectBaseDir else projectBaseDir.resolve("core")
-  private val testSourceDir = moduleBaseDir.resolve("src/test/resources/toolchain/testsource").toString
+  private[this] val projectBaseDir = Paths.get(".").toAbsolutePath.normalize
+  private[this] val moduleBaseDir =
+    if (projectBaseDir.endsWith("core")) projectBaseDir else projectBaseDir.resolve("core")
+  private[this] val testSourceDir = moduleBaseDir.resolve("src/test/resources/toolchain/testsource").toString
 
   "Toolchain" should {
     "traverse a directory of files" in {

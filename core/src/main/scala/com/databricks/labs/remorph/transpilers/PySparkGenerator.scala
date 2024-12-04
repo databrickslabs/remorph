@@ -9,13 +9,13 @@ import org.json4s.jackson.Serialization
 import scala.util.control.NonFatal
 
 class PySparkGenerator extends TransformationConstructors {
-  private val exprGenerator = new py.ExpressionGenerator
-  private val stmtGenerator = new py.StatementGenerator(exprGenerator)
+  private[this] val exprGenerator = new py.ExpressionGenerator
+  private[this] val stmtGenerator = new py.StatementGenerator(exprGenerator)
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  private val expressionRules = ir.Rules(new DotToFCol, new PySparkExpressions, new AndOrToBitwise)
-  private val statementRules = ir.Rules(new PySparkStatements(expressionRules), new ImportClasses)
+  private[this] val expressionRules = ir.Rules(new DotToFCol, new PySparkExpressions, new AndOrToBitwise)
+  private[this] val statementRules = ir.Rules(new PySparkStatements(expressionRules), new ImportClasses)
 
   def generate(optimizedLogicalPlan: ir.LogicalPlan): py.Python = {
     try {

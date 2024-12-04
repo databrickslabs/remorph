@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 class GenerateBundleFileTest extends AnyWordSpec with Matchers {
-  private val rule = new GenerateBundleFile
+  private[this] val rule = new GenerateBundleFile
 
   "GenerateBundleFile" should {
     "skip nulls" in {

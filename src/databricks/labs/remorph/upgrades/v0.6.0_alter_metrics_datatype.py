@@ -47,4 +47,5 @@ def _upgrade_reconcile_metadata_metrics_table(
 
 def upgrade(installation: Installation, ws: WorkspaceClient):
     app_context = ApplicationContext(ws)
-    _upgrade_reconcile_metadata_metrics_table(installation, ws, app_context)
+    if app_context.recon_config is not None:
+        _upgrade_reconcile_metadata_metrics_table(installation, ws, app_context)

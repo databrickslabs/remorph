@@ -377,10 +377,10 @@ class AggregateRule:
         return group_by_cols_as_table_col
 
     def get_rule_query(self, rule_id):
-        rule_info = f""" map( 'agg_type', '{self.agg_type}', 
-                 'agg_column', '{self.agg_column}', 
+        rule_info = f""" map( 'agg_type', '{self.agg_type}',
+                 'agg_column', '{self.agg_column}',
                  'group_by_columns', {self.group_by_columns_as_table_column}
-                 )  
+                 )
         """
         return f" SELECT {rule_id} as rule_id, " f" '{self.rule_type}' as rule_type, " f" {rule_info} as rule_info "
 

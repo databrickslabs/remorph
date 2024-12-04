@@ -15,27 +15,25 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate a simple SELECT query" in {
       singleQueryExample(
         query = "SELECT a FROM TABLE",
-        expectedAst = Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Id("a"))))
+        expectedAst = Project(NamedTable("TABLE", Map.empty), Seq(Id("a"))))
     }
 
     "translate a simple SELECT query with an aliased column" in {
       singleQueryExample(
         query = "SELECT a AS aa FROM b",
-        expectedAst = Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(Id("a"), Id("aa")))))
+        expectedAst = Project(NamedTable("b", Map.empty), Seq(Alias(Id("a"), Id("aa")))))
     }
 
     "translate a simple SELECT query involving multiple columns" in {
       singleQueryExample(
         query = "SELECT a, b, c FROM table_x",
-        expectedAst = Project(NamedTable("table_x", Map.empty, is_streaming = false), Seq(Id("a"), Id("b"), Id("c"))))
+        expectedAst = Project(NamedTable("table_x", Map.empty), Seq(Id("a"), Id("b"), Id("c"))))
     }
 
     "translate a SELECT query involving multiple columns and aliases" in {
       singleQueryExample(
         query = "SELECT a, b AS bb, c FROM table_x",
-        expectedAst = Project(
-          NamedTable("table_x", Map.empty, is_streaming = false),
-          Seq(Id("a"), Alias(Id("b"), Id("bb")), Id("c"))))
+        expectedAst = Project(NamedTable("table_x", Map.empty), Seq(Id("a"), Alias(Id("b"), Id("bb")), Id("c"))))
     }
 
     "translate a SELECT query involving a table alias" in {
@@ -54,8 +52,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
     val simpleJoinAst =
       Join(
-        NamedTable("table_x", Map.empty, is_streaming = false),
-        NamedTable("table_y", Map.empty, is_streaming = false),
+        NamedTable("table_x", Map.empty),
+        NamedTable("table_y", Map.empty),
         join_condition = None,
         UnspecifiedJoin,
         using_columns = Seq(),
@@ -140,8 +138,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       expectedOperatorTranslations.foreach { case (op, expectedPredicate) =>
         singleQueryExample(
           query = s"SELECT a, b FROM c WHERE a $op b",
-          expectedAst =
-            Project(Filter(NamedTable("c", Map.empty, is_streaming = false), expectedPredicate), Seq(Id("a"), Id("b"))))
+          expectedAst = Project(Filter(NamedTable("c", Map.empty), expectedPredicate), Seq(Id("a"), Id("b"))))
       }
     }
 
@@ -150,26 +147,21 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         singleQueryExample(
           query = "SELECT a, b FROM c WHERE a = b AND b = a",
           expectedAst = Project(
-            Filter(
-              NamedTable("c", Map.empty, is_streaming = false),
-              And(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
+            Filter(NamedTable("c", Map.empty), And(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
             Seq(Id("a"), Id("b"))))
       }
       "SELECT a, b FROM c WHERE a = b OR b = a" in {
         singleQueryExample(
           query = "SELECT a, b FROM c WHERE a = b OR b = a",
           expectedAst = Project(
-            Filter(
-              NamedTable("c", Map.empty, is_streaming = false),
-              Or(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
+            Filter(NamedTable("c", Map.empty), Or(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
             Seq(Id("a"), Id("b"))))
       }
       "SELECT a, b FROM c WHERE NOT a = b" in {
         singleQueryExample(
           query = "SELECT a, b FROM c WHERE NOT a = b",
-          expectedAst = Project(
-            Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Id("a"), Id("b")))),
-            Seq(Id("a"), Id("b"))))
+          expectedAst =
+            Project(Filter(NamedTable("c", Map.empty), Not(Equals(Id("a"), Id("b")))), Seq(Id("a"), Id("b"))))
       }
     }
 
@@ -178,7 +170,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a, COUNT(b) FROM c GROUP BY a",
         expectedAst = Project(
           Aggregate(
-            child = NamedTable("c", Map.empty, is_streaming = false),
+            child = NamedTable("c", Map.empty),
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("a")),
             pivot = None),
@@ -191,7 +183,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             Aggregate(
-              child = NamedTable("c", Map.empty, is_streaming = false),
+              child = NamedTable("c", Map.empty),
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
@@ -205,7 +197,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Filter(
             Aggregate(
-              child = NamedTable("c", Map.empty, is_streaming = false),
+              child = NamedTable("c", Map.empty),
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
@@ -217,30 +209,25 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM b ORDER BY a" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a",
-          expectedAst = Project(
-            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsLast))),
-            Seq(Id("a"))))
+          expectedAst =
+            Project(Sort(NamedTable("b", Map.empty), Seq(SortOrder(Id("a"), Ascending, NullsLast))), Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC" in {
         singleQueryExample(
           "SELECT a FROM b ORDER BY a DESC",
-          Project(
-            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsFirst))),
-            Seq(Id("a"))))
+          Project(Sort(NamedTable("b", Map.empty), Seq(SortOrder(Id("a"), Descending, NullsFirst))), Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a NULLS FIRST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a NULLS FIRST",
-          expectedAst = Project(
-            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Ascending, NullsFirst))),
-            Seq(Id("a"))))
+          expectedAst =
+            Project(Sort(NamedTable("b", Map.empty), Seq(SortOrder(Id("a"), Ascending, NullsFirst))), Seq(Id("a"))))
       }
       "SELECT a FROM b ORDER BY a DESC NULLS LAST" in {
         singleQueryExample(
           query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
-          expectedAst = Project(
-            Sort(NamedTable("b", Map.empty, is_streaming = false), Seq(SortOrder(Id("a"), Descending, NullsLast))),
-            Seq(Id("a"))))
+          expectedAst =
+            Project(Sort(NamedTable("b", Map.empty), Seq(SortOrder(Id("a"), Descending, NullsLast))), Seq(Id("a"))))
       }
     }
 
@@ -248,19 +235,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM b LIMIT 5" in {
         singleQueryExample(
           query = "SELECT a FROM b LIMIT 5",
-          expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(Id("a"))))
+          expectedAst = Project(Limit(NamedTable("b", Map.empty), Literal(5)), Seq(Id("a"))))
       }
       "SELECT a FROM b LIMIT 5 OFFSET 10" in {
         singleQueryExample(
           query = "SELECT a FROM b LIMIT 5 OFFSET 10",
-          expectedAst = Project(
-            Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Literal(10)),
-            Seq(Id("a"))))
+          expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty), Literal(5)), Literal(10)), Seq(Id("a"))))
       }
       "SELECT a FROM b OFFSET 10 FETCH FIRST 42" in {
         singleQueryExample(
           query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-          expectedAst = Project(Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(10)), Seq(Id("a"))))
+          expectedAst = Project(Offset(NamedTable("b", Map.empty), Literal(10)), Seq(Id("a"))))
       }
     }
 
@@ -269,7 +254,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar'))",
         expectedAst = Project(
           Aggregate(
-            child = NamedTable("b", Map.empty, is_streaming = false),
+            child = NamedTable("b", Map.empty),
             group_type = Pivot,
             grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
             pivot = Some(Pivot(simplyNamedColumn("c"), Seq(Literal("foo"), Literal("bar"))))),
@@ -281,7 +266,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f))",
         expectedAst = Project(
           Unpivot(
-            child = NamedTable("b", Map.empty, is_streaming = false),
+            child = NamedTable("b", Map.empty),
             ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
             values = None,
             variable_column_name = Id("c"),
@@ -472,7 +457,11 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
             UnresolvedRelation("Unparsable text: SELECTxyz", message = "Unparsed input - ErrorNode encountered"),
             UnresolvedRelation(
-              "Unparsable text: SELECT\nUnparsable text: x\nUnparsable text: y\nUnparsable text: z\nUnparsable text: parser recovered by ignoring: SELECTxyz;",
+              """Unparsable text: SELECT
+                |Unparsable text: x
+                |Unparsable text: y
+                |Unparsable text: z
+                |Unparsable text: parser recovered by ignoring: SELECTxyz;""".stripMargin,
               message = "Unparsed input - ErrorNode encountered"),
             Project(namedTable("t3"), Seq(Literal(3))))),
         failOnErrors = false)
@@ -560,21 +549,18 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             Seq(
               SubqueryAlias(
                 Project(
-                  Filter(NamedTable("employees", Map.empty, false), IsNull(Id("manager_id", false))),
+                  Filter(NamedTable("employees", Map.empty), IsNull(Id("manager_id"))),
                   Seq(
-                    Id("employee_id", false),
-                    Id("manager_id", false),
-                    Id("employee_name", false),
-                    Alias(Literal(1, IntegerType), Id("level", false)))),
-                Id("employee_hierarchy", false),
+                    Id("employee_id"),
+                    Id("manager_id"),
+                    Id("employee_name"),
+                    Alias(Literal(1, IntegerType), Id("level")))),
+                Id("employee_hierarchy"),
                 Seq.empty)),
             Project(
               Sort(
-                NamedTable("employee_hierarchy", Map.empty, false),
-                Seq(
-                  SortOrder(Id("level", false), Ascending, NullsLast),
-                  SortOrder(Id("employee_id", false), Ascending, NullsLast)),
-                false),
+                NamedTable("employee_hierarchy", Map.empty),
+                Seq(SortOrder(Id("level"), Ascending, NullsLast), SortOrder(Id("employee_id"), Ascending, NullsLast))),
               Seq(Star(None)))))
       }
 
