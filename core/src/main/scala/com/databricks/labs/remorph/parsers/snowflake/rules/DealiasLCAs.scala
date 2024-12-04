@@ -6,7 +6,7 @@ class DealiasLCAs extends Rule[LogicalPlan] with IRHelpers {
 
   override def apply(plan: LogicalPlan): LogicalPlan = transformPlan(plan)
 
-  private def transformPlan(plan: LogicalPlan): LogicalPlan =
+  private[rules] def transformPlan(plan: LogicalPlan): LogicalPlan =
     plan transform { case project: Project =>
       dealiasProject(project)
     }
