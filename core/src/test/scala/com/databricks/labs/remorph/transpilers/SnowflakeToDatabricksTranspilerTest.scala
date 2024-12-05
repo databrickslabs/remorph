@@ -386,6 +386,27 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           |UNION
           |(SELECT * FROM f);""".stripMargin
     }
+    "allow nested set operations" in {
+      """WITH
+        |   a AS (
+        |     SELECT b, c, d from e
+        |     UNION
+        |     SELECT e, f, g from h),
+        |   i AS (SELECT j, k, l from m)
+        |SELECT * FROM a
+        |UNION
+        |SELECT * FROM i;""".stripMargin transpilesTo
+        """WITH
+          |   a AS (
+          |     (SELECT b, c, d from e)
+          |     UNION
+          |     (SELECT e, f, g from h)
+          |   ),
+          |   i AS (SELECT j, k, l from m)
+          |(SELECT * FROM a)
+          |UNION
+          |(SELECT * FROM i);""".stripMargin
+    }
   }
 
   "Batch statements" should {
