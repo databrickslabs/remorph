@@ -4,6 +4,8 @@ import typing as t
 from sqlglot import exp
 from sqlglot.tokens import TokenType
 
+from databricks.labs.remorph.snow import local_expression
+
 
 class Teradata(org_Teradata):
     teradata = org_Teradata()
@@ -158,7 +160,7 @@ class Teradata(org_Teradata):
             this_expr = bitwise_expr if bitwise_expr else exp.Literal(this=" ", is_string=True)
             return self.expression(exp.CompressColumnConstraint, this=this_expr)
 
-        def _parse_map_property(self) -> exp.MapProperty:
+        def _parse_map_property(self) -> local_expression.MapProperty:
             self._match(TokenType.EQ)
-            return self.expression(exp.MapProperty, this = "MAP", name=self._parse_var(any_token=False,tokens=[TokenType.VAR]))
+            return self.expression(local_expression.MapProperty, this = "MAP", name=self._parse_var(any_token=False,tokens=[TokenType.VAR]))
 
