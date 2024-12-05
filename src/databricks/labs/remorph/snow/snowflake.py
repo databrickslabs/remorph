@@ -91,6 +91,10 @@ def _parse_date_add(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
+def _build_timetostr_or_tochar(args: list) -> exp.TimeToStr | exp.ToChar:
+    return build_formatted_time(exp.ToChar, "snowflake", default=True)(args)
+
+
 def _parse_split_part(args: list) -> local_expression.SplitPart:
     if len(args) != 3:
         err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
@@ -243,6 +247,11 @@ def contains_expression(expr, target_type):
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
+    #
+    # TIME_MAPPING = {
+    #     "mm": "MM",
+    #     "d" :"d"
+    # }
 
     class Tokenizer(Snowflake.Tokenizer):
 
@@ -405,6 +414,7 @@ class Snow(Snowflake):
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
+            "TO_CHAR": _build_timetostr_or_tochar,
         }
 
         FUNCTION_PARSERS = {
@@ -430,6 +440,11 @@ class Snow(Snowflake):
         }
 
         ALTER_PARSERS = {**Snowflake.Parser.ALTER_PARSERS}
+        #
+        # def _build_to_char(self) -> exp.ToChar:
+        #     self.expression()
+        #     args = self._parse_csv(self._parse_conjunction)
+        #     return _build_timetostr_or_tochar(args)
 
         def _parse_list_agg(self) -> exp.GroupConcat:
             if self._match(TokenType.DISTINCT):

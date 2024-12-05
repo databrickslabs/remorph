@@ -381,6 +381,19 @@ def _create_named_struct_for_cmp(wg_params: local_expression.WithinGroupParams) 
     return named_struct_func
 
 
+def derive_function_name(expr: exp.Expression) -> str:
+    if isinstance(expr, exp.ToChar):
+        return "TO_CHAR"
+    return ""
+
+
+def _reformat_date(self, expression: exp.Expression) -> str:
+    this = self.sql(expression, "this")
+    input_format = self.format_time(self.sql(expression, "format"))
+    function_name = derive_function_name(expression)
+    return f"{function_name}({this}, {input_format})"
+
+
 def _current_date(self, expression: exp.CurrentDate) -> str:
     zone = self.sql(expression, "this")
     return f"CURRENT_DATE({zone})" if zone else "CURRENT_DATE()"
@@ -464,6 +477,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.Not: _not_sql,
             local_expression.ToArray: to_array,
             local_expression.ArrayExists: rename_func("EXISTS"),
+            exp.ToChar: _reformat_date,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
