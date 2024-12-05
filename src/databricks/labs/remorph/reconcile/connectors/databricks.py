@@ -58,6 +58,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             catalog = "hive_metastore"
         table_with_namespace = f"{catalog}.{schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
+        print(table_query)
         try:
             df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])

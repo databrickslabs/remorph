@@ -38,7 +38,7 @@ _SCHEMA_QUERY = """SELECT
                         WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC','CV') 
                                 THEN 'varchar(' || otranslate(CAST(ColumnLength AS VARCHAR(100)), ',.-_', '') || ')'
                         WHEN ColumnLength IS NOT NULL AND ColumnType IN ('CF') 
-                                THEN 'varchar(' || otranslate(CAST(ColumnLength AS VARCHAR(100)), ',.-_', '') || ')'
+                                THEN 'char(' || otranslate(CAST(ColumnLength AS VARCHAR(100)), ',.-_', '') || ')'
                         WHEN ColumnType IN ('DT', 'DA') 
                                 THEN 'date'
                         WHEN ColumnType IN ('TS')
