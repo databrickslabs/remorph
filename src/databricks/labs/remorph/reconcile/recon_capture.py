@@ -35,7 +35,7 @@ _RECON_DETAILS_TABLE_NAME = "details"
 _RECON_AGGREGATE_RULES_TABLE_NAME = "aggregate_rules"
 _RECON_AGGREGATE_METRICS_TABLE_NAME = "aggregate_metrics"
 _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
-_SAMPLE_ROWS = 50
+_SAMPLE_ROWS = 200
 
 
 class ReconIntermediatePersist:
@@ -357,6 +357,13 @@ class ReconCapture:
         if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
             mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
+        percentage_match: float = round(
+            (max(record_count.source, record_count.target) - data_reconcile_output.mismatch_count)
+             / max(record_count.source, record_count.target) 
+            * 100
+            , 2) if max(record_count.source, record_count.target) != 0 else 0.00
+        
+        resolution_percentage:float = round(((max(record_count.source, record_count.target) - (data_reconcile_output.mismatch_count + data_reconcile_output.missing_in_src_count + data_reconcile_output.missing_in_tgt_count)) / max(record_count.source, record_count.target)) * 100, 2) if max(record_count.source, record_count.target) != 0 else 0.00
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
@@ -373,7 +380,8 @@ class ReconCapture:
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
                         'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
                         'mismatch_columns', '{",".join(mismatch_columns)}',
-                        'percentage_match', '{(str(round((1-data_reconcile_output.mismatch_count / record_count.target) * 100, 2))+'%') if record_count.target != 0 else '0.00%'}',
+                        'percentage_match', '{str(percentage_match)+'%'}',
+                        'resolution_percentage', '{str(resolution_percentage)+'%'}',
                         'source_count', {record_count.source},
                         'target_count', {record_count.target}
                     ) else null end,

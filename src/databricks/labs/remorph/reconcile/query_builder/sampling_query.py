@@ -15,7 +15,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     coalesce,
 )
 
-_SAMPLE_ROWS = 50
+_SAMPLE_ROWS = 200
 
 logger = logging.getLogger(__name__)
 

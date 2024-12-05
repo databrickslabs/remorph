@@ -138,7 +138,9 @@ def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True, 
         lit = exp.Null()
     else:
         lit = exp.Literal(this=this, is_string=is_string)
-    if cast:
+    if cast and cast.startswith("char"):
+        cast = cast.replace("char", "varchar")
+    if cast and "date" not in cast.lower() and "timestamp" not in cast.lower():
         lit = exp.Cast(this=lit, to=exp.DataType(this=cast))
     if is_string and cast and "char" in cast.lower():
         lit = exp.Trim(this=lit)

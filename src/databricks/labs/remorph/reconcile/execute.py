@@ -64,7 +64,7 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
-_SAMPLE_ROWS = 50
+_SAMPLE_ROWS = 200
 
 RECONCILE_OPERATION_NAME = "reconcile"
 AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"

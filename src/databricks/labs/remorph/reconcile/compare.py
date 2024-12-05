@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _HASH_COLUMN_NAME = "hash_value_recon"
 _JOIN_COLUMN_HASH_NAME = "join_hash_value_recon"
 
-_SAMPLE_ROWS = 50
+_SAMPLE_ROWS = 200
 
 
 def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
