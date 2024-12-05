@@ -372,7 +372,10 @@ class ReconCapture:
                     named_struct(
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
                         'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
-                        'mismatch_columns', '{",".join(mismatch_columns)}'
+                        'mismatch_columns', '{",".join(mismatch_columns)}',
+                        'percentage_match', '{(str(round((1-data_reconcile_output.mismatch_count / record_count.target) * 100, 2))+'%') if record_count.target != 0 else '0.00%'}',
+                        'source_count', {record_count.source},
+                        'target_count', {record_count.target}
                     ) else null end,
                     'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 
                         and '{exception_msg}' = '' then
