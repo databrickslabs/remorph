@@ -13,6 +13,12 @@ from databricks.labs.remorph.helpers.morph_status import ParserError
 logger = logging.getLogger(__name__)
 
 
+class ParsedExpression:
+    def __init__(self, expression: exp.Expression, original_sql: str):
+        self.expression = expression
+        self.original_sql = original_sql
+
+
 class SqlglotEngine:
     def __init__(self, read_dialect: Dialect):
         self.read_dialect = read_dialect
@@ -22,10 +28,26 @@ class SqlglotEngine:
     ) -> tuple[list[str], list[ParserError]]:
         transpiled_sql_statements = []
         parsed_expressions, errors = self.safe_parse(statements=sql, read=self.read_dialect)
-        for expression in parsed_expressions:
-            transpiled_sql = write_dialect.generate(expression, pretty=True)
-            transpiled_sql_statements.append(transpiled_sql)
-
+        logger.info("error start")
+        logger.info(errors)
+        logger.info("error end")
+        for parsed_expression in parsed_expressions:
+            if parsed_expression.expression is not None:
+                try:
+                    transpiled_sql = write_dialect.generate(parsed_expression.expression, pretty=True)
+                    transpiled_sql_statements.append(transpiled_sql)
+                except ParseError as e:
+                    error_statement = format_error_message("Parsing Error", e, parsed_expression.original_sql)
+                    # transpiled_sql_statements.append(error_statement)
+                    errors.append(error_statement)
+                except UnsupportedError as e:
+                    error_statement = format_error_message("Unsupported Error", e, parsed_expression.original_sql)
+                    # transpiled_sql_statements.append(error_statement)
+                    errors.append(error_statement)
+                except TokenError as e:
+                    error_statement = format_error_message("Token Error", e, parsed_expression.original_sql)
+                    # transpiled_sql_statements.append(error_statement)
+                    errors.append(error_statement)
         updated_error_list = self._handle_errors(errors, error_list, file_name, transpiled_sql_statements)
         return transpiled_sql_statements, updated_error_list
 
@@ -64,7 +86,7 @@ class SqlglotEngine:
                         yield self._find_root_tables(select), child
 
     @staticmethod
-    def safe_parse(statements: str, read: Dialect) -> tuple[list[exp.Expression], list[str]]:
+    def safe_parse(statements: str, read: Dialect) -> tuple[list[ParsedExpression], list[str]]:
         dialect = read
         errors = []
         try:
@@ -78,7 +100,6 @@ class SqlglotEngine:
         chunks: list[list[Token]] = [[]]
         original_sql_chunks: list[str] = []
         current_sql_chunk = []
-
         # Split tokens into chunks based on semicolons(or other separators)
         # Need to define the separator in Class Tokenizer
         for i, token in enumerate(tokens):
@@ -95,25 +116,30 @@ class SqlglotEngine:
             original_sql_chunks.append("".join(current_sql_chunk).strip())
 
         expressions: list[Expression] = []
+        parsed_expressions: list[ParsedExpression] = []
         parser_opts: dict[str, str] = {}
         parser = dialect.parser(**parser_opts)
 
         for i, tokens in enumerate(chunks, start=1):
             original_sql = original_sql_chunks[i - 1]
             try:
-                expressions.append(
-                    t.cast(
+                # expressions.append(
+                #     t.cast(
+                #         list[Expression],
+                #         parser.parse(tokens),
+                #     )[0]
+                # )
+                expression = t.cast(
                         list[Expression],
                         parser.parse(tokens),
                     )[0]
-                )
-            except (ParseError, UnsupportedError) as e:
+                parsed_expressions.append(ParsedExpression(expression, original_sql))
+            except (ParseError, TokenError, UnsupportedError) as e:
                 error_statement = format_error_message("PARSING ERROR", e, original_sql)
                 errors.append(error_statement)
             finally:
                 parser.reset()
-
-        return expressions, errors
+        return parsed_expressions, errors
 
     @staticmethod
     def _find_root_tables(expression) -> str | None:

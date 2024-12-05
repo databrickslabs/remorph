@@ -98,7 +98,7 @@ def test_safe_parse(transpiler, write_dialect):
         this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
     )
     for exp in result:
-        if exp:
-            assert repr(exp.args["expressions"]) == repr(expected_result)
-            assert repr(exp.args["from"]) == repr(expected_from_result)
+        if exp.expression:
+            assert repr(exp.expression.args["expressions"]) == repr(expected_result)
+            assert repr(exp.expression.args["from"]) == repr(expected_from_result)
     assert "PARSING ERROR" in error[0]
