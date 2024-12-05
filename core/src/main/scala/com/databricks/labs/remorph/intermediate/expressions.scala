@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
-import java.util.{UUID}
+import java.util.UUID
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.

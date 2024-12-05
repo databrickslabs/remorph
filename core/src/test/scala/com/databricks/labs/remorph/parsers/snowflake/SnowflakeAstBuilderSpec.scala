@@ -36,6 +36,20 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(NamedTable("table_x", Map.empty), Seq(Id("a"), Alias(Id("b"), Id("bb")), Id("c"))))
     }
 
+    "translate a SELECT query involving a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a FROM table_x t",
+        expectedAst = Project(TableAlias(NamedTable("table_x"), "t"), Seq(Dot(Id("t"), Id("a")))))
+    }
+
+    "translate a SELECT query involving a column alias and a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a, t.b as b FROM table_x t",
+        expectedAst = Project(
+          TableAlias(NamedTable("table_x"), "t"),
+          Seq(Dot(Id("t"), Id("a")), Alias(Dot(Id("t"), Id("b")), Id("b")))))
+    }
+
     val simpleJoinAst =
       Join(
         NamedTable("table_x", Map.empty),
