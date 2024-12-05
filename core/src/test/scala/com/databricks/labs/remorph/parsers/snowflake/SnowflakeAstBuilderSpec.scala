@@ -36,6 +36,20 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(NamedTable("table_x", Map.empty), Seq(Id("a"), Alias(Id("b"), Id("bb")), Id("c"))))
     }
 
+    "translate a SELECT query involving a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a FROM table_x t",
+        expectedAst = Project(TableAlias(NamedTable("table_x"), "t"), Seq(Dot(Id("t"), Id("a")))))
+    }
+
+    "translate a SELECT query involving a column alias and a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a, t.b as b FROM table_x t",
+        expectedAst = Project(
+          TableAlias(NamedTable("table_x"), "t"),
+          Seq(Dot(Id("t"), Id("a")), Alias(Dot(Id("t"), Id("b")), Id("b")))))
+    }
+
     val simpleJoinAst =
       Join(
         NamedTable("table_x", Map.empty),
@@ -522,42 +536,60 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate with recursive" should {
-      """WITH RECURSIVE employee_hierarchy""".stripMargin in {
+      "WITH RECURSIVE employee_hierarchy" in {
         singleQueryExample(
           """WITH RECURSIVE employee_hierarchy AS (
-                             |    SELECT
-                             |        employee_id,
-                             |        manager_id,
-                             |        employee_name,
-                             |        1 AS level
-                             |    FROM
-                             |        employees
-                             |    WHERE
-                             |        manager_id IS NULL
-                             |    UNION ALL
-                             |    SELECT
-                             |        e.employee_id,
-                             |        e.manager_id,
-                             |        e.employee_name,
-                             |        eh.level + 1 AS level
-                             |    FROM
-                             |        employees e
-                             |    INNER JOIN
-                             |        employee_hierarchy eh ON e.manager_id = eh.employee_id
-                             |)
-                             |SELECT *
-                             |FROM employee_hierarchy
-                             |ORDER BY level, employee_id;""".stripMargin,
+            |    SELECT
+            |        employee_id,
+            |        manager_id,
+            |        employee_name,
+            |        1 AS level
+            |    FROM
+            |        employees
+            |    WHERE
+            |        manager_id IS NULL
+            |    UNION ALL
+            |    SELECT
+            |        e.employee_id,
+            |        e.manager_id,
+            |        e.employee_name,
+            |        eh.level + 1 AS level
+            |    FROM
+            |        employees e
+            |    INNER JOIN
+            |        employee_hierarchy eh ON e.manager_id = eh.employee_id
+            |)
+            |SELECT *
+            |FROM employee_hierarchy
+            |ORDER BY level, employee_id;""".stripMargin,
           WithRecursiveCTE(
             Seq(
               SubqueryAlias(
-                Project(
-                  Filter(NamedTable("employees", Map.empty), IsNull(Id("manager_id"))),
-                  Seq(
-                    Id("employee_id"),
-                    Id("manager_id"),
-                    Id("employee_name"),
-                    Alias(Literal(1, IntegerType), Id("level")))),
+                SetOperation(
+                  Project(
+                    Filter(NamedTable("employees"), IsNull(Id("manager_id"))),
+                    Seq(
+                      Id("employee_id"),
+                      Id("manager_id"),
+                      Id("employee_name"),
+                      Alias(Literal(1, IntegerType), Id("level")))),
+                  Project(
+                    Join(
+                      TableAlias(NamedTable("employees"), "e"),
+                      TableAlias(NamedTable("employee_hierarchy"), "eh"),
+                      join_condition = Some(Equals(Dot(Id("e"), Id("manager_id")), Dot(Id("eh"), Id("employee_id")))),
+                      InnerJoin,
+                      using_columns = Seq(),
+                      JoinDataType(is_left_struct = false, is_right_struct = false)),
+                    Seq(
+                      Dot(Id("e"), Id("employee_id")),
+                      Dot(Id("e"), Id("manager_id")),
+                      Dot(Id("e"), Id("employee_name")),
+                      Alias(Add(Dot(Id("eh"), Id("level")), Literal(1, IntegerType)), Id("level")))),
+                  UnionSetOp,
+                  is_all = true,
+                  by_name = false,
+                  allow_missing_columns = false),
                 Id("employee_hierarchy"),
                 Seq.empty)),
             Project(
@@ -566,7 +598,6 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 Seq(SortOrder(Id("level"), Ascending, NullsLast), SortOrder(Id("employee_id"), Ascending, NullsLast))),
               Seq(Star(None)))))
       }
-
     }
   }
 }

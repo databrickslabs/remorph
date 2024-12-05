@@ -240,6 +240,12 @@ def contains_expression(expr, target_type):
     return False
 
 
+def _parse_sha2(args: list) -> exp.SHA2:
+    if len(args) == 1:
+        return exp.SHA2(this=seq_get(args, 0), length=exp.Literal.number(256))
+    return exp.SHA2(this=seq_get(args, 0), length=seq_get(args, 1))
+
+
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
@@ -405,6 +411,7 @@ class Snow(Snowflake):
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
+            "SHA2": _parse_sha2,
         }
 
         FUNCTION_PARSERS = {

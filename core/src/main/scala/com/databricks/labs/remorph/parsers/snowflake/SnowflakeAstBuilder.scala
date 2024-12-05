@@ -99,7 +99,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
+  private[snowflake] def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>
