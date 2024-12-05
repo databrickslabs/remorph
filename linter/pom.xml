@@ -21,7 +21,7 @@
     <endComment>-- databricks sql:</endComment>
     <sourceDialect></sourceDialect>
     <extractor></extractor>
-    <os-lib.version>0.10.1</os-lib.version>
+    <os-lib.version>0.11.3</os-lib.version>
     <mainargs.version>0.7.0</mainargs.version>
     <ujson.version>3.0.0-M2</ujson.version>
     <scalatest.version>3.3.0-SNAP3</scalatest.version>
