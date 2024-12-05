@@ -5,10 +5,12 @@ from (
   SELECT
     substr(ca_zip,1,5) ca_zip,
     trim(name) as name,
+    -- ca_zip should not be transpiled
     count(*) over( partition by ca_zip)
   FROM
     customer_address
   WHERE
+    -- ca_zip should not be transpiled
     ca_zip IN ('89436', '30868'));
 -- databricks sql:
 SELECT
@@ -18,10 +20,9 @@ SELECT
   SUBSTR(ca_zip,1,5) AS ca_zip,
   TRIM(name) AS name,
   COUNT(*) OVER (
-    PARTITION BY
-      SUBSTR(ca_zip,1,5)
+    PARTITION BY ca_zip
   )
 FROM
   customer_address
 WHERE
-  SUBSTR(ca_zip,1,5) IN ('89436', '30868');
+  ca_zip IN ('89436', '30868');
