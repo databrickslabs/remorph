@@ -240,6 +240,38 @@ def contains_expression(expr, target_type):
     return False
 
 
+def _parse_last_day(args: list) -> exp.LastDay | exp.DateSub:
+    if len(args) == 1:
+        return exp.LastDay.from_arg_list(args)
+
+    date_part = seq_get(args, 1)
+    if isinstance(date_part, exp.Literal):
+        date_part = DATE_DELTA_INTERVAL.get(date_part.this.lower(), None)
+    elif isinstance(date_part, exp.Column):
+        date_part = DATE_DELTA_INTERVAL.get(date_part.name.lower(), None)
+
+    if date_part is None or date_part.lower() not in ('year', 'quarter', 'month', 'week'):
+        raise ParseError(f'Invalid date part {date_part} for last_day')
+
+    date_trunc_expr = local_expression.DateTrunc(this=seq_get(args, 0), unit=exp.Literal.string(date_part))
+    # Add one date part
+    date_add_expr = parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL)(
+        [exp.Literal.string(date_part), exp.Literal.number(1), date_trunc_expr]
+    )
+
+    # Subtract one day
+    date_sub_expr = parse_date_delta(exp.DateSub, unit_mapping=DATE_DELTA_INTERVAL)(
+        [exp.Literal.string('DAY'), exp.Literal.number(1), date_add_expr]
+    )
+
+    return date_sub_expr
+
+
+def _parse_seq(args: list):
+    args = []
+    return local_expression.MonotonicallyIncreasingId(this=seq_get(args, 0))
+
+
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
@@ -405,6 +437,12 @@ class Snow(Snowflake):
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
+            "LAST_DAY": _parse_last_day,
+            "ARRAY_FLATTEN": exp.Flatten.from_arg_list,
+            "SEQ1": _parse_seq,
+            "SEQ2": _parse_seq,
+            "SEQ4": _parse_seq,
+            "SEQ8": _parse_seq,
         }
 
         FUNCTION_PARSERS = {
