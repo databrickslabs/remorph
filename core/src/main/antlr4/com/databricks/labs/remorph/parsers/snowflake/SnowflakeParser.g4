@@ -3134,16 +3134,18 @@ switchSearchConditionSection: WHEN searchCondition THEN expr
 switchSection: WHEN expr THEN expr
     ;
 
-// select
-queryStatement: withExpression? selectStatement setOperators*
+queryStatement: withExpression? queryExpression
     ;
 
 withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN (selectStatement setOperators*) RPAREN # CTETable
-    | id AS LPAREN expr RPAREN                                                                    # CTEColumn
+    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN queryExpression RPAREN # CTETable
+    | id AS LPAREN expr RPAREN                                                    # CTEColumn
+    ;
+
+queryExpression: selectStatement setOperators*
     ;
 
 selectStatement
