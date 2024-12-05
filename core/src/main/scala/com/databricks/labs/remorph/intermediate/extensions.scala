@@ -249,3 +249,13 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
+
+case class JinjaAsStatement(text: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case class JinjaAsExpression(text: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
+
+case class JinjaAsDataType(text: String) extends DataType
