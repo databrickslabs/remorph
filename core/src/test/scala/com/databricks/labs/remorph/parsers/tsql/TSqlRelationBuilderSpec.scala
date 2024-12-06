@@ -211,25 +211,25 @@ class TSqlRelationBuilderSpec
           ir.SetOperation(
             ir.SetOperation(
               ir.SetOperation(
-                ir.SetOperation(
-                  ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
-                  ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
-                  ir.UnionSetOp,
-                  is_all = false,
-                  by_name = false,
-                  allow_missing_columns = false),
-                ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
+                ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
+                ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
                 ir.UnionSetOp,
-                is_all = true,
+                is_all = false,
                 by_name = false,
                 allow_missing_columns = false),
+              ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
+              ir.UnionSetOp,
+              is_all = true,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.SetOperation(
               ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
-              ir.ExceptSetOp,
+              ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
+              ir.IntersectSetOp,
               is_all = false,
               by_name = false,
               allow_missing_columns = false),
-            ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
-            ir.IntersectSetOp,
+            ir.ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))
@@ -272,10 +272,34 @@ class TSqlRelationBuilderSpec
             by_name = false,
             allow_missing_columns = false))
       }
-      "SELECT 1 INTERSECT SELECT 2 EXCEPT SELECT 3 UNION SELECT 4" in {
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 INTERSECT SELECT 4" in {
         // INTERSECT has higher precedence than both UNION and EXCEPT
         example(
-          "SELECT 1 INTERSECT SELECT 2 EXCEPT SELECT 3 UNION SELECT 4",
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 INTERSECT SELECT 4",
+          _.queryExpression(),
+          ir.SetOperation(
+            ir.SetOperation(
+              ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
+              ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
+              ir.UnionSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.SetOperation(
+              ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
+              ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
+              ir.IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) INTERSECT (SELECT 4 EXCEPT SELECT 5)" in {
+        example(
+          "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) INTERSECT (SELECT 4 EXCEPT SELECT 5)",
           _.queryExpression(),
           ir.SetOperation(
             ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
@@ -283,46 +307,22 @@ class TSqlRelationBuilderSpec
               ir.SetOperation(
                 ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
                 ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
-                ir.ExceptSetOp,
-                is_all = false,
-                by_name = false,
-                allow_missing_columns = false),
-              ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
-              ir.UnionSetOp,
-              is_all = false,
-              by_name = false,
-              allow_missing_columns = false),
-            ir.IntersectSetOp,
-            is_all = false,
-            by_name = false,
-            allow_missing_columns = false))
-      }
-      "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) EXCEPT (SELECT 4 INTERSECT SELECT 5)" in {
-        example(
-          "SELECT 1 UNION (SELECT 2 UNION ALL SELECT 3) EXCEPT (SELECT 4 INTERSECT SELECT 5)",
-          _.queryExpression(),
-          ir.SetOperation(
-            ir.SetOperation(
-              ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
-              ir.SetOperation(
-                ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
-                ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
                 ir.UnionSetOp,
                 is_all = true,
                 by_name = false,
                 allow_missing_columns = false),
-              ir.UnionSetOp,
-              is_all = false,
-              by_name = false,
-              allow_missing_columns = false),
-            ir.SetOperation(
-              ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
-              ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
+              ir.SetOperation(
+                ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
+                ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
+                ir.ExceptSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
               ir.IntersectSetOp,
               is_all = false,
               by_name = false,
               allow_missing_columns = false),
-            ir.ExceptSetOp,
+            ir.UnionSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))

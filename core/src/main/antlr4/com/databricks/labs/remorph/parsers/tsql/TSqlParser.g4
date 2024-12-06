@@ -2796,8 +2796,8 @@ queryExpression
     // INTERSECT has higher precedence than EXCEPT and UNION ALL.
     // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
     : LPAREN queryExpression RPAREN                         # queryInParenthesis
-    | queryExpression (UNION ALL? | EXCEPT) queryExpression # queryUnion
     | queryExpression INTERSECT queryExpression             # queryIntersect
+    | queryExpression (UNION ALL? | EXCEPT) queryExpression # queryUnion
     | querySpecification                                    # querySimple
     ;
 
