@@ -107,13 +107,29 @@ def test_safe_parse(transpiler, write_dialect):
 
 def test_safe_parse_with_semicolon(transpiler, write_dialect):
     dialect = transpiler.read_dialect
-    result, error = transpiler.safe_parse("SELECT 'col1;col2' from tab1", dialect)
-    expected_result = [expressions.Literal(this="col1;col2", is_string=True)]
+    result, error = transpiler.safe_parse("SELECT split(col2,';') from tab1 where col1 like ';%'", dialect)
+    expected_result = [
+        expressions.Split(
+            this=expressions.Column(
+                this=expressions.Identifier(this="col2", quoted=False)
+            ),
+            expression=expressions.Literal(this=";", is_string=True)
+        )
+    ]
     expected_from_result = expressions.From(
         this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    expected_where_result = expressions.Where(
+        this=expressions.Like(
+            this=expressions.Column(
+                this=expressions.Identifier(this="col1", quoted=False)
+            ),
+            expression=expressions.Literal(this=";%", is_string=True)
+        )
     )
     for exp in result:
         if exp.parsed_expression:
             assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
             assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
+            assert repr(exp.parsed_expression.args["where"]) == repr(expected_where_result)
     assert len(error) == 0
