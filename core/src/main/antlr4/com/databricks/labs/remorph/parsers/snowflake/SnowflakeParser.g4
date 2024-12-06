@@ -3134,28 +3134,31 @@ switchSearchConditionSection: WHEN searchCondition THEN expr
 switchSection: WHEN expr THEN expr
     ;
 
-// select
-queryStatement: withExpression? selectStatement setOperators*
+queryStatement: withExpression? queryExpression
     ;
 
 withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN (selectStatement setOperators*) RPAREN # CTETable
-    | id AS LPAREN expr RPAREN                                                                    # CTEColumn
+    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN queryExpression RPAREN # CTETable
+    | id AS LPAREN expr RPAREN                                                    # CTEColumn
+    ;
+
+queryExpression
+    // INTERSECT has higher precedence than EXCEPT and UNION ALL.
+    // MINUS is an alias for EXCEPT
+    // Reference: https://docs.snowflake.com/en/sql-reference/operators-query.html#:~:text=precedence
+    : LPAREN queryExpression RPAREN                                  # queryInParenthesis
+    | queryExpression INTERSECT queryExpression                      # queryIntersect
+    | queryExpression (UNION ALL? | EXCEPT | MINUS_) queryExpression # queryUnion
+    | selectStatement                                                # querySimple
     ;
 
 selectStatement
     : selectClause selectOptionalClauses limitClause?
     | selectTopClause selectOptionalClauses //TOP and LIMIT are not allowed together
     | LPAREN selectStatement RPAREN
-    ;
-
-setOperators
-    // TODO: Handle INTERSECT precedence in the grammar; it has higher precedence than EXCEPT and UNION ALL.
-    // Reference: https://docs.snowflake.com/en/sql-reference/operators-query#:~:text=precedence
-    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
     ;
 
 selectOptionalClauses
