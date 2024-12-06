@@ -162,7 +162,9 @@ def validate_target_transpile(input_sql, *, target=None, pretty=False):
                     expression.sql(target_dialect, unsupported_level=ErrorLevel.RAISE)
         else:
             actual_sql = _normalize_string(
-                transpile(target_sql, read=Snowflake, write=get_dialect(target_dialect), pretty=pretty, error_level=None)[0]
+                transpile(
+                    target_sql, read=Snowflake, write=get_dialect(target_dialect), pretty=pretty, error_level=None
+                )[0]
             )
 
             expected_sql = _normalize_string(input_sql)
