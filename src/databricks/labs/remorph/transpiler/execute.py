@@ -1,3 +1,4 @@
+import abc
 import logging
 import os
 from pathlib import Path
@@ -32,11 +33,14 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
+class TranspileEngine(abc.ABC):
+    pass
+
 
 def _process_file(
     config: TranspileConfig,
     validator: Validator | None,
-    transpiler: SqlglotEngine,
+    transpiler: TranspileEngine,
     input_file: str | Path,
     output_file: str | Path,
 ):
