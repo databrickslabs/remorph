@@ -13,13 +13,13 @@ def transpiler():
 
 
 def test_transpile_snowflake(transpiler, morph_config):
-    transpiler_result = transpiler.transpile(morph_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
+    transpiler_result = transpiler.transpile("snowflake", morph_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
     assert transpiler_result.transpiled_sql[0] == "SELECT\n  CURRENT_TIMESTAMP()"
 
 
 def test_transpile_exception(transpiler, morph_config):
-    transpiler_result = transpiler.transpile(
-        morph_config.target_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
+    transpiler_result = transpiler.transpile("snowflake",
+        morph_config.target_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", Path("file.sql"), []
     )
     assert transpiler_result.transpiled_sql[0] == ""
     assert transpiler_result.parse_error_list[0].file_path == Path("file.sql")
@@ -27,7 +27,7 @@ def test_transpile_exception(transpiler, morph_config):
 
 
 def test_parse_query(transpiler, morph_config):
-    parsed_query, _ = transpiler.parse(morph_config.source_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", "file.sql")
+    parsed_query, _ = transpiler.parse(morph_config.source_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", Path("file.sql"))
 
     expected_result = [
         local_expression.TryToNumber(
@@ -52,23 +52,23 @@ def test_parse_query(transpiler, morph_config):
 
 
 def test_parse_invalid_query(transpiler):
-    result, error_list = transpiler.parse("invalid sql query", "file.sql")
+    result, error_list = transpiler.parse("snowflake", "invalid sql query", Path("file.sql"))
     assert result is None
     assert error_list.file_path == Path("file.sql")
     assert "Invalid expression / Unexpected token." in error_list.exception
 
 
 def test_tokenizer_exception(transpiler, morph_config):
-    transpiler_result = transpiler.transpile(morph_config.target_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
+    transpiler_result = transpiler.transpile("snowflake", morph_config.target_dialect, "1SELECT ~v\ud83d' ", Path("file.sql"), [])
 
     assert transpiler_result.transpiled_sql == [""]
-    assert transpiler_result.parse_error_list[0].file_path == ["file.sql"]
+    assert transpiler_result.parse_error_list[0].file_path == Path("file.sql")
     assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
 
-def test_procedure_conversion(transpiler, write_dialect):
+def test_procedure_conversion(transpiler, morph_config):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
-    transpiler_result = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
+    transpiler_result = transpiler.transpile("databricks", morph_config.target_dialect, procedure_sql, Path("file.sql"), [])
     assert (
         transpiler_result.transpiled_sql[0]
         == "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
@@ -76,12 +76,12 @@ def test_procedure_conversion(transpiler, write_dialect):
 
 
 def test_find_root_tables(transpiler):
-    expression, _ = transpiler.parse("SELECT * FROM table_name", "test.sql")
+    expression, _ = transpiler.parse("snowflake", "SELECT * FROM table_name", Path("test.sql"))
     # pylint: disable=protected-access
     assert transpiler._find_root_tables(expression[0]) == "table_name"
 
 
 def test_parse_sql_content(transpiler):
-    result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
+    result = list(transpiler.parse_sql_content("databricks", "SELECT * FROM table_name", Path("test.sql")))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
