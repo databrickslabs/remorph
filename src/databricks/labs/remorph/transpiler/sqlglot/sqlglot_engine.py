@@ -41,8 +41,8 @@ class SqlglotEngine(TranspileEngine):
     def parse_sql_content(self, source_dialect: str, source_code: str, file_path: Path):
         parsed_expression, _ = self.parse(source_dialect, source_code, file_path)
         if parsed_expression is not None:
-            child = str(file_path)
             for expr in parsed_expression:
+                child: str | None = str(file_path)
                 if expr is not None:
                     for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
                         child = self._find_root_tables(create)
