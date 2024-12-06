@@ -37,7 +37,7 @@ def get_key_from_dialect(input_dialect: Dialect) -> str:
 
 
 @dataclass
-class MorphConfig:
+class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 1
 
@@ -126,5 +126,5 @@ class ReconcileConfig:
 
 @dataclass
 class RemorphConfigs:
-    morph: MorphConfig | None = None
+    transpile: TranspileConfig | None = None
     reconcile: ReconcileConfig | None = None

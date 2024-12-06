@@ -7,7 +7,7 @@ import yaml
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
@@ -172,7 +172,7 @@ def test_transpile_with_no_sdk_config():
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
         patch("os.path.exists", return_value=True),
     ):
-        default_config = MorphConfig(
+        default_config = TranspileConfig(
             sdk_config=None,
             source="snowflake",
             input_sql="/path/to/sql/file.sql",
@@ -196,7 +196,7 @@ def test_transpile_with_no_sdk_config():
         )
         mock_morph.assert_called_once_with(
             workspace_client,
-            MorphConfig(
+            TranspileConfig(
                 sdk_config=None,
                 source="snowflake",
                 input_sql="/path/to/sql/file.sql",
@@ -217,7 +217,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
         sdk_config = {"warehouse_id": "w_id"}
-        default_config = MorphConfig(
+        default_config = TranspileConfig(
             sdk_config=sdk_config,
             source="snowflake",
             input_sql="/path/to/sql/file.sql",
@@ -241,7 +241,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         )
         mock_morph.assert_called_once_with(
             workspace_client,
-            MorphConfig(
+            TranspileConfig(
                 sdk_config=sdk_config,
                 source="snowflake",
                 input_sql="/path/to/sql/file.sql",
@@ -262,7 +262,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
         sdk_config = {"cluster_id": "c_id"}
-        default_config = MorphConfig(
+        default_config = TranspileConfig(
             sdk_config=sdk_config,
             source="snowflake",
             input_sql="/path/to/sql/file.sql",
@@ -286,7 +286,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
         )
         mock_morph.assert_called_once_with(
             workspace_client,
-            MorphConfig(
+            TranspileConfig(
                 sdk_config=sdk_config,
                 source="snowflake",
                 input_sql="/path/to/sql/file.sql",
@@ -373,7 +373,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
-            MorphConfig(
+            TranspileConfig(
                 sdk_config=sdk_config,
                 source=source,
                 input_sql=input_sql,
@@ -413,7 +413,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
-            MorphConfig(
+            TranspileConfig(
                 sdk_config=sdk_config,
                 source=source,
                 input_sql=input_sql,

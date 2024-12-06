@@ -21,7 +21,7 @@ from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TranspileConfig
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Filters,
@@ -68,7 +68,7 @@ def mock_workspace_client():
 
 @pytest.fixture()
 def morph_config():
-    yield MorphConfig(
+    yield TranspileConfig(
         sdk_config={"cluster_id": "test_cluster"},
         source="snowflake",
         input_sql="input_sql",
