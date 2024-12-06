@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH MaterializedViewOverhead AS (
     SELECT 'MaterializedView1' AS ViewName, 1000 AS [RowCount], 10.0 AS StorageSizeMB
     UNION ALL

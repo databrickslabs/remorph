@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT nationkey, regionkey, SUM(acctbal) AS total_balance
     FROM customer

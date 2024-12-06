@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE Supplier_Cursor CURSOR FOR
 SELECT s_name, s_address
 FROM (

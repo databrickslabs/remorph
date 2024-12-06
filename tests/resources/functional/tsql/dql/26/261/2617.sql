@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT c_name, REVERSE(c_name) AS ReverseName
     FROM (

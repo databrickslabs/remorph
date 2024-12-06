@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @Hrs INT = 10;
 DECLARE @myDoc XML = (
     SELECT *

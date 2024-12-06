@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @cleartext nvarchar(100) = 'This is some clear text';
 CREATE ASYMMETRIC KEY MyAsymKey WITH ALGORITHM = RSA_2048;
 CREATE TABLE Sales.ProtectedData (

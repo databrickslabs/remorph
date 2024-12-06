@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @datetime DATETIME = '2016-10-23 12:45:37.333';
 DECLARE @datetime2 DATETIME2 = @datetime;
 

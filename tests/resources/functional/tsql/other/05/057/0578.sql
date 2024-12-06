@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH ExternalLibrary AS (
     SELECT 'customPackage' AS LibraryName,
            'C:\Path\To\customPackage.zip' AS CONTENT,

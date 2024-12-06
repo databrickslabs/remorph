@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT ENCRYPTBYPASSPHRASE('password123', 'aspirin') AS encrypted_medicine_name,
            'John Smith AAD' AS aad,

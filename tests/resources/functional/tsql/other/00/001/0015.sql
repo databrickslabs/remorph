@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customer_orders
 (
     order_id INT,

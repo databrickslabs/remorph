@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE temp_table (l_discount DECIMAL(5,2), l_extendedprice INT, l_linenumber INT, l_quantity INT, l_orderkey INT, l_shipmode VARCHAR(1));
 
 SELECT *

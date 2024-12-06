@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateFunctions AS (
     SELECT
         SYSDATETIME() AS SYSDATETIME,

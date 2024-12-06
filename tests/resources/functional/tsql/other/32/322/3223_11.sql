@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE t4 (a INT);
 INSERT INTO t4 (a)
 SELECT a

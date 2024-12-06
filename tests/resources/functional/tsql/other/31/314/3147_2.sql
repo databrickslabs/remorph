@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ProductsCTE AS (
     SELECT ProductID, ListPrice
     FROM (

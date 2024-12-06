@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @ASOF DATETIMEOFFSET;
 SET @ASOF = DATEADD(month, -1, GETDATE()) AT TIME ZONE 'UTC';
 

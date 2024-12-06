@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @revenue DECIMAL(18, 2);
 
 WITH lineitem_data AS (

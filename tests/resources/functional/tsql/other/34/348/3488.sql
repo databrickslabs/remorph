@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH customer AS (
     SELECT * FROM (VALUES
         (1, 'Customer1', 100.0, '123 Main St', '123-456-7890', 'Comment1', 1),

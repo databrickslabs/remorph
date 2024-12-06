@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.uspGetOrderList
     @Customer VARCHAR(40),
     @MaxTotal MONEY,

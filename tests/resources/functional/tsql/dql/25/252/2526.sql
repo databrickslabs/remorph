@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT '1992-01-01' AS order_date
     UNION ALL

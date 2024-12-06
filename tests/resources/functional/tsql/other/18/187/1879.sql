@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @number INT;
 SET @number = 10;
 SELECT @number + ' is a number.' AS Result

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE SCOPED CREDENTIAL MyCredential
 WITH IDENTITY = 'MyIdentity';
 -- REMORPH CLEANUP: DROP DATABASE SCOPED CREDENTIAL MyCredential;

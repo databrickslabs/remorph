@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @d DECIMAL(7, 2) = 85.455;
 DECLARE @f FLOAT(24) = 85.455;
 CREATE TABLE #result (

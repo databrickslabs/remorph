@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO sample (id, geom)
 SELECT id, geom
 FROM (

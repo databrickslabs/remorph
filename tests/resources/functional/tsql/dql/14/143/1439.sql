@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @ORDER_STATUS VARCHAR(3) = 'OFF';
 IF ( (1024 & @@OPTIONS) = 1024 )
     SET @ORDER_STATUS = 'ON';

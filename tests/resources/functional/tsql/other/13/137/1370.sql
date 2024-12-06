@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH customer_load AS (
     SELECT 'customer1' AS customer_name, 100 AS load_value
     UNION ALL

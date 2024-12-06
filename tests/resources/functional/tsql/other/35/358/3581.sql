@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH orders AS (
   SELECT '1-URGENT' AS orderpriority, '1993-01-01' AS orderdate, 1 AS orderkey, 1 AS shippriority
   UNION ALL

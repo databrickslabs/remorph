@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Customer_Cluster
 (
     c_custkey INT,

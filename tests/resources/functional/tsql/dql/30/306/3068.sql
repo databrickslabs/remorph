@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT geography::CollectionAggregate(Region).ToString() AS RegionLocation
 FROM (
     VALUES ('Seattle', geography::Point(47.6067, -122.3321, 4326)),

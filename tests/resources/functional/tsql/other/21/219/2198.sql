@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO MeasureTable (MeasureCode, MeasureName)
 VALUES ('M1', 'Unit Measure 1'),
        ('M2', 'Unit Measure 2'),

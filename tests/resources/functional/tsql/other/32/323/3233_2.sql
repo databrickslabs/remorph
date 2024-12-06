@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO dbo.Equipment (Name)
 SELECT Name
 FROM (

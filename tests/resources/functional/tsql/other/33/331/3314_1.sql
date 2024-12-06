@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID(N'customer_temp', N'U') IS NOT NULL
     DROP TABLE customer_temp;
 

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTable TABLE (MyID INT, MyName VARCHAR(50));
 INSERT INTO @MyTable (MyID, MyName)
 VALUES

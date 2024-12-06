@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 BEGIN TRY
     EXECUTE usp_DemoProc;
 END TRY

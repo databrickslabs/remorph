@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE db1 MODIFY (BACKUP_STORAGE_REDUNDANCY = 'ZONE');

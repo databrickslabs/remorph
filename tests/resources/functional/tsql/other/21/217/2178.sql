@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH TempCTE AS (
     SELECT 1 AS ID, 'Name1' AS Name
     UNION ALL

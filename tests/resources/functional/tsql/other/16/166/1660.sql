@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geography;
 SET @g = geography::STGeomFromText('POINT(-122.34900 47.65100)', 4326);
 SELECT result

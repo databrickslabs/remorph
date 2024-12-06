@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'new_strong_password';
 CREATE DATABASE SCOPED CREDENTIAL [NewWorkspaceIdentity]
     WITH IDENTITY = 'NewManagedIdentity';

@@ -1,2 +1,2 @@
---Query type: DCL
+-- tsql sql:
 SET LANGUAGE 'English';

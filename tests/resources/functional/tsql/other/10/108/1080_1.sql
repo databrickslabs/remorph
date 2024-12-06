@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @RowCount INT;
 DECLARE @Balance DECIMAL(10, 2) = 1000.00;
 DECLARE @sql NVARCHAR(MAX) = 'SELECT @RowCount = COUNT(*) FROM (VALUES (1), (2), (3)) AS TempTable';

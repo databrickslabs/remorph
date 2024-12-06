@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF OBJECT_ID('variant_example', 'U') IS NULL
 CREATE TABLE variant_example (
     variant_column SQL_VARIANT

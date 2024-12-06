@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @filename nvarchar(50), @filepath nvarchar(255), @sql nvarchar(max);
 
 WITH temp_data AS (

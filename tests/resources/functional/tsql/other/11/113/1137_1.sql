@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE [Sales].[Orders]
 (
     OrderKey INT NOT NULL PRIMARY KEY,

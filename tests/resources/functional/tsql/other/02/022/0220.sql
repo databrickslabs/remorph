@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE budget_notification (id INT, email VARCHAR(255), notification_email VARCHAR(255));
 INSERT INTO budget_notification (id, email, notification_email)
 VALUES (1, 'budgets_notification', 'costadmin@domain.com, budgetadmin@domain.com');

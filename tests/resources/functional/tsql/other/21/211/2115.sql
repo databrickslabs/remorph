@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH CatalogUsers AS (
     SELECT 'CustomerCatalog' AS CatalogName, 'Manager' AS UserName
 )

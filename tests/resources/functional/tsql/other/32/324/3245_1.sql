@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH DataToInsert AS (
     SELECT 'Damaged Goods' AS Name, 5 AS CostRate, 2.5 AS Availability, GETDATE() AS ModifiedDate
     UNION ALL

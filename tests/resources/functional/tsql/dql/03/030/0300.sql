@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT c_name, MIN(c_acctbal) AS MinimumAccountBalance
     FROM customer

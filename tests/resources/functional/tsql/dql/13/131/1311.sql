@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH datetimeoffset_values AS (
     SELECT CAST('2022-01-01 12:00:00.0000000 +02:00' AS datetimeoffset) AS ColDatetimeoffset
 )

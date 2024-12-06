@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CustomerDemographics
 (
     CustKey INT PRIMARY KEY,

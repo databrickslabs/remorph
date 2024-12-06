@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_result
 (
     n_name VARCHAR(255),

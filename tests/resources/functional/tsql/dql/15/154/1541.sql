@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date datetime = '2020-02-02 02:02:02.002';
 WITH orders AS (
     SELECT 'Order 1' AS order_name, @order_date AS order_date

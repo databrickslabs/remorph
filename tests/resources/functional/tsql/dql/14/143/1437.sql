@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @AR_ORDERSTATUS VARCHAR(3) = 'OFF';
 IF ( (16 & @@OPTIONS) = 16 )
     SET @AR_ORDERSTATUS = 'ON';

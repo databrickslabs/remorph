@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT BusinessEntityID, NationalIDNumber, EncryptedNationalIDNumber2
     FROM (

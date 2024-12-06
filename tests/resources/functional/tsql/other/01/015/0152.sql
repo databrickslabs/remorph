@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH dates AS (
   SELECT CAST('2022-01-01' AS DATE) AS d
   UNION ALL

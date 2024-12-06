@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE OrderSeq AS integer;
 SELECT NEXT VALUE FOR OrderSeq AS OrderId
 FROM (

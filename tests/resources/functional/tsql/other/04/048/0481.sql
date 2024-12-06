@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @username sysname;
 SELECT @username = username
 FROM (

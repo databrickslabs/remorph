@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #sql_logins
 (
     name sysname,

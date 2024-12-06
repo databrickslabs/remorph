@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @MY_NEW_TABLE_NAME sysname = 'my_new_table';
 WITH drop_table_query AS (
     SELECT 'DROP TABLE ' + QUOTENAME(@MY_NEW_TABLE_NAME) + ';' AS query

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH SalesData AS (
     SELECT 1 AS OrderID, 100 AS Total, '2022-01-01' AS OrderDate
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateValues AS (
     SELECT CONVERT(date, SYSDATETIME()) AS DateValue1,
            CONVERT(date, CURRENT_TIMESTAMP) AS DateValue2,

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @RESULT VARCHAR(100);
 
 BEGIN TRY

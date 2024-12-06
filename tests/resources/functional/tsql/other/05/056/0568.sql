@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH cte AS (
     SELECT 'db2' AS database_name, 'FORCE_FAILOVER_ALLOW_DATA_LOSS' AS option_name
 ),

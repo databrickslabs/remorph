@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @orderdate DATE = '1995-01-01';
 DECLARE @shipdate DATE = '1995-01-15';
 

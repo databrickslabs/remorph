@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @LoginName sysname = 'NewUser';
 DECLARE @CredentialName sysname = 'NewCredential';
 

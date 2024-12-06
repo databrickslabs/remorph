@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO aggr (k, v)
 SELECT *
 FROM (

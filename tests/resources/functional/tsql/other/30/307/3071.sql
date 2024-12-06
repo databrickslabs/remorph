@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH Data AS (
     SELECT 'Product 1' AS ProductName, 100.0 AS Price
     UNION ALL

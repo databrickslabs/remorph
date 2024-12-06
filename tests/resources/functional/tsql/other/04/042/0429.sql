@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #tempResult (Employee_LastName VARCHAR(50));
 INSERT INTO #tempResult (Employee_LastName)
 VALUES ('Smith'), ('Johnson'), ('Williams'), ('Jones'), ('Brown');

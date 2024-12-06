@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SETUSER 'mary';
 WITH orders AS (
     SELECT '1-URGENT' AS o_orderpriority, 1000 AS o_totalprice, '1992-01-01' AS o_orderdate

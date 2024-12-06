@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_table
 (
     login_sname SYSNAME DEFAULT SUSER_SNAME(),

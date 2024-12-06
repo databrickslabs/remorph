@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT l_orderkey, l_extendedprice
     FROM lineitem

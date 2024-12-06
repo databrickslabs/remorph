@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myXml XML;
 SET @myXml = (
     SELECT *

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH models AS (
     SELECT 'model1' AS model_id, 'data1' AS model_data
     UNION ALL

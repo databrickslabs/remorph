@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID('[repair_table_temp_2]', 'U') IS NOT NULL
     DROP TABLE [repair_table_temp_2];
 

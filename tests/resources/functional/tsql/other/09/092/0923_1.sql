@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE CERTIFICATE Shipping04 ENCRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y' WITH SUBJECT = 'Sammamish Shipping Records', EXPIRY_DATE = '20401031';
 WITH temp_result AS (
     SELECT 1 AS c_custkey, 'Customer1' AS c_name

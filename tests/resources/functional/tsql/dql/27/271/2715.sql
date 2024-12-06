@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT p_partkey, p_name, p_mfgr
 FROM (
     VALUES

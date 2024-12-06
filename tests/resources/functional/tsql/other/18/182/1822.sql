@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE loan_applications
 (
     c1 INT,

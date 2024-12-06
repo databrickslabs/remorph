@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH DummyCTE AS (
     SELECT 1 AS DummyColumn
 )

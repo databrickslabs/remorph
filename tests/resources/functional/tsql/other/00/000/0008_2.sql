@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'target_clone')
 BEGIN
     EXEC('CREATE SCHEMA target_clone');

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @Grouping nvarchar(50);
 SET @Grouping = N'CountryRegionCode Total';
 

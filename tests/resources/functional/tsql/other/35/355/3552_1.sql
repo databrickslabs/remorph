@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE CERTIFICATE TPC_H_CERT
 WITH SUBJECT = 'TPC_H_CERTIFICATE';
 

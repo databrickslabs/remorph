@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH tmp AS (
     SELECT TOP 1 *
     FROM (

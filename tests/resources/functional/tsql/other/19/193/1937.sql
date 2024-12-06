@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @OrderDetails TABLE (OrderKey INT, TotalPrice DECIMAL(10, 2));
 INSERT INTO @OrderDetails (OrderKey, TotalPrice)
 VALUES

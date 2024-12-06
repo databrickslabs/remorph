@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS level
 )

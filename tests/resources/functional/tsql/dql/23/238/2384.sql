@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CAST(SUM(l_extendedprice) AS FLOAT) * SUM(l_discount) AS total_revenue,
            GETDATE() AS [current_date]

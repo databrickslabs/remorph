@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @Rate DECIMAL(10, 2);
 SET @Rate = 10.50;
 SELECT Rate

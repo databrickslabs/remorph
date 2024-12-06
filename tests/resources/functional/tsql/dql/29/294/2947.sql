@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_sales AS (
     SELECT c_custkey, c_name, SUM(EXTENDEDPRICE * (1 - DISCOUNT)) AS total_sales
     FROM (

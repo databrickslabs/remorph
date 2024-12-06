@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @search_property_list_name nvarchar(100) = 'spl_2';
 CREATE TABLE table_1
 (

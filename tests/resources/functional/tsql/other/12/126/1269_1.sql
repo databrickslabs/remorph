@@ -1,3 +1,3 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO dbo.MyNewTable (BigIntColumn, IntColumn, SmallIntColumn, TinyIntColumn)
 VALUES (9223372036854775807, 2147483647, 32767, 255), (9223372036854775806, 123456789, 12345, 123);

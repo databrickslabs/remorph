@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @StartingRowNumber INT = 1, @RowCountPerPage INT = 3;
 
 WITH SalesOrder AS (

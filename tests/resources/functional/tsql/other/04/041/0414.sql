@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @StringPartitionFunction nvarchar(max) = N'CREATE PARTITION FUNCTION StringPartitionFunction (nvarchar(50)) AS RANGE RIGHT FOR VALUES (';
 WITH Characters AS (
     SELECT CONVERT(nvarchar(1), N'a') AS CharValue, 1 AS Level

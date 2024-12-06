@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @regionname nvarchar(25);
 SELECT @regionname = 'Europe'
 FROM (

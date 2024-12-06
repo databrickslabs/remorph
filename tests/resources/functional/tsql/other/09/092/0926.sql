@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE TestDB2;
 CREATE TABLE customer
 (

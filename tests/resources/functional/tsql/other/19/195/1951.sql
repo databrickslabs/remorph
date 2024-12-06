@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @customer_orders TABLE (c_custkey INT, c_name VARCHAR(50), o_orderkey INT, o_totalprice DECIMAL(10, 2));
 INSERT INTO @customer_orders (c_custkey, c_name, o_orderkey, o_totalprice)
 SELECT c.c_custkey, c.c_name, o.o_orderkey, o.o_totalprice

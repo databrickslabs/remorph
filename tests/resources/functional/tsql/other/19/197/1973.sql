@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 DROP DATABASE SalesDB;

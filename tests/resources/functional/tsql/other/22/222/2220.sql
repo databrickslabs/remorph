@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH NotificationSubscriptions AS (
     SELECT 73 AS SubscriptionID
 )

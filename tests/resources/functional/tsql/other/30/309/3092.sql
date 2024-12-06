@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #customer (custkey INT, name VARCHAR(50), total DECIMAL(10, 2));
 WITH customer AS (
     SELECT *

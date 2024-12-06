@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #TempTable (C1 VARCHAR(10), C2 VARCHAR(10));
 INSERT INTO #TempTable (C1, C2)
 VALUES ('1', 'a'), ('2', 'b');

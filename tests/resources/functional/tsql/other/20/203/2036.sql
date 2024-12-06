@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP TABLE IF EXISTS #TempTable;
 
 WITH TempTable AS (

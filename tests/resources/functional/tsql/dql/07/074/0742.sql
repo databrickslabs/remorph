@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ranked_lineitem AS (
     SELECT l_orderkey, l_extendedprice, ROW_NUMBER() OVER (PARTITION BY l_orderkey ORDER BY l_extendedprice) AS row_num
     FROM (

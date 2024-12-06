@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT r1.Name AS Region, r2.BusinessEntityID
 FROM (
     VALUES (1, 'North'),

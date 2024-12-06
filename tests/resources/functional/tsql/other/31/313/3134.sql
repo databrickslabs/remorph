@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @OrderIDVariable INT;
 
 WITH Customers AS (

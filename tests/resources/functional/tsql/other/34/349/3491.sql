@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH temp_result AS (
     SELECT c_custkey, c_name, c_acctbal, n_name, c_address, c_phone, c_comment
     FROM (

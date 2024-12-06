@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE Locations
 (
     LocationName nvarchar(255),

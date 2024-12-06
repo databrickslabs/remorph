@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @customerkey INT;
 SELECT *
 FROM (

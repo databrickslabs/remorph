@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 CREATE PROCEDURE usp_GetCustomerErrorInfo
     @customerkey INT
 AS

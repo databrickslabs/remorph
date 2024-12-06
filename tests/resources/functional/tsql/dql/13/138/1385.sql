@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH orders AS (
     SELECT CAST('1992-01-01' AS DATE) AS order_date,
            1 AS order_key

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @SearchTerm NVARCHAR(30);
 SET @SearchTerm = N'Quality';
 

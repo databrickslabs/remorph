@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO array_test (ID, array1, array2, tip)
 SELECT ID, array1, array2, tip
 FROM (

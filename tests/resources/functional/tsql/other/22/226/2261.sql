@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'MyDB')
 CREATE DATABASE MyDB;
 

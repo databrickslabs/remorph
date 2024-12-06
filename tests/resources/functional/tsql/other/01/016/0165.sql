@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_table AS (SELECT 1 AS new_column_name, 'value' AS another_column)
 SELECT new_column_name, another_column
 INTO #temp_table

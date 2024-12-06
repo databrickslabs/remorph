@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @d smalldatetime = '2009-09-11 12:42:12';
 WITH cte AS (
     SELECT 'Input' AS col1, @d AS col2

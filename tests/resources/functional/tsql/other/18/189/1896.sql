@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @dateFrom DATE = '2022-01-01';
 DECLARE @dateTo DATE = '2022-01-31';
 

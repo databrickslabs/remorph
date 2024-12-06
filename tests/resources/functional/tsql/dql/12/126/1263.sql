@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT 'DataSource1' AS DataSource, 1 AS BusinessEntityID, 'Smith' AS LastName, 1000.00 AS SalesDollars
     UNION ALL

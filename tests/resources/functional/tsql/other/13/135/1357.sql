@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @users TABLE (email nvarchar(255));
 INSERT INTO @users (email)
 VALUES ('alice@example.com');

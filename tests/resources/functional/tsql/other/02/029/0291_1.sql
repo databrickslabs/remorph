@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO orders (order_key, cust_key, order_status)
 SELECT order_key, cust_key, order_status
 FROM (

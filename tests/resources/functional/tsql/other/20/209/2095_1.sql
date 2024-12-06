@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE Sales.uspGetCustomers
     @FirstName nvarchar(50),
     @LastName nvarchar(50)

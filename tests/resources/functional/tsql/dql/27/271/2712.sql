@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT p_productkey, p_name, p_comment
 FROM (
     VALUES (1, 'Product1', 'Comment1'),

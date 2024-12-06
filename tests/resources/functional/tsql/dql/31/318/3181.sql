@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte1 AS (
     SELECT *
     FROM (

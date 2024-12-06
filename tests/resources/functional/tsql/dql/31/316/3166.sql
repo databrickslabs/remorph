@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS p_partkey, 10.0 AS p_size, 5 AS o_orderkey
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT 1 AS BusinessEntityID, 250000.01 AS SalesYTD
 ),

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Get10TopSuppliers
 AS
 BEGIN

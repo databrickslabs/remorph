@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE DATABASE TPC_H;
 CREATE USER SalesManager;
 GRANT CONTROL ON DATABASE::TPC_H TO SalesManager;

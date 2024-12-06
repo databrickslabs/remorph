@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE SCOPED CREDENTIAL AccessAzureOrders
 WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
 SECRET = '******srt=sco&sp=rwac&se=2022-02-01T00:55:34Z&st=2021-12-29T16:55:34Z***************';

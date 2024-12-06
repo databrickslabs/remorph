@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @region geography;
 DECLARE @route geography;
 SET @region = geography::STGeomFromText('POLYGON((-71.088 42.315, -71.078 42.311, -71.078 42.320, -71.088 42.320, -71.088 42.315))', 4326);

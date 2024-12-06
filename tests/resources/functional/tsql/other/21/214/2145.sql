@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH orders_cte AS (
     SELECT orderkey, custkey, orderstatus
     FROM (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @date DATETIME = '2022-01-01';
 DECLARE @time TIME = '12:00:00';
 

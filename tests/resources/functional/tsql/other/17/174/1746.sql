@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @d datetime;
 SELECT @d = DATEADD(day, 1, '2022-01-01');
 WITH dates AS (

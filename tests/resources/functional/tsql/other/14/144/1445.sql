@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @SupplierID int = 1;
 DECLARE @SupplierName varchar(200) = 'Supplier1';
 DECLARE @Address varchar(max) = REPLACE(CONVERT(varchar(100), @SupplierID), '1', 'A') + @SupplierName;

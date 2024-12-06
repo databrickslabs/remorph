@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE TestDB
 SET ANSI_NULL_DEFAULT OFF;
 

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #RouteInfo (ServiceName nvarchar(50), Lifetime int, Address nvarchar(50));
 INSERT INTO #RouteInfo (ServiceName, Lifetime, Address)
 VALUES ('//TPC-H.com/Orders', 259200, 'TCP://services.TPC-H.com:5678');

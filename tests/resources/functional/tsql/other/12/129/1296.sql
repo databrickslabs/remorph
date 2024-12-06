@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE dbo.orders_example (
     o_orderkey INT NOT NULL,
     o_custkey INT NOT NULL,

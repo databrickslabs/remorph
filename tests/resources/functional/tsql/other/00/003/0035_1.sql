@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #customer_hash (ch VARCHAR(50));
 WITH combined_customers AS (
     SELECT ch FROM (VALUES ('customer1'), ('customer2')) AS customers(ch)

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH KeyInfo AS (
     SELECT 'sfj5300osdVdgwdfkli7' AS key_password,
            'sd092735kjn$&adsg' AS backup_password,

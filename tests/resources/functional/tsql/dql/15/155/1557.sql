@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @new_date DATETIME2 = '2022-01-01 12:00:00';
 WITH buckets AS (
     SELECT

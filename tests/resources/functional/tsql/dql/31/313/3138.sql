@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @MyVariable INT = 1;
 
 WITH EmployeeCTE AS (

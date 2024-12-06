@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE my_indexes CURSOR FOR
     SELECT
         my_object_name,

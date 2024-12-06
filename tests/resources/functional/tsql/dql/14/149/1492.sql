@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @NUMERIC_ROUNDABORT VARCHAR(3) = 'OFF';
 IF ( (8192 & @@OPTIONS) = 8192 )
     SET @NUMERIC_ROUNDABORT = 'ON';

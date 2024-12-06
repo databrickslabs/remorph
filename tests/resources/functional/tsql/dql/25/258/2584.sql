@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE TABLE DepartmentCTE
 (
     DepartmentNumber INT,

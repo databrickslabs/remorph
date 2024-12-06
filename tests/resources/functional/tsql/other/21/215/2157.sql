@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH IndexCTE AS (
     SELECT 1 AS DropIndex
     WHERE EXISTS (

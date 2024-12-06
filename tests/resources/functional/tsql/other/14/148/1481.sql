@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyValue INT;
 SET @MyValue = 3;
 WITH temp AS (

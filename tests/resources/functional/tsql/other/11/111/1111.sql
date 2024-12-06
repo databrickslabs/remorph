@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @PoolName nvarchar(128) = 'PoolMarketing';
 DECLARE @MinCPUPercent int = 20;
 DECLARE @MaxCPUPercent int = 30;

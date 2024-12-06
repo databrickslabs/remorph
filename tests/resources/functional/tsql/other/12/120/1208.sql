@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_orders (customer_name nvarchar(255) COLLATE Latin1_General_100_CI_AS, order_date nvarchar(255) COLLATE Latin1_General_100_CI_AS);
 INSERT INTO customer_orders (customer_name, order_date)
 SELECT customer_name, order_date

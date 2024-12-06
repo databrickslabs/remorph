@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @o_orderdate datetime = '1998-03-04';
 DECLARE @o_shippriority datetime = '1998-03-04 10:10:05';
 WITH cte AS (

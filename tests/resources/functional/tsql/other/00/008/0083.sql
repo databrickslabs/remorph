@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE ext_table_2 (value VARCHAR(50));
 INSERT INTO ext_table_2 (value)
 VALUES ('value3'), ('value4');

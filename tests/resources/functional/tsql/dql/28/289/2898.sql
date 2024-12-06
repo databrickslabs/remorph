@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'file1' AS name, 1000 AS size
     UNION ALL

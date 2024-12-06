@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'supplierData')
 BEGIN
     CREATE TABLE supplierData (

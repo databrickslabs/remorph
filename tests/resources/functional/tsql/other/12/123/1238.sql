@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT customer_id, customer_name
     FROM (

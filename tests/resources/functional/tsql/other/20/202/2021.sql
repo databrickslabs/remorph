@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DROP SERVER AUDIT SPECIFICATION HIPAA_Audit_Specification;
 
 WITH temp_result AS (

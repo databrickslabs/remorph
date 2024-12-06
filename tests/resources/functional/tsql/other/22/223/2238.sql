@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @trancount INT;
 SET @trancount = @@TRANCOUNT;
 PRINT @trancount;

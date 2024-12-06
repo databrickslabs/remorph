@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE TABLE #temp_table (colA sql_variant, colB INT);
 INSERT INTO #temp_table
 VALUES (CAST(46279.1 AS decimal(8, 2)), 1689);

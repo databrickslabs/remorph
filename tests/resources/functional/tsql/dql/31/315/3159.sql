@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte_person AS (
     SELECT 'Doe' AS LastName, 'John' AS FirstName, 1 AS BusinessEntityID
     UNION ALL

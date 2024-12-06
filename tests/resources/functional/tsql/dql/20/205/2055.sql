@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT region, SUM(sales) AS total_sales, AVG(sales) AS avg_sales, MAX(sales) AS max_sales, MIN(sales) AS min_sales
     FROM (

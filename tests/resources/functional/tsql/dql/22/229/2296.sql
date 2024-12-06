@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT INDEXPROPERTY(OBJECT_ID('temp_result'), 'PK_temp_result', 'IsClustered') AS [Is Clustered],
        INDEXPROPERTY(OBJECT_ID('temp_result'), 'PK_temp_result', 'IndexDepth') AS [Index Depth],
        INDEXPROPERTY(OBJECT_ID('temp_result'), 'PK_temp_result', 'IndexFillFactor') AS [Fill Factor]

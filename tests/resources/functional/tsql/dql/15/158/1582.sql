@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @months INT = 12, @order_date DATETIME = '1995-01-01 01:01:01.111';
 SELECT DATEADD(month, @months, o_orderdate) AS new_order_date
 FROM (

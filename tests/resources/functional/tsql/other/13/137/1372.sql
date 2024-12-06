@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE WorkloadClassifiers
 (
     ClassifierName nvarchar(255),

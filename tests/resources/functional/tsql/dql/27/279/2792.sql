@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrderDetails AS (
     SELECT o_orderkey, l_partkey, l_quantity
     FROM (

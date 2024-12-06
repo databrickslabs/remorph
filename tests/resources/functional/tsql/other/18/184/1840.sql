@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myvar CHAR(20);
 SET @myvar = 'This is a test';
 

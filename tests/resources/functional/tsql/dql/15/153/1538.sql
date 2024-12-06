@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @d date = '2050-04-04';
 SELECT 'Input', @d
 FROM (

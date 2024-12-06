@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP TABLE #temp;
 
 WITH sales_data AS (

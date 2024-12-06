@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO temp_result_set (first_name, last_name, phone_number, city, zip_code)
 SELECT *
 FROM (

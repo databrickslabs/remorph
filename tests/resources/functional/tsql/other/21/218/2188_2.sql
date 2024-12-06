@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE check_table_2
 WITH (DISTRIBUTION = ROUND_ROBIN)
 AS

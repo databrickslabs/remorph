@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer (c_custkey INT, c_name VARCHAR(255), c_address VARCHAR(255));
 CREATE TABLE orders (o_orderkey INT, o_custkey INT, o_orderstatus VARCHAR(255));
 WITH customer_cte AS (

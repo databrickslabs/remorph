@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @CustomerID AS NVARCHAR(256);
 DECLARE @CompanyName AS NVARCHAR(50);
 

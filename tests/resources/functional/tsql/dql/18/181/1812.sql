@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @product_id INT;
 SET @product_id = 123;
 

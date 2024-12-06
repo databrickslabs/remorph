@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #MyTempTable
 (
     Name VARCHAR(50),

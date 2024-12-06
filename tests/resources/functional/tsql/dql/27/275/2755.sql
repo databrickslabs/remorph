@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'Customer#000000001' AS name,
            'United States' AS nation

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @g1 datetime;
 SELECT date AS date_value
 FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE FUNCTION Region.ufn_SalesByRegion (@regionid int)
 RETURNS TABLE
 AS

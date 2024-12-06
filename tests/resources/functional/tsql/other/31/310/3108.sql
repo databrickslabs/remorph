@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 -- Create a table to store customer data
 CREATE TABLE CustomerData
 (

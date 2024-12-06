@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @x4 INT = 54;
 SET @x4 /= 3;
 SELECT *

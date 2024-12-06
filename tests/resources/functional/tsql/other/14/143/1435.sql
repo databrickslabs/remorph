@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'INDIA' AS n_name, 'ASIA' AS r_name, 1000.0 AS revenue
     UNION ALL

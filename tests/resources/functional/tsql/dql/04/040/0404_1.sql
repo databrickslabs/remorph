@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH idx AS (
     SELECT 1 AS data_space_id, 'Index1' AS idx_name, 'CLUSTERED' AS idx_type, 1 AS obj_id
 ),

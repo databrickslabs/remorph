@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #cte (c_custkey INT, c_name VARCHAR(10));
 INSERT INTO #cte
 SELECT *

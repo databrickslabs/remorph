@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date DATETIME2 = '2020-04-15 21:22:11';
 WITH orders AS (
     SELECT CAST('2020-04-15 21:22:11' AS DATETIME2) AS order_date

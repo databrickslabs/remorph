@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE Users (UserName sysname);
 INSERT INTO Users (UserName) VALUES ('MarketingTeam');
 

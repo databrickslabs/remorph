@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH requests AS (
     SELECT 'BACKUP DATABASE' AS command, 1000 AS estimated_completion_time, GETDATE() AS start_time
     UNION ALL

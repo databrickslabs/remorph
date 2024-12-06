@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesRegion AS (
     SELECT DISTINCT r_name, r_regionkey
     FROM region

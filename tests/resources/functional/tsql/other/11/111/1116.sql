@@ -1,2 +1,2 @@
---Query type: DCL
+-- tsql sql:
 CREATE ROLE suppliers AUTHORIZATION ClareSawyer;

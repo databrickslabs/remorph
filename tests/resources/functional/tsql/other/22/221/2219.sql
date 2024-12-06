@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT o_orderkey, SUM(l_extendedprice * (1 - l_discount)) AS total_revenue
     FROM (

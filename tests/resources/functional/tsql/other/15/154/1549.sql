@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @d3 DATE, @dt3 DATETIME, @dt4 DATETIME2;
 SET @d3 = '1999-12-31';
 SET @dt4 = CAST(@d3 AS DATETIME2);

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'ñn' AS col1, 'n' AS col2
     UNION ALL

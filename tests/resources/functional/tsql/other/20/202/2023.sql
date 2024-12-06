@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @service_id INT;
 
 WITH service_id_cte AS (

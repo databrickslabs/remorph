@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE SpatialTable (
     locationId INT IDENTITY(1,1) PRIMARY KEY,
     location geometry,

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_regions AS (
     SELECT region_id, region_name
     FROM (

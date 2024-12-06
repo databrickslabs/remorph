@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #TempResult ( CatalogDescription xml );
 INSERT INTO #TempResult ( CatalogDescription )
 VALUES ( '<Sample Catalog Description/>' );

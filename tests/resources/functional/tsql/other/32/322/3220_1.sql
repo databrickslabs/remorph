@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 SET XACT_ABORT ON;
 
 BEGIN TRY

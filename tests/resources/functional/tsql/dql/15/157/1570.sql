@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @datetime2 datetime2 = '2007-01-01 13:10:10.1111111';
 SELECT '1 millisecond', DATEADD(millisecond, 1, @datetime2)
 UNION ALL

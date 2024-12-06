@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (
     SELECT geography::STGeomFromText('LINESTRING(0 0, 1 1)', 4326) AS g1,
            geography::STGeomFromText('LINESTRING(1 1, 2 2)', 4326) AS g2

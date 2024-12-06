@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @OrderIDVariable INT;
 
 WITH OrdersCTE AS (

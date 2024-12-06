@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE demo_loop
 AS
 BEGIN

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE TestEncryption;
 CREATE CERTIFICATE cert_encryption_demo ENCRYPTION BY PASSWORD = '4bb925DGvbd2439587yT'
     WITH SUBJECT = 'ENCRYPTION demo';

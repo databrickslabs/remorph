@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH files AS (
     SELECT 'file1' AS name, 'ROWS' AS type_desc, 1 AS file_id
     UNION ALL

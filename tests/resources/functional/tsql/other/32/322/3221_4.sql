@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE discount_levels (discount_level VARCHAR(20));
 WITH lineitem AS (
     SELECT 0.05 AS l_discount

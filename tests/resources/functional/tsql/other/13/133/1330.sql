@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE orders (order_key INT, totalprice DECIMAL(10, 2), orderdate DATE);
 INSERT INTO orders (order_key, totalprice, orderdate)
 SELECT order_key, totalprice, orderdate

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SELECT TOP 100
     CustomerName,
     SalesAmount

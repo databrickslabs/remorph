@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE FULLTEXT CATALOG ftCatalog AS DEFAULT;
 
 WITH orders AS (

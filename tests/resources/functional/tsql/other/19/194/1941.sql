@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH TempResult AS (
     SELECT 1 AS CustomerKey, 'John' AS CustomerName, 100.00 AS OrderTotal
     UNION ALL

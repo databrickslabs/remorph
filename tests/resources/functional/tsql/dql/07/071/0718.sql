@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'description1' AS description, '2022-01-01 12:00:00' AS value
     UNION ALL

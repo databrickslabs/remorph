@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 EXECUTE AS USER = 'CustomApp';
 WITH temp_result AS (
     SELECT CURRENT_USER AS CurrentUser

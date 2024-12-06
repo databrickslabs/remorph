@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT c.custkey, c.name, SUM(o.totalprice) AS total
 FROM (
     SELECT *

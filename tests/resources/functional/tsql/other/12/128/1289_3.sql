@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #Table1 (ColA INT, ColB INT);
 CREATE TABLE #Table2 (ColA INT, ColB INT);
 INSERT INTO #Table1 (ColA, ColB)

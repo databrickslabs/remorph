@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE usp_GetOrderLevel
 AS
 SELECT o_orderkey, o_custkey, 0 AS [Order Level]

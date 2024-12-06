@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE TempTable (ID INT, Name VARCHAR(50));
 INSERT INTO TempTable (ID, Name)
 VALUES (1, 'John Doe'), (2, 'Jane Doe');

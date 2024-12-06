@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE array_demo (ID INT, array1 VARCHAR(MAX), array2 VARCHAR(MAX), tip VARCHAR(MAX));
 WITH temp_result AS (
     SELECT 1 AS ID, '1,2' AS array1, '3,4' AS array2, 'non-overlapping' AS tip

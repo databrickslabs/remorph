@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @MyCounter INT;
 
 WITH MyCTE AS (

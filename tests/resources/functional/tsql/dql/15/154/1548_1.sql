@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT CAST('2022-01-01 12:00:00' AS DATETIME) AS dt1,
            CAST('2022-01-02 13:00:00' AS DATETIME) AS dt2

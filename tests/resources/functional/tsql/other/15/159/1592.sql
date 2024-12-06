@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ServiceInfo AS (
     SELECT 'CustomerService' AS ServiceName, 'CustomerContract' AS ContractName, 'CustomerQueue' AS QueueName
     UNION ALL

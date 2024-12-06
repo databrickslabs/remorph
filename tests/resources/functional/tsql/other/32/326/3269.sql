@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT *
 INTO t2
 FROM (

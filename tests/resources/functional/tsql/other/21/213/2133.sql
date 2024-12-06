@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE CustomerSeq (Id INT, Name VARCHAR(50));
 INSERT INTO CustomerSeq (Id, Name)
 VALUES (1, 'Customer'), (2, 'Order');

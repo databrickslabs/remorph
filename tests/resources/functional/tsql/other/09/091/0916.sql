@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE DATABASE SCOPED CREDENTIAL SQLServerCredentials
 WITH IDENTITY = 'username',
     SECRET = 'password';

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @NTILE_Var INT = 4;
 
 WITH SalesPerson AS (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE SalesOrdersPerYear
 WITH (DISTRIBUTION = HASH(SalesPersonID))
 AS

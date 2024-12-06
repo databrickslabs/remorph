@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_temp AS (
     SELECT c_custkey, c_nationkey
     FROM (

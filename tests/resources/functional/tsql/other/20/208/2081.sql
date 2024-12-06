@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE get_current_date_and_database_id
 AS
 BEGIN

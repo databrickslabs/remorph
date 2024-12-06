@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @catalog_exists INT;
 SET @catalog_exists = (SELECT COUNT(*) FROM sys.fulltext_catalogs WHERE name = 'customerCatalog');
 IF @catalog_exists = 0

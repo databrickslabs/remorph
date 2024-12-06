@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerData AS (
     SELECT customer_id, customer_name
     FROM (

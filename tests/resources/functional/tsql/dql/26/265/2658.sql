@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT LEAST('Acadia', 'Congaree', 'Crater Lake') AS LeastString
 FROM (
     VALUES ('Acadia'),

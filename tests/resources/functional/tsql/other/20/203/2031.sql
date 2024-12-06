@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO #temp_result
 SELECT column_a, column_b, [Previous value for column_b] = LAG(column_b) IGNORE NULLS OVER (ORDER BY column_a), [Next value for column_b] = LEAD(column_b) IGNORE NULLS OVER (ORDER BY column_a)
 FROM (

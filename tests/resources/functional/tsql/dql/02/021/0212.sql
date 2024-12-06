@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE PROCEDURE tpch.get_linked_resources
 AS
 BEGIN

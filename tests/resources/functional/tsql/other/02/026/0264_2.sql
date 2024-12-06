@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE demo_volatile (i INTEGER);
 INSERT INTO demo_volatile
 SELECT *

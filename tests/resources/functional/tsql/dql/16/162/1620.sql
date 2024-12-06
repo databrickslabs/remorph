@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer geography = 'POLYGON((-122.358 47.653, -122.348 47.649, -122.348 47.658, -122.358 47.658, -122.358 47.653))';
 WITH customer_location AS (
     SELECT @customer AS location

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Orders (OrderID INT, OrderDate DATE);
 INSERT INTO Orders (OrderID, OrderDate) VALUES (1, '2022-01-01');
 WITH inserted AS (

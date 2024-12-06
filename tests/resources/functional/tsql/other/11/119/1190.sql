@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Orders_PDW
 WITH (DISTRIBUTION = REPLICATE)
 AS

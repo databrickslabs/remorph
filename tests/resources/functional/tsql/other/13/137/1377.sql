@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #TempTable (id INT, xmlcol XML);
 INSERT INTO #TempTable (id, xmlcol)
 VALUES (1, '<root><path>value</path></root>');

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_orders AS (
     SELECT 1 AS order_key, 'John Doe' AS customer_name, 100.00 AS order_total
     UNION ALL

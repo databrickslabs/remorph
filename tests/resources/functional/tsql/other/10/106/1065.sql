@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION RangePF2 (INT) AS RANGE LEFT FOR VALUES (5, 50, 500);

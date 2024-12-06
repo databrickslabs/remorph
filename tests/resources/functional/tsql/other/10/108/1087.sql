@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.uspCustomerAllInfo
 WITH EXECUTE AS CALLER
 AS

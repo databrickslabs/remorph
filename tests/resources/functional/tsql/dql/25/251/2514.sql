@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT 'Sales Manager' AS JobTitle, 'John' AS Name, 1 AS BusinessEntityID
     UNION ALL

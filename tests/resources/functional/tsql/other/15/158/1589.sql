@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH conversation AS (
     SELECT 'CustomerClient' AS service_initiator,
            'Orders' AS service_target,

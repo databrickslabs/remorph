@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT emp_id, emp_name, hourly_wage, salary, commission, num_sales
 INTO #employee_wages
 FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE NewDatabase
 SET AUTO_CREATE_STATISTICS ON;
 ALTER DATABASE NewDatabase

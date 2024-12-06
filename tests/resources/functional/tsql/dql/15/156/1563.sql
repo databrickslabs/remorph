@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @date VARCHAR(255) = '12/1/2011';
 WITH customer_orders AS (
     SELECT '12/1/2011' AS order_date

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS p_partkey, 'Part 1' AS p_name, 'Manufacturer 1' AS p_mfgr, 'Brand 1' AS p_brand, 'Type 1' AS p_type, 1 AS p_size, 'Container 1' AS p_container, 10.0 AS p_retailprice, 'Comment 1' AS p_comment
     UNION ALL

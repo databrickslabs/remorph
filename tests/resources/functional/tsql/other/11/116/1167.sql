@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerOrders AS (
     SELECT c_custkey, c_nationkey, o_orderkey
     FROM (

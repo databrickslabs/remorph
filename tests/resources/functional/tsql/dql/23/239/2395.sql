@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT @@VERSION AS 'SQL Server Version'
 FROM (
     VALUES (

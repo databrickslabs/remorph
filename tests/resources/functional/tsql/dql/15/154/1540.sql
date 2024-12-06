@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date datetime = '1995-03-29 05:06:07.123';
 WITH orders AS (
     SELECT 'Order' AS order_type, @order_date AS order_date

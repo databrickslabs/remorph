@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Equipment (ID INT PRIMARY KEY NOT NULL IDENTITY(1,1), Name VARCHAR(50))

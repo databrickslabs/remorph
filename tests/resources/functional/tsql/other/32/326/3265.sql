@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH deliveries AS (
   SELECT
     5000 + ROW_NUMBER() OVER (ORDER BY n.n) AS order_id,

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH Privileges AS (
     SELECT 'INSERT' AS Privilege, 'dbo.OrderTable' AS ObjectName, '[Alice]' AS UserName
 )

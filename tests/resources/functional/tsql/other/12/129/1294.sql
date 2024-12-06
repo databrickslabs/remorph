@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH stg_DimCustomer AS (
     SELECT 1 AS CustomerKey, 'Customer 1' AS EnglishCustomerName, 'Red' AS Color
     UNION ALL

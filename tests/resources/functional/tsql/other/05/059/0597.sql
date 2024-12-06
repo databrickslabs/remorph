@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH cte_indexes AS (
     SELECT *
     FROM sys.indexes

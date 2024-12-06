@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql nvarchar(max) = '';
 
 WITH files_to_add AS (

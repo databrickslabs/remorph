@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT s.name AS TABLE_SCHEMA, t.name AS TABLE_NAME, t.identity_increment_value AS IDENT_INCR
 FROM (
     SELECT 1 AS schema_id, 'customer' AS name, 1 AS is_identity, 1 AS identity_increment_value

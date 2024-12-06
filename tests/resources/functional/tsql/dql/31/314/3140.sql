@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @id INT, @indid INT;
 SET @id = OBJECT_ID('customer');
 

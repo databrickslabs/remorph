@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 SELECT SERVICE_NAME, ADDRESS FROM (VALUES ('NotifyService', 'LOCAL')) AS RouteInfo(SERVICE_NAME, ADDRESS);

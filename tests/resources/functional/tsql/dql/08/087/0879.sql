@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result_set AS (
     SELECT *
     FROM (

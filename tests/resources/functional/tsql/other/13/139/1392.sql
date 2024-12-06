@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH orders AS (
     SELECT *
     FROM (

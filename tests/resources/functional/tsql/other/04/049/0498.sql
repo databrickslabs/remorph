@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER COLUMN ENCRYPTION KEY MyNewCEK
 ADD VALUE
 (

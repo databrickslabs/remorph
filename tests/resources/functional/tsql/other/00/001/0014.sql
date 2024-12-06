@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE SEQUENCE seq_orders;
 CREATE TABLE orders_demo (
     o_orderkey INTEGER,

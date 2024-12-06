@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customer_data
 (
     customer_key BINARY(32),

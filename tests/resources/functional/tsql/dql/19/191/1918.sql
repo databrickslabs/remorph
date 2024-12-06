@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH order_xml AS (
     SELECT CAST('<order OrderDate = "1995-01-01"/>' AS XML) AS order_xml
 )

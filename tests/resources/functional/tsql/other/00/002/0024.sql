@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #t2 (col1 nvarchar(50));
 INSERT INTO #t2 (col1)
 SELECT 'hello' AS col1;

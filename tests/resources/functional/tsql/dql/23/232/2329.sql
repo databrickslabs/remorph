@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT *
 INTO NewOrderTable
 FROM (

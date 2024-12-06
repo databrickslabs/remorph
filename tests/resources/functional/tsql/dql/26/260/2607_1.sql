@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH time_values AS (
     SELECT CAST('07:35' AS time) AS time_value
     UNION ALL

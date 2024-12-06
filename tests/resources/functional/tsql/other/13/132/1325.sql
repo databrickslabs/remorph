@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #myNewTable
 (
     ColumnA uniqueidentifier DEFAULT (NEWSEQUENTIALID())

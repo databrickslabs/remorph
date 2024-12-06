@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO sales (sales_id, customer_id, order_id)
 SELECT *
 FROM (

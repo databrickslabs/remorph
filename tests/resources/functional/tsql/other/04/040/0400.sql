@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE [database_name]
 SET READ_WRITE;
 

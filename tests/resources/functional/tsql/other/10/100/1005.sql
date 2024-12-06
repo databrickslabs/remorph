@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #CustomerReviews
 (
     ReviewerName nvarchar(255),

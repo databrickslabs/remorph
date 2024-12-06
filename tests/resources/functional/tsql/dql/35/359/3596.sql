@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT nation_name, COUNT(employee_id) AS EmployeesInNation
     FROM (

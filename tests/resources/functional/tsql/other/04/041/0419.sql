@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE Sales.GetOrderDetails
     @SearchTerm NVARCHAR(50)
 AS

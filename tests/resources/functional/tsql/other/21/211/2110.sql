@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE ROLE SalesTeam;
 GO
 CREATE VIEW temp_result

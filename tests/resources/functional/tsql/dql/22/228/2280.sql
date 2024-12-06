@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'TABLE' AS resource_type, 1 AS resource_database_id, 'IX' AS request_mode, 'INSERT' AS request_type, 'GRANT' AS request_status, 1 AS request_session_id
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 BEGIN TRANSACTION;
 
 WITH orders_cte AS (

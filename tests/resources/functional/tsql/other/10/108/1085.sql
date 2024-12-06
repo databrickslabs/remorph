@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE #usp_UpdateOrderStatus
     @OrderDate DATETIME
 AS

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT DATE_BUCKET(WEEK, 1, CAST(o_orderdate AS DATETIME2)) AS OrderDateBucket,
        SUM(l_quantity) AS SumLineQuantity,
        SUM(l_extendedprice) AS SumLineExtendedPrice

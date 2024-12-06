@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer AS (
     SELECT 1 AS c_custkey, 'Comment1' AS c_comment
     UNION ALL

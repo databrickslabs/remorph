@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @param INT = 10;
 SELECT $PARTITION.RangePF1(id)
 FROM (

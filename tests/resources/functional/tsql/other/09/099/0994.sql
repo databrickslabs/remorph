@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #file_content (CONTENT VARBINARY(MAX));
 INSERT INTO #file_content (CONTENT)
 SELECT * FROM OPENROWSET(BULK 'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\pythonAnalytics.zip', SINGLE_BLOB) AS file_content;

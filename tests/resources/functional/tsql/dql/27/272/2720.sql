@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT T1.PurchaseOrderID, T1.EmployeeID, T2.VendorID
 FROM (
     VALUES (1, 10, 100),

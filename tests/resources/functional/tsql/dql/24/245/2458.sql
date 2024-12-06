@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 SELECT CHAR(67) AS [67], CHAR(68) AS [68], CHAR(99) AS [99], CHAR(100) AS [100], CHAR(51) AS [51], CHAR(52) AS [52];

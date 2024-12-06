@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT '2013-05-08T23:39:20.123-07:00' AS tstamp
 )

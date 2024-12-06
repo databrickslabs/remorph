@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @query nvarchar(max);
 DECLARE @schema_name nvarchar(50);
 DECLARE @table_name nvarchar(50);

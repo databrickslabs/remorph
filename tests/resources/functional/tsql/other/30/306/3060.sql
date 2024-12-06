@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #CitiesTemp (Name nvarchar(50), Location geography);
 INSERT INTO #CitiesTemp (Name, Location)
 SELECT Name, Location

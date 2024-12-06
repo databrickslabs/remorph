@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP TABLE IF EXISTS customer_orders;
 CREATE TABLE customer_orders
 (

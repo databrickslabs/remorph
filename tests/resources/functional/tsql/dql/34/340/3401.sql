@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesPersonCTE AS (
     SELECT 1 AS BusinessEntityID, 1000 AS SalesYTD, 1 AS TerritoryID
     UNION ALL

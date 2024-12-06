@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH DeniedPermissions AS (
     SELECT 'Mirror7' AS EndpointName, 'VIEW DEFINITION' AS Permission
 )

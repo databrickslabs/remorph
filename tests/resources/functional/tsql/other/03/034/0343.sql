@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @var1 VARCHAR(30);
 SELECT @var1 = 'Generic Name';
 SELECT @var1 = Name

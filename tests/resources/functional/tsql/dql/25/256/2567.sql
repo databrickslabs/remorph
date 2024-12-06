@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT DISTINCT
     DATE_BUCKET(DAY, 30, CAST(o_orderdate AS DATETIME2)) AS DateBucket,
     FIRST_VALUE(o_orderkey) OVER (

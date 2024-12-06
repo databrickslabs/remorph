@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH RegionsCTE AS (
     SELECT 'North' AS Name, '10.1:40.1' AS Location
     UNION ALL

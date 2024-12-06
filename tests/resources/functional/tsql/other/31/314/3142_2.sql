@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID('dbo.DepartmentThree', 'U') IS NOT NULL
 DROP TABLE dbo.DepartmentThree;
 

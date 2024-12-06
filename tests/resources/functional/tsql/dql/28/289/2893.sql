@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH indexes AS (
   SELECT 1 AS object_id, 'Index1' AS name, 'CLUSTERED' AS type_desc
   UNION ALL

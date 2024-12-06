@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO returned_cars (car_ID)
 SELECT car_ID
 FROM (

@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @session_id VARBINARY(100);
 SET @session_id = (
     SELECT TOP 1 c_custkey

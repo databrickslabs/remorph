@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @binding VARCHAR(50) = 'Customer#1';
 WITH CustomerCTE AS (
     SELECT *

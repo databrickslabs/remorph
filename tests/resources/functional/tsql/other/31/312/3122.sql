@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH T1 AS (
     SELECT Col1, Col2
     FROM (

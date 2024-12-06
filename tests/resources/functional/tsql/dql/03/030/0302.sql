@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1000 AS order_total, 10 AS quantity
     UNION ALL

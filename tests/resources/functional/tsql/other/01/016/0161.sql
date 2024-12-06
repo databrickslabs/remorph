@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE allowed_roles (authz_role VARCHAR(50));
 INSERT INTO allowed_roles (authz_role)
 VALUES ('admin'), ('user');

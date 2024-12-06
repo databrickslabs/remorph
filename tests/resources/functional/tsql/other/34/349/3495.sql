@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH customer AS (
     SELECT 1 AS c_custkey, 'Customer1' AS c_name, 100.00 AS c_acctbal
 ), orders AS (

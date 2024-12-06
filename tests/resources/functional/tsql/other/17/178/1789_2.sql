@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH CurveData AS (
     SELECT geography::STGeomFromText('CURVEPOLYGON (CIRCULARSTRING (0 0, 1 1, 1 0, 0 0))', 4326) AS Curve
 ),

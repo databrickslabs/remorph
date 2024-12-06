@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO target_table (ID, description)
 SELECT ID, description
 FROM (

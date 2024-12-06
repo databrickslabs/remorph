@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 SELECT ROW_NUMBER() OVER (ORDER BY [Total Price] DESC) AS Row, c_firstname, c_lastname, [Total Price] FROM ( SELECT ROUND(o_totalprice, 2, 1) AS [Total Price], c_firstname, c_lastname, o_totalprice FROM ( VALUES (1, 'John', 'Doe', 100.00), (2, 'Jane', 'Doe', 200.00), (3, 'Bob', 'Smith', 50.00) ) AS customer (c_custkey, c_firstname, c_lastname, o_totalprice) ) AS DerivedTable WHERE c_firstname IS NOT NULL AND [Total Price] <> 0;

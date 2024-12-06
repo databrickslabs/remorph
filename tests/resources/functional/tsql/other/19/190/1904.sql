@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @value INT, @counter INT;
 SET @value = 2;
 SET @counter = 1;

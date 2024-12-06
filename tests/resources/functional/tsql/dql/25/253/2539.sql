@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesData AS (
   SELECT
     DATEPART(yyyy, OrderDate) AS OrderYear,

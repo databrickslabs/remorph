@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH TempResult AS (SELECT GETDATE() AS CurrentDateTime)
 SELECT CurrentDateTime AS UnconvertedDateTime,
        CAST(CurrentDateTime AS NVARCHAR(30)) AS UsingCast,

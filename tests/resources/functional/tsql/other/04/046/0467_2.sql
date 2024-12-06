@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @var1 INT;
 SET @var1 = 10;
 

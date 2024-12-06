@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #OrderDetails
 (
     OrderID int NOT NULL,

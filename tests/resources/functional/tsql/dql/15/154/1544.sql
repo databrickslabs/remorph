@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @d datetime2 = '2021-12-08 11:30:15.1234567';
 WITH dates AS (
     SELECT @d AS d

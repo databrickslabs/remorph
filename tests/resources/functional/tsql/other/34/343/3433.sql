@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE SYMMETRIC KEY MyNewKey
     WITH ALGORITHM = AES_256
     ENCRYPTION BY PASSWORD = 'password123';

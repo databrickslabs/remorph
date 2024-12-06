@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_data AS (
     SELECT 1 AS id, '123-45-6789' AS credit_card_number
 ),

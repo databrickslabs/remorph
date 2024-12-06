@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH Dates AS (
     SELECT CAST('2022-01-01' AS DATE) AS DateValue
 )

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE calculate_total_revenue
 AS
 BEGIN

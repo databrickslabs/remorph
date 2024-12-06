@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO likes (edge_id, from_id, to_id, rating)
 SELECT EDGE_ID_FROM_PARTS(OBJECT_ID('likes'), dataset_key) AS edge_id,
        NODE_ID_FROM_PARTS(OBJECT_ID('Person'), ID) AS from_id,

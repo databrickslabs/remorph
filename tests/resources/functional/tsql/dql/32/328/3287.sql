@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @SearchWord VARCHAR(30);
 SET @SearchWord = 'performance';
 

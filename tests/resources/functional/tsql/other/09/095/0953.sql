@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @endpoint_name sysname = 'ipv4_endpoint_special';
 DECLARE @grantee sysname = 'public';
 DECLARE @sql nvarchar(max);

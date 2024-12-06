@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT CAST(ROUND(o_totalprice / o_freight, 0) AS INT) AS Computed
 FROM (
     VALUES (100, 10),

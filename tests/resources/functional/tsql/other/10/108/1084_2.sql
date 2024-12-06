@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerOrders AS (
     SELECT c_custkey,
            SUM(o_totalprice) AS total_order_value,

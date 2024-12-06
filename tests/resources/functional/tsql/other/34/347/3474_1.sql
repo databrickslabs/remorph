@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @myXML XML = '<root><person><name>John</name><age>30</age></person></root>';
 SELECT *
 FROM (

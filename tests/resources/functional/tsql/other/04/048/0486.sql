@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #TPC_H_Messages
 (
     MessageID INT,

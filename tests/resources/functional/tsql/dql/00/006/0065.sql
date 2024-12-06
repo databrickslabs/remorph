@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT region,
            SUM(CASE WHEN quarter = 1 THEN sales END) AS Q1,

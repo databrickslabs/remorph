@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO sales_values (region_id, sales_amount, profit_amount)
 VALUES
     (1, 100.00, 10.00),

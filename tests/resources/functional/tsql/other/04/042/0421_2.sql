@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO #supplier (supplier_id, supplier_name)
 SELECT supplier_id, supplier_name
 FROM (

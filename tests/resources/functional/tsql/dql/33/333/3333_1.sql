@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT COUNT(*) AS TotalOrders
 FROM (
     VALUES

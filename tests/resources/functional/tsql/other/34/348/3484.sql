@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE dbo.usp_NewDemo
 WITH EXECUTE AS 'CompanyDomain\SqlUser2'
 AS

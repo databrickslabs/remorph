@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g GEOGRAPHY;
 SET @g = (
     SELECT GeoData

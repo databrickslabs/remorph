@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO rented_vehicles (vehicle_ID, customer_ID)
 VALUES
     (201, 1111),

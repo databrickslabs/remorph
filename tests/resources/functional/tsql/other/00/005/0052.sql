@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE new_target_orig (k INT, v INT);
 INSERT INTO new_target_orig (k, v)
 VALUES (1, 10), (2, 20);

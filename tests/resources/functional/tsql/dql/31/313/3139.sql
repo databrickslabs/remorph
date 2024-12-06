@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @find VARCHAR(30);
 SET @find = '%Special%';
 SELECT T1.l_name, T1.c_name, T2.phone

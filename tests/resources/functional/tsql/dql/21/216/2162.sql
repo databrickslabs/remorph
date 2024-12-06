@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH BillOfMaterialsCTE AS (
     SELECT CAST('2022-01-01' AS DATE) AS StartDate, 101 AS ComponentID
     UNION ALL

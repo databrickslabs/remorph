@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @dt datetimeoffset = switchoffset(CONVERT(datetimeoffset, GETDATE()), '-04:00');
 WITH temp_result AS (
     SELECT '2022-01-01' AS orderdate, 100.00 AS totalamount

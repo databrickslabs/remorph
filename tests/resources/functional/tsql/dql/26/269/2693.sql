@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesData AS (
     SELECT CAST(ROW_NUMBER() OVER (ORDER BY o_orderkey) AS INT) AS OrderDateKey,
            CAST(o_totalprice * (1 - o_discount) AS DECIMAL(10, 2)) AS SalesAmount

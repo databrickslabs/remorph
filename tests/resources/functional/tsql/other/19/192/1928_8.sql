@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE cursor1 CURSOR FOR
     WITH temp_result AS (
         SELECT 1 AS id, 'cursor1' AS name

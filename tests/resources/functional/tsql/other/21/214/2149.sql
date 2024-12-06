@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @result VARCHAR(50);
 
 WITH temp_result AS (

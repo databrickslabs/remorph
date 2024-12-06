@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE mynewtable
 (
     date_column DATE,

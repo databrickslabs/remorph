@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT product_id, SUM(sales_amount) AS total_sales
     FROM (

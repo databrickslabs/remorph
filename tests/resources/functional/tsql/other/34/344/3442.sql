@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE TPCHCustomer42
 (
     CustomerName VARCHAR(50)

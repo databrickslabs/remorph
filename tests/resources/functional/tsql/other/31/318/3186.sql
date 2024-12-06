@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE ErrorLog (ErrorID INT, ErrorTime DATETIME, ErrorMessage VARCHAR(255));
 TRUNCATE TABLE ErrorLog;
 INSERT INTO ErrorLog (ErrorID, ErrorTime, ErrorMessage)

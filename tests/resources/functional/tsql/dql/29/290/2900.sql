@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (
     SELECT 'customer' AS table_name, 'c_name' AS column_name, 'SELECT' AS privilege_type
     UNION ALL

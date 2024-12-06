@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO Production.ProductReview (ProductID, ReviewerName, EmailAddress, Rating, Comments)
 SELECT Product_ID, Reviewer_Name, Email_Address, Rating, Comments
 FROM (

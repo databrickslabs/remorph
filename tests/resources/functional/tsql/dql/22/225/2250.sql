@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ExpenseCTE AS (
     SELECT CAST('conversation_handle' AS UNIQUEIDENTIFIER) AS conversation_handle,
            CAST('message_type_name' AS sysname) AS message_type_name,

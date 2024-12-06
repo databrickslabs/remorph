@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH all_columns_cte AS (
     SELECT column_name
     FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID('temp_result', 'U') IS NOT NULL
     DROP TABLE temp_result;
 

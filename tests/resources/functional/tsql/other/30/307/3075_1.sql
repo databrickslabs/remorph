@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE FUNCTION dbo.GetOrderInformation (@OrderKey INT)
 RETURNS @retOrderInformation TABLE (
     OrderKey INT NOT NULL,

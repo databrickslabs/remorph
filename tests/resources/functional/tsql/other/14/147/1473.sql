@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ManagerCTE AS (
     SELECT OrgNode, LoginID
     FROM (

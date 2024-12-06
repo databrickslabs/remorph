@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH patterns AS (
     SELECT pattern
     FROM (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @date_exp NVARCHAR(30) = '2007-04-21 01:01:01.1234567';
 WITH dates AS (
     SELECT @date_exp AS date_value

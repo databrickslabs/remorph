@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH customer AS (
     SELECT *
     FROM (

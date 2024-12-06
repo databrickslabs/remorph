@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @myVariable INT = 10;
 SELECT value
 FROM (

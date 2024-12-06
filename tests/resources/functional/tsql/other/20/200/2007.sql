@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DROP PROCEDURE pr_Names;
 
 WITH temp_result AS (

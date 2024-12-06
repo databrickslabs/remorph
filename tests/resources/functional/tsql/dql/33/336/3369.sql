@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT p_partkey, p_mfgr, p_brand, NULLIF(p_mfgr, p_brand) AS [Null if Equal]
 FROM (
     VALUES (1, 'MFGR#1', 'Brand#1'),

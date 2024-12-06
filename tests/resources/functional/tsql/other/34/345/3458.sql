@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE HumanResources.Employee
 (
     EmployeeID INT,

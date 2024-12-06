@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT o_orderdate, SUM(o_totalprice) AS TotalSales
 FROM (
     VALUES

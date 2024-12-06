@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp (col1 INT);
 WITH tempCTE AS (SELECT 1 AS col1)
 INSERT INTO #temp (col1)

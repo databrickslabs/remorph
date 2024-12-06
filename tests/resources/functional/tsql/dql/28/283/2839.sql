@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'customer' AS table_name, c_custkey AS key_value
     FROM customer

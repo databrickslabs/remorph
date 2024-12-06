@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE customer_cursor SCROLL CURSOR FOR
 WITH customer_sales AS (
   SELECT c_custkey, c_name, SUM(o_totalprice) AS total_sales

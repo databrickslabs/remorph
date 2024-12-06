@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH binary_data AS (
     SELECT 'Hello' AS original_value,
            CAST('0x1234567890abcdef' AS VARBINARY(MAX)) AS binary_column,

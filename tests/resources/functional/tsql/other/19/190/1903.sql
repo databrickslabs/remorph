@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @v1 sql_variant;
 SET @v1 = 'ABC';
 

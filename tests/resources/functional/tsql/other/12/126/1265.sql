@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerOrders AS (
     SELECT 'C001' AS CustomerID, '2022-01-01' AS OrderDate, 100.00 AS TotalAmount, 'North' AS SalesRegion
     UNION ALL

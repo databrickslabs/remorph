@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE new_target (k INT, v INT);
 INSERT INTO new_target (k, v)
 VALUES (1, 1), (2, 2), (3, 3);

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE minhash_b_3 (mh VARBINARY(MAX));
 INSERT INTO minhash_b_3 (mh)
 SELECT CAST(CHECKSUM(i) AS VARBINARY(MAX))

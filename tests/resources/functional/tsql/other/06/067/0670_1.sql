@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE department (department_ID INT, department_name VARCHAR(50));
 WITH department_CTE AS (
     SELECT *

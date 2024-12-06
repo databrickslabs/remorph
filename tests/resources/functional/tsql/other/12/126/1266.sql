@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #FactInternetSales3
 (
     ProductKey INT NOT NULL,

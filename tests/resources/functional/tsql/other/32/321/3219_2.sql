@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 SET TRANSACTION ISOLATION LEVEL SNAPSHOT;
 SELECT *
 FROM (

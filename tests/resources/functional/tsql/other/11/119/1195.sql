@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Region (
     RegionKey INT NOT NULL PRIMARY KEY CLUSTERED,
     RegionName VARCHAR(50) NOT NULL,

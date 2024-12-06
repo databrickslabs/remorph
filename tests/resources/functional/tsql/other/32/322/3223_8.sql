@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE region_nation (
     region_id TINYINT,
     region_name VARCHAR(10),

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @SupplierTimeZone sysname = 'Eastern Standard Time';
 
 WITH SupplierOrders AS (

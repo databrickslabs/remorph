@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @cos FLOAT;
 SET @cos = 0.5;
 WITH cte AS (

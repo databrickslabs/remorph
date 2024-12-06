@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH HierarchyCTE AS (
     SELECT hierarchyid::GetRoot() AS id, 'Root' AS name
     UNION ALL

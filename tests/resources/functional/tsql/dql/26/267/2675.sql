@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT c_name, o_orderdate, o_totalprice
 FROM (
     SELECT TOP(1) c_name, o_orderdate, o_totalprice

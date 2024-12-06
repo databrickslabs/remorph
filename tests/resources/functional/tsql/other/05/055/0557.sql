@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH QueryStoreSettings AS (
     SELECT 'READ_WRITE' AS OPERATION_MODE,
            90 AS STALE_QUERY_THRESHOLD_DAYS,

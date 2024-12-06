@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE orders (
     o_orderkey INT,
     o_custkey INT,

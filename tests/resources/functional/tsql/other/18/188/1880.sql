@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @stringVar NVARCHAR(100);
 SET @stringVar = N'WITH logins AS (
     SELECT ''login1'' AS name

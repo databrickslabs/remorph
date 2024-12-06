@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyVariable INT;
 SET @MyVariable = 1;
 SELECT MyVariable

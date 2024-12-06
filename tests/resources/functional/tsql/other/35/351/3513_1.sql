@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.master_files WHERE name = 'TestFile')
 BEGIN
     ALTER DATABASE AdventureWorks2022

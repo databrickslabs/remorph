@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH RestoredDatabase AS (
     SELECT 'Sales2022' AS name, 'online' AS state_desc
 )

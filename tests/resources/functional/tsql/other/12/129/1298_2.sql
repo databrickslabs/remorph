@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_table AS (
     SELECT customer_key, customer_name, customer_address, customer_phone, customer_email
     FROM (

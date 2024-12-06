@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @g GEOMETRY = 'Point(2 2 2 2)';
 WITH temp_result AS (
     SELECT @g AS geom

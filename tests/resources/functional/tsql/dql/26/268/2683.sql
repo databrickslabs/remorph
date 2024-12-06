@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH Products AS (
     SELECT 'Road-150' AS Name, 'H' AS Class, 'Red' AS Color, 'FR-R38B-60' AS ProductNumber
     UNION ALL

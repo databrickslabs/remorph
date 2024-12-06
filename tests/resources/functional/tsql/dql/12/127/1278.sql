@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @PredictionA DECIMAL(2, 1) = 0.7;
 DECLARE @PredictionB DECIMAL(3, 1) = 0.65;
 

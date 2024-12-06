@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE MyTempTable (col1 INT PRIMARY KEY);
 INSERT INTO MyTempTable
 SELECT *

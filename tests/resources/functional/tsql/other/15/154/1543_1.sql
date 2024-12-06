@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SET DATEFIRST 3;
 SELECT 'Week-3', DATETRUNC(week, date_value)
 FROM (

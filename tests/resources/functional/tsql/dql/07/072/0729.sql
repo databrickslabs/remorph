@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_table AS (
     SELECT 1 AS point_id, geography::Point(42.3152, -71.0882, 4326) AS point_c, geography::Point(42.3202, -71.0934, 4326) AS point_d
 )

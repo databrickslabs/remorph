@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @counter INT;
 CREATE TABLE #temp_result (c1 INT);
 SET @counter = 1;

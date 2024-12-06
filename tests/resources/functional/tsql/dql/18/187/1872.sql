@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @date DATE = '1995-12-13';
 DECLARE @datetimeoffset DATETIMEOFFSET(4) = '1995-12-13 00:00:00+00:00';
 SELECT *

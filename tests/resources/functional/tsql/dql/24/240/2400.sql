@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ErrorData AS (
     SELECT 1 AS ErrorID, 'Error 1' AS ErrorMessage
     UNION ALL

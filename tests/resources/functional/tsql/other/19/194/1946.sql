@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @title_view TABLE (title_name VARCHAR(50));
 INSERT INTO @title_view (title_name)
 VALUES ('NewTitle');

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT c_custkey, c_nation, o_orderkey, o_totalprice, LAG(o_totalprice) OVER (ORDER BY o_orderkey) AS prev_order_total
     FROM (

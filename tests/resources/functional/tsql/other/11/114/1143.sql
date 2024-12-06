@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH OrdersCTE AS (
     SELECT 1 AS O_ORDERKEY, 10 AS O_CUSTKEY
     UNION ALL

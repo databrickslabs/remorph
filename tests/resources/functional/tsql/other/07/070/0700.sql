@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customers (c_custkey INT, c_acctbal DECIMAL(10, 2));
 CREATE TABLE orders (o_orderkey INT, o_custkey INT, o_orderstatus CHAR(1), o_totalprice DECIMAL(10, 2), o_orderdate DATE, o_orderpriority VARCHAR(10), o_clerk VARCHAR(20), o_shippriority INT, o_comment VARCHAR(50));
 INSERT INTO orders (o_orderkey, o_custkey, o_orderstatus, o_totalprice, o_orderdate, o_orderpriority, o_clerk, o_shippriority, o_comment)

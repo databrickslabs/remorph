@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE ROLE [specific_role];
 GRANT EXECUTE ON SCHEMA::dbo TO [specific_role];
 GRANT CREATE EXTERNAL LIBRARY TO [specific_role];

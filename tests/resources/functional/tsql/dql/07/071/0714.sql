@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT c_custkey, c_nationkey, c_acctbal, (
         SELECT MAX(c_acctbal)

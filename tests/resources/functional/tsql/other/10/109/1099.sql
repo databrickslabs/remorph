@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE dbo.usp_myproc2
     WITH EXECUTE AS CALLER
 AS

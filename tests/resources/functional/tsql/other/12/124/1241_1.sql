@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE orders.OrderSeq AS INT START WITH 1 INCREMENT BY 1; -- REMORPH CLEANUP: DROP SEQUENCE orders.OrderSeq;

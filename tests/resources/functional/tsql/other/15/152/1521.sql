@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @customer_id INT;
 SET @customer_id = 123;
 

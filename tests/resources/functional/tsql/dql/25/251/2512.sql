@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT c_nationkey, SUM(o_totalprice) AS TotalRevenue
     FROM customer c

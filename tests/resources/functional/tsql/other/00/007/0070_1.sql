@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_info (id INT, email VARCHAR(255), dob DATE);
 ALTER TABLE customer_info ALTER COLUMN email ADD MASKED WITH (FUNCTION = 'email()');
 ALTER TABLE customer_info ALTER COLUMN dob ADD MASKED WITH (FUNCTION = 'default()');

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT cn.c_name AS CustomerName
 FROM (
     VALUES

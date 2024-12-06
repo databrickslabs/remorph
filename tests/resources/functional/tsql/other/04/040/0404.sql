@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH SimulatedFileGroup AS (
     SELECT 'NewGroup2' AS FileGroupName, NULL AS FileName, NULL AS FilePath
 ),

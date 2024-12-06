@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE sales (id INT, name VARCHAR(50));
 INSERT INTO sales (id, name)
 VALUES (1, 'a'), (2, 'b');

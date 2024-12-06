@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS customer_key, '2022-01-01' AS order_date, 'Shipped' AS status
     UNION ALL

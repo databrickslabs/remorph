@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EXTERNAL DATA SOURCE [AzureDataLakeStorage]
 WITH (
     LOCATION = 'https://mydatalakestorage.dfs.core.windows.net/mycontainer/myoutputfolderpath',

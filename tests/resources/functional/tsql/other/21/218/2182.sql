@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 BEGIN TRANSACTION OuterTran2;
 PRINT N'Transaction count after BEGIN OuterTran2 = ' + CAST(@@TRANCOUNT AS NVARCHAR(10));
 INSERT INTO #TempTable (ID, Name)

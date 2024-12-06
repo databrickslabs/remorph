@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO aggr (region_id, product_id, sales_amount)
 VALUES
     (1, 101, 100.00),

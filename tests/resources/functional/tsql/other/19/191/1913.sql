@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @z XML;
 DECLARE @e VARCHAR(max);
 SET @z = '<root>Universe</root>';

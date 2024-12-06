@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'customer' AS name, 1 AS object_id, 1 AS schema_id, 'table' AS type_desc
     UNION ALL

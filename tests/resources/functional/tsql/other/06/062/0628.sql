@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @my_exception INT;
 
 BEGIN TRY

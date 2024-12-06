@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'c_custkey' AS COLUMN_NAME, 'integer' AS DATA_TYPE, 1 AS ORDINAL_POSITION
     UNION ALL

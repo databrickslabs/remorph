@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EXTERNAL DATA SOURCE external_data_source_name_node
 WITH (
     LOCATION = 'hdfs://10.10.10.10:8020'

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE new_customers
 (
     first_name nvarchar(50),

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH ModifiedDatabase AS (
     SELECT DatabaseName, State, FileGroupName, MaxSizeGB
     FROM #DatabaseProperties

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @angle FLOAT;
 SET @angle = 0.5;
 SELECT 'The ASIN of the angle is: ' + CONVERT(VARCHAR, ASIN(@angle))

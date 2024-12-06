@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO orders (orderkey, orderdate, extendedprice)
 SELECT orderkey, orderdate, extendedprice
 FROM (

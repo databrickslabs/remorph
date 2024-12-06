@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE FUNCTION get_total_revenue()
 RETURNS decimal(10, 2)
 AS

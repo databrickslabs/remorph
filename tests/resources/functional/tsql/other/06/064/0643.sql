@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #test_table (id INT, name VARCHAR(50));
 CREATE ROLE data_reader;
 GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO data_reader;

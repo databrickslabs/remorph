@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_data AS (
     SELECT c_name, c_custkey, SUBSTRING(c_name, 1, 1) AS Initial,
            SUBSTRING(c_name, 3, 2) AS ThirdAndFourthCharacters

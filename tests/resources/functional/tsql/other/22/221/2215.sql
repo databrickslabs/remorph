@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT orders_new (cust_id, order_amt)
 SELECT *
 FROM (

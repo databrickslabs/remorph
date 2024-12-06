@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @db_id INT, @object_id INT;
 
 WITH temp_result AS (

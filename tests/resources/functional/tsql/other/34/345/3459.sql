@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT CUSTKEY, NAME INTO #TempTable FROM (VALUES (1, 'John')) AS Temp(CUSTKEY, NAME);
 ALTER TABLE #TempTable ENABLE CHANGE_TRACKING;
 SELECT * FROM #TempTable;

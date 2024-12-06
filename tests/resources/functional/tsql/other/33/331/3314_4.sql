@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE orders_new
 (
     order_id INT IDENTITY(500, 1),

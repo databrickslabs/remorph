@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesPerson AS (
     SELECT 10000 AS Bonus
     UNION ALL

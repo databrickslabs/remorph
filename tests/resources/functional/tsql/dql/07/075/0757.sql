@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH daily_storage AS (
     SELECT r_name AS region, n_name AS nation, SUM(o_totalprice) AS total_price, SUM(ps_supplycost * ps_availqty) AS total_storage
     FROM (

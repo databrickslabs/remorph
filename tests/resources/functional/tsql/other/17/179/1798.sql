@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @h HIERARCHYID = HIERARCHYID::GetRoot();
 DECLARE @c HIERARCHYID = @h.GetDescendant(NULL, NULL);
 SELECT @c.ToString() AS cToString;

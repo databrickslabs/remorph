@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH TempResult AS (
     SELECT ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS FirstUse
     FROM (

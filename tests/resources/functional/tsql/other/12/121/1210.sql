@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Customer_Dim
 (
     CUSTKEY INT PRIMARY KEY,

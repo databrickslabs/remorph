@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Supplier (id INT, name VARCHAR(100), supplyCount INT, supplyDate DATE);
 INSERT INTO Supplier (id, name, supplyCount, supplyDate)
 VALUES (1, 'Supplier1', 10, '2020-01-01'), (2, 'Supplier2', 50, '2020-01-15'), (3, 'Supplier3', 100, '2020-02-01');

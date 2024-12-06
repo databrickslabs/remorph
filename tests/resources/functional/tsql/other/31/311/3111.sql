@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE tempdb
 ADD FILE (
     NAME = tempdev,

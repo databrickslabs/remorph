@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE t7 (suppkey INT, name VARCHAR(255));
 SELECT *
 FROM (

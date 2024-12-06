@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT t.filegroup_id, t.filegroup_name AS [Filegroup ID]
 FROM (
     VALUES (1, 'PRIMARY'),

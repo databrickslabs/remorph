@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Customer (c_nationkey INT, c_acctbal DECIMAL(10, 2));
 INSERT INTO #Customer (c_nationkey, c_acctbal)
 VALUES (1, 100.0), (2, 200.0), (3, 300.0);

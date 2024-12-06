@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE usp_CalculateArea
     @radius decimal(10, 2)
 AS

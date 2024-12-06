@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH indexes AS (
     SELECT object_id, name
     FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH total_orders AS (
     SELECT custkey, totalprice, ROW_NUMBER() OVER (PARTITION BY custkey ORDER BY totalprice DESC) AS row_num
     FROM (

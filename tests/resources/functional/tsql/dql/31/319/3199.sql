@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH Department AS (
     SELECT 'Sales' AS Name, 1 AS DepartmentID
     UNION ALL

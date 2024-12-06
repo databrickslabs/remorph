@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT o_orderkey, o_custkey, o_totalprice, ROW_NUMBER() OVER (PARTITION BY o_custkey ORDER BY o_totalprice DESC) AS RowNum,
     RANK() OVER (PARTITION BY o_custkey ORDER BY o_totalprice DESC) AS Rank,

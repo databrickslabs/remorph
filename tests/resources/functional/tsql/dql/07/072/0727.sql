@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateCTE AS (SELECT '2019-03-31 12:00:00' AS Date1, '2019-02-28 00:00:00' AS Date2)
 SELECT ROUND(DATEDIFF(MONTH, Date2, Date1), 0) AS MonthsBetween
 FROM DateCTE

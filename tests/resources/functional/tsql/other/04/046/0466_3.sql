@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 EXECUTE AS USER = 'User2';
 WITH temp_result AS (
     SELECT '1-URGENT' AS priority, 100 AS price, '1993-01-01' AS order_date, 1 AS ship_priority

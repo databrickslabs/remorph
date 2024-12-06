@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_sql_log AS (
     SELECT * FROM (VALUES ('log1'), ('log2')) AS log(log)
 ),

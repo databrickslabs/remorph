@@ -1,2 +1,2 @@
---Query type: DCL
+-- tsql sql:
 CREATE USER [Helen] WITH DEFAULT_SCHEMA = sales, ALLOW_ENCRYPTED_VALUE_MODIFICATIONS = ON;

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @endpoint_name sysname = 'ipv6_endpoint_special';
 DECLARE @listener_port int = 55555;
 DECLARE @listener_ip nvarchar(50) = '::1';

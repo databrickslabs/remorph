@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @region geography = 'LINESTRING(-100 40, -100 -5, -80 -5)';
 WITH temp_result AS (
   SELECT @region.EnvelopeCenter() AS center

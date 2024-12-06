@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @StartingRowNumber TINYINT = 1, @EndingRowNumber TINYINT = 8;
 
 WITH CustomerCTE AS (

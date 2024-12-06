@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE dbo.customer_procedure (@customer_name VARCHAR(25))
 AS
 SELECT {fn OCTET_LENGTH(@customer_name)} AS customer_name_length, c_nationkey, c_acctbal

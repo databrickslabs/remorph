@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #orders_temp (o_orderkey INT, o_orderdate DATE, o_totalprice DECIMAL(10, 2));
 WITH orders_cte AS (
     SELECT o_orderkey, o_orderdate, o_totalprice

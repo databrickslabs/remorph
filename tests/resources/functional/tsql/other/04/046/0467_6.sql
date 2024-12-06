@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @total_sales DECIMAL;
 SET @total_sales = 1000.00;
 WITH Sales_Report AS (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CAST(0.0000009000 AS DECIMAL(30, 10)) AS decimal_value1,
            CAST(1.0000000000 AS DECIMAL(30, 10)) AS decimal_value2

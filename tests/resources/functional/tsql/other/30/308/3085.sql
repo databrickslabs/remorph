@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTableVar TABLE (SummaryBefore NVARCHAR(max), SummaryAfter NVARCHAR(max));
 CREATE TABLE #temp (DocumentSummary NVARCHAR(max), c_name NVARCHAR(max));
 INSERT INTO #temp (DocumentSummary, c_name) VALUES (CAST('features' AS NVARCHAR(max)), 'Customer#000000001');

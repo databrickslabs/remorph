@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @number INT;
 SET @number = 10;
 SELECT *

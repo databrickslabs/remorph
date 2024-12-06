@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT EmployeeID, ContactID, ManagerID, Title
     FROM (

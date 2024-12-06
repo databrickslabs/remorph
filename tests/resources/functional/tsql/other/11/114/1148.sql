@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE dbo.OrderCountBy10
     START WITH 10
     INCREMENT BY 10;

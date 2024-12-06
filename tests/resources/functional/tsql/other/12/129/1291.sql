@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customer_orders (order_total DECIMAL(10, 2));
 INSERT INTO customer_orders (order_total)
   SELECT drvd.[NewTotal]

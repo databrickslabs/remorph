@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE applications (app_name sysname);
 INSERT INTO applications (app_name) VALUES ('my_new_app');
 DECLARE @app_name sysname;

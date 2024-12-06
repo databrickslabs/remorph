@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SupplierCTE AS (
     SELECT 'Supplier1' AS SupplierName, 1 AS SupplierID
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH T1 AS (
     SELECT n + 10 * m AS powRef
     FROM (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH dates AS (
     SELECT d
     FROM (

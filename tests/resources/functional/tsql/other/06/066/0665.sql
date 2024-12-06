@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO collation_demo_2 (spanish_phrase_2)
 SELECT spanish_phrase_2
 FROM (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE test_table (phone_number VARCHAR(20) DEFAULT '123-456-7890');
 INSERT INTO test_table (phone_number)
 VALUES ('123-456-7890');

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'mydb' AS db_name
 )

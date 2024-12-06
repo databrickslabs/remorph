@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT p_partkey, SUM(ps_supplycost) AS Total
 FROM (
     VALUES

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myXML xml = '<root><processing-instruction>PI</processing-instruction></root>';
 SET @myXML.modify('delete //processing-instruction()');
 WITH xmlCTE AS (

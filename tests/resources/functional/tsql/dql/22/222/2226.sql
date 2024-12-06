@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrderedPoints AS (
     SELECT x, y, line, seq,
     ROW_NUMBER() OVER (PARTITION BY line ORDER BY seq) AS row_num

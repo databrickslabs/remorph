@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID('tempdb..#TempTable', 'U') IS NOT NULL
 BEGIN
     SELECT *

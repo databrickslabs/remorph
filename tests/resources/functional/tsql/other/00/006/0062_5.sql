@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH new_view AS (
     SELECT
         x_tab_b.mycol AS x_mycol,

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #MyCTE ( ProductKey INT, OrderDateKey INT, Sales DECIMAL(10, 2) );
 INSERT INTO #MyCTE
 SELECT ProductKey, OrderDateKey, SUM(SalesAmount) AS Sales

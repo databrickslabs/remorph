@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CUSTOMER_SPARSE
 (
     C_CUSTKEY INT PRIMARY KEY,

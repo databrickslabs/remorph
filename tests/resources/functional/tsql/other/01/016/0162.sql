@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_authz (c_custkey INT, c_name VARCHAR(50), c_address VARCHAR(100));
 WITH customer_data AS (
     SELECT c_custkey, c_name, c_address

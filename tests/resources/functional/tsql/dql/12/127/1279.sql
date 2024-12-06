@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CAST(0.5 AS DECIMAL(2, 1)) AS VarY, CAST(0.3 AS DECIMAL(3, 1)) AS Correlation
     UNION ALL

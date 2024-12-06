@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @region CHAR(25);
 SET @region = N'ASIA';
 

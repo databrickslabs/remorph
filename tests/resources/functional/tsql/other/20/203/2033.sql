@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP TABLE IF EXISTS #test_ignore_nulls;
 CREATE TABLE #test_ignore_nulls
 (

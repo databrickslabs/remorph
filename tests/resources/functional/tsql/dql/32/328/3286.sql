@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ProductDescription AS (
     SELECT 'High-performance products for the modern world' AS Description
     UNION ALL

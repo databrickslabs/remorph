@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @pCustomerOptions NVARCHAR(4000) = N'[1,2,3,4]';
 WITH customers AS (
   SELECT 1 AS customerID, 'Customer1' AS customerName

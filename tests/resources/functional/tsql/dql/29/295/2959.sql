@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_stats AS (
     SELECT 'customer_stats' AS name, 1 AS object_id, 1 AS stats_id
 ),

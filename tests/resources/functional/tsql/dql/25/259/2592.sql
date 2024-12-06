@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT Edition = DATABASEPROPERTYEX(database_name, 'EDITION'),
        ServiceObjective = DATABASEPROPERTYEX(database_name, 'ServiceObjective'),
        MaxSizeInBytes = DATABASEPROPERTYEX(database_name, 'MaxSizeInBytes')

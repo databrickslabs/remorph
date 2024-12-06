@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE dbo.CustomerOrders
 WITH (DISTRIBUTION = ROUND_ROBIN)
 AS

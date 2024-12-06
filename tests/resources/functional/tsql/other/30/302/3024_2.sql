@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET QUOTED_IDENTIFIER ON;
 
 WITH temp_result AS (

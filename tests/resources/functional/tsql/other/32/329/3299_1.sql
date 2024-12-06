@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SET NOCOUNT ON;
 CREATE TABLE orders24
 (

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE temp_result (customer_name VARCHAR(50));
 INSERT INTO temp_result (customer_name)
 VALUES ('customer');

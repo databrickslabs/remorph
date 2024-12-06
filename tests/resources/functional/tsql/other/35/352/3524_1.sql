@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH SalesData AS (
     SELECT 'ProductA' AS Product, 100 AS Sales
     UNION ALL

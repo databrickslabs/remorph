@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT '2022-01-01' AS event_date
     UNION ALL

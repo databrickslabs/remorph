@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SELECT c_custkey, c_name, c_acctbal, c_address, c_phone, c_comment
 FROM (
     VALUES

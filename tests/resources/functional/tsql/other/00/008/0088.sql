@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #ext_orders
 (
     o_orderkey INT,

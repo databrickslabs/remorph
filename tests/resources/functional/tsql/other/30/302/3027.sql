@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @position INT, @string CHAR(8);
 SET @position = 1;
 SET @string = 'New Moon';

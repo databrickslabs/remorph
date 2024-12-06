@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH lineitem AS (
     SELECT l_orderkey, l_discount, l_extendedprice
     FROM (

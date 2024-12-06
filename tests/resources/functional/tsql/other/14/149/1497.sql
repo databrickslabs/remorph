@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @STR NVARCHAR(100), @LEN1 INT, @LEN2 INT;
 SET @STR = N'This is a sentence with spaces in it.';
 SET @LEN1 = LEN(@STR);

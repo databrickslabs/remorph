@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 WITH temp_customer AS (
     SELECT c_custkey, c_name, c_acctbal, c_address, c_phone, c_comment
     FROM #temp_customer

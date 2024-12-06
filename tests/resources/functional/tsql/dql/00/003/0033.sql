@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH geography AS (
     SELECT 1 AS column1, 'City1' AS column2
     UNION ALL

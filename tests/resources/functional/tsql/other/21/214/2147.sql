@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH temp_result AS (SELECT 1 AS id, 'test' AS name)
 SELECT 1 AS id, 'test' AS name
 FROM temp_result

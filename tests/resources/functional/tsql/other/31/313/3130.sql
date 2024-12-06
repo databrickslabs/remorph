@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH customer AS (
     SELECT 1 AS custkey, 'Customer 1' AS name, 1 AS nationkey
     UNION ALL

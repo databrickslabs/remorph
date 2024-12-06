@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE usp_FindCustomer
     @lastname VARCHAR(40) = '%',
     @firstname VARCHAR(20) = '%'

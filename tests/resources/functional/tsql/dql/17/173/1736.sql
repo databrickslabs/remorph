@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @g geometry;
 SET @g = geometry::STGeomFromText('LINESTRING(0 0, 2 2, 0 2, 2 0)', 0);
 SELECT boundary

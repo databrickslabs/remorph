@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'USA' AS n_name, 'North America' AS r_name
     UNION ALL

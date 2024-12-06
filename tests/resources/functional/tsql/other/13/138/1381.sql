@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE XML SCHEMA COLLECTION OrderDescriptionSchemaCollection
 AS
 '<xsd:schema targetNamespace="https://schemas.microsoft.com/sqlserver/2004/07/adventure-works/OrderModelDesc" xmlns="http://schemas.microsoft.com/sqlserver/2004/07/adventure-works/OrderModelDesc" elementFormDefault="qualified" xmlns:xsd="http://www.w3.org/2001/XMLSchema" >

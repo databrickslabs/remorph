@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customers
 (
     customer_id INT PRIMARY KEY,

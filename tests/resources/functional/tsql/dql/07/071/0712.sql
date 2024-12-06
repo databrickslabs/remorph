@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT n_nationkey AS partition_col, n_regionkey AS order_col, n_nationkey * 10 AS i
     FROM nation

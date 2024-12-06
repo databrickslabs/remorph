@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #QueryStoreConfig (ConfigName sysname, ConfigValue sysname);
 INSERT INTO #QueryStoreConfig (ConfigName, ConfigValue)
 VALUES ('QUERY_STORE', 'ON'), ('QUERY_STORE_CAPTURE_MODE', 'ALL');

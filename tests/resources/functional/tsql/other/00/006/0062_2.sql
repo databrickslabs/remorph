@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customers AS (
     SELECT c_custkey, c_name
     FROM (

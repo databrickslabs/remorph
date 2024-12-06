@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateValues AS (
     SELECT
         CONVERT(DATE, SYSDATETIME()) AS DateValue1,

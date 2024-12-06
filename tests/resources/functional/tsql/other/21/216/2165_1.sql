@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EVENT SESSION tpch_session
 ON SERVER
 ADD EVENT sqlserver.sql_batch_completed,

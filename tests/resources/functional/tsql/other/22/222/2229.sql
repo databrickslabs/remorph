@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'new_password';
 
 DECLARE @KeyName sysname = 'NewKey';

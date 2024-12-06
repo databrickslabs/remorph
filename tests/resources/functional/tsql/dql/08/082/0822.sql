@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT file_name, file_size, last_modified, uploaded_by
     FROM sys.master_files

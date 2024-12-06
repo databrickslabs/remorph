@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Customer')
 BEGIN
     EXEC('CREATE SCHEMA Customer');

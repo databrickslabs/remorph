@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE TABLE #temp_result (LocationID INT, LocationName VARCHAR(50));
 INSERT INTO #temp_result (LocationID, LocationName)
 VALUES (1, 'Location1'), (2, 'Location2');

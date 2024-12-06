@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH MyCTE AS (
     SELECT 'http://www.example.com/MySchema.xsd' AS SchemaUri
 )

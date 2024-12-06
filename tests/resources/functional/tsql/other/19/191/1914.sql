@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @y XML;
 SET @y = '<customer><name>John</name><age>30</age></customer>';
 

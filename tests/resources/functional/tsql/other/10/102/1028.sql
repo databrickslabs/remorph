@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH login_info AS (
     SELECT 'new_login_name' AS login_name, 'newStrongPasswordHere' AS password
 )

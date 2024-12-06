@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT (c1 * c2) / (c3 + c4) AS Result1, (c5 * c6) / (c7 + c8) AS Result2
 FROM (
     VALUES

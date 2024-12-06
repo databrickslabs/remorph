@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DBCC FREEPROCCACHE ('default');
 WITH customer AS (
     SELECT *

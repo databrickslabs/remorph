@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @value INT = 200;
 ALTER PARTITION FUNCTION myNewRangePF1 () MERGE RANGE (@value);
 -- REMORPH CLEANUP: DROP PARTITION FUNCTION myNewRangePF1;

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE LOGIN [AdventureWorks\John] WITH PASSWORD = 'password';
 
 WITH ConfigSettings AS (

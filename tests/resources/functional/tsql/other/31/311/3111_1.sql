@@ -1,2 +1,2 @@
---Query type: TCL
+-- tsql sql:
 DBCC SHRINKFILE ('Test1data', EMPTYFILE);

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 MERGE INTO Customer_Reason AS tgt
 USING (
     SELECT 1, 'Recommendation', 'Other'

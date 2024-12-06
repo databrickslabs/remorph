@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH SalesPerson AS (
     SELECT SalesQuota, SalesYTD
     FROM (

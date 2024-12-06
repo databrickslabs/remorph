@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Supplier (s_suppkey INT, s_name VARCHAR(255), s_address VARCHAR(255));
 INSERT INTO #Supplier (s_suppkey, s_name, s_address)
 SELECT s_suppkey, s_name, s_address

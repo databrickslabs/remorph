@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 WITH RestoreFiles AS (
     SELECT 'customer_data_1' AS FileName, 'new_orders' AS FileGroup, 9 AS FileNumber
     UNION ALL

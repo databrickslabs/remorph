@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE test_table (id int);
 DECLARE @sql nvarchar(max) = N'CREATE TRIGGER trig_test ON test_table FOR INSERT AS BEGIN END;';
 EXEC sp_executesql @sql;

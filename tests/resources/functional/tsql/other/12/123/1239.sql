@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Tbl ( id INT PRIMARY KEY, o_orderkey INT, l_extendedprice DECIMAL(10, 2), o_totalprice DECIMAL(10, 2) );
 WITH orders AS (
     SELECT 1 AS o_orderkey, 10.0 AS o_totalprice, 100.0 AS l_extendedprice

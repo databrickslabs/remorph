@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customer_target (c_custkey INT, c_acctbal DECIMAL(10, 2));
 
 WITH derivedTable AS (

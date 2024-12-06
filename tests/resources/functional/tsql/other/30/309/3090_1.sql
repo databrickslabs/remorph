@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTableVar TABLE (
     OrderID INT NOT NULL,
     CustomerID INT NOT NULL,

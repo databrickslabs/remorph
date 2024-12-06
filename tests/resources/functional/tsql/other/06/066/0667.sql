@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO regions (region_ID, name)
 SELECT region_ID, name
 FROM (

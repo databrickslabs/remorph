@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO SpatialData (GeomCol1)
 SELECT *
 FROM (

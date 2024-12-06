@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT @@SPID AS 'ID',
            SYSTEM_USER AS 'Login Name',

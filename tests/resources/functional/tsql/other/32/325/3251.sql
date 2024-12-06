@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE Territory (TerritoryID INT, RegionID INT, Name NVARCHAR(50));
 INSERT INTO Territory (TerritoryID, RegionID, Name)
 VALUES (1, 1, 'North1'), (2, 1, 'North2'), (3, 2, 'South1'), (4, 2, 'South2');

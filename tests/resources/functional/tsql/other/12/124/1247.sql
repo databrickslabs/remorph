@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH SalesData AS (
     SELECT 20220101 AS [date], 1 AS [product], 1 AS [store], 10 AS [quantity], 100.00 AS [price], 1000.00 AS [amount]
     UNION ALL

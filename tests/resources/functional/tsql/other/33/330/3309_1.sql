@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH TempResult AS (
     SELECT 'John' AS FirstName, 'Doe' AS LastName
     UNION ALL

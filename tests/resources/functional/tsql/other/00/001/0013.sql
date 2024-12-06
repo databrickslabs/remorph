@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE seq_new;
 WITH temp_result AS (
     SELECT 1 AS id, 'value1' AS name

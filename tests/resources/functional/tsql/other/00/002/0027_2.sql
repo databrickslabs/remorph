@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO customer_data (customer_id, customer_name)
 SELECT *
 FROM (

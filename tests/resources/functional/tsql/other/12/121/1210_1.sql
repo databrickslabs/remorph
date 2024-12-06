@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO MyTest2 (myKey, myValue)
 SELECT myKey, myValue
 FROM (

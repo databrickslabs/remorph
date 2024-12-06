@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROC Get_Supplier_Name
     @SupplierID INT
 AS

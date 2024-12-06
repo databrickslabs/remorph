@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @v2 INT;
 
 WITH Test2 AS (

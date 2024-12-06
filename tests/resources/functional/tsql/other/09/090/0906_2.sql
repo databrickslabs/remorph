@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE temp (DepartmentID INT, DepartmentName VARCHAR(50));
 INSERT INTO temp (DepartmentID, DepartmentName)
 SELECT *

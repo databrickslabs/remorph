@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH sales_data AS (
     SELECT
         c_custkey,

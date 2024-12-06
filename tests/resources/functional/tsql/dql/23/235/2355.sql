@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesData AS (
     SELECT 1 AS StoreID, 'Store1' AS StoreName
     UNION ALL

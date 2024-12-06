@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql NVARCHAR(MAX) = '';
 
 WITH columns AS (

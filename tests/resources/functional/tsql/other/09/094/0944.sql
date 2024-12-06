@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE db_copy;
 CREATE TABLE #customer
 (

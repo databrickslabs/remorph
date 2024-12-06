@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @password nvarchar(50) = 'backup_password';
 DECLARE @url nvarchar(200) = 'https://mynewdocsteststorage.blob.core.windows.net/mynewtestcontainer/MyNewDB_master_key.bak';
 DECLARE @sql nvarchar(max);

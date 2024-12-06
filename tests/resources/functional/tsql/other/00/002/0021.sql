@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE soybean_production (
     producer_ID INTEGER,
     region VARCHAR(50),

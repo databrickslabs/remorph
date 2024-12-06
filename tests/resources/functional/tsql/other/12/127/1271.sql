@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Suppliers
 (
     SupplierID INT PRIMARY KEY NOT NULL,

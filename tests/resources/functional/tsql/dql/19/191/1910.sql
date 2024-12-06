@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @y NVARCHAR(4) = 'ef' + NCHAR(0x10002);
 WITH temp_result AS (
     SELECT @y AS temp_column

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT c_custkey, c_nationkey, c_acctbal, c_mktsegment
     FROM (

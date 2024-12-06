@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH TempResult AS (
     SELECT 'John' AS FirstName, 'Doe' AS LastName, '123 Main St' AS Address
     UNION ALL

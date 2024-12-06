@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 ALTER TABLE #example_table NOCHECK CONSTRAINT salary_cap;
 INSERT INTO #example_table (id, name, salary)
 SELECT id, name, salary

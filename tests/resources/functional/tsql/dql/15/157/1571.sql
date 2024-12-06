@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @orderdate datetime2 = '1995-01-01 00:00:00.0000000';
 WITH orders AS (
   SELECT 'year' AS period, DATEADD(year, 1, @orderdate) AS orderdate

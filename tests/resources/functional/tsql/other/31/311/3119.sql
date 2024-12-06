@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE Products (
     product_id VARCHAR(10),
     list_price DECIMAL(10, 2)

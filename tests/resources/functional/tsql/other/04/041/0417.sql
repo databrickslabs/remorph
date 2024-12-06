@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'mysecretpassword123!';
 OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mysecretpassword123!';
 

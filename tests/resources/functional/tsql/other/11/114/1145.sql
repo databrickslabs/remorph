@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_result (xml_data XML);
 INSERT INTO #temp_result (xml_data)
 VALUES (CAST('<root><book><author>John</author></book></root>' AS XML));

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SELECT TOP 10
     c.custkey,
     c.name,

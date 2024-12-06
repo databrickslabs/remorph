@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (
     SELECT 'customer' AS type, 'c' AS name
 ),

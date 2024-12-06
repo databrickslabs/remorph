@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE DeliveryRoute (ADDRESS VARCHAR(50));
 
 WITH DataToInsert AS (

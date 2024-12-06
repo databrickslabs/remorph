@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @ProductInventory TABLE (ProductID INT, Quantity INT);
 INSERT INTO @ProductInventory (ProductID, Quantity)
 VALUES

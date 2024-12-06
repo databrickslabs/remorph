@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @orderkey INT = 1;
 DECLARE @orderstatus CHAR(1) = 'O';
 DECLARE @totalprice DECIMAL(12, 2) = 100.00;

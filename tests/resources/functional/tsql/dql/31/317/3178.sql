@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrderDetails AS (
     SELECT 1 AS OrderID, 10.0 AS LineTotal
     UNION ALL

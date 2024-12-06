@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO orders (o_orderkey, o_custkey, o_orderstatus)
 VALUES
     (1, 10, 'O'),

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesRank AS (
     SELECT region, nation, SUM(revenue) AS total_revenue, RANK() OVER (PARTITION BY region ORDER BY SUM(revenue) DESC) AS revenue_rank
     FROM (

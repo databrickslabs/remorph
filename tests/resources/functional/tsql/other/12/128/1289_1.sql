@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE dbo.NewTable
 (
     ColC VARCHAR(50) NOT NULL,

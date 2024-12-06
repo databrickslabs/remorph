@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (SELECT TOP 10 c_custkey, c_name, c_address FROM Customer),
 			OrderCTE AS (SELECT TOP 10 o_orderkey, o_custkey, o_orderstatus FROM Orders),
 			LineitemCTE AS (SELECT TOP 10 l_orderkey, l_extendedprice, l_discount FROM Lineitem),

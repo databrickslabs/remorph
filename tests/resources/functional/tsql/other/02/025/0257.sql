@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT '2022/01/01' AS date_part, 1643723400 AS timestamp, 'value1' AS col2
     UNION ALL

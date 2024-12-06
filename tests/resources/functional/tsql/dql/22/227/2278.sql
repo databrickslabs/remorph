@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH options AS (SELECT CAST(0 AS INT) AS options_value)
 SELECT GET_BIT(options.options_value, 0) AS [DISABLE_DEF_CNST_CHK],
        GET_BIT(options.options_value, 1) AS [IMPLICIT_TRANSACTIONS],

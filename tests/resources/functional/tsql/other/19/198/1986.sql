@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP EXTERNAL TABLE #temp;
 
 WITH temp AS (

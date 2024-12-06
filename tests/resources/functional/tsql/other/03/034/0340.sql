@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ProductCTE AS (
     SELECT 1 AS ProductKey, 100 AS ListPrice
     UNION ALL

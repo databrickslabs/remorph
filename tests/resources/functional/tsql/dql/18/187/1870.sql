@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @orderdate smalldatetime = '1995-01-01 12:00:00';
 DECLARE @shipdate date = @orderdate;
 

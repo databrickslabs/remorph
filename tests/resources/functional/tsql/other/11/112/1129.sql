@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS c_custkey, 'Customer1' AS c_name, 100.00 AS c_acctbal, '123-456-7890' AS c_phone, 'USA' AS n_name, '123 Main St' AS c_address, 'This is a comment' AS c_comment, 10.00 AS l_extendedprice, 0.10 AS l_discount
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #TempTable (amount decimal(10, 2));
 INSERT INTO #TempTable (amount)
 VALUES (100.00), (200.00), (50.00), (75.00), (150.00);

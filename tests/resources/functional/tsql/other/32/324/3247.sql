@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE uspSupplierAllInfo
     @PartName VARCHAR(25)
 AS

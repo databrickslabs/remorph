@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT p_partkey, ps_supplycost, AVG(ps_availqty) AS avg_availqty, SUM(ps_supplycost * ps_availqty) AS total_cost
     FROM partsupp

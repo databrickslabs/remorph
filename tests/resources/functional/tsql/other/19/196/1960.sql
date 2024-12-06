@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH TriggerStatus AS (
     SELECT 'Disabled' AS Status, 'Trigger1' AS TriggerName
     UNION ALL

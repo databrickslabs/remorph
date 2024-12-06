@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @List AS nvarchar(max);
 WITH CustomerCTE AS (
     SELECT c_name, c_custkey, c_nationkey

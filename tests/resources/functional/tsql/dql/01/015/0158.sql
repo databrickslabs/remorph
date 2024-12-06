@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @time_in_ny datetimeoffset = '2018-04-05 12:00:00 +02:00';
 DECLARE @tz_ny nvarchar(50) = 'Eastern Standard Time';
 DECLARE @tz_la nvarchar(50) = 'Pacific Standard Time';

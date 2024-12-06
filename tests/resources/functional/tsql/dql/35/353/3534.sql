@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH certificates AS (
     SELECT thumbprint, name
     FROM (

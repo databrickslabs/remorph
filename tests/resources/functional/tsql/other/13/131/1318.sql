@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_orders
 (
     order_key INT NOT NULL,

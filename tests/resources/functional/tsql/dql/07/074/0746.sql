@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH geography_data AS (
   SELECT geography::Point(10, 20, 4326) AS g
   UNION ALL

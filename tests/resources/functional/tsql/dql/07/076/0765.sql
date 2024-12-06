@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'MYDB.MYSCHEMA.' AS name_prefix, 1 AS error_only
 ),

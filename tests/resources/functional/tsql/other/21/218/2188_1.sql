@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF OBJECT_ID('[region_temp]', 'U') IS NOT NULL
     DROP TABLE [region_temp];
 

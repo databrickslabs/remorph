@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @g1 INT, @g2 INT;
 
 WITH geography_data AS (

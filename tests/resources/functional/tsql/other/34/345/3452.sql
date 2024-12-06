@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE ROLE CustomerService;
 CREATE ROLE MarketingDepartment;
 REVOKE VIEW DEFINITION ON ROLE::CustomerService FROM MarketingDepartment CASCADE;

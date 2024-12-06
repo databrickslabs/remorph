@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SET NOCOUNT ON;
 
 CREATE TABLE #tmpdbs

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'TABLE_NAME' AS TABLE_NAME,
            'COLUMN_NAME' AS COLUMN_NAME,

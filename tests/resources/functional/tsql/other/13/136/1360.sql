@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE VIEW Sales.SalesReject
 WITH ENCRYPTION
 AS

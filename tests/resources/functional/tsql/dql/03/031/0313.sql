@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT 'Smith' AS LastName, 'John' AS FirstName
     UNION ALL

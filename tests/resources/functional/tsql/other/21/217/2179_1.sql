@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE dbo.uspCustomerByRegion
     @Region VARCHAR(25) = '%'
 WITH RECOMPILE

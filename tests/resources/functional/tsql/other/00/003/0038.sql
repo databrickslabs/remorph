@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #t1 (col1 INT, col2 INT);
 INSERT INTO #t1 (col1, col2)
 SELECT a, b

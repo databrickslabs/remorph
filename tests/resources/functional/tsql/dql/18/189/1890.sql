@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @categories NVARCHAR(400) = 'electronics,books,,sports,toys';
 WITH categories AS (
     SELECT value

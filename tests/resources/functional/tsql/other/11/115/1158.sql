@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @NewOrderQueue TABLE (MessageBody varbinary(max));
 
 DECLARE @NewOrderRequestMessage sysname = 'NewOrderRequest';

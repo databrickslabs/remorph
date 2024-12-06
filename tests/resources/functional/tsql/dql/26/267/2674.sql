@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateCTE AS (SELECT CAST('2007-04-30T01:01:01.1234567 -07:00' AS DATETIME) AS OrderDate)
 SELECT MONTH(OrderDate)
 FROM DateCTE

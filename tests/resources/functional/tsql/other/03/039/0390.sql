@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerUSA_CTE AS (
     SELECT *
     FROM (

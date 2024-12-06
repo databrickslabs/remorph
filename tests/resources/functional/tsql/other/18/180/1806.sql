@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @custid INT;
 SET @custid = (
     SELECT c_custkey

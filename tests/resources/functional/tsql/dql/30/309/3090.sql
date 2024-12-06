@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesData AS (
     SELECT o_orderkey, o_custkey, o_totalprice, o_orderdate
     FROM (

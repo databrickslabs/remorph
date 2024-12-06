@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO awards WITH (TABLOCK) (award_id, award_description)
 SELECT *
 FROM (

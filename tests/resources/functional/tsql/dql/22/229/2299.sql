@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (SELECT 2.0 AS value)
 SELECT POWER(CAST(value AS FLOAT), -100.0) AS FloatResult,
        POWER(2, -100.0) AS IntegerResult,

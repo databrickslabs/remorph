@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
   SELECT 'United States' AS Country, 'New York' AS City, 1 AS CustomerID
   UNION ALL

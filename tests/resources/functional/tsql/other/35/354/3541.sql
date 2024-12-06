@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE LOGIN User456 WITH PASSWORD = 'password';
 CREATE USER User456 FOR LOGIN User456;
 

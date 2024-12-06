@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TempResult')
 CREATE TABLE TempResult (
     c_custkey INT,

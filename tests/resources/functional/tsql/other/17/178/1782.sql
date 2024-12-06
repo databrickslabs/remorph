@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @h GEOGRAPHY;
 SET @h = GEOGRAPHY::[NULL];
 SELECT @h;

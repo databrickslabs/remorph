@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
   SELECT CAST('2022-05-08 12:35:29.1234567 +12:15' AS TIME(7)) AS time,
          CAST('2022-05-08 12:35:29.1234567 +12:15' AS DATE) AS date,

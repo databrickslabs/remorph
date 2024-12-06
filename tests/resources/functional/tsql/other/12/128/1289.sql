@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT ColC, ColD
 INTO #Table2
 FROM (

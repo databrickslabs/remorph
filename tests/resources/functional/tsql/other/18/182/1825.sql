@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myDoc XML;
 SET @myDoc = '<Root><Location MachineHours="1000" /></Root>';
 SET @myDoc.modify('delete /Root/Location/@MachineHours');

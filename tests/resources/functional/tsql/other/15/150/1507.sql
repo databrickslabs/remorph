@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @XACT_ABORT VARCHAR(3) = 'OFF';
 DECLARE @OPTIONS INT = 16384;
 IF ( (16384 & @OPTIONS) = 16384 ) SET @XACT_ABORT = 'ON';

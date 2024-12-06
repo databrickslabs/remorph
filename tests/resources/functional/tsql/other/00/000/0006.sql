@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE region_info (
     region_name NVARCHAR(50),
     region_description TEXT

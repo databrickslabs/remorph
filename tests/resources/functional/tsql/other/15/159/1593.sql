@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @service_name sysname = 'service1';
 DECLARE @contract_name sysname = 'contract1';
 

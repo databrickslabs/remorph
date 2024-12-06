@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Supplier (
     supplier_id INT NOT NULL,
     company_name VARCHAR(20),

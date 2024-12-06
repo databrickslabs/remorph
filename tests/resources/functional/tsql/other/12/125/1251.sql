@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #data_retention_table
 (
     dbdatetime2 datetime2(7),

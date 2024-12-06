@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @g GEOGRAPHY = 'POINT(32 23)';
 DECLARE @speed FLOAT = 10.5;
 

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @waittimesec INT = 2;
 DECLARE @startingtime DATETIME2(2) = GETDATE();
 PRINT N'Waiting for ' + CAST(@waittimesec AS VARCHAR(5)) + ' seconds';

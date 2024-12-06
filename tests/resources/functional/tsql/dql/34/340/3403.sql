@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrderDetails AS (
     SELECT 1 AS OrderID, 10 AS ProductID, 5 AS OrderQty, '2022-01-01' AS OrderDate
 ),

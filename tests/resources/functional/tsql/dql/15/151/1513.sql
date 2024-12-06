@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @angle float;
 SET @angle = 14.78;
 WITH angle AS (

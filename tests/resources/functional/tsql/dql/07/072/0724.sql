@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateValues AS (
     SELECT CAST('2019-03-01' AS DATE) AS Date1, CAST('2019-02-15' AS DATE) AS Date2
     UNION ALL

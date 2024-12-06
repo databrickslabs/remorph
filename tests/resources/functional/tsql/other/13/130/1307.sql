@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #mylogintable (date_in DATETIME, user_id INT, myuser_name AS USER_NAME());
 WITH mylogintable AS (
     SELECT CAST('2022-01-01' AS DATETIME) AS date_in, 1 AS user_id

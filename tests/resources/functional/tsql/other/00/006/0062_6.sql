@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_view AS (
     SELECT c.*, o.*
     FROM (

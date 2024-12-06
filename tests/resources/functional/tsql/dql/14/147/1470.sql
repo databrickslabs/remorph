@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ManagerCTE AS (
     SELECT CAST('/1/' AS hierarchyid) AS OrgNode
 )

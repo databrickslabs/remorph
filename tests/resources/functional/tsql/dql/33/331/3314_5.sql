@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT @@IDENTITY AS last_identity_value
 FROM (
     VALUES (1)

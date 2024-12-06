@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO new_bits (ID, bit1, bit2)
 VALUES
     (101, 10, 1),

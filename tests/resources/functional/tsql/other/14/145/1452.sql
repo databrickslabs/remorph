@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @ComparePrice DECIMAL(10, 2), @Cost DECIMAL(10, 2), @Message VARCHAR(100);
 
 DECLARE @ProductList TABLE (

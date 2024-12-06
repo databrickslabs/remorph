@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT c_custkey, o_orderkey, l_extendedprice
     FROM (

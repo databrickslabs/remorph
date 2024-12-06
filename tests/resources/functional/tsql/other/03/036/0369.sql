@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER INDEX IX_SalesOrderHeader_SalesOrderID
 ON Sales.SalesOrderHeader
 REBUILD PARTITION = 3

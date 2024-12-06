@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeRoles AS (
     SELECT 'Manager' AS Role
     UNION ALL

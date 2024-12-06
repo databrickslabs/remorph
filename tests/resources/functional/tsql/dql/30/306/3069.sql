@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT geography::ConvexHullAggregate(Region).ToString() AS RegionBoundary
 FROM (
     VALUES ('1', geography::Point(47.65100, -122.34900, 4326)),

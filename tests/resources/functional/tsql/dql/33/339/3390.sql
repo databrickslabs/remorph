@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 WITH Inventory AS ( SELECT 100 AS Quantity UNION ALL SELECT 200 UNION ALL SELECT 400 ) SELECT COUNT(*) AS Count FROM Inventory WHERE Quantity < 300

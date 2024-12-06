@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @description VARCHAR(64);
 SELECT @description = 'Regular bicycles are designed' + ' for riding on paved roads.';
 WITH temp_result AS (

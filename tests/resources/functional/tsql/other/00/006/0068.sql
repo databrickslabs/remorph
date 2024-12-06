@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT c_custkey, c_name, c_address
 INTO #temp
 FROM (

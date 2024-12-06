@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_time TIME(4) = '12:15:04.1237';
 DECLARE @order_datetimeoffset DATETIMEOFFSET(3) = @order_time;
 

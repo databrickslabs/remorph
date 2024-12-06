@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WHILE (@@FETCH_STATUS <> -1)
 BEGIN
     WITH LoopData AS (

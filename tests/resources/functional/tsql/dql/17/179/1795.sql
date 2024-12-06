@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @region geography;
 DECLARE @nation geography;
 DECLARE @result geography;

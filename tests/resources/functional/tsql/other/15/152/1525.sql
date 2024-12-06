@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @conversation_handle UNIQUEIDENTIFIER;
 SET @conversation_handle = 'conversation_handle_1';
 

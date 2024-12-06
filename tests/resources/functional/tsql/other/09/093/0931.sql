@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT c.c_custkey, c.c_name, SUM(l.l_extendedprice * (1 - l.l_discount)) AS revenue, c.c_acctbal, n.n_name, c.c_address, c.c_phone, c.c_comment
 FROM (
     VALUES (1, 'Customer 1', 100.00, 'Address 1', 'Phone 1', 'Comment 1', 1),

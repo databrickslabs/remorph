@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #CustomerOrders
 (
     c_custkey INT,

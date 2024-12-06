@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Customer (custkey int, name varchar(25), address varchar(40));
 INSERT INTO Customer (custkey, name, address)
 SELECT *

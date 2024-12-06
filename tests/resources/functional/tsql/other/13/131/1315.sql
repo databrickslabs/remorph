@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE orders ( id INTEGER PRIMARY KEY, order_date DATE ) AS EDGE;
 WITH order_items AS (
     SELECT 1 AS id, '2020-01-01' AS order_date

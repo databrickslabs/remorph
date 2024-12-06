@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @IntegerVariable INT;
 SET @IntegerVariable = 123456;
 SET @IntegerVariable = @IntegerVariable + 1;

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'a' AS char_lower, 'z' AS char_upper
     UNION ALL

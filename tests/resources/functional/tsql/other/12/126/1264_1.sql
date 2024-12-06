@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @EmployeeVar TABLE (EmployeeID INT NOT NULL, EmployeeName NVARCHAR(50) NOT NULL, Salary MONEY NOT NULL);
 
 WITH EmployeeCTE AS (

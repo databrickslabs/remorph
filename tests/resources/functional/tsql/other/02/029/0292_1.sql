@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE array_demo (ID INT, array1 VARCHAR(255), array2 VARCHAR(255), tip VARCHAR(255));
 INSERT INTO array_demo (ID, array1, array2, tip)
 VALUES (1, '1,2,3', '3,4,5', 'value 1'),

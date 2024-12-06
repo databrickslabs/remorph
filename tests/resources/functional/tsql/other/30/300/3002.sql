@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFORMAT ymd;
 DECLARE @date_var datetime2 = '2011-05-12';
 SET LANGUAGE english;

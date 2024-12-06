@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SET DATEFORMAT dmy;
 SELECT TRY_CAST(DateString AS DATETIME2) AS Result
 FROM (

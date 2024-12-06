@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @g geography;
 SET @g = geography::STGeomFromText('POINT(-122.34900 47.65100 10.3 12)', 4326);
 SELECT geo_text, geo_text_zm

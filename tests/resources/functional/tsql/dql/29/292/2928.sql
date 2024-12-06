@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT o_orderkey AS [Order Key], c_custkey AS [Customer Key], o_orderdate AS [Order Date], c_name AS [Customer Name]
 FROM (
     VALUES (1, 10, '2020-01-01', 'Customer1'),

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH QuotaHistory AS (
     SELECT 1 AS CustomerKey, '2005-01-01' AS QuotaDate, 1000.0 AS SalesQuota
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF OBJECT_ID('binary_table_new', 'U') IS NOT NULL
     DROP TABLE binary_table_new;
 

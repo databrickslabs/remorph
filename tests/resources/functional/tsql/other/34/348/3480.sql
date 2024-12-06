@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT s.supplierkey, s.name AS supplier_name, n.name AS nation_name
     FROM (

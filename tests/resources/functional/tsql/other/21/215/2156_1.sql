@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #TempTable (xml_column XML);
 INSERT INTO #TempTable (xml_column)
 VALUES (CONVERT(XML, '<root><comment>test</comment></root>'));

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'customer[_]segment' AS name, 'V' AS type, 'public' AS schema_name
     UNION ALL

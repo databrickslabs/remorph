@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EXTERNAL DATA SOURCE [CustomerData]
 WITH (
     LOCATION = 'wasbs://customerdata.dfs.core.windows.net/customerinfo/customerbaseoutputfolderpath',

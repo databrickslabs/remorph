@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DROP TABLE #TempResult;
 
 WITH TempResult AS (

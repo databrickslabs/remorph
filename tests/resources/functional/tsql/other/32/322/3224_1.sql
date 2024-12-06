@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE Demo.SequenceIncrement
     START WITH 5
     INCREMENT BY 3;

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_orders AS (
     SELECT orderkey, orderdate, totalprice, orderstatus
     FROM (

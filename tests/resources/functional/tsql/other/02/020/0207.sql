@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH WaitTimes AS (
     SELECT 1 AS seconds, 'SECONDS' AS unit
     UNION ALL

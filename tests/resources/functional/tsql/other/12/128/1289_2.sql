@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO #TempResult (Column1, Column2)
 SELECT Column1, Column2
 FROM (

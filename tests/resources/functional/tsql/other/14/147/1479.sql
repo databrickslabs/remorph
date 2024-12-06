@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @MyCursor CURSOR;
 SET @MyCursor = CURSOR LOCAL SCROLL FOR
     SELECT *

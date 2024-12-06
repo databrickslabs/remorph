@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @conversation_group_id UNIQUEIDENTIFIER;
 SET @conversation_group_id = NEWID();
 

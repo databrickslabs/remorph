@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE RestoreLog
 (
     LogID INT IDENTITY(1, 1) PRIMARY KEY,

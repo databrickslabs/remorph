@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @db_name sysname = 'current';
 ALTER DATABASE [@db_name] MODIFY (EDITION = 'Premium');
 SELECT * FROM sys.databases WHERE name = @db_name;

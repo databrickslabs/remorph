@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH cte AS (
     SELECT
         CASE

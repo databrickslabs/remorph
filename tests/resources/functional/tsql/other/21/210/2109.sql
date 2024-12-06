@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH TempResult AS ( SELECT 'dummy' AS dummy_value )
 SELECT *
 FROM TempResult;

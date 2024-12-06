@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'like_ex_new')
 CREATE TABLE like_ex_new (
     subject_new VARCHAR(255)

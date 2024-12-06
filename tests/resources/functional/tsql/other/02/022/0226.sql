@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE my_anomaly_detector
     @INPUT_DATA sys.sql_variant,
     @TIMESTAMP_COLNAME nvarchar(128),

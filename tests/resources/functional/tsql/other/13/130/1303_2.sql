@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH lineitem AS (
     SELECT orderkey, shipdate, CAST(GETDATE() AS smalldatetime) AS ShippedDate
     FROM (

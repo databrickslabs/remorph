@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH orders AS (
     SELECT 1 AS o_orderkey, 1 AS o_custkey, 'O' AS o_orderstatus, 100.00 AS o_totalprice, '2020-01-01' AS o_orderdate
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT *
 FROM (
     VALUES

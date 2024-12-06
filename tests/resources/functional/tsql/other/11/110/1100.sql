@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE find_customers @customer_name sysname = NULL
 AS
 BEGIN

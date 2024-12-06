@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE ASYMMETRIC KEY Employee_AKey
 WITH ALGORITHM = RSA_2048;
 

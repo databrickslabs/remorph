@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @IsDataScientist BIT = 1;
 
 WITH temp_result AS (

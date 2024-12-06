@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @table_name sysname, @old_name sysname, @new_name sysname;
 SELECT @table_name = table_name, @old_name = old_name, @new_name = new_name
 FROM (

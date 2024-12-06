@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @notastring INT;
 SET @notastring = '1';
 WITH temp_result AS (

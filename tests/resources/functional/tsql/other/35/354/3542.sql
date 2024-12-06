@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #MyTable (id INT);
 INSERT INTO #MyTable (id)
 VALUES

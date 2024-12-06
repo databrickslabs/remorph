@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerOrdersCTE AS (
     SELECT c_custkey, c_name, o_orderkey, o_orderdate
     FROM (

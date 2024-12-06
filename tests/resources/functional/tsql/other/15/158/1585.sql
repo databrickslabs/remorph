@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @db_name sysname;
 DECLARE @file_path nvarchar(400);
 

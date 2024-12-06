@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE cur CURSOR FOR
     SELECT 'DENY VIEW DEFINITION ON ROLE::' + RoleName + ' TO ' + UserName + ' CASCADE;' AS sql
     FROM (

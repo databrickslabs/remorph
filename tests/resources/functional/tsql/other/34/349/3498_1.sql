@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @AuditState nvarchar(10);
 
 WITH AuditStateCTE AS (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'Customer1' AS CustomerName, 1 AS CustomerID
     UNION ALL

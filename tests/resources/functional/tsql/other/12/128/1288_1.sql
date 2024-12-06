@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @i INT = 0;
 BEGIN TRANSACTION;
 SET @i = 0;

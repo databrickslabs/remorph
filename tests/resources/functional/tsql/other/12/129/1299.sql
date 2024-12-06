@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE sales.order_items
 (
     order_id INT NOT NULL

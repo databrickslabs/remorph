@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql nvarchar(max) = '';
 SELECT @sql += 'DROP TABLE ' + QUOTENAME(name) + ';'
 FROM (

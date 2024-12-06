@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT RTRIM(c_last) + ',' + SPACE(2) + LTRIM(c_first) AS customer_name
 FROM (
     VALUES ('Smith', 'John'),

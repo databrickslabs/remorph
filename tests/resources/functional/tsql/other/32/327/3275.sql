@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @AvgPrice DECIMAL(8,2), @ProductCount INT;
 
 IF (SELECT COUNT(*) FROM (VALUES ('HL Road Frame - Black, 58', 105.46), ('HL Road Frame - Red, 58', 105.46), ('HL Road Frame - Black, 62', 105.46), ('HL Road Frame - Red, 62', 105.46), ('HL Road Frame - Black, 44', 105.46), ('HL Road Frame - Red, 44', 105.46)) AS Product(Name, Price) WHERE Name LIKE 'HL Road Frame%') > 5

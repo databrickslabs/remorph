@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE array_example (array_column sql_variant);
 
 WITH temp_result AS (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesOrderDetail AS (
     SELECT 1 AS ProductID, 10.99 AS UnitPrice, 2 AS OrderQty
     UNION ALL

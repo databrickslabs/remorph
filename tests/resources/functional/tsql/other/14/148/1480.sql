@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SELECT Name AS MyName
 FROM (
     VALUES (1, 'John'),

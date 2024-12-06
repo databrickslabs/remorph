@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE PROCEDURE generate_numbers
 AS
 BEGIN

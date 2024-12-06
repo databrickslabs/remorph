@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customers (c_custkey INT, c_name VARCHAR(50), c_address VARCHAR(100));
 CREATE TABLE orders (o_orderkey INT, o_custkey INT, o_orderstatus VARCHAR(50));
 WITH src AS (

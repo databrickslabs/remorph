@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF EXISTS (SELECT * FROM sys.tables WHERE name = 'temp_table_2')
     DROP TABLE temp_table_2;
 

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH src AS (
     SELECT L_ORDERKEY, SUM(CONVERT(int, L_QUANTITY)) AS Quantity
     FROM (

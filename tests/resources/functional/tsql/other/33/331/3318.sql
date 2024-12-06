@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE FUNCTION myFunction()
 RETURNS TABLE
 AS

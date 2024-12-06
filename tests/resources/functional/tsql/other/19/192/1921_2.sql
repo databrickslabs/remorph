@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFORMAT ymd;
 SELECT CONVERT(VARCHAR(10), DATE_VALUE, 120) AS FormattedDate
 FROM (

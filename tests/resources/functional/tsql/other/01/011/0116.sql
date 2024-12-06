@@ -1,2 +1,2 @@
---Query type: DCL
+-- tsql sql:
 SET ANSI_NULLS ON;

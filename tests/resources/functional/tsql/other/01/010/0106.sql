@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH geography_values AS (
   SELECT id, geography::Parse('POLYGON((0 0, 1 0, 2 1, 1 2, 2 3, 1 4, 0 4, 0 0))') AS geography
   FROM (VALUES (1)) AS v(id)

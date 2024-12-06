@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE supplier_lineitem (
     sl_orderkey INT IDENTITY(1,1) PRIMARY KEY CLUSTERED,
     sl_suppkey INT,

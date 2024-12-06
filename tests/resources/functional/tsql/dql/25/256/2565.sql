@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 SELECT DIFFERENCE('Similarity', 'Likeness') AS SimilarityScore FROM (VALUES ('Similarity', 'Likeness')) AS TempTable(String1, String2);

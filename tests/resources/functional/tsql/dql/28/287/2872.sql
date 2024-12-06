@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CAST('<root><a>1</a></root>' AS XML) AS c3,
            1 AS c1,

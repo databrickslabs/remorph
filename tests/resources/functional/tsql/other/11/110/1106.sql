@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE ExpenseQueue
 (
     QueueName VARCHAR(100),

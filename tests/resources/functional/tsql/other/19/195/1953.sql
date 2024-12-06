@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @principal sysname = 'public';
 DENY EXECUTE ON sys.xp_cmdshell TO public;
 SELECT *

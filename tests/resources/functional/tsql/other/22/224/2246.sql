@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH SalesOrderTemp AS (
     SELECT *
     FROM (

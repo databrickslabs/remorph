@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SignedDataCTE AS (
     SELECT 'data signed by certificate ''Shipping04''' AS Description,
            'signed data' AS Signed_Data,

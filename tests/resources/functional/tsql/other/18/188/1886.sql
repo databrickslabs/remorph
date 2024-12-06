@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @Orders TABLE (orderKey INT, totalprice INT, orderstatus CHAR(1));
 INSERT INTO @Orders (orderKey, totalprice, orderstatus)
 VALUES (1, 500, 'O'), (2, 200, 'C'), (3, 300, 'O');

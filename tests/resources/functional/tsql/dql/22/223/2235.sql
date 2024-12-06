@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @varname INT;
 SET @varname = NULL;
 WITH temp_result AS (

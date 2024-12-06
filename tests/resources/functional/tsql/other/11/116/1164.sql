@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CustomerOrder (
     geometry_col geometry,
     c_custkey INT,

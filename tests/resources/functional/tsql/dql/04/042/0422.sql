@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte (SupplierID, NationID, RegionID) AS (
     SELECT SupplierID, NationID, RegionID
     FROM (

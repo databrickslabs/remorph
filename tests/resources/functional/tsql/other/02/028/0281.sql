@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE seq_orders
     START WITH 10
     INCREMENT BY 10;

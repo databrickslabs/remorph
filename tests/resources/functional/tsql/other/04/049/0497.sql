@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE CERTIFICATE NewCertificate
 WITH SUBJECT = 'NewCertificate',
     EXPIRY_DATE = '2025-01-01';

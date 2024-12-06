@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH Products AS (
   SELECT 'Product1' AS Name, 10 AS ProductID
   UNION ALL

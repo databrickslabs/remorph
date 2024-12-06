@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @week_start INT = 3; -- Monday as the first day of the week
 DECLARE @week_of_year_policy INT = 1; -- Not directly applicable in T-SQL, but we'll adjust calculations accordingly
 

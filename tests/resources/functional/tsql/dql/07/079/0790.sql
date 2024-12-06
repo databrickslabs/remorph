@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT T2.customer_name
 FROM (
     VALUES ('Customer#000000001', 10.0),

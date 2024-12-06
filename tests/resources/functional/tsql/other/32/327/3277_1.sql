@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS suppkey, 'Supplier#000000001' AS s_name, 1000.00 AS s_acctbal, 1 AS s_nationkey, 'Address1' AS s_address, 'Phone1' AS s_phone, 'Comment1' AS s_comment
     UNION ALL

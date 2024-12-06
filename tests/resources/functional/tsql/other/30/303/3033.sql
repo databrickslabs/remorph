@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ExistingRecord AS (
     SELECT 1 AS RecordID, 'Existing Record' AS RecordName
 ),

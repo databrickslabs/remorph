@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @RowsToSkip TINYINT = 2, @FetchRows TINYINT = 8;
 
 WITH TempResult AS (

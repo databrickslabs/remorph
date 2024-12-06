@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE usp_NestLevelValues_Demo
 AS
     WITH NestLevels AS (

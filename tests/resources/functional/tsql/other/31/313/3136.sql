@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTableVar TABLE (BusinessEntityID INT, OldVacationHours INT, NewVacationHours INT, ModifiedDate DATETIME);
 CREATE TABLE #EmployeeCTE (BusinessEntityID INT, VacationHours INT, ModifiedDate DATETIME);
 INSERT INTO #EmployeeCTE (BusinessEntityID, VacationHours, ModifiedDate)

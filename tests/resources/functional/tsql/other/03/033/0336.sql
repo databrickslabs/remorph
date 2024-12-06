@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @E TABLE (EmployeeKey INT, BaseRate DECIMAL(10, 2));
 INSERT INTO @E (EmployeeKey, BaseRate)
 VALUES

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE PROCEDURE get_customer_config
 AS
 BEGIN

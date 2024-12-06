@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @orderdate datetime2;
 SET @orderdate = '1992-01-01 01:01:01.1111111';
 WITH orders AS (

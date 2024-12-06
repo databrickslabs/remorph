@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'my_database')
 BEGIN
     CREATE DATABASE [my_database];

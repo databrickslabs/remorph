@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TYPE Customer.Address AS TABLE (AddressID int, AddressLine nvarchar(50));
 CREATE USER ClerkR WITHOUT LOGIN;
 GRANT VIEW DEFINITION ON TYPE::Customer.Address TO ClerkR;

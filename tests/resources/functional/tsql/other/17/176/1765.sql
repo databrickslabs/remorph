@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geometry;
 SET @g = (
     SELECT geom

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'value1' AS s1, 'value2' AS s2, 'value1' AS s3
     UNION ALL

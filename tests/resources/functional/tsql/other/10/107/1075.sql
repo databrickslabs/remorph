@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION myNewRangePF (INT) AS RANGE LEFT FOR VALUES (5, 500, 5000);
 CREATE PARTITION SCHEME myNewRangePS AS PARTITION myNewRangePF ALL TO ('PRIMARY');
 CREATE TABLE myTable (id INT, value INT) ON myNewRangePS (id);

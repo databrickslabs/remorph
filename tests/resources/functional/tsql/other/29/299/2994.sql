@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS s_suppkey, 'Supplier#000000001' AS s_name, 0.00 AS s_acctbal, '25-989-741-2988' AS s_phone, 'Supplier#000000001 Comment' AS s_comment
     UNION ALL

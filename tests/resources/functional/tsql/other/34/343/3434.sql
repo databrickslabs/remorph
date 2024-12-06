@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH SchemaCollections AS (
     SELECT 'Sales.Invoices4' AS SchemaName
     UNION ALL

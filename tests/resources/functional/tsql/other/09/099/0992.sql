@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @python_path nvarchar(255) = 'C:\PythonExtension\pythonextension.zip';
 DECLARE @dll_name nvarchar(255) = 'pythonextension.dll';
 EXEC sp_addextendedproc 'sp_python', @dll_name;

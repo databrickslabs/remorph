@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #ExpenseQueue
 (
     order_total decimal(10, 2),

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT r_name, SUM(o_totalprice) AS total_revenue
     FROM region

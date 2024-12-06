@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION myRangePF2 (int) AS RANGE LEFT FOR VALUES (2, 200, 2000);

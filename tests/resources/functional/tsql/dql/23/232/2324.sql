@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (SELECT * FROM (VALUES (1, 'customer1'), (2, 'customer2')) AS customer (customer_id, customer_name))
 SELECT cte.customer_id, cte.customer_name
 FROM cte

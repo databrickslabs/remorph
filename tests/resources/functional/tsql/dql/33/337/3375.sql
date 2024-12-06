@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesPerson AS (
     SELECT 1 AS BusinessEntityID, 10000 AS SalesYTD, 1 AS TerritoryID
 ),

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #products (product_ID INT, wholesale_price DECIMAL(10, 2));
 INSERT INTO #products (product_ID, wholesale_price)
 SELECT *

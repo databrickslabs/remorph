@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @region_name VARCHAR(100);
 SET @region_name = 'MIDDLE EAST';
 

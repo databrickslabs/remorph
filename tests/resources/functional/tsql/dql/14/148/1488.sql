@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH TempResult AS (
     SELECT 1 AS NewScrapReasonID, 'Reason1' AS Name, '2022-01-01' AS ModifiedDate
     UNION ALL

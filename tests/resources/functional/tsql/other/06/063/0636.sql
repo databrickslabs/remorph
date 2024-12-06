@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE parent (ID INTEGER);
 CREATE TABLE child (ID INTEGER, parent_ID INTEGER);
 

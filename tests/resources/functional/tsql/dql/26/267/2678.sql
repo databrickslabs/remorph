@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT NCHAR(80) AS [SPECIAL_CHARACTER], NCHAR(195) AS [SPECIAL_CHARACTER]
 FROM (
     VALUES (1), (2), (3)

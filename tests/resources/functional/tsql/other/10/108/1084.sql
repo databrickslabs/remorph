@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @OrderId INT;
 WITH temp_result AS (
     SELECT 13 AS OrderId

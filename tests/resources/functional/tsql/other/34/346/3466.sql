@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Temp (i INT, x XML);
 
 WITH CTE AS (

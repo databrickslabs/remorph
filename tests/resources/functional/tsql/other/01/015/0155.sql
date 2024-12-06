@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFIRST 4;
 WITH temp_result AS (
     SELECT 'Spanish' AS language

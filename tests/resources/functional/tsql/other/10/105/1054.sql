@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH MessageTypeCTE AS (
     SELECT 'Example-Company.com/Orders/SubmitOrder' AS MessageType, 'EMPTY' AS Validation
 )

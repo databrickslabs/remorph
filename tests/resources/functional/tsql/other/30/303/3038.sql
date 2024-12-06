@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE Locations (Name nvarchar(50), Location geography);
 INSERT INTO Locations (Name, Location)
 VALUES

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 10 AS customer_key, 20 AS order_key, 30 AS line_number
     UNION ALL

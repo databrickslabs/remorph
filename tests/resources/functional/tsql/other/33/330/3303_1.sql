@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #auditOrderData
 (
     audit_log_id UNIQUEIDENTIFIER DEFAULT (NEWID()),

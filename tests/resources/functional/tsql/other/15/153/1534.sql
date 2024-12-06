@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @a DECIMAL(10, 3) = 75.123, @b FLOAT(53) = 90.789;
 CREATE TABLE result2 (
     result2 DECIMAL(10, 3) NOT NULL

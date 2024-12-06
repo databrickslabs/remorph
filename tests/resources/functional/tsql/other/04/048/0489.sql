@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @dbName sysname;
 SELECT @dbName = name
 FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE TPC_H_DB
 ADD FILE (
     NAME = TPC_H_FILE1,

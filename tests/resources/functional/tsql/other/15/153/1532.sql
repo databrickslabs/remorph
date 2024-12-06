@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @a DECIMAL(10,3) = 75.123, @b FLOAT(53) = 75.123;
 WITH cte AS (
     SELECT @a * @b AS product

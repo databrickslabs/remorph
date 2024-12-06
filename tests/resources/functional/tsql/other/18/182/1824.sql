@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH XMLData AS (
   SELECT CONVERT(XML, '<Root>
 <ProductDescription ProductID="1" ProductName="Road Bike">

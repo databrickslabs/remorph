@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH orders AS (
     SELECT 1000 AS order_total, '2020-01-01' AS order_date, 1 AS customer_id, 'Product A' AS product_name
     UNION ALL

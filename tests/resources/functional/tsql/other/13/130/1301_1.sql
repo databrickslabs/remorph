@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH sales_data AS (
     SELECT 'Europe' AS region, 1000 AS sales
     UNION ALL

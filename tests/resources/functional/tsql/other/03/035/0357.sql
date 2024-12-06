@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #CustomerTemp
 (
     LastName VARCHAR(50)

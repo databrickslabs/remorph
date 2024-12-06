@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @x10 INT = 42;
 SET @x10 %= 3;
 WITH temp AS (

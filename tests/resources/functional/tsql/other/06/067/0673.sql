@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO departments (department_ID, department_name, manager_ID)
 VALUES
     (1, 'Sales', 10),

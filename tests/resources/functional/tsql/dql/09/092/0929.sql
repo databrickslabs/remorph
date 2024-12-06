@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH GeneralDataCTE AS (
     SELECT 1 AS ID, 'General Data' AS DataField
 ),

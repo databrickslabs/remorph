@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH query_stats AS (
     SELECT 1 AS dbid, 1 AS objectid, 'SELECT * FROM customer' AS text
     UNION ALL

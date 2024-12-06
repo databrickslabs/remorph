@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @EncryptThis NVARCHAR(32);
 SET @EncryptThis = 'gfdsaqWE45poiuYT$%^&*()';
 SELECT HASHBYTES('SHA2_256', EncryptThis) AS EncryptedValue

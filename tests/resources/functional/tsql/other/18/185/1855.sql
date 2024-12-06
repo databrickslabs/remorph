@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @p TABLE (X decimal(10, 1), Y decimal(10, 1));
 INSERT INTO @p (X, Y)
 SELECT X, Y

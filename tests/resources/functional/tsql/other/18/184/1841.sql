@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myvar2 VARCHAR(10);
 SET @myvar2 = 'sdrawkcaB';
 SELECT REVERSE(@myvar2) AS Reversed2

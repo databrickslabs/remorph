@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH DBInfo AS (
     SELECT 'BlobStore2' AS DBName, 'C:\BlobStore\FS4' AS FileName, '200MB' AS MaxSize
 )

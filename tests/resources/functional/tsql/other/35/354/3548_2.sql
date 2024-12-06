@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH MyCTE AS (
     SELECT 1 AS DepartmentID, 'Sales' AS Name, 'Management' AS GroupName, '2022-01-01' AS ModifiedDate
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SELECT 'DROP LOGIN ' + l.login + ';' AS login_drop, 'DROP USER ' + u.[user] + ';' AS [user_drop]
 FROM (
     VALUES ('login1'),

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH orders AS (
     SELECT 1 AS o_orderkey, '2022-01-01' AS o_orderdate, 100.00 AS o_totalprice
     UNION ALL

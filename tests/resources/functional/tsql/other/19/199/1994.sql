@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_result (ProductID VARCHAR(10), ProductName VARCHAR(100));
 INSERT INTO #temp_result (ProductID, ProductName)
 VALUES ('1', 'Product1'), ('2', 'Product2');

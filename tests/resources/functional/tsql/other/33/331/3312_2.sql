@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'Customer1' AS CustomerName, 1 AS CustomerLevel
     UNION ALL

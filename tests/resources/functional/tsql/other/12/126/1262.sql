@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #EmployeePhoto
 (
     EmployeeId INT NOT NULL PRIMARY KEY,

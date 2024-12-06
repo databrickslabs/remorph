@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO new_bicycles (new_bicycle_ID, new_bicycle_name)
 SELECT new_bicycle_ID, new_bicycle_name
 FROM (

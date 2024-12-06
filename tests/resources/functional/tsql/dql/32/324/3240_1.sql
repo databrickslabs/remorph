@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT c_custkey, c_name, c_nationkey
 FROM (
     VALUES

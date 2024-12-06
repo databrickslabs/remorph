@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH triggers_cte AS (
     SELECT 1 AS object_id, 'abc' AS name
 )

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @new_angle FLOAT;
 SET @new_angle = 0.1234567;
 WITH temp_table AS (

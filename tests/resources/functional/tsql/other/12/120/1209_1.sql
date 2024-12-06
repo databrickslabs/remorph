@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO MyNewTest (myNewKey, myNewValue)
 VALUES
     (1, 10),

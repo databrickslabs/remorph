@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @v INT;
 
 WITH EmployeeCTE AS (

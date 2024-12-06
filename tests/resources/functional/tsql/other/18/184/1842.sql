@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myvar1 BIGINT = NEXT VALUE FOR my_sequence;
 DECLARE @myvar2 BIGINT;
 SET @myvar2 = NEXT VALUE FOR my_sequence;

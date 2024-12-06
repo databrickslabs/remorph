@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @cookie VARBINARY(100);
 DECLARE @current_user SYSNAME, @current_username SYSNAME;
 

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @customerName NVARCHAR(32) = 'John Smith';
 SELECT *
 FROM (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS sql_spid, 201001 AS pdw_node_id, 1 AS request_id, 1 AS dms_step_index, 'type' AS type, '2022-01-01' AS start_time, '2022-01-01' AS end_time, 'status' AS status
     UNION ALL

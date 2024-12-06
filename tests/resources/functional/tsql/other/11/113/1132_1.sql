@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @RevokeStatement nvarchar(max);
 SELECT @RevokeStatement = 'REVOKE SELECT ON SCHEMA :: ' + SchemaName + ' TO ' + UserName + ';
 FROM (

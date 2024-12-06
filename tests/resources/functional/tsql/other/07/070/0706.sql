@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @error_message nvarchar(255);
 
 WITH temp_result AS (

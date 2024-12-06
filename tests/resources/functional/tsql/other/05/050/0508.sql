@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH AvailabilityGroupCTE AS (
     SELECT 'MyAvailabilityGroup' AS AvailabilityGroupName
 ),

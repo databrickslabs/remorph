@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE ROLE Customer;
 CREATE TABLE #CustomerList (
     CustomerName sysname

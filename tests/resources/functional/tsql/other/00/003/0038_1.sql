@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #t1 (col1 INT, col2 INT);
 
 WITH src AS (

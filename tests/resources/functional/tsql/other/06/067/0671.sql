@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE contractors (
   contractor_first VARCHAR(50),
   contractor_last VARCHAR(50),

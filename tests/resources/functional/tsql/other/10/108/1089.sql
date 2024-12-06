@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE InsertCustomer
     @CustomerKey INT,
     @Name VARCHAR(255)

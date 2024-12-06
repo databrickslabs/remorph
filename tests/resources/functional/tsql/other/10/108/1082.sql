@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.uspEncryptCustomer
 WITH ENCRYPTION
 AS

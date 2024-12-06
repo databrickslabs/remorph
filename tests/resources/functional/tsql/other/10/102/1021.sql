@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Supplier (NationKey INT, Name VARCHAR(50));
 INSERT INTO Supplier (NationKey, Name)
 SELECT NationKey, Name

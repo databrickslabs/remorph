@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE DemoTable (ID INT, Name VARCHAR(100));
 INSERT INTO DemoTable (ID, Name) VALUES (1, 'Test');
 WITH DemoCTE AS (

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 IF EXISTS (SELECT 1 FROM sys.database_scoped_credentials WHERE name = 'NewAppCred')
     DROP DATABASE SCOPED CREDENTIAL NewAppCred;
 

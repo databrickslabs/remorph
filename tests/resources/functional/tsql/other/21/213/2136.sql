@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH UserNames AS (
     SELECT 'Mary' AS UserName
 )

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT OBJECT_DEFINITION(OBJECT_ID(object_name)) AS [Customer Address Definition]
 FROM (
     VALUES (N'customer.c_address')

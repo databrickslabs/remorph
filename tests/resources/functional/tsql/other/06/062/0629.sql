@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'Test' AS column1, 'Data' AS column2
 )

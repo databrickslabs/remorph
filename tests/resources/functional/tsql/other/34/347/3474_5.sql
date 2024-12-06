@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myDoc xml;
 SET @myDoc = (
     SELECT *

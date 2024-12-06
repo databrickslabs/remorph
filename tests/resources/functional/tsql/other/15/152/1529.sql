@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @counter SMALLINT;
 SET @counter = 1;
 

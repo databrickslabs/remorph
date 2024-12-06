@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_table ( geometry_col geometry );
 INSERT INTO #temp_table ( geometry_col )
 VALUES ( geometry::STGeomFromText( 'POINT(1 1)', 0 ) );

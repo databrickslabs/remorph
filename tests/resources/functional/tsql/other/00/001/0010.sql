@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE customer_demo
 (
     c1 INT IDENTITY(1,1) PRIMARY KEY,

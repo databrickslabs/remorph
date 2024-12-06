@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer_xml XML;
 SET @customer_xml = (
     SELECT CAST('<customer><name>' + c_name + '</name></customer>' AS XML)

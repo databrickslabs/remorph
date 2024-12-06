@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTableVar TABLE (NewScrapReasonID smallint, Name varchar(50), ModifiedDate datetime);
 INSERT INTO Production.ScrapReason (Name, ModifiedDate)
 OUTPUT INSERTED.ScrapReasonID, INSERTED.Name, INSERTED.ModifiedDate

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @e1 INT = -20001, @e2 INT = -20002, @selector BIT = 1;
 DECLARE @inner_e1 INT = -20003, @inner_e2 INT = -20004, @inner_selector BIT = 1;
 DECLARE @error_message NVARCHAR(4000);

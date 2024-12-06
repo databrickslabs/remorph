@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH MyCTE AS (
     SELECT
         BusinessEntityID AS EmpID,

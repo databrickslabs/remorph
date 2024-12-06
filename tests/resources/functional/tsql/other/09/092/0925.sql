@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customerCTE AS (
     SELECT custkey, name, nationkey
     FROM (

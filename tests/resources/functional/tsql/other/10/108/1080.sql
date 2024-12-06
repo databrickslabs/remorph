@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.Update_LineItemOrderKey
     @NewOrderKey INTEGER,
     @Rowcount INT OUTPUT

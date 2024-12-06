@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO dbo.test (id, date_time)
 VALUES
     (1, '1998-09-20 7:45:50.71345 -5:00'),

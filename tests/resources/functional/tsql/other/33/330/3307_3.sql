@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE TableA (id INT, value INT);
 CREATE TABLE TableB (id INT, value INT);
 

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #TempTable (ID INT, Name VARCHAR(50), Age INT);
 
 WITH TempCTE AS (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH TempCustomer AS (
     SELECT 'Customer1' AS CustomerName, 1 AS CustomerID
     UNION ALL

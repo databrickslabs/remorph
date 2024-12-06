@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 WITH revenue AS (
     SELECT orders.order_id,
            customers.customer_name,

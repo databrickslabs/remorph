@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH database_info AS (
     SELECT 'database_name' AS name, 'ON' AS snapshot_isolation_state, 'ON - ALLOW_SNAPSHOT_ISOLATION' AS snapshot_isolation_state_desc
     UNION ALL

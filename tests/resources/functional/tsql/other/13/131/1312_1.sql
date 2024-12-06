@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @sql nvarchar(max) = '';
 
 WITH trig_example AS (

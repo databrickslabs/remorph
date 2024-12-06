@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #Customers
 (
     CustomerName VARCHAR(100),

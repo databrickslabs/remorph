@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @var3 VARCHAR(30);
 SELECT @var3 = 'Customer Name';
 SELECT @var3 = (

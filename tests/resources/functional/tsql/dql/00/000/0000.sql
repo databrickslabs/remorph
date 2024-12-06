@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH g1 AS (
     SELECT geography::Point(10, 10, 4326) AS geom
 ),

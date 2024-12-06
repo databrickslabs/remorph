@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF OBJECT_ID('dbo.NewTable', 'U') IS NOT NULL
     DROP TABLE dbo.NewTable;
 

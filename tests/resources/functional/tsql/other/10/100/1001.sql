@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EXTERNAL TABLE [dbo].[all_lineitem]
 (
     [l_orderkey] INT NOT NULL,

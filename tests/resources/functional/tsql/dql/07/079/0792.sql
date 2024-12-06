@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CAST('2013-05-08T23:39:20.123-07:00' AS DATETIME) AS tstamp
 )

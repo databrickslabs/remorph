@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #Audit
 (
     AuditName nvarchar(50),

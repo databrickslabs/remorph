@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 REVOKE INSERT ON schemas TO [customer];
 CREATE TABLE schemas (
     schema_name sysname

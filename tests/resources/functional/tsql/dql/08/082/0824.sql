@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT d1.ID AS d1_ID, d1.Name, d2.ID AS d2_ID, d2.Value
 FROM (
     SELECT *

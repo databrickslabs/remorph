@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (SELECT 'Customer1' AS Name, 'Sales' AS JobTitle),
 			OrderCTE AS (SELECT 'Order1' AS OrderName, 'Customer1' AS CustomerName),
 			LineitemCTE AS (SELECT 'Lineitem1' AS LineitemName, 'Order1' AS OrderName)

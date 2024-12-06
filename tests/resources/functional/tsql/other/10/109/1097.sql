@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE dbo.usp_TPCHDemo
     WITH EXECUTE AS 'SqlUser2'
 AS

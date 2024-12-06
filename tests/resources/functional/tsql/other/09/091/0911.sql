@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE VIEW CustomerRevenue AS
 WITH customer AS (
     SELECT  1 AS c_custkey, 'Customer1' AS c_name, 100.00 AS c_acctbal, '123 Main St' AS c_address, '123-456-7890' AS c_phone, 'This is a comment' AS c_comment

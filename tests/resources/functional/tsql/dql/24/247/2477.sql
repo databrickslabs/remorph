@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH datetime_values AS (
     SELECT SYSDATETIME() AS sysdatetime,
            SYSDATETIMEOFFSET() AS sysdatetimeoffset,

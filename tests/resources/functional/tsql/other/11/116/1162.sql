@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #tmp ( geo geography );
 INSERT INTO #tmp ( geo )
 VALUES ( geography::Point( 1, 1, 4326 ) );

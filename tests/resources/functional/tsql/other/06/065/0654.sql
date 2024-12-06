@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE array_test (ID INT, array1 VARCHAR(MAX), array2 VARCHAR(MAX));
 
 WITH temp_result AS (

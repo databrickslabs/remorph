@@ -1,3 +1,3 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE SCOPED CREDENTIAL newcredential
 WITH IDENTITY = 'MANAGED IDENTITY';

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH Sales AS (
     SELECT *
     FROM (

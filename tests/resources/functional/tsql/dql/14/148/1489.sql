@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @MyValue VARCHAR(10) = 'safety';
 WITH DocumentCTE AS (
   SELECT DocumentSummary, DocumentNode

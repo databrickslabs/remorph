@@ -1,2 +1,2 @@
---Query type: DCL
+-- tsql sql:
 DBCC DROPCLEANBUFFERS WITH (NO_INFOMSGS);

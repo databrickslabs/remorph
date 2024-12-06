@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @sql NVARCHAR(MAX);
 DECLARE cur CURSOR FOR
 WITH ObjectsToGrant AS (

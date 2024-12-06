@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION pf_date (datetime) AS RANGE RIGHT FOR VALUES ('20000101', '20010101');
 CREATE PARTITION SCHEME ps_date AS PARTITION pf_date ALL TO ('PRIMARY');
 CREATE TABLE [dbo].[Sales_out]

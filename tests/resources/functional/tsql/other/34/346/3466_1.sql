@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO T (ProductID, ProductName, ProductDescription)
 SELECT ProductID, ProductName, ProductDescription
 FROM (

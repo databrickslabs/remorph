@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE SCOPED CREDENTIAL [NewCredential]
 WITH IDENTITY = 'new_username',
       SECRET = 'new_password';

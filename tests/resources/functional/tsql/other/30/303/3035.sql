@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 TRUNCATE TABLE #Products;
 
 WITH ProductsCTE AS (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @y4 INT = 30;
 SET @y4 *= 3;
 SELECT @y4 AS Multiplied_by_3

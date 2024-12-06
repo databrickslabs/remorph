@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH sales_data AS (
     SELECT 'John' AS salesperson_name, 1000 AS sales_in_dollars
     UNION ALL

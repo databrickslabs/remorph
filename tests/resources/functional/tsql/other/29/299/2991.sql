@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @h geography;
 SET @h = geography::Point(24, 24, 24);
 WITH temp AS (

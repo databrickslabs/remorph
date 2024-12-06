@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @TableVar TABLE (ID INT, Name VARCHAR(10));
 
 WITH TempResult AS (

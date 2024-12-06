@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE t1 (
     charcol CHAR(16) NULL,
     varcharcol VARCHAR(16) NULL,

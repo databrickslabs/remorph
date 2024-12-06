@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE cursor1 CURSOR FOR
     SELECT *
     FROM (

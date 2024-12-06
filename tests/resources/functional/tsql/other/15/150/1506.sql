@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @TranName VARCHAR(20);
 SELECT @TranName = 'MyTransaction';
 BEGIN TRANSACTION @TranName;

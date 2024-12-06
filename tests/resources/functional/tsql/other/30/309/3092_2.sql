@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH SalesOrderDetailCTE AS (
     SELECT ProductID, SUM(OrderQty) AS OrderQty
     FROM SalesOrderDetail AS sod

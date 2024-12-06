@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE objects_3 (id INT, object3 VARCHAR(MAX), variant3 VARCHAR(MAX));
 
 WITH cte AS (

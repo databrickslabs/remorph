@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT col2, col3, col4, col5
 FROM (
     VALUES ('value1', 'value2', 10, 20.5),

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'customer' AS type, 1 AS id, COALESCE('John', 'Unknown') AS name
     UNION ALL

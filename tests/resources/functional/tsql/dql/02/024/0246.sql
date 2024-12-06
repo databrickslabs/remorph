@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE PROCEDURE my_schema.my_stored_procedure_GET_DATA_LIMIT
 AS
 BEGIN

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT CAST('1992-01-01' AS DATE) AS d
     UNION ALL

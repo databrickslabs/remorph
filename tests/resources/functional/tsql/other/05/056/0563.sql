@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH orders AS (
     SELECT '1-URGENT' AS orderpriority, 10.0 AS extendedprice, '1993-07-01' AS orderdate, 1 AS shippriority, 0 AS discount
     UNION ALL

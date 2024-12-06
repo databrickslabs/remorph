@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @Order XML;
 SET @Order = '<order><customerID>123</customerID><orderDate>2022-01-01</orderDate><total>100.00</total></order>';
 

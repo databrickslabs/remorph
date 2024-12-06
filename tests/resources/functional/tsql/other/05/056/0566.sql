@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @query nvarchar(max);
 
 WITH newdb AS (

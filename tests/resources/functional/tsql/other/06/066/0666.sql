@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE calendar (c_date DATE);
 INSERT INTO calendar (c_date)
 VALUES

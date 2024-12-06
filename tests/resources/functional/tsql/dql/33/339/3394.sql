@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_indexes AS (
     SELECT 'index_name' AS name, OBJECT_ID('Person.Address') AS object_id, 1 AS index_id
 )

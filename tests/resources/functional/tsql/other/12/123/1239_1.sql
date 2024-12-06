@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE region (regionkey INT, name NVARCHAR(25), comment NVARCHAR(100));
 INSERT INTO region (regionkey, name, comment)
 VALUES (1, 'North', 'This is the north region'), (2, 'South', 'This is the south region');

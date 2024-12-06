@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'John' AS c_name, '123 Main St' AS c_address
     UNION ALL

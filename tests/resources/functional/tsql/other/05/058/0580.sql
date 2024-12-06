@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @max_cpu_percent DECIMAL(5, 2);
 DECLARE @max_memory_percent DECIMAL(5, 2);
 

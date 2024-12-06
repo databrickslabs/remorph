@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE DaysToShip
     @OrderKey INT,
     @LineStatus VARCHAR(10)

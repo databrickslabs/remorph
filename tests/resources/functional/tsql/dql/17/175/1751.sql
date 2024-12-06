@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @geom geometry;
 SET @geom = geometry::STGeomFromText('POINT(10 20 30 40)', 0);
 WITH temp_result AS (

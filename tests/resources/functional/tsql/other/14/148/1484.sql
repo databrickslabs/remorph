@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyNumber INT;
 SET @MyNumber = 4 - 2 + 27;
 SELECT Number

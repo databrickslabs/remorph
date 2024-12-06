@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @geo bit;
 WITH geography_data AS (
     SELECT geography::Point(1, 1, 1) AS geo

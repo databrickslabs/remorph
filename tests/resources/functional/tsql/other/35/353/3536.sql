@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer AS (
     SELECT 1 AS c_custkey, 'Customer1' AS c_name, 100.00 AS c_acctbal, 1 AS c_nationkey, '123 Main St' AS c_address, '123-456-7890' AS c_phone, 'Comment1' AS c_comment
 ), orders AS (

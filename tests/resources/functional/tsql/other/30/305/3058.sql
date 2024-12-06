@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT ProductKey, UnitPrice
     FROM (

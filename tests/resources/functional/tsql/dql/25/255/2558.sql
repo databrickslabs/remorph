@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT DB_ID([value]) AS [Database ID]
 FROM (
     VALUES (N'customer')

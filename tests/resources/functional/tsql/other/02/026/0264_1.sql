@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #demo_temporary (i INTEGER);
 INSERT INTO #demo_temporary (i)
 SELECT i

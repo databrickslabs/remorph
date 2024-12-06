@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO customers (customer_ID, last_name, region_ID)
 SELECT customer_ID, last_name, region_ID
 FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql_command nvarchar(max) = 'ALTER DATABASE [database_name] SET RECOVERY FULL PAGE_VERIFY CHECKSUM;';
 SELECT @sql_command AS sql_command
 FROM (

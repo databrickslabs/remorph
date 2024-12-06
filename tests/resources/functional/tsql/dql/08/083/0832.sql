@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH departments AS (
     SELECT *
     FROM (

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrdersCTE AS (
     SELECT 'O' + CONVERT(VARCHAR, ROW_NUMBER() OVER (ORDER BY c_custkey)) AS O_OrderKey,
            'OS' + CONVERT(VARCHAR, c_nationkey) AS O_OrderStatus

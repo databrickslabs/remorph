@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesOrderDetail AS (
     SELECT ProductKey, UnitPrice, OrderQuantity
     FROM (

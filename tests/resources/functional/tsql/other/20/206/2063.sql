@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 EXEC sp_create_plan_guide @name = N'Guide3', @stmt = N'WITH CustomerCTE AS (
     SELECT CustomerID, ContactID, SalesPersonID, CompanyName
     FROM (

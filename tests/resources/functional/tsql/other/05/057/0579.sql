@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 SELECT c_custkey, c_name, c_address, c_nationkey, c_phone, c_acctbal, c_mktsegment, c_comment FROM ( VALUES (1, 'Customer#000000001', '71 Osage,Madison,WI 53715', 24, '26-966-1314', 7496.79, 'BUILDING', 'regular courts above the'), (2, 'Customer#000000002', '7 Osage,Madison,WI 53715', 24, '26-966-1315', 7496.79, 'BUILDING', 'regular courts above the'), (3, 'Customer#000000003', '71 Osage,Madison,WI 53715', 24, '26-966-1316', 7496.79, 'BUILDING', 'regular courts above the') ) AS customer(c_custkey, c_name, c_address, c_nationkey, c_phone, c_acctbal, c_mktsegment, c_comment);

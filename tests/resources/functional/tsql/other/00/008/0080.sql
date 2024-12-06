@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #app_references ( app_name sysname, table_name sysname );
 INSERT INTO #app_references ( app_name, table_name )
 VALUES ( 'my_new_app', 'new_table_to_read' );

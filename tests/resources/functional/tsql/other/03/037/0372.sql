@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH tables_to_rename AS (
     SELECT 'DimCustomer' AS old_name, 'DimCustomer_old' AS new_name
     UNION ALL

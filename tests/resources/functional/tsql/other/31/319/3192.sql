@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE Orders (
     OrderKey INT PRIMARY KEY,
     OrderStatus VARCHAR(10),

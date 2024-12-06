@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateValues AS (
     SELECT CONVERT(DATE, '2019-03-15') AS Date1, CONVERT(DATE, '2019-02-15') AS Date2
     UNION ALL

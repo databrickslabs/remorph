@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS suppkey, 'Supplier#000000001' AS s_name, '25-989-741-2988' AS s_phone, '5% commissions are the norm' AS s_comment, 0.00 AS s_acctbal
     UNION ALL

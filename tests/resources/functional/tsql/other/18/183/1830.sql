@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @myVariable AS VARCHAR(40);
 SET @myVariable = 'This string is longer than thirty characters';
 WITH myCTE AS (

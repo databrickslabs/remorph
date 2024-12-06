@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @cookie VARBINARY(8000);
 DECLARE @customerID INT = 1;
 EXECUTE AS USER = 'user1' WITH COOKIE INTO @cookie;

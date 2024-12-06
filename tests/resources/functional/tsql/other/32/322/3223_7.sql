@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET ANSI_NULL_DFLT_ON OFF;
 
 WITH temp AS (

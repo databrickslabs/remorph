@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE PROCEDURE #GET_CONFIG
 AS
 BEGIN

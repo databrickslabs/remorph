@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CustomerLocations
 (
     id INT IDENTITY(1, 1),

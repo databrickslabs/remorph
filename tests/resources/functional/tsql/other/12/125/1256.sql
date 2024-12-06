@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #Vehicles
 (
     Vehicle_Type VARCHAR(15),

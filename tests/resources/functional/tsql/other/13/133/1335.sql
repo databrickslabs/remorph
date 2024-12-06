@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE t2 (c1 INT, c2 TEXT);
 EXEC sp_tableoption 't2', 'text in row', 'on';
 INSERT INTO t2

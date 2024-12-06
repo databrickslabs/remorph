@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @NewName nvarchar(50) = 'NewName';
 CREATE ROLE NewRole;
 DROP ROLE NewRole;

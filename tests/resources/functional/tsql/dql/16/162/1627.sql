@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @g geography;
 SELECT geography::Point(30.0, 20.0, 4326).STConvexHull() AS convex_hull
 FROM (

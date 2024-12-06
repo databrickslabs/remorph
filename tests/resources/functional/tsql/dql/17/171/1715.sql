@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @geom geometry;
 SET @geom = geometry::Parse('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))');
 WITH temp_result AS (

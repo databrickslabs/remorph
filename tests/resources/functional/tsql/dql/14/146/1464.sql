@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @ANSI_NULLS VARCHAR(3) = 'OFF';
 IF ( (1 & @@OPTIONS) = 1 )
     SET @ANSI_NULLS = 'ON';

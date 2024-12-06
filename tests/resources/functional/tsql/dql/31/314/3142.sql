@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'Smith' AS LastName, 'John' AS FirstName, 1 AS CustomerID
 ),

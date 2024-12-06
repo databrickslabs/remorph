@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO dbo.doc_exy (column_a)
 SELECT column_a
 FROM (

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO demo_table (id, name)
 SELECT id, name
 FROM (

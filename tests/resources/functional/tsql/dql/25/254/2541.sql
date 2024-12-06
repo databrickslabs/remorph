@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH OrdersCTE AS (
     SELECT CAST(ORDERDATE AS DATE) AS OrderDate,
            TOTALPRICE AS TotalDue

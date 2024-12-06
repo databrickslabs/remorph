@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH MessageTypeCTE AS (
     SELECT 'InvoiceImage' AS MessageType, 'NONE' AS Validation
 )

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH T1 AS (
     SELECT 1001 AS suppkey, 'Supplier#000000001' AS s_name, 1000.00 AS total_revenue
     UNION ALL

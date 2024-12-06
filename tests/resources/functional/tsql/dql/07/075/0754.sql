@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @json nvarchar(max) = (SELECT History FROM DatabaseRefreshHistory WHERE DatabaseName = 'mydb');
 WITH temp_result AS (
   SELECT

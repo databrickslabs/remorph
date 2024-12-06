@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateCTE AS (
     SELECT CONVERT(DATE, '2019-03-01') AS Date1,
            CONVERT(DATE, '2019-02-01') AS Date2

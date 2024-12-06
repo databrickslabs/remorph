@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'Bearing Ball' AS cs_Pname, 'Bearing Ball' AS Name
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH revenue AS (
     SELECT
         c.c_custkey,

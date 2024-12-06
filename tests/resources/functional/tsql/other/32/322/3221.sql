@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH t AS (
     SELECT l_extendedprice
     FROM (

@@ -1,3 +1,3 @@
---Query type: TCL
+-- tsql sql:
 BEGIN TRANSACTION;
 SAVE TRANSACTION MySavePoint;

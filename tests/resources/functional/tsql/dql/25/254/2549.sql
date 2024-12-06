@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 WITH DateCTE AS ( SELECT CAST(SYSUTCDATETIME() AS DATETIME) AS DateValue ) SELECT DATE_BUCKET(DAY, 10, DateValue) AS BucketedDate FROM DateCTE;

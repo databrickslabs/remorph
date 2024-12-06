@@ -1,2 +1,2 @@
---Query type: DML
+-- tsql sql:
 WITH CUSTOMER AS ( SELECT 1 AS CUSTKEY, 'Customer#000000001' AS NAME, '1310.0th Street' AS ADDRESS, 15 AS NATIONKEY, '25-989-741-2988' AS PHONE, 711.56 AS ACCTBAL, 'BUILDING' AS MKTSEGMENT, 'regular future accounts deposit pending deposits. slyly bold' AS COMMENT ) SELECT * FROM CUSTOMER WHERE ACCTBAL > 700

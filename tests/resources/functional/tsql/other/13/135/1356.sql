@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @login sysname = 'newlogin';
 DECLARE @sql nvarchar(max) = 'CREATE LOGIN ' + QUOTENAME(@login) + ' WITH PASSWORD = ''password'';'
 EXEC sp_executesql @sql;

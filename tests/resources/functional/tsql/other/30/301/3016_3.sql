@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO tblCustomer (CustomerID, OrderTotal)
 SELECT CustomerID, OrderTotal
 FROM (

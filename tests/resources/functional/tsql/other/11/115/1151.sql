@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @SequenceValue DECIMAL(3, 0) = 100;
 WITH TempResult AS (
     SELECT @SequenceValue AS SequenceValue

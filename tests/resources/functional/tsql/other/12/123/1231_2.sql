@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO V1
 SELECT *
 FROM (

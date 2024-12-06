@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'customer' AS table_name, 'c_custkey' AS column_name, 'integer' AS data_type
     UNION ALL

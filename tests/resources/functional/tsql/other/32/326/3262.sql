@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Region_Tracking (
     Region_id INT IDENTITY(1000, 1) NOT NULL,
     Nation_id INT NOT NULL,

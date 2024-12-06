@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_region AS (
     SELECT ISNULL(c_mktsegment, 'Unknown') AS mktsegment,
            c.c_custkey

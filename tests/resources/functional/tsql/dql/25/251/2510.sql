@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesData AS (
   SELECT 'USA' AS Country, 'North' AS Region, 100 AS Sales
   UNION ALL

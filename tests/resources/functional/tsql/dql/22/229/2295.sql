@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT DATABASEPROPERTYEX('AdventureWorks2022', 'Collation') AS Collation,
        DATABASEPROPERTYEX('AdventureWorks2022', 'Edition') AS Edition,
        DATABASEPROPERTYEX('AdventureWorks2022', 'ServiceObjective') AS ServiceObjective,

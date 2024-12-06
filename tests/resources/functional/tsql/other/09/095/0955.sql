@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH EventNotifications AS (
     SELECT 'Notify_ALTER_T2' AS NotificationName, 'DATABASE' AS EventType, 'ALTER_TABLE' AS Event, 'NewNotifyService' AS ServiceName, '12345678-1234-1234-1234-123456789012' AS ServiceID
 )

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE PROCEDURE myprocedure
     @permission_type nvarchar(50),
     @object_name nvarchar(100),

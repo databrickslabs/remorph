@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO bytes (ID, byte1, byte2)
 VALUES
     (11, 1, 1),

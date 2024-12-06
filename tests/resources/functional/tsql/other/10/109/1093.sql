@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE dbo.Test3
 AS
 CREATE TABLE #t (

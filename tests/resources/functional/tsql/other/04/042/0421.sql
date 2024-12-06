@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CUSTOMER (
     customerID INT PRIMARY KEY
     CHECK (customerID BETWEEN 1 AND 600),

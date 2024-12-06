@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Customer (id INT, name VARCHAR(50));
 CREATE TABLE Customer_new (id INT, name VARCHAR(50));
 EXEC sp_rename 'Customer_new', 'Customer_old';

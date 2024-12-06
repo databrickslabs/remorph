@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DateValues AS (
     SELECT CONVERT(DATE, '2022-01-01') AS OrderDate
 )

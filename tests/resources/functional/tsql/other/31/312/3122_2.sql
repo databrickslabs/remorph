@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #Customer (customer_id INT, customer_name VARCHAR(50));
 INSERT INTO #Customer (customer_id, customer_name)
 VALUES (1, 'customer1'), (2, 'customer2');

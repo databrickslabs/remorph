@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @SubjectCustomer HIERARCHYID, @OldParent HIERARCHYID, @NewParent HIERARCHYID;
 
 DECLARE @CustomerDemo TABLE (

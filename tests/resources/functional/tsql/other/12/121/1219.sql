@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE Sales.UpdatedCustomer
 (
     CustomerID INT NOT NULL,

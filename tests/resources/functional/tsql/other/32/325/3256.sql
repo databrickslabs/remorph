@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.Update_OrderKey
     @NewKey INTEGER
 AS

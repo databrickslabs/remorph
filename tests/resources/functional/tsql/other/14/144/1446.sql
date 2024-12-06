@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyBinVar varbinary(128);
 SET @MyBinVar = CAST(REPLICATE(0x30, 128) AS varbinary(128));
 SET CONTEXT_INFO @MyBinVar;

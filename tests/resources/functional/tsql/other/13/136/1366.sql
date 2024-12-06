@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE VIEW vw_CustomerInfo
 AS
     SELECT c_custkey, c_name, c_address

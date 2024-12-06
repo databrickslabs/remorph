@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @supplier_city VARCHAR(10) = 'NEW YORK';
 DECLARE @supplier_name VARCHAR(20) = @supplier_city;
 SELECT *

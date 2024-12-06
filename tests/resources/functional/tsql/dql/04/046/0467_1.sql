@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @regionname nvarchar(25);
 DECLARE region_cursor CURSOR FOR
     SELECT r_name

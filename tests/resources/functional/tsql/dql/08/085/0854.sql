@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'John Joe' AS customer_name, 1 AS customer_id
     UNION ALL

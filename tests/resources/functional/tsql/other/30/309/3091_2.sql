@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO Supplier (SupplierID, Name)
 VALUES
     (1, 'Supplier#000000001'),

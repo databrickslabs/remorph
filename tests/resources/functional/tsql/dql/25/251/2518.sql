@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH db_info AS (
     SELECT 'my_database' AS db_name
 )

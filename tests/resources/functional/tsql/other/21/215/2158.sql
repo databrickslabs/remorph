@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION customerRangePF1 (int) AS RANGE LEFT FOR VALUES (10, 100, 1000);
 CREATE PARTITION SCHEME customerPS1 AS PARTITION customerRangePF1 ALL TO ('PRIMARY');
 SELECT * FROM (VALUES (1, 10), (2, 100), (3, 1000)) AS customer (customer_id, order_total);

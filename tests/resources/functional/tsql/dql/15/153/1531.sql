@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date DATE = GETDATE();
 
 SELECT FORMAT(o.order_date, 'dd/MM/yyyy', 'en-US') AS [Order Date]

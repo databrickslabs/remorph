@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerData AS (
   SELECT CAST('2022-01-01' AS DATE) AS OrderDate, 'Customer A' AS CustomerName, 100.00 AS OrderTotal
   UNION ALL

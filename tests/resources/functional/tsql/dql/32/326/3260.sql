@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_obj AS (
     SELECT OBJECT_ID(N'customer') AS obj_id
 )

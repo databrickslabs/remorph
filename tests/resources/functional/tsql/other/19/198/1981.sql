@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DROP TABLE #TempTable;
 
 WITH TempData AS (

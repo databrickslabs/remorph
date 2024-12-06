@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @demo VARBINARY(8000);
 SET @demo = (SELECT CONVERT(VARBINARY(8000), 'demo_value') AS value);
 REVERT WITH COOKIE = @demo;

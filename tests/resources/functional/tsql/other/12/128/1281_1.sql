@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @VarZ DECIMAL(4, 3) = 0.59;
 WITH Studies AS (
   SELECT 0.8 AS Correlation

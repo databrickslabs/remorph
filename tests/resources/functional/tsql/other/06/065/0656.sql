@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE array_demo_3 (ID INT, array1 INT, array2 INT);
 WITH temp_result AS (
     SELECT 1 AS ID, 2 AS array1, 4 AS array2

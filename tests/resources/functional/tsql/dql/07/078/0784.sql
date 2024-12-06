@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH sales_data AS (
     SELECT CAST('2022-01-01' AS DATE) AS sale_date, 250000 AS price
     UNION ALL

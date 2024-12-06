@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH OrdersCTE AS (
     SELECT
         o_orderdate,

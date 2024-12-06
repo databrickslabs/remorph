@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeHistory AS (
     SELECT 'Sales' AS Department, 'Smith' AS LastName, 10000.0 AS Rate
     UNION ALL

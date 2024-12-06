@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ProductModelCTE AS (
     SELECT ProductModelID, Name
     FROM (

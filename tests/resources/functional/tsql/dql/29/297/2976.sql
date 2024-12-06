@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH TempResult AS (
     SELECT 'First Variable' AS var1, 'Second Variable' AS var2
 )

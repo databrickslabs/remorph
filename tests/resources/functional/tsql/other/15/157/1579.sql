@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @datetimeoffset datetimeoffset(4) = '1968-10-23 12:45:37.1234 +10:0';
 DECLARE @datetime datetime = @datetimeoffset;
 

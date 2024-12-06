@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @value INT;
 SELECT @value = Val
 FROM (

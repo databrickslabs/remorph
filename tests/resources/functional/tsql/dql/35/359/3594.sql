@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesQuota AS (
     SELECT 1 AS EmployeeKey, 600000 AS SalesAmountQuota, 2001 AS CalendarYear
     UNION ALL

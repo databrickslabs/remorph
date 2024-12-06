@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT c_customerkey, c_acctbal, CONVERT(VARCHAR(12), c_acctbal, 1) AS MoneyDisplayStyle1, GETDATE() AS CurrentDate, CONVERT(VARCHAR(12), GETDATE(), 3) AS DateDisplayStyle3
 FROM (
     VALUES (1, 100.0),

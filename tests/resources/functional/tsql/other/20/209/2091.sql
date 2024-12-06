@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 EXECUTE AS USER = 'Sales';
 SELECT HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'SELECT') AS HasSelectPermission,
        HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'INSERT') AS HasInsertPermission,

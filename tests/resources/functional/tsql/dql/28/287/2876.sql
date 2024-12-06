@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH session_data AS (
   SELECT
     session_id,

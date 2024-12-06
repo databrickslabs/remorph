@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @supplier_name VARCHAR(64);
 SELECT @supplier_name = 'Supplier#000000001' + ' is a regular supplier.';
 WITH supplier AS (

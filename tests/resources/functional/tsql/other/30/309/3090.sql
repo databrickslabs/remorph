@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE CustomerOrders
 (
     CustomerKey INT IDENTITY(1, 1),

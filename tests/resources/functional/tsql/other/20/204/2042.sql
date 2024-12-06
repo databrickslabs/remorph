@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DROP USER AbolrousHazem;
 WITH TempResult AS (
     SELECT *

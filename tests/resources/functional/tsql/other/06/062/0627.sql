@@ -1,4 +1,4 @@
---Query type: Unknown
+-- tsql sql:
 DECLARE @result INT;
 
 BEGIN TRY

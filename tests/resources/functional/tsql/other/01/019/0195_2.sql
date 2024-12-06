@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 BEGIN TRANSACTION;
 WITH temp_result AS (
     SELECT 1 AS o_orderkey, 100 AS o_totalprice

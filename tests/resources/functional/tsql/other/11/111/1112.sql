@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #WorkloadGroupConfig
 (
     WorkloadGroupName sysname,

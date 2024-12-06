@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH numbers AS (
     SELECT CAST(1.00 AS DECIMAL(10, 2)) AS myvalue
     UNION ALL

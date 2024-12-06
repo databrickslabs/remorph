@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @addvalue INT;
 SET @addvalue = 20;
 SELECT id, value + @addvalue AS new_value

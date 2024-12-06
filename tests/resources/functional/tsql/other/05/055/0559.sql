@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE [new_database_name]
 SET QUERY_STORE = ON (
     OPERATION_MODE = READ_WRITE,

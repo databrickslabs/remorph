@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT UPPER(string) COLLATE Latin1_General_CI_AS AS collated_string
 FROM (
     VALUES ('m')

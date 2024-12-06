@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #tblEmployee
 (
     EmplId INT IDENTITY(1, 1) PRIMARY KEY CLUSTERED,

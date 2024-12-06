@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @stmt nvarchar(max) = N'
     WITH EmployeeCTE AS (
         SELECT 1 AS EmployeeID, ''John'' AS LastName, ''Doe'' AS FirstName, ''Manager'' AS Title, 1 AS ManagerID

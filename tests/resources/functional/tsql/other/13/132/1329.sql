@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp (c3 INT);
 CREATE NONCLUSTERED INDEX idx_temp ON #temp (c3);
 WITH cte AS (

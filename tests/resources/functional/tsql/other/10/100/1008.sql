@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_temp (c_custkey INT, c_comment VARCHAR(MAX));
 INSERT INTO customer_temp (c_custkey, c_comment)
 VALUES (1, 'comment');

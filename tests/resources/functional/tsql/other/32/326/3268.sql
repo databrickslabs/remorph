@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_info (
     customer_id VARBINARY(85) DEFAULT SUSER_SID(),
     customer_name VARCHAR(30) DEFAULT SYSTEM_USER,

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #Tool
 (
     ToolID INT IDENTITY(1, 1),

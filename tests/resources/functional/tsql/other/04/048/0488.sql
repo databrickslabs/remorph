@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @sql NVARCHAR(MAX) = '';
 
 WITH objects AS

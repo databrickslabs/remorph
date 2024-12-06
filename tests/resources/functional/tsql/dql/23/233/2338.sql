@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT *
 FROM (
     SELECT '1' AS c1, '2' AS c2, '3' AS c3

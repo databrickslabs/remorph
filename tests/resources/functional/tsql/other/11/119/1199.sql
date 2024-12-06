@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE NewTable
 (
     OrderKey int PRIMARY KEY,

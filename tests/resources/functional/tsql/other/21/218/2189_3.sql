@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_orders
     WITH (DISTRIBUTION = HASH (customer_id)) AS
 SELECT *

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFIRST 3;
 
 WITH temp_customer AS (

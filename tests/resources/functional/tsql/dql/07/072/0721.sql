@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE SYMMETRIC KEY MySymmetricKey
 WITH ALGORITHM = AES_256
 ENCRYPTION BY PASSWORD = 'password123';

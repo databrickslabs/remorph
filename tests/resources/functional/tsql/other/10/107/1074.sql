@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PARTITION FUNCTION pf_orders (int) AS RANGE RIGHT FOR VALUES (100, 500, 1000);
 CREATE TABLE orders (
     order_id int,

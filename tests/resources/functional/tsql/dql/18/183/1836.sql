@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @mymoney DECIMAL(10, 2) = 3148.29;
 WITH mymoney AS (
     SELECT CAST(@mymoney AS DECIMAL(10,2)) AS value

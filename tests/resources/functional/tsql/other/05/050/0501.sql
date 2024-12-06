@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @sql nvarchar(max);
 DECLARE @CredentialName nvarchar(50) = 'NewSaddle';
 DECLARE @IdentityValue nvarchar(50) = 'RettigB';

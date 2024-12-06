@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE EXTERNAL DATA SOURCE MyAzureShipments
 WITH (
     LOCATION = 'https://newshipments.blob.core.windows.net/week5',

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT CONVERT(datetime, '2017-01-01 12:00:00') AS date_value
     UNION ALL

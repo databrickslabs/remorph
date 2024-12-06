@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (
     SELECT name AS collation_name, description
     FROM sys.fn_helpcollations()

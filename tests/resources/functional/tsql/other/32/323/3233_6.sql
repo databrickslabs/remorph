@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO #tool (ID, Name)
 SELECT ID, Name
 FROM (

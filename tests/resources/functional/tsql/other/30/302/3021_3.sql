@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO temp_result (hourly_wage, salary, commission, num_sales)
 VALUES
     (15.00, NULL, NULL, NULL),

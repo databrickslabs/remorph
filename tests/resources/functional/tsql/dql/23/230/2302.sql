@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH TempResult AS (
     SELECT '2006-04-25T15:50:59.997' AS OriginalText
 )

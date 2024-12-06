@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT CONVERT(XML, '<root><book genre="Fiction"/></root>') AS xml_column
 )

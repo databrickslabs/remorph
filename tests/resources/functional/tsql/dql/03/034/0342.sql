@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DBCC CHECKDB();
 SELECT *
 FROM (

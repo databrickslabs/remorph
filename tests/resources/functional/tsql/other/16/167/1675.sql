@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geography;
 SET @g = (
     SELECT GeoPoint

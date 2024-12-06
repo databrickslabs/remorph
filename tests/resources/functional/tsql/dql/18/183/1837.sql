@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @myval DECIMAL(5, 2);
 SET @myval = 193.57;
 

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ProductCTE AS (
     SELECT ProductID, Name, Color, ListPrice
     FROM (

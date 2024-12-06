@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 BEGIN TRANSACTION;
 CREATE TABLE #temp_leased
 (

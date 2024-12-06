@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @Manager HIERARCHYID;
 SET @Manager = CAST('/3/1/' AS HIERARCHYID);
 INSERT INTO HumanResources.EmployeeDemo (OrgNode, LoginID, Title, HireDate)

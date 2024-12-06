@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 CREATE TABLE #temp (c1 NVARCHAR(32));
 INSERT #temp VALUES ('This is a test.');
 INSERT #temp VALUES ('This is test 2.');

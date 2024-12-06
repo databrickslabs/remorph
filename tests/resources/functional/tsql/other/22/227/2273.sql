@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE USER John WITHOUT LOGIN;
 GRANT EXECUTE ON pr_CustomerInfo TO John;
 REVOKE EXECUTE ON pr_CustomerInfo FROM John;

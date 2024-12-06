@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #temp_result (id INT, product_name VARCHAR(50));
 INSERT INTO #temp_result (id, product_name)
 VALUES

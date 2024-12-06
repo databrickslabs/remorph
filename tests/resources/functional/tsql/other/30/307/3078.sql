@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @FileName nvarchar(50);
 DECLARE @FileSize int;
 DECLARE @sql nvarchar(max);

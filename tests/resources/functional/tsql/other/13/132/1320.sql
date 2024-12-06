@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH customer_table AS (
     SELECT 1 AS c_custkey, 'Customer1' AS c_name, 1 AS c_nationkey
     UNION ALL

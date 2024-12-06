@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @total DECIMAL;
 SET @total = 100.00;
 WITH temp AS (

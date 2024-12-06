@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_table (customer_key INT, order_key INT);
 INSERT INTO #temp_table (customer_key, order_key)
 VALUES (1, 2), (3, 4);

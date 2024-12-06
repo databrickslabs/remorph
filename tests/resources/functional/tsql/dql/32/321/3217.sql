@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT CustomerID, AccountNumber, OrderDate, ShipDate
     FROM (

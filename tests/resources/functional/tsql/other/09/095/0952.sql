@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql nvarchar(max) = N'CREATE ENDPOINT endpoint_replication STATE = STARTED AS TCP ( LISTENER_PORT = 7033 ) FOR DATABASE_MIRRORING ( AUTHENTICATION = WINDOWS KERBEROS, ENCRYPTION = SUPPORTED, ROLE=ALL);';
 DECLARE @params nvarchar(max) = N'@listener_port int, @authentication nvarchar(50), @encryption nvarchar(50), @role nvarchar(50)';
 DECLARE @listener_port int = 7033;

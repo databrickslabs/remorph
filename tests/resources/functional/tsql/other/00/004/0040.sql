@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE temp_values (i INT);
 WITH temp_result AS (
     SELECT i

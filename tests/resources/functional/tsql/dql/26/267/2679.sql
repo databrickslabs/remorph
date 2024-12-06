@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SequenceCTE AS (
     SELECT 1 AS seq_value
     UNION ALL

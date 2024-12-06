@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geometry;
 SET @g = geometry::STMPointFromText('MULTIPOINT ((100 100), (200 200))', 0);
 WITH temp AS (

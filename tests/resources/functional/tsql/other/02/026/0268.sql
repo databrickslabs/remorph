@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE customer_info (c_name VARCHAR(255), c_address VARCHAR(255), c_phone VARCHAR(255));
 WITH customer_data AS (
     SELECT c_name, c_address, c_phone

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH AppInfo AS (
     SELECT APP_NAME() AS AppName,
            CONVERT(VARCHAR(100), GETDATE(), 101) AS Date101,

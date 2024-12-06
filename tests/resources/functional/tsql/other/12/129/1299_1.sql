@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 SELECT id, name
 INTO #temp_table
 FROM (

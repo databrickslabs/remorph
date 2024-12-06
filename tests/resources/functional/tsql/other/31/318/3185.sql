@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SELECT c.custkey, c.name, SUM(o.totalprice) AS total_revenue
 FROM (
     VALUES (1, 'Customer 1'),

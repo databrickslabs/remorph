@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @NextValue INT;
 SET @NextValue = NEXT VALUE FOR IncrementingSeq;
 WITH TempResult AS (

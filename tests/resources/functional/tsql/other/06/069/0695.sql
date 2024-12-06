@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE varia (v nvarchar(max));
 INSERT INTO varia (v)
 SELECT CONCAT('{"key5": "', key5, '", "key6": "', key6, '"}') AS v

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH MyNewTable AS (
     SELECT 0 AS orderKey, CAST('' AS nvarchar) AS orderStatus
 )

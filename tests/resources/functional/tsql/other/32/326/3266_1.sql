@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO inventory33 (description)
 SELECT description
 FROM (

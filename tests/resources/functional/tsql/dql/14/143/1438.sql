@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @BITWISE_RESULT INT;
 IF ( (1 & @@OPTIONS & 0x00000001) = 1 )
     SET @BITWISE_RESULT = 1;

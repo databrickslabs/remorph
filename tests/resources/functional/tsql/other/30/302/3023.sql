@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @revenue DECIMAL(18, 2);
 SET @revenue = (
     SELECT SUM(l_extendedprice * (1 - l_discount))

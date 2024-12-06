@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @NewBalance INT;
 SET @NewBalance = 10;
 SET @NewBalance *= 10;

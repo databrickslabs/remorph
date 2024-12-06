@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @OrderError INT, @OrderDesc NVARCHAR(100);
 
 BEGIN TRANSACTION;

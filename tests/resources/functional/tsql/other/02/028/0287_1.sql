@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO aggr (id, value, other_value)
 SELECT id, value, other_value
 FROM (

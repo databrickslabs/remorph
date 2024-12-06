@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @h INT;
 SET @h = 4268;
 WITH temp AS (

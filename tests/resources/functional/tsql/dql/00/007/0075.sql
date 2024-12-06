@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH sales_data AS (
     SELECT 'Product A' AS product_name, 10.99 AS product_price, 100 AS sales_amount
     UNION ALL

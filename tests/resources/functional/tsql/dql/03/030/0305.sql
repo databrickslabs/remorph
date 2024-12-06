@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT TOP 1
     YEAR(0) AS year_value,
     MONTH(0) AS month_value,

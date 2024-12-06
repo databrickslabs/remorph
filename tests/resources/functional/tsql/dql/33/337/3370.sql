@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ProductCTE AS (
     SELECT 1 AS ProductID, 'Lock Washer 1' AS Name
     UNION ALL

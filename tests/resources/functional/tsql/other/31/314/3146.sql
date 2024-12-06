@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH orders AS (
     SELECT *
     FROM (

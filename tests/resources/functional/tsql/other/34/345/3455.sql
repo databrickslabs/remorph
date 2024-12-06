@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @LocNumber INT;
 SET @LocNumber = NEXT VALUE FOR Test.CountBy1;
 INSERT INTO #NewLocation (LocNumber, Name)

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH SupplierRevenue AS (
     SELECT s_suppkey, SUM(l_extendedprice * (1 - l_discount)) AS revenue
     FROM (

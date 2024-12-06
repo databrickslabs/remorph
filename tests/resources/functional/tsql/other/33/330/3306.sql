@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE dbo.CustomerOrders
 (
     CustomerID NVARCHAR(11) NOT NULL,

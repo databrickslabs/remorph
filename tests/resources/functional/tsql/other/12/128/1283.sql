@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #T2 (c3 INT, c4 VARCHAR(10));
 INSERT INTO #T2
 SELECT *

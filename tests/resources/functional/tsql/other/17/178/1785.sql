@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geometry = 'LINESTRING(1 2, 5 6);
 WITH temp_result AS (
     SELECT @g AS geom

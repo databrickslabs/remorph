@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 SELECT NATIONKEY FROM (VALUES (1), (2), (3)) AS NATION(NATIONKEY);

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE db1
     MODIFY (SERVICE_OBJECTIVE = ELASTIC_POOL (name = pool1));
 

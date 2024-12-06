@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE LOGIN newlogin WITH PASSWORD = 'Another Strong Pwd456!';
 EXEC sp_addsrvrolemember 'newlogin', 'dbcreator';
 

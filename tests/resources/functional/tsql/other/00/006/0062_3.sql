@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @sql nvarchar(max);
 SELECT @sql = N'CREATE DATABASE ' + QUOTENAME(database_name) + '; USE DATABASE ' + QUOTENAME(database_name) + '; USE SCHEMA ' + QUOTENAME(schema_name) + ';'
 FROM (

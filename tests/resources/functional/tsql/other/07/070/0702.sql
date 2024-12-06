@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 -- Create tables
 CREATE TABLE customers
 (

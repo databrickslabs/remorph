@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE myTable (col1 INT, col2 VARCHAR(50));
 INSERT INTO myTable (col1, col2)
 VALUES

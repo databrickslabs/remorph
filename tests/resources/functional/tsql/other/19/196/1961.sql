@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_customer AS (
     SELECT *
     FROM (

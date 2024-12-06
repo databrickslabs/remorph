@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_sales AS (
     SELECT *
     FROM (

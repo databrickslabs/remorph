@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer_hierarchy AS (
     SELECT customer_key, nation_key, account_balance
     FROM (

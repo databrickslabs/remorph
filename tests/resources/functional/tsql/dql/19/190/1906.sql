@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @var FLOAT;
 SET @var = 10;
 WITH temp_result AS (

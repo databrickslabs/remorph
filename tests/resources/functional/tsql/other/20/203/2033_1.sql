@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO #temp_result (column_a, column_b, [Previous value for column_b], [Next value for column_b])
 SELECT column_a, column_b, [Previous value for column_b], [Next value for column_b]
 FROM (

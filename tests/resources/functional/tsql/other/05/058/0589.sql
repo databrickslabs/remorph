@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH OrdersCTE AS (
     SELECT
         O_ORDERKEY = 1,

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.uspGetOrders
     @OrderDate DATE = '1995-01-01',
     @TotalPrice DECIMAL(10, 2) = 100.00

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH Customers AS (
     SELECT 1 AS CustomerID, 'John Doe' AS CustomerName
     UNION ALL

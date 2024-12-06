@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_sql_modules AS (
     SELECT 'definition1' AS definition, 'type1' AS type, 1 AS object_id
 ),

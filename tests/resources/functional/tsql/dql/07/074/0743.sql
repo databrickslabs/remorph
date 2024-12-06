@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH extreme_point_collection AS (
     SELECT geography::Point(10, 20, 4326) AS g, 1 AS id
     UNION ALL

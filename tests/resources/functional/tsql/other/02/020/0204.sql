@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @transactionSuccess BIT = 1;
 
 BEGIN TRY

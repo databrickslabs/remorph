@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE USER Clerk WITHOUT LOGIN;
 GRANT IMPERSONATE ON USER::Clerk TO Clerk;
 REVOKE IMPERSONATE ON USER::Clerk FROM Clerk;

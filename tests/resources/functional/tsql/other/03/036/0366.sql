@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE usp_GetErrorInfo
 AS
 WITH ErrorInfo AS (

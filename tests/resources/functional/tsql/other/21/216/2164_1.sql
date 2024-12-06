@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO publisher_info (pub_id, pub_info)
 VALUES
     ('0736', N'This is sample text data for New Moon Books, publisher 0736 in the pubs database'),

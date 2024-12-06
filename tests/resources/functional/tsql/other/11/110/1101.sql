@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE pr_SupplierNames
     @VarDiscount decimal(5, 2)
 AS

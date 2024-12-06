@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #T (Instructions xml);
 INSERT INTO #T (Instructions)
 VALUES (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @temp_result TABLE (product_key VARCHAR(10), product_name VARCHAR(50));
 INSERT INTO @temp_result (product_key, product_name)
 SELECT *

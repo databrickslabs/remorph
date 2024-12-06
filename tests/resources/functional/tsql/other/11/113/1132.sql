@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Buyers')
 CREATE ROLE Buyers;
 

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @index_exists BIT;
 
 WITH temp_object_id AS (

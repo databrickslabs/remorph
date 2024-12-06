@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #CustomerCTE (CustomerName VARCHAR(50), CustomerID INT);
 INSERT INTO #CustomerCTE (CustomerName, CustomerID)
 VALUES ('Customer1', 100), ('Customer2', 200);

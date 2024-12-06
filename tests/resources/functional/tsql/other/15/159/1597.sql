@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #DialogHandles
 (
     new_dialog_handle1 UNIQUEIDENTIFIER,

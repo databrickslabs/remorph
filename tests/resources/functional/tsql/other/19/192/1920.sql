@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @y1 INT = 30;
 SET @y1 += 3;
 WITH temp_result AS (

@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 SELECT PRIORITY_LEVEL FROM (VALUES (5)) AS PriorityLevels (PRIORITY_LEVEL);

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @SamplesPath nvarchar(1024);
 
 WITH temp_result AS (

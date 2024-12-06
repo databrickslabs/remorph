@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE #Customer (ID INT, Name VARCHAR(255));
 CREATE TABLE #MarketingTeam (TeamName VARCHAR(255));
 INSERT INTO #MarketingTeam (TeamName) VALUES ('MarketingTeam');

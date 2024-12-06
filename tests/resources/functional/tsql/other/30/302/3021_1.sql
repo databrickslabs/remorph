@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS custkey, 'Customer1' AS name, 100.00 AS acctbal, 'USA' AS nation, '123 Main St' AS address, '123-456-7890' AS phone, 'This is a comment' AS comment
     UNION ALL

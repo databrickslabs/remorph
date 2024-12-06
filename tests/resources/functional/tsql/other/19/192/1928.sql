@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE customer_cursor CURSOR FOR
     SELECT c.name, o.order_id
     FROM (

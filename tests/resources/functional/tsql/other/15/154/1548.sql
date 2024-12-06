@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @d2 DATE, @t2 TIME, @dt2 DATETIME;
 SET @d2 = GETDATE();
 SET @t2 = GETDATE();

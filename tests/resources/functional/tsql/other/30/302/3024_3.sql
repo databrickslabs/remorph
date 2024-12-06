@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE temp_result (order_key INT IDENTITY(1,1) NOT NULL, totalprice DECIMAL(10, 2) NOT NULL);
 WITH temp_result AS (
     SELECT order_key, totalprice

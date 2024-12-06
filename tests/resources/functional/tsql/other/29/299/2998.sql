@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @ContextInfo VARBINARY(128);
 SELECT @ContextInfo = ContextInfo
 FROM (

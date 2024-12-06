@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #SupplierTable
 (
     geography_col1 geography,

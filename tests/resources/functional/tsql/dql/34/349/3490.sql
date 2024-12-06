@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 1 AS CustomerTransactionID, '2020-01-01' AS TransactionDate, 100 AS InvoiceID, 1 AS CustomerID, 100.00 AS TransactionAmount
     UNION ALL

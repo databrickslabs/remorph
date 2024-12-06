@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesCTE AS (
     SELECT
         o_orderkey,

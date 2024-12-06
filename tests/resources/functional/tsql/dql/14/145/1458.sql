@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @ORDERDATE DATETIME = GETDATE();
 DECLARE @ORDERTIME TIME;
 

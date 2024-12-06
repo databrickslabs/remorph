@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 CREATE TABLE customer_names (customer_name sysname);
 INSERT INTO customer_names (customer_name)
 VALUES ('customer');

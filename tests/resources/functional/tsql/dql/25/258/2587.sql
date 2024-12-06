@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH RegionCTE AS (
     SELECT RegionID, RegionName
     FROM (

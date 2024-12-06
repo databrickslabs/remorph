@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @new_string VARCHAR(60);
 SET @new_string = 'Four spaces are after the period in this sentence.    ';
 SELECT @new_string + ' Next string.' AS original_string, RTRIM(@new_string) + ' Next string.' AS trimmed_string;

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH customer AS (
     SELECT 'Customer#000000001' AS c_name, 'United States' AS c_nationkey
 ),

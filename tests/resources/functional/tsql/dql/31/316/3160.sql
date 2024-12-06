@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result_set AS (
     SELECT 'Sales' AS department, 'Smith' AS lastname, 10.0 AS rate, '2020-01-01' AS hiredate
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH ProductCTE AS (
     SELECT ProductID, ProductName, ProductModelID, PhotoID
     FROM (

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'MySchema')
 BEGIN
     EXEC('CREATE SCHEMA MySchema');

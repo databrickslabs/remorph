@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyCrsrRef1 CURSOR;
 
 SET @MyCrsrRef1 = CURSOR FOR

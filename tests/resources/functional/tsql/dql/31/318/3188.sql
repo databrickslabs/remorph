@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SupplierParts (SupplierID, PartID, Quantity, EndDate, PartLevel, PartName) AS (
     SELECT s.SupplierID, p.PartID, s.Quantity, s.EndDate, 0 AS PartLevel, p.PartName
     FROM (

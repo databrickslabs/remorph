@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'CustomerData')
 BEGIN
     CREATE TABLE CustomerData

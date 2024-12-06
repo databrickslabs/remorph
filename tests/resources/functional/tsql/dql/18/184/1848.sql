@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer GEOGRAPHY = 'Point(1 1 1 1)';
 WITH customer_cte AS (
     SELECT @customer AS geo

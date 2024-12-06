@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @ServerEdition VARCHAR(50) = 'Standard';
 WITH EditionCheck AS (
     SELECT CASE WHEN @ServerEdition IN ('Enterprise', 'Developer') THEN 'Supported' ELSE 'Not Supported' END AS EditionSupport

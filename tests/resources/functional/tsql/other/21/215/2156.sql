@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH IndexCTE AS (
     SELECT 'PXML_Supplier_Address' AS IndexName
 ),

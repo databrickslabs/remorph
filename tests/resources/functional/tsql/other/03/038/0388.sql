@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE dbo.Supplier
 (
     Name VARCHAR(50),

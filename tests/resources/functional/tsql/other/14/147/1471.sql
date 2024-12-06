@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @Manager HIERARCHYID, @Child1 HIERARCHYID, @Child2 HIERARCHYID;
 SET @Manager = CAST('/3/1/' AS HIERARCHYID);
 SET @Child1 = CAST('/3/1/1/' AS HIERARCHYID);

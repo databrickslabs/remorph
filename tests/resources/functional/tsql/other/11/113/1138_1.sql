@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE [HR].[EmployeesHistory]
 (
     EmployeeID INT NOT NULL,

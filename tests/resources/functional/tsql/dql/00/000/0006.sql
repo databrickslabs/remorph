@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'column1' AS column_name, 'type1' AS data_type
     UNION ALL

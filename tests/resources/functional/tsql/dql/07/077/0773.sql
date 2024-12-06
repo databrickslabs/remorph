@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH dates AS (
     SELECT '2016-01-02T23:39:20.123-07:00' AS date_str
 )

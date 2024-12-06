@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #Test.Customer
 (
     C_CUSTKEY INT PRIMARY KEY,

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date DATETIME2 = '2020-06-15 21:22:11';
 DECLARE @reference_date DATETIME2 = '2019-01-01 00:00:00';
 

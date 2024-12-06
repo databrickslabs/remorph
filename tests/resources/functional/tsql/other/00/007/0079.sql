@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE DATABASE DemoDB;
 ALTER DATABASE DemoDB SET COMPATIBILITY_LEVEL = 140;
 SELECT compatibility_level FROM sys.databases WHERE name = 'DemoDB';

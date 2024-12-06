@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH symmetric_keys AS (
     SELECT 'NewInventoryKey' AS name,
            'AES_256' AS algorithm,

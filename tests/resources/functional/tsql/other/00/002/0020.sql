@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DROP TABLE IF EXISTS soybean_production;
 CREATE TABLE soybean_production
 (

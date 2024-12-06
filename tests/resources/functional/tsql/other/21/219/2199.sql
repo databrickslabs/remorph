@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH MeasureCTE AS (
     SELECT N'Cubic Meters' AS Name, N'M3' AS MeasureCode, GETDATE() AS ModifiedDate
     UNION ALL

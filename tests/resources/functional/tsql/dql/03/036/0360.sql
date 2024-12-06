@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @altstartdate DATETIME;
 SET @altstartdate = (
     SELECT date

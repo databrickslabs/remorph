@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @order_date DATETIME = GETDATE();
 
 WITH orders AS (

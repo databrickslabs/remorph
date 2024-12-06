@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 INSERT INTO orders (o_orderkey, o_custkey, o_orderstatus, o_totalprice, o_orderdate, o_orderpriority, o_clerk, o_shippriority, o_comment)
 VALUES
     (1, 1, 'O', 100.00, '1992-01-01', '1-URGENT', 'Clerk#000000001', 0, 'O comment'),

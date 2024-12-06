@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @images_stage VARCHAR(255) = 'path_to_images_stage';
 
 IF NOT EXISTS (

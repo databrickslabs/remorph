@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'John' AS NAME, 1 AS NATIONKEY
     UNION ALL

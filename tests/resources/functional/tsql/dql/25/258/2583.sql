@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH DepartmentCTE AS (
     SELECT 1 AS DepartmentNumber, 'Sales' AS DepartmentName, 5 AS ManagerID, 0 AS ParentDepartmentNumber
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE VIEW dbo.all_customer_view
 WITH SCHEMABINDING
 AS

@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @server_name sysname, @server_type sysname;
 
 DECLARE cur_servers CURSOR FOR

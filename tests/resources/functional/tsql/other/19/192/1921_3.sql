@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFORMAT ymd;
 SELECT CONVERT(date, '20220101') AS DateValue
 FROM (

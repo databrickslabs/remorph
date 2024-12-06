@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mystrongpassword123';
 
 WITH temp_result AS (

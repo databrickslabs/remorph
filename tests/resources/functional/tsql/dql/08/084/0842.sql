@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'John' AS name, 'John likes hockey' AS subject
     UNION ALL

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH ProductModelCTE AS (
     SELECT 1 AS ProductModelID, 'Model1' AS Name
     UNION ALL

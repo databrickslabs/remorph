@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DBCC FLUSHAUTHCACHE;
 SELECT 'Authorization cache flushed' AS result
 FROM (

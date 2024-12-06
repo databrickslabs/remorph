@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET CONCAT_NULL_YIELDS_NULL ON;
 
 WITH CustomerCTE AS (

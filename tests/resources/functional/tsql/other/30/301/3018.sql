@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @newdate DATETIME, @addhours INT;
 SET @newdate = 'January 15, 1900 12:00 AM';
 SET @addhours = 5;

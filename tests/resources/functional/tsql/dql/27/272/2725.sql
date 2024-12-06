@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT o.object_id, s.schema_id, s.name AS schema_name, o.name AS object_name
     FROM sys.objects o

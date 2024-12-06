@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #indexes (tablename sysname, objectid int, indexid int, frag decimal(5, 2));
 INSERT INTO #indexes (tablename, objectid, indexid, frag)
 VALUES ('table1', 1, 1, 10.00), ('table2', 2, 2, 20.00), ('table3', 3, 3, 30.00);

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @o_orderdate DATE = '11/22/2020';
 WITH orders AS (
     SELECT 1 AS o_orderkey, @o_orderdate AS o_orderdate

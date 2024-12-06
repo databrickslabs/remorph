@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @customer_id INT;
 SELECT *
 FROM (

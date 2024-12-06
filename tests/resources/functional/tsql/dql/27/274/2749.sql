@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT SUSER_NAME() AS CurrentUser
 FROM (
     VALUES (1)

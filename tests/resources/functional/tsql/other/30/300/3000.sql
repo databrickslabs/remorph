@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 SET DATEFIRST 5;
 SELECT DATEPART(dw, SYSDATETIME()) AS 'Current Day', @@DATEFIRST AS 'First Day of Week'
 FROM (

@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH orders AS (
     SELECT o_totalprice, o_orderdate, o_custkey, o_suppkey
     FROM (

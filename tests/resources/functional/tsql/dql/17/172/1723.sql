@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer geometry;
 DECLARE @supplier geometry;
 SET @customer = geometry::STGeomFromText('LINESTRING(0 2, 2 0, 4 2)', 0);

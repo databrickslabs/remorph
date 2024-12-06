@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH OrdersCTE (orderkey, totalprice, orderdate) AS (
     SELECT orderkey, totalprice, orderdate
     FROM orders

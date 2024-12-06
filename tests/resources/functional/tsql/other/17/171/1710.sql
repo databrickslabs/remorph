@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @g geometry;
 WITH g AS (
     SELECT geometry::Parse('CURVEPOLYGON EMPTY') AS geom

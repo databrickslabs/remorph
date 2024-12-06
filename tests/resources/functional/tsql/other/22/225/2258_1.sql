@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 CREATE TABLE #BackupInfo
 (
     BackupName sysname,

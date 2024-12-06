@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @AssemblyExists INT;
 
 WITH AssemblyCheck AS (

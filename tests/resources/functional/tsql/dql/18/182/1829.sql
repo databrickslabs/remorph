@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @myVariable AS VARCHAR = 'abc';
 DECLARE @myNextVariable AS CHAR = 'abc';
 

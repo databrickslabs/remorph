@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH forecast_data AS (
     SELECT CAST(o.o_orderdate AS DATE) AS order_date,
            SUM(l.ol_quantity) AS quantity

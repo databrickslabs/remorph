@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT *
     FROM dbo.Customer

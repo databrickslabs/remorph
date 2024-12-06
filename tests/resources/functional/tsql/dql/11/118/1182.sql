@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT COUNT(*) AS [Number of rows]
 FROM (
     VALUES (1, 'Value1'),

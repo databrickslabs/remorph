@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH datetime_values AS (
     SELECT '00:00:01.1234567' AS datetime_value
     UNION ALL

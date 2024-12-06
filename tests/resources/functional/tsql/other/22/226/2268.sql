@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 WITH customer_orders AS (
   SELECT c_custkey, c_name, SUM(o_totalprice) AS total_revenue
   FROM (

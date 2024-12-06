@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE SpatialTable4 (id int PRIMARY KEY, object GEOGRAPHY);
 CREATE SPATIAL INDEX SIndx_SpatialTable4_geography_col1 ON SpatialTable4(object);
 WITH temp AS (

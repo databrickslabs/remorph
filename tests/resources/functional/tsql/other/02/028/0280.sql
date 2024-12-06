@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE SEQUENCE seq_01
     START WITH 1
     INCREMENT BY 1;

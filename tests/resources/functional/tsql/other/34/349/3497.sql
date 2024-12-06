@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 WITH customer_sales AS (
     SELECT TOP 10
         c_custkey,

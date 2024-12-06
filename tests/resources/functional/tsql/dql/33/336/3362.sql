@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH Products AS (
     SELECT 'Product1' AS Name, 5.00 AS Weight, 'Red' AS Color
     UNION ALL

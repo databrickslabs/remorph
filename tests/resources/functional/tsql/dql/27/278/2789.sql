@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT SYSTEM_USER AS CurrentUser
 FROM (
     VALUES (1)

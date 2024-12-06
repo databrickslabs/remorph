@@ -1,4 +1,4 @@
---Query type: TCL
+-- tsql sql:
 DECLARE @new_dialog_handle UNIQUEIDENTIFIER;
 SELECT @new_dialog_handle = column1
 FROM (

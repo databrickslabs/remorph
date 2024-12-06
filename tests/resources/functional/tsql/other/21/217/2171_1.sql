@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE Sales.uspGetCustomers
     @CustomerName NVARCHAR(50),
     @Country NVARCHAR(50)

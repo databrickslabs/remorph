@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH cte AS (
     SELECT SYSDATETIME() AS sysdt, CURRENT_TIMESTAMP AS ct, GETDATE() AS gd
 )

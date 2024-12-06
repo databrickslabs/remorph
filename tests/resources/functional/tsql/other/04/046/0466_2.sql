@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 ALTER AUTHORIZATION ON OBJECT::CTE TO User1;
 
 WITH CTE AS (

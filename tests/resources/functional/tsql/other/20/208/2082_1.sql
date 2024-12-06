@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @msg NVARCHAR(2048) = FORMATMESSAGE(60000, 500, N'First string', N'second string');
 WITH temp_result AS (
     SELECT 'First string' AS string1, 'Second string' AS string2

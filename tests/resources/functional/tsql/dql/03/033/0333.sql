@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH SalesPersonCTE AS (
     SELECT 1 AS BusinessEntityID, 1000.0 AS SalesQuota, 'John' AS FirstName, 'Doe' AS LastName
 ),

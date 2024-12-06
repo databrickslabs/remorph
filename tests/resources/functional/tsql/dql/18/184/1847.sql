@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer_name NCHAR(12);
 SET @customer_name = N'Customer#000000001';
 SELECT UNICODE(@customer_name), NCHAR(UNICODE(@customer_name))

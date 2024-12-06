@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'province1' AS province, 1 AS store_ID, 100.0 AS profit
     UNION ALL

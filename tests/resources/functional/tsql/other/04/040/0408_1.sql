@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH CTE_DatabaseFiles AS (
     SELECT 'TPC_H_FILE' AS FileName,
            'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQL\DATA\TPC_H_FILE.ndf' AS FilePath,

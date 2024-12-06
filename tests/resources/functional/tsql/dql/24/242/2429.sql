@@ -1,2 +1,2 @@
---Query type: DQL
+-- tsql sql:
 SELECT BIT_COUNT(23) AS BitCountResult FROM (VALUES (1)) AS temp_result_set (dummy_column);

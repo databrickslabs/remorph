@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @AsOfFrom DATETIME2 = DATEADD(month, -12, SYSUTCDATETIME());
 DECLARE @AsOfTo DATETIME2 = DATEADD(month, -6, SYSUTCDATETIME());
 

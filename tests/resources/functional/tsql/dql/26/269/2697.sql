@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT CAST(OrgNode AS VARCHAR(50)) AS OrgNode,
            OrgNode.GetLevel() AS EmpLevel,

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @Region nvarchar(50), @TotalRevenue DECIMAL(10, 2);
 SET @Region = N'ASIA';
 SET @TotalRevenue = 1000000.00;

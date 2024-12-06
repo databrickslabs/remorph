@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT geography1.STIntersection(geography2).STAsText() AS intersection_of_objects
 FROM (
     VALUES (

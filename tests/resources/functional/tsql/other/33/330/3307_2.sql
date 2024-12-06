@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE orders (
     order_key INT PRIMARY KEY NOT NULL,
     totalprice DECIMAL(10, 2) NOT NULL,

@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'Smith' AS CLastName, 'John' AS CFirstName, 'Salesman' AS CJobTitle
     UNION ALL

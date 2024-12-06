@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 DECLARE @customer geometry;
 DECLARE @supplier geometry;
 

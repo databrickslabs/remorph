@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (SELECT * FROM (VALUES ('customer1', 100), ('customer2', 200), ('customer3', 300)) AS customers (customer_name, order_total))
 SELECT *
 FROM temp_result

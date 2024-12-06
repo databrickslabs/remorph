@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 DECLARE @orderDate DATE = '1995-01-01';
 WITH orders AS (
     SELECT 1 AS o_orderkey, '1995-01-01' AS o_orderdate

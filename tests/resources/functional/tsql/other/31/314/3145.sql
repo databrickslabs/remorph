@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 WITH CustomerCTE AS (
   SELECT c_custkey, c_name
   FROM (

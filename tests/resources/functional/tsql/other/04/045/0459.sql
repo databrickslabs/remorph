@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TYPE CustomerTableType AS TABLE (
     CustomerName VARCHAR(50),
     Address VARCHAR(100),

@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 CREATE TABLE #T1
 (
     column_1 AS ('Computed column ' + column_2),

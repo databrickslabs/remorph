@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_tables AS (
     SELECT 'Table1' AS name, 1 AS object_id
 ),

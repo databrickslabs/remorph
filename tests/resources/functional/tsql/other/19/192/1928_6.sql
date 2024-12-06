@@ -1,4 +1,4 @@
---Query type: DCL
+-- tsql sql:
 PRINT 'The database maintenance tasks have been completed successfully.';
 SELECT *
 FROM (

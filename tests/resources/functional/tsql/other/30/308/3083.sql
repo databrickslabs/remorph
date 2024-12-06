@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 DECLARE @MyTableVar TABLE (ProductID INT NOT NULL, ProductName NVARCHAR(50) NOT NULL, ProductModelID INT NOT NULL, PhotoID INT NOT NULL, DeletedDate DATETIME NOT NULL);
 
 WITH ProductCTE AS (

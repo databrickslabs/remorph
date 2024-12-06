@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE PROCEDURE NotifyALTER_T2_Proc
 AS
 BEGIN

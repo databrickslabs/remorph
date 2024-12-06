@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH CustomerCTE AS (
     SELECT 'New York' AS City, 'customer1@example.com' AS EmailAddress
     UNION ALL

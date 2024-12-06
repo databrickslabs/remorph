@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH EmployeeCTE AS (
     SELECT CAST(n_nationkey AS VARCHAR(10)) AS NationKey,
            CAST(n_name AS VARCHAR(50)) AS NationName

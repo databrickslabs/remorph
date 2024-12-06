@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 WITH temp_result AS (
     SELECT 'Product1' AS ProductName, 33.99 AS ListPrice
     UNION ALL

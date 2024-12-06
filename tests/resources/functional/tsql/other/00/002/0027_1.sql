@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 IF OBJECT_ID('customer_order', 'U') IS NOT NULL
     DROP TABLE customer_order;
 

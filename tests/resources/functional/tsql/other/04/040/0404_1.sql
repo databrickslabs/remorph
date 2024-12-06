@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 CREATE TABLE #temp_result (id INT, name VARCHAR(10));
 INSERT INTO #temp_result (id, name)
 VALUES (1, 'a'), (2, 'b'), (3, 'c');

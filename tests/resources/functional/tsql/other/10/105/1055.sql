@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 WITH MessageTypes AS (
     SELECT 'SubmitOrder' AS MessageType, 'WELL_FORMED_XML' AS Validation
     UNION ALL

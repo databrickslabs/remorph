@@ -1,4 +1,4 @@
---Query type: DML
+-- tsql sql:
 SET DATEFORMAT mdy;
 WITH dates AS (
     SELECT '15/04/2008' AS date_str

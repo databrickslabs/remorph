@@ -1,4 +1,4 @@
---Query type: DQL
+-- tsql sql:
 SELECT c.FirstName, c.LastName, s.Rate
 FROM (
     VALUES (1, 'John', 'Doe'),

@@ -1,2 +1,2 @@
---Query type: DDL
+-- tsql sql:
 ALTER DATABASE new_database SET CHANGE_TRACKING (CHANGE_RETENTION = 3 DAYS);

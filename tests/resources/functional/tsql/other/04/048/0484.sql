@@ -1,4 +1,4 @@
---Query type: DDL
+-- tsql sql:
 DECLARE @SchemaName sysname = 'SalesSchema';
 DECLARE @NewOwner sysname = 'SalesUser';
 DECLARE @sql nvarchar(max) = N'ALTER AUTHORIZATION ON SCHEMA::' + QUOTENAME(@SchemaName) + ' TO ' + QUOTENAME(@NewOwner) + ';'
