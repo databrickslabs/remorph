@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlglot.dialects.dialect import Dialect
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
-    MorphConfig,
+    TranspileConfig,
     get_dialect,
     TranspilationResult,
     ValidationResult,
@@ -18,14 +18,14 @@ from databricks.labs.remorph.helpers.file_utils import (
     make_dir,
     remove_bom,
 )
-from databricks.labs.remorph.helpers.morph_status import (
-    MorphStatus,
+from databricks.labs.remorph.transpiler.transpile_status import (
+    TranspileStatus,
     ParserError,
     ValidationError,
 )
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.snow import lca_utils
-from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
+from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
 # pylint: disable=unspecified-encoding
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def _process_file(
-    config: MorphConfig,
+    config: TranspileConfig,
     validator: Validator | None,
     transpiler: SqlglotEngine,
     input_file: str | Path,
@@ -82,7 +82,7 @@ def _process_file(
 
 
 def _process_directory(
-    config: MorphConfig,
+    config: TranspileConfig,
     validator: Validator | None,
     transpiler: SqlglotEngine,
     root: str | Path,
@@ -121,7 +121,7 @@ def _process_directory(
 
 
 def _process_recursive_dirs(
-    config: MorphConfig, input_sql_path: Path, validator: Validator | None, transpiler: SqlglotEngine
+    config: TranspileConfig, input_sql_path: Path, validator: Validator | None, transpiler: SqlglotEngine
 ):
     input_sql = input_sql_path
     parse_error_list = []
@@ -144,11 +144,11 @@ def _process_recursive_dirs(
 
     error_log = parse_error_list + validate_error_list
 
-    return MorphStatus(file_list, counter, len(parse_error_list), len(validate_error_list), error_log)
+    return TranspileStatus(file_list, counter, len(parse_error_list), len(validate_error_list), error_log)
 
 
 @timeit
-def morph(workspace_client: WorkspaceClient, config: MorphConfig):
+def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -161,7 +161,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     input_sql = Path(config.input_sql)
     status = []
-    result = MorphStatus([], 0, 0, 0, [])
+    result = TranspileStatus([], 0, 0, 0, [])
 
     read_dialect = config.get_read_dialect()
     transpiler = SqlglotEngine(read_dialect)
@@ -186,7 +186,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
                 config, validator, transpiler, input_sql, output_file
             )
             error_log = parse_error + validation_error
-            result = MorphStatus([str(input_sql)], no_of_sqls, len(parse_error), len(validation_error), error_log)
+            result = TranspileStatus([str(input_sql)], no_of_sqls, len(parse_error), len(validation_error), error_log)
         else:
             msg = f"{input_sql} is not a SQL file."
             logger.warning(msg)
@@ -246,16 +246,16 @@ def _parse(
 
 def _validation(
     validator: Validator,
-    config: MorphConfig,
+    config: TranspileConfig,
     sql: str,
 ) -> ValidationResult:
     return validator.validate_format_result(config, sql)
 
 
 @timeit
-def morph_sql(
+def transpile_sql(
     workspace_client: WorkspaceClient,
-    config: MorphConfig,
+    config: TranspileConfig,
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
@@ -277,14 +277,14 @@ def morph_sql(
 
 
 @timeit
-def morph_column_exp(
+def transpile_column_exp(
     workspace_client: WorkspaceClient,
-    config: MorphConfig,
+    config: TranspileConfig,
     expressions: list[str],
 ) -> list[tuple[TranspilationResult, ValidationResult | None]]:
     """[Experimental] Transpile a list of SQL expressions from one dialect to another."""
     config.skip_validation = True
     result = []
     for sql in expressions:
-        result.append(morph_sql(workspace_client, config, sql))
+        result.append(transpile_sql(workspace_client, config, sql))
     return result
