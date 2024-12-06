@@ -18,7 +18,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     make_dir,
     remove_bom,
 )
-from databricks.labs.remorph.helpers.morph_status import (
+from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
     ParserError,
     ValidationError,
