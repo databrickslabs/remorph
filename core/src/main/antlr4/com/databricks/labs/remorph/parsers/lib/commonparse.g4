@@ -10,6 +10,18 @@
 
 parser grammar commonparse;
 
+// The original TSQL grammar was basically trying to allow just about any reserved word as an identier and ANTLR will
+// generate a parser that MOSTLY allows this, but it can create parsers where the lookahead is very large and slow.
+//
+// The use of reserved words has always been up in the air as the manuals say that you must escape them [ OUTER ] "INNER"
+// depending on configuration flags that are set. This is a bit of a mess and we only need to handle keywords that are
+// geniunely allowed (accidentally or not) in the various dialects.
+//
+// THis list has been reduced by Jim based on TSQL and Snowflake defined reserved words, but probably needs to be checked
+// or adjusted if we see contrary examples within customer queries.
+//
+// In the worst case, we have to tell customers to escape one or two reserved words that the original query author
+// did not spot as violating the rules but the source dialect parser will accept anyway.
 keyword
     : ABORT
     | ABORT_AFTER_WAIT
@@ -21,7 +33,6 @@ keyword
     | ACTION
     | ACTIVATION
     | ACTIVE
-    | ADD // ?
     | ADDRESS
     | ADMINISTER
     | AES
@@ -165,7 +176,6 @@ keyword
     | CREATION_DISPOSITION
     | CREDENTIAL
     | CRYPTOGRAPHIC
-    | CURRENT_TIME
     | CURSOR_CLOSE_ON_COMMIT
     | CURSOR_DEFAULT
     | CYCLE
@@ -180,7 +190,6 @@ keyword
     | DAYS
     | DB_CHAINING
     | DB_FAILOVER
-    | DBCC
     | DBREINDEX
     | DDL
     | DECRYPTION
@@ -248,7 +257,6 @@ keyword
     | EXPLICIT
     | EXTENDED_LOGICAL_CHECKS
     | EXTENSION
-    | EXTERNAL
     | EXTERNAL_ACCESS
     | FAIL_OPERATION
     | FAILOVER
@@ -285,7 +293,6 @@ keyword
     | FREQUENCY
     | FULLSCAN
     | FULLTEXT
-    | FUNCTION
     | GB
     | GENERATED
     | GET
@@ -307,9 +314,7 @@ keyword
     | HONOR_BROKER_PRIORITY
     | HOURS
     | IDENTIFIER
-    | IDENTITY
     | IDENTITY_VALUE
-    | IF
     | IGNORE_CONSTRAINTS
     | IGNORE_DUP_KEY
     | IGNORE_REPLICATED_TABLE_CACHE
@@ -329,7 +334,6 @@ keyword
     | INITIATOR
     | INPUT
     | INSENSITIVE
-    | INSERT
     | INSERTED
     | INSTEAD
     | INTERVAL
@@ -467,12 +471,10 @@ keyword
     | NUMANODE
     | NUMERIC_ROUNDABORT
     | OBJECT
-    | OFF
     | OFFLINE
     | OFFSET
     | OLD_ACCOUNT
     | OLD_PASSWORD
-    | ON
     | ON_FAILURE
     | ONLINE
     | ONLY
@@ -480,12 +482,10 @@ keyword
     | OPENJSON
     | OPERATIONS
     | OPTIMISTIC
-    | OPTION
     | ORDER
     | ORGADMIN
     | OUT
     | OUTBOUND
-    | OUTER
     | OUTPUT
     | OVERRIDE
     | OWNER
@@ -752,12 +752,10 @@ keyword
     | UPDLOCK
     | URL
     | USED
-    | USER
     | USERADMIN
     | VALID_XML
     | VALIDATION
     | VALUE
-    | VALUES
     | VAR
     | VERBOSELOGGING
     | VERIFY_CLONEDB

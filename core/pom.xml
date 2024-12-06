@@ -26,7 +26,7 @@
     <databricks-connect.version>15.1.0</databricks-connect.version>
     <circe.version>0.14.2</circe.version>
     <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
-    <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
+    <snowflake-jdbc.version>3.20.0</snowflake-jdbc.version>
     <os-lib.version>0.10.1</os-lib.version>
     <scala-csv.version>2.0.0</scala-csv.version>
   </properties>

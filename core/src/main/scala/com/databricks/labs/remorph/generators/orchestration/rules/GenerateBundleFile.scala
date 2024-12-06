@@ -13,9 +13,10 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 // see https://docs.databricks.com/en/dev-tools/bundles/settings.html
 class GenerateBundleFile extends Rule[JobNode] {
-  private val mapper = new ObjectMapper(new YAMLFactory())
-  mapper.setSerializationInclusion(Include.NON_DEFAULT)
-  mapper.registerModule(DefaultScalaModule)
+  private[this] val mapper =
+    new ObjectMapper(new YAMLFactory())
+      .setSerializationInclusion(Include.NON_DEFAULT)
+      .registerModule(DefaultScalaModule)
 
   override def apply(tree: JobNode): JobNode = tree transform { case Migration(children) =>
     val resources = findResources(children)

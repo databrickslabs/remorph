@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
-abstract class SubqueryExpression(plan: LogicalPlan) extends Expression {
+abstract class SubqueryExpression(val plan: LogicalPlan) extends Expression {
   override def children: Seq[Expression] = plan.expressions // TODO: not sure if this is a good idea
   override def dataType: DataType = plan.schema
 }

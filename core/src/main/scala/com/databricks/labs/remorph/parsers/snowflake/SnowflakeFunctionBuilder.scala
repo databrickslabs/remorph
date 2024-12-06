@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.{intermediate => ir}
 
 class SnowflakeFunctionBuilder extends FunctionBuilder {
 
-  private val SnowflakeFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
+  private[this] val SnowflakeFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
 
     case "ABS" => FunctionDefinition.standard(1)
     case "ACOS" => FunctionDefinition.standard(1)

@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.utils
 import java.io.{ByteArrayOutputStream, File, FileInputStream}
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
+import scala.util.matching.Regex
 
 /**
  * This utility object is based on org.apache.spark.sql.catalyst.util
@@ -58,6 +59,19 @@ object Strings {
       seq.take(numFields).mkString(start, sep, sep + "... " + (seq.length - numFields) + " more fields" + end)
     } else {
       seq.mkString(start, sep, end)
+    }
+  }
+}
+
+class Sed(rules: (String, String)*) {
+  private[this] val compiledRules: Seq[(Regex, String)] = rules.map { case (regex, replace) =>
+    (regex.r, replace)
+  }
+
+  def apply(src: String): String = {
+    compiledRules.foldLeft(src) { (currentSrc, rule) =>
+      val (regex, replace) = rule
+      regex.replaceAllIn(currentSrc, replace)
     }
   }
 }

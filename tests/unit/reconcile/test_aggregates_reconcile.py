@@ -380,10 +380,10 @@ def test_aggregates_reconcile_aggregate_rule():
 
     assert agg_rule.column_from_rule == "stddev_discount_p_dept_id+__+p_sub_dept"
     assert agg_rule.group_by_columns_as_table_column == "\"p_dept_id, p_sub_dept\""
-    expected_rule_query = """ SELECT 1234 as rule_id,  'AGGREGATE' as rule_type,   map( 'agg_type', 'stddev', 
-                 'agg_column', 'discount', 
+    expected_rule_query = """ SELECT 1234 as rule_id,  'AGGREGATE' as rule_type,   map( 'agg_type', 'stddev',
+                 'agg_column', 'discount',
                  'group_by_columns', "p_dept_id, p_sub_dept"
-                 )  
+                 )
          as rule_info """
     assert agg_rule.get_rule_query(1234) == expected_rule_query
 
@@ -391,9 +391,9 @@ def test_aggregates_reconcile_aggregate_rule():
 agg_rule1 = AggregateRule(agg_column="discount", group_by_columns=None, group_by_columns_as_str="NA", agg_type="max")
 assert agg_rule1.column_from_rule == "max_discount_NA"
 assert agg_rule1.group_by_columns_as_table_column == "NULL"
-EXPECTED_RULE1_QUERY = """ SELECT 1234 as rule_id,  'AGGREGATE' as rule_type,   map( 'agg_type', 'max', 
-                 'agg_column', 'discount', 
+EXPECTED_RULE1_QUERY = """ SELECT 1234 as rule_id,  'AGGREGATE' as rule_type,   map( 'agg_type', 'max',
+                 'agg_column', 'discount',
                  'group_by_columns', NULL
-                 )  
+                 )
          as rule_info """
 assert agg_rule1.get_rule_query(1234) == EXPECTED_RULE1_QUERY

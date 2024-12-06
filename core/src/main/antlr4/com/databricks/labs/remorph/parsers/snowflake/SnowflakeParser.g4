@@ -31,7 +31,7 @@ THE SOFTWARE.
 // =================================================================================
 parser grammar SnowflakeParser;
 
-import procedure, commonparse;
+import procedure, commonparse, jinja;
 
 options {
     tokenVocab = SnowflakeLexer;
@@ -2941,10 +2941,6 @@ id
 pattern: PATTERN EQ string
     ;
 
-//patternAssoc
-//    : PATTERN ASSOC string
-//    ;
-
 columnName: (id DOT)? id
     ;
 
@@ -3086,7 +3082,12 @@ functionOptionalBrackets
 paramAssocList: paramAssoc (COMMA paramAssoc)*
     ;
 
-paramAssoc: id ASSOC expr
+paramAssoc: assocId ASSOC expr
+    ;
+
+assocId
+    : id
+    | OUTER // Outer is stupidly used as a parameter name in FLATTEN() - but we don't want it as an id
     ;
 
 ignoreOrRepectNulls: (IGNORE | RESPECT) NULLS
@@ -3142,7 +3143,7 @@ withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpressi
 
 commonTableExpression
     : tableName = id (LPAREN columnList RPAREN)? AS LPAREN (selectStatement setOperators*) RPAREN # CTETable
-    | id AS LPAREN expr RPAREN																	  # CTEColumn
+    | id AS LPAREN expr RPAREN                                                                    # CTEColumn
     ;
 
 selectStatement

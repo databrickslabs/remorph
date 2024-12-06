@@ -19,7 +19,7 @@ case class Origin(
     objectName: Option[String] = None)
 
 object CurrentOrigin {
-  private val value = new ThreadLocal[Origin]() {
+  private[this] val value = new ThreadLocal[Origin]() {
     override def initialValue: Origin = Origin()
   }
 

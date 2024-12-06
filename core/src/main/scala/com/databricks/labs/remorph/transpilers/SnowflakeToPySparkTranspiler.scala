@@ -8,7 +8,7 @@ class SnowflakeToPySparkTranspiler extends SnowflakeToDatabricksTranspiler {
   val generator = new PySparkGenerator()
 
   override protected def generate(optimized: LogicalPlan): Python =
-    update {
+    updatePhase {
       case o: Optimizing =>
         Generating(
           optimizedPlan = optimized,

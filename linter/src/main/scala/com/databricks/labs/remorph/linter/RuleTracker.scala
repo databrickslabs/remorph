@@ -4,10 +4,10 @@ import ujson._
 
 class RuleTracker {
 
-  private var ruleDefMap: Map[String, RuleDefinition] = Map()
-  private var ruleRefMap: Map[String, List[RuleReference]] = Map()
-  private var orphanedRuleDefs: List[RuleDefinition] = List()
-  private var undefinedRules: List[RuleReference] = List()
+  private[this] var ruleDefMap: Map[String, RuleDefinition] = Map()
+  private[this] var ruleRefMap: Map[String, List[RuleReference]] = Map()
+  private[this] var orphanedRuleDefs: List[RuleDefinition] = List()
+  private[this] var undefinedRules: List[RuleReference] = List()
 
   // Definition handling
   def addRuleDef(rule: RuleDefinition): Unit = {

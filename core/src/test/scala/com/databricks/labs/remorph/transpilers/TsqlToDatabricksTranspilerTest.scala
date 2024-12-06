@@ -6,6 +6,13 @@ class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestComm
 
   protected final val transpiler = new TSqlToDatabricksTranspiler
 
+  private[this] def correctlyTranspile(expectedTranspilation: (String, String)): Unit = {
+    val (originalTSql, expectedDatabricksSql) = expectedTranspilation
+    s"correctly transpile: $originalTSql" in {
+      originalTSql transpilesTo expectedDatabricksSql
+    }
+  }
+
   "The TSQL-to-Databricks transpiler" when {
     "transpiling set operations" should {
       val expectedTranslations = Map(
@@ -35,11 +42,16 @@ class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestComm
             | ((SELECT j, k FROM l)
             |  EXCEPT
             |  (SELECT m, n FROM o));""".stripMargin)
-      expectedTranslations.foreach { case (originalTSql, expectedDatabricksSql) =>
-        s"correctly transpile: $originalTSql" in {
-          originalTSql transpilesTo expectedDatabricksSql
-        }
-      }
+      expectedTranslations.foreach(correctlyTranspile)
+    }
+    "mixing CTEs with set operations" should {
+      correctlyTranspile(
+        """WITH cte1 AS (SELECT a, b FROM c),
+          |     cte2 AS (SELECT x, y FROM z)
+          |SELECT a, b FROM cte1 UNION SELECT x, y FROM cte2""".stripMargin ->
+          """WITH cte1 AS (SELECT a, b FROM c),
+            |     cte2 AS (SELECT x, y FROM z)
+            |(SELECT a, b FROM cte1) UNION (SELECT x, y FROM cte2);""".stripMargin)
     }
   }
 }

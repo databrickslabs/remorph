@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
 // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
 class FlattenLateralViewToExplode extends Rule[LogicalPlan] with IRHelpers {
 
-  private val FLATTEN_OUTPUT_COLUMNS = Set("seq", "key", "path", "index", "value", "this")
+  private[this] val FLATTEN_OUTPUT_COLUMNS = Set("seq", "key", "path", "index", "value", "this")
 
   override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
     case j: Join if isLateralFlatten(j.left) => j.copy(left = translatePosExplode(plan, j.left))

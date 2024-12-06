@@ -147,5 +147,5 @@ public abstract class LexerAdaptor extends Lexer {
         setCurrentRuleType(Token.INVALID_TYPE);
         insideOptionsBlock = false;
         super.reset();
-    }   
+    }
 }

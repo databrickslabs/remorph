@@ -40,3 +40,9 @@ class NestedFiles(root: Path) extends ExampleSource {
     sqlFiles.sorted.map(p => AcceptanceTest(root.relativize(p).toString, p.toFile))
   }
 }
+
+class TestFile(path: Path) extends ExampleSource {
+  def listTests: Seq[AcceptanceTest] = {
+    Array(AcceptanceTest(path.getFileName.toString, path.toFile))
+  }
+}

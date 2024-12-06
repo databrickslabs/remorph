@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.coverage._
 import com.databricks.labs.remorph.discovery.{Anonymizer, ExecutedQuery, QueryHistoryProvider}
 import com.databricks.labs.remorph.intermediate.{LogicalPlan, ParsingError, TranspileFailure}
 import com.databricks.labs.remorph.parsers.PlanParser
-import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, Optimizing}
+import com.databricks.labs.remorph.{KoResult, OkResult, Optimizing, Parsing, TranspilerState}
 import com.databricks.labs.remorph.transpilers.SqlGenerator
 import com.typesafe.scalalogging.LazyLogging
 
@@ -35,15 +35,14 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer,
       parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
 
-    val initialState = Parsing(query.source)
+    val initialState = TranspilerState(Parsing(query.source))
 
     // Skip entries that have already been seen as text but for which we were unable to parse or
     // produce a plan for
     val fingerprint = anonymizer(query.source)
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
-      planParser
-        .parse(Parsing(query.source, query.user.getOrElse("unknown") + "_" + query.id))
+      planParser.parse
         .flatMap(planParser.visit)
         .run(initialState) match {
         case KoResult(PARSE, error) =>
@@ -96,7 +95,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       ruleScore: RuleScore,
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
-    val initialState = Optimizing(plan, None)
+    val initialState = TranspilerState(Optimizing(plan, None))
     planParser.optimize(plan).flatMap(generator.generate).run(initialState) match {
       case KoResult(_, error) =>
         // KoResult to transpile means that we need to increase the ruleScore as it will take some

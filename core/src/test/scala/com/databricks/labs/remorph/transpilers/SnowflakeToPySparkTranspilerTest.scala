@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeToPySparkTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
   protected val transpiler = new SnowflakeToPySparkTranspiler
-  private val formatter = new RuffFormatter
+  private[this] val formatter = new RuffFormatter
   override def format(input: String): String = formatter.format(input) match {
     case OkResult(formatted) => formatted
     case KoResult(_, error) => fail(error.msg)

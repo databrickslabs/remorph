@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.intermediate.RemorphError
+import com.databricks.labs.remorph.preprocessors.jinja.TemplateManager
 
 sealed trait WorkflowStage
 object WorkflowStage {
@@ -13,17 +14,17 @@ object WorkflowStage {
 
 /**
  * Represents a stateful computation that will eventually produce an output of type Out. It manages a state of
- * type Phase along the way. Moreover, by relying on the semantics of Result, it is also able to handle
+ * type TranspilerState along the way. Moreover, by relying on the semantics of Result, it is also able to handle
  * errors in a controlled way.
  *
  * It is important to note that nothing won't get evaluated until the run or runAndDiscardState are called.
  * @param run
- *   The computation that will be carried out by this computation. It is basically a function that takes a Phase as
- *   parameter and returns a Result containing the, possibly updated, State along with the Output.
+ *   The computation that will be carried out by this computation. It is basically a function that takes a TranspilerState as
+ *   parameter and returns a Result containing the - possibly updated - State along with the Output.
  * @tparam Output
  *   The type of the produced output.
  */
-final class Transformation[+Output](val run: Phase => Result[(Phase, Output)]) {
+final class Transformation[+Output](val run: TranspilerState => Result[(TranspilerState, Output)]) {
 
   /**
    * Modify the output of this transformation using the provided function, without changing the managed state.
@@ -47,7 +48,7 @@ final class Transformation[+Output](val run: Phase => Result[(Phase, Output)]) {
    * Runs the computation using the provided initial state and return a Result containing the transformation's output,
    * discarding the final state.
    */
-  def runAndDiscardState(initialState: Phase): Result[Output] = run(initialState).map(_._2)
+  def runAndDiscardState(initialState: TranspilerState): Result[Output] = run(initialState).map(_._2)
 }
 
 trait TransformationConstructors {
@@ -71,19 +72,27 @@ trait TransformationConstructors {
   /**
    * A tranformation whose output is the current state.
    */
-  def get: Transformation[Phase] = new Transformation(s => OkResult((s, s)))
+  def getCurrentPhase: Transformation[Phase] = new Transformation(s => OkResult((s, s.currentPhase)))
 
   /**
    * A transformation that replaces the current state with the provided one, and produces no meaningful output.
    */
-  def set(newState: Phase): Transformation[Unit] = new Transformation(_ => OkResult((newState, ())))
+  def setPhase(newPhase: Phase): Transformation[Unit] = new Transformation(s =>
+    OkResult((s.copy(currentPhase = newPhase), ())))
 
   /**
    * A transformation that updates the current state using the provided partial function, and produces no meaningful
    * output. If the provided partial function cannot be applied to the current state, it remains unchanged.
    */
-  def update(f: PartialFunction[Phase, Phase]): Transformation[Unit] = new Transformation(s =>
-    OkResult((f.applyOrElse(s, identity[Phase]), ())))
+  def updatePhase(f: PartialFunction[Phase, Phase]): Transformation[Unit] = new Transformation(state => {
+    val newState = state.copy(currentPhase = f.applyOrElse(state.currentPhase, identity[Phase]))
+    OkResult((newState, ()))
+  })
+
+  def getTemplateManager: Transformation[TemplateManager] = new Transformation(s => OkResult((s, s.templateManager)))
+
+  def updateTemplateManager(updateFunc: TemplateManager => TemplateManager): Transformation[Unit] =
+    new Transformation(s => OkResult((s.copy(templateManager = updateFunc(s.templateManager)), ())))
 }
 
 sealed trait Result[+A] {

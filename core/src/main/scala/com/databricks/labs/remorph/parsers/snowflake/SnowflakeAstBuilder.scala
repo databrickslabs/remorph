@@ -67,12 +67,10 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        val select = ctx.selectStatement().accept(vc.relationBuilder)
-        val withCTE = buildCTE(ctx.withExpression(), select)
-        ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
+    errorCheck(ctx).getOrElse {
+      val select = ctx.selectStatement().accept(vc.relationBuilder)
+      val queryExpression = ctx.setOperators().asScala.foldLeft(select)(buildSetOperator)
+      Option(ctx.withExpression()).foldRight(queryExpression)(buildCTE)
     }
   }
 
@@ -101,7 +99,7 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
     }
   }
 
-  private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
+  private[snowflake] def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
     errorCheck(ctx) match {
       case Some(errorResult) => errorResult
       case None =>

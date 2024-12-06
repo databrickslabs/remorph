@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 object SnowflakeTimeUnits extends IRHelpers {
-  private val dateOrTimeParts = Map(
+  private[this] val dateOrTimeParts = Map(
     Set("YEAR", "Y", "YY", "YYY", "YYYY", "YR", "YEARS", "YRS") -> "year",
     Set("MONTH", "MM", "MON", "MONS", "MONTHS") -> "month",
     Set("DAY", "D", "DD", "DAYS", "DAYOFMONTH") -> "day",

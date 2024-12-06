@@ -31,9 +31,9 @@ def test_get_schema():
         re.sub(
             r'\s+',
             ' ',
-            """select lower(column_name) as col_name, full_data_type as data_type from 
-                    catalog.information_schema.columns where lower(table_catalog)='catalog' 
-                    and lower(table_schema)='schema' and lower(table_name) ='supplier' order by 
+            """select lower(column_name) as col_name, full_data_type as data_type from
+                    catalog.information_schema.columns where lower(table_catalog)='catalog'
+                    and lower(table_schema)='schema' and lower(table_name) ='supplier' order by
                     col_name""",
         )
     )

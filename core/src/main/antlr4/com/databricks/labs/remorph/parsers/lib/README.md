@@ -3,7 +3,7 @@
 This directory contains ANTLR grammar files that are common to more than one SQL dialect. Such as the grammar that covers stored procedures, which all
 dialects of SQL support in some form, and for which we have a universal grammar.
 
-ANTLR processes included grammars as pure text, in the same way that say the C pre-processor processes `#include` directives. 
+ANTLR processes included grammars as pure text, in the same way that say the C pre-processor processes `#include` directives.
 This means that you must be careful to ensure that:
  - if you define new tokens in an included grammar, that they do not clash with tokens in the including grammar.
  - if you define new rules in an included grammar, that they do not clash with rules in the including grammar.

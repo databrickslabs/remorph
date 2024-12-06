@@ -2,21 +2,21 @@
 
 ## First Principles
 
-Favoring standard libraries over external dependencies, especially in specific contexts like Databricks, 
-is a best practice in software development. 
+Favoring standard libraries over external dependencies, especially in specific contexts like Databricks,
+is a best practice in software development.
 
 There are several reasons why this approach is encouraged:
-- Standard libraries are typically well-vetted, thoroughly tested, and maintained by the official maintainers of the programming language or platform. This ensures a higher level of stability and reliability. 
-- External dependencies, especially lesser-known or unmaintained ones, can introduce bugs, security vulnerabilities, or compatibility issues  that can be challenging to resolve. Adding external dependencies increases the complexity of your codebase. 
-- Each dependency may have its own set of dependencies, potentially leading to a complex web of dependencies that can be difficult to manage. This complexity can lead to maintenance challenges, increased risk, and longer build times. 
-- External dependencies can pose security risks. If a library or package has known security vulnerabilities and is widely used, it becomes an attractive target for attackers. Minimizing external dependencies reduces the potential attack surface and makes it easier to keep your code secure. 
-- Relying on standard libraries enhances code portability. It ensures your code can run on different platforms and environments without being tightly coupled to specific external dependencies. This is particularly important in settings like Databricks, where you may need to run your code on different clusters or setups. 
-- External dependencies may have their versioning schemes and compatibility issues. When using standard libraries, you have more control over versioning and can avoid conflicts between different dependencies in your project. 
-- Fewer external dependencies mean faster build and deployment times. Downloading, installing, and managing external packages can slow down these processes, especially in large-scale projects or distributed computing environments like Databricks. 
-- External dependencies can be abandoned or go unmaintained over time. This can lead to situations where your project relies on outdated or unsupported code. When you depend on standard libraries, you have confidence that the core functionality you rely on will continue to be maintained and improved. 
+- Standard libraries are typically well-vetted, thoroughly tested, and maintained by the official maintainers of the programming language or platform. This ensures a higher level of stability and reliability.
+- External dependencies, especially lesser-known or unmaintained ones, can introduce bugs, security vulnerabilities, or compatibility issues  that can be challenging to resolve. Adding external dependencies increases the complexity of your codebase.
+- Each dependency may have its own set of dependencies, potentially leading to a complex web of dependencies that can be difficult to manage. This complexity can lead to maintenance challenges, increased risk, and longer build times.
+- External dependencies can pose security risks. If a library or package has known security vulnerabilities and is widely used, it becomes an attractive target for attackers. Minimizing external dependencies reduces the potential attack surface and makes it easier to keep your code secure.
+- Relying on standard libraries enhances code portability. It ensures your code can run on different platforms and environments without being tightly coupled to specific external dependencies. This is particularly important in settings like Databricks, where you may need to run your code on different clusters or setups.
+- External dependencies may have their versioning schemes and compatibility issues. When using standard libraries, you have more control over versioning and can avoid conflicts between different dependencies in your project.
+- Fewer external dependencies mean faster build and deployment times. Downloading, installing, and managing external packages can slow down these processes, especially in large-scale projects or distributed computing environments like Databricks.
+- External dependencies can be abandoned or go unmaintained over time. This can lead to situations where your project relies on outdated or unsupported code. When you depend on standard libraries, you have confidence that the core functionality you rely on will continue to be maintained and improved.
 
-While minimizing external dependencies is essential, exceptions can be made case-by-case. There are situations where external dependencies are 
-justified, such as when a well-established and actively maintained library provides significant benefits, like time savings, performance improvements, 
+While minimizing external dependencies is essential, exceptions can be made case-by-case. There are situations where external dependencies are
+justified, such as when a well-established and actively maintained library provides significant benefits, like time savings, performance improvements,
 or specialized functionality unavailable in standard libraries.
 
 ## GPG signing
@@ -26,11 +26,11 @@ Before you submit any commit, please make sure you are properly setup, as follow
 If you don't already have one, create a GPG key:
  - on MacOS, install the GPG Suite from https://gpgtools.org/
  - from the Applications folder, launch the GPG Keychain app
- - create a new GPG key, using your Databricks email  
+ - create a new GPG key, using your Databricks email
  - Right-click on the created key and select Export, to save the key
  - Check the key using TextEdit, it should start with -----BEGIN PGP PUBLIC KEY BLOCK-----
 
-Register your PGP key in GitHub: 
+Register your PGP key in GitHub:
  - In GitHub, select Settings from your picture at the top-right
    - select SSH and PGP key
      - click on New key, and paste the text content of the exported key
@@ -45,7 +45,7 @@ Tell local git to signoff your commits using your PGP key
         - gpg --list-secret-keys --keyid-format=long
         - git config --global user.signingkey <KEY.ID.FROM.ABOVE>
         - git config --global commit.gpgsign true
-    
+
 Once all this is done, you can verify it's correct as follows:
     - create a branch and use it
     - create a file <FILENAME> with some content
@@ -73,20 +73,20 @@ _Keep API components simple._ In the components responsible for API interactions
 Refrain from overloading them with complex logic; instead, focus on making API calls and handling the data from those calls.
 
 _Inject Business Logic._ If you need to use business logic in your API-calling components, don't build it directly there.
-Instead, inject (or pass in) the business logic components into your API components. This way, you can keep your API components 
+Instead, inject (or pass in) the business logic components into your API components. This way, you can keep your API components
 clean and flexible, while the business logic remains separate and reusable.
 
-_Test your Business Logic._ It's essential to test your business logic to ensure it works correctly and thoroughly. When writing 
-unit tests, avoid making actual API calls - unit tests are executed for every pull request, and **_take seconds to complete_**. 
-For calling any external services, including Databricks Connect, Databricks Platform, or even Apache Spark, unit tests have 
-to use "mocks" or fake versions of the APIs to simulate their behavior. This makes testing your code more manageable and catching any 
-issues without relying on external systems. Focus on testing the edge cases of the logic, especially the scenarios where 
+_Test your Business Logic._ It's essential to test your business logic to ensure it works correctly and thoroughly. When writing
+unit tests, avoid making actual API calls - unit tests are executed for every pull request, and **_take seconds to complete_**.
+For calling any external services, including Databricks Connect, Databricks Platform, or even Apache Spark, unit tests have
+to use "mocks" or fake versions of the APIs to simulate their behavior. This makes testing your code more manageable and catching any
+issues without relying on external systems. Focus on testing the edge cases of the logic, especially the scenarios where
 things may fail. See [this example](https://github.com/databricks/databricks-sdk-py/pull/295) as a reference of an extensive
 unit test coverage suite and the clear difference between _unit tests_ and _integration tests_.
 
 ## JVM Proxy
 
-In order to use this, you have to install `remorph` on any workspace via `databricks labs install .`, 
+In order to use this, you have to install `remorph` on any workspace via `databricks labs install .`,
 so that `.databricks-login.json` file gets created with the following contents:
 
 ```
@@ -96,7 +96,7 @@ so that `.databricks-login.json` file gets created with the following contents:
 }
 ```
 
-then run `make dev-cli` to collect classpath information. And then invoke commands, 
+then run `make dev-cli` to collect classpath information. And then invoke commands,
 like `databricks labs remorph debug-script --name file`. Add `--debug` flag to recompile project each run.
 
 Example output is:
@@ -144,7 +144,7 @@ Then run project-specific install scripts
 make dev
 ```
 
-Verify installation with 
+Verify installation with
 ```shell
 make test
 ```
@@ -159,7 +159,7 @@ Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/oth
 
 Configure your IDE to:
  - use OpenJDK11 as the SDK for the project
- - install the IntelliJ Scala plugin version 2024.1.25. Do not use more recent versions, they don't work!!! 
+ - install the IntelliJ Scala plugin version 2024.1.25. Do not use more recent versions, they don't work!!!
  - use this Python venv path so that you work within the virtual environment when developing the project:
 ![IDE Setup](docs/img/remorph_intellij.gif)
 
@@ -169,7 +169,7 @@ make fmt
 ```
 
 Before every commit, run automated bug detector (`make lint`) and unit tests (`make test`) to ensure that automated
-pull request checks do pass, before your code is reviewed by others: 
+pull request checks do pass, before your code is reviewed by others:
 ```shell
 make lint test
 ```
@@ -209,10 +209,10 @@ Here are the example steps to submit your first contribution:
 11. .. fix if any
 12. `git commit -a`. Make sure to enter meaningful commit message title.
 13. `git push origin FEATURENAME`
-14. Go to GitHub UI and create PR. Alternatively, `gh pr create` (if you have [GitHub CLI](https://cli.github.com/) installed). 
+14. Go to GitHub UI and create PR. Alternatively, `gh pr create` (if you have [GitHub CLI](https://cli.github.com/) installed).
     Use a meaningful pull request title because it'll appear in the release notes. Use `Resolves #NUMBER` in pull
     request description to [automatically link it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue)
-    to an existing issue. 
+    to an existing issue.
 15. announce PR for the review
 
 ## Troubleshooting

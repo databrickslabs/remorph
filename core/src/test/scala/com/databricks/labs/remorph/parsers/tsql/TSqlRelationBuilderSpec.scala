@@ -327,10 +327,6 @@ class TSqlRelationBuilderSpec
             by_name = false,
             allow_missing_columns = false))
       }
-    }
-
-    "translate right-associative UNION clauses" should {
-      // These are of the form: (queryExpression) [UNION [ALL] query expression]
       "(SELECT a, b FROM bb) UNION select x, y FROM zz" in {
         example(
           "(SELECT a, b FROM bb) UNION select x, y FROM zz",

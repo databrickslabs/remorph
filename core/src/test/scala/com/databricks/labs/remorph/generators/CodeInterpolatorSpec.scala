@@ -10,37 +10,37 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
   "SQLInterpolator" should {
 
     "interpolate the empty string" in {
-      code"".runAndDiscardState(Init) shouldBe OkResult("")
+      code"".runAndDiscardState(TranspilerState()) shouldBe OkResult("")
     }
 
     "interpolate argument-less strings" in {
-      code"foo".runAndDiscardState(Init) shouldBe OkResult("foo")
+      code"foo".runAndDiscardState(TranspilerState()) shouldBe OkResult("foo")
     }
 
     "interpolate argument-less strings with escape sequences" in {
-      code"\tbar\n".runAndDiscardState(Init) shouldBe OkResult("\tbar\n")
+      code"\tbar\n".runAndDiscardState(TranspilerState()) shouldBe OkResult("\tbar\n")
     }
 
     "interpolate strings consisting only in a single String argument" in {
       val arg = "FOO"
-      code"$arg".runAndDiscardState(Init) shouldBe OkResult("FOO")
+      code"$arg".runAndDiscardState(TranspilerState()) shouldBe OkResult("FOO")
     }
 
     "interpolate strings consisting only in a single OkResult argument" in {
       val arg = ok("FOO")
-      code"$arg".runAndDiscardState(Init) shouldBe OkResult("FOO")
+      code"$arg".runAndDiscardState(TranspilerState()) shouldBe OkResult("FOO")
     }
 
     "interpolate strings consisting only in a single argument that is neither String nor OkResult" in {
       val arg = 42
-      code"$arg".runAndDiscardState(Init) shouldBe OkResult("42")
+      code"$arg".runAndDiscardState(TranspilerState()) shouldBe OkResult("42")
     }
 
     "interpolate strings with multiple arguments" in {
       val arg1 = "foo"
       val arg2 = ok("bar")
       val arg3 = 42
-      code"arg1: $arg1, arg2: $arg2, arg3: $arg3".runAndDiscardState(Init) shouldBe OkResult(
+      code"arg1: $arg1, arg2: $arg2, arg3: $arg3".runAndDiscardState(TranspilerState()) shouldBe OkResult(
         "arg1: foo, arg2: bar, arg3: 42")
     }
 
@@ -49,7 +49,7 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
       val arg2 = "foo"
       val arg3 = lift(PartialResult("!!! error 2 !!!", UnsupportedDataType(IntegerType.toString)))
 
-      code"SELECT $arg1 FROM $arg2 WHERE $arg3".runAndDiscardState(Init) shouldBe PartialResult(
+      code"SELECT $arg1 FROM $arg2 WHERE $arg3".runAndDiscardState(TranspilerState()) shouldBe PartialResult(
         "SELECT !!! error 1 !!! FROM foo WHERE !!! error 2 !!!",
         RemorphErrors(Seq(UnexpectedNode(Noop.toString), UnsupportedDataType(IntegerType.toString))))
     }
@@ -58,7 +58,7 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
       val arg1 = "foo"
       val arg2 = lift(KoResult(WorkflowStage.GENERATE, UnexpectedNode(Noop.toString)))
       val arg3 = 42
-      code"arg1: $arg1, arg2: $arg2, arg3: $arg3".runAndDiscardState(Init) shouldBe KoResult(
+      code"arg1: $arg1, arg2: $arg2, arg3: $arg3".runAndDiscardState(TranspilerState()) shouldBe KoResult(
         WorkflowStage.GENERATE,
         UnexpectedNode(Noop.toString))
     }
@@ -69,7 +69,7 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
       val arg3 = 42
       Seq(code"arg1: $arg1", code"arg2: $arg2", code"arg3: $arg3")
         .mkCode(", ")
-        .runAndDiscardState(Init) shouldBe PartialResult(
+        .runAndDiscardState(TranspilerState()) shouldBe PartialResult(
         "arg1: foo, arg2: !boom!, arg3: 42",
         UnexpectedNode(Noop.toString))
     }
@@ -85,7 +85,7 @@ class CodeInterpolatorSpec extends AnyWordSpec with Matchers with Transformation
       }
 
     "wrap 'normal' exception, such as invalid escapes, in a failure" in {
-      code"\D".runAndDiscardState(Init) shouldBe an[KoResult]
+      code"\D".runAndDiscardState(TranspilerState()) shouldBe an[KoResult]
     }
 
     "foo" in {

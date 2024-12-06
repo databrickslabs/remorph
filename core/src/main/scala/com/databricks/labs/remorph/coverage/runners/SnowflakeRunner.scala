@@ -12,8 +12,8 @@ class SnowflakeRunner(env: EnvGetter) {
   Class.forName("net.snowflake.client.jdbc.SnowflakeDriver")
   // scalastyle:on
 
-  private val url = env.get("TEST_SNOWFLAKE_JDBC")
-  private val privateKeyPEM = env.get("TEST_SNOWFLAKE_PRIVATE_KEY")
+  private[this] val url = env.get("TEST_SNOWFLAKE_JDBC")
+  private[this] val privateKeyPEM = env.get("TEST_SNOWFLAKE_PRIVATE_KEY")
 
   private def privateKey: PrivateKey = {
     Security.addProvider(new BouncyCastleProvider())
@@ -28,10 +28,13 @@ class SnowflakeRunner(env: EnvGetter) {
     kf.generatePrivate(keySpecPKCS8)
   }
 
-  private val props = new Properties()
-  props.put("privateKey", privateKey)
-  private val connection = DriverManager.getConnection(url, props)
-  private val dumper = new CsvDumper(connection)
+  private[this] val props = {
+    val p = new Properties()
+    p.put("privateKey", privateKey)
+    p
+  }
+  private[this] val connection = DriverManager.getConnection(url, props)
+  private[this] val dumper = new CsvDumper(connection)
 
   def queryToCSV(query: String): String = dumper.queryToCSV(query)
 

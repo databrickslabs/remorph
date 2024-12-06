@@ -9,7 +9,7 @@ case class TopPercent(child: LogicalPlan, percentage: Expression, with_ties: Boo
 }
 
 class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
-  private val counter = new AtomicLong()
+  private[this] val counter = new AtomicLong()
   override def apply(plan: LogicalPlan): LogicalPlan = normalize(plan) transformUp {
     case TopPercent(child, percentage, withTies) =>
       if (withTies) {

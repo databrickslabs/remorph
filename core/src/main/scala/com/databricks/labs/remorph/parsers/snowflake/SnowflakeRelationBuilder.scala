@@ -332,10 +332,10 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
         case null => Seq.empty[ir.Id]
         case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
       }
+      val select = ctx.selectStatement().accept(vc.relationBuilder)
+      val queryExpression = ctx.setOperators().asScala.foldLeft(select)(vc.astBuilder.buildSetOperator)
 
-      val query = ctx.selectStatement().accept(this)
-      ir.SubqueryAlias(query, tableName, columns)
-
+      ir.SubqueryAlias(queryExpression, tableName, columns)
     }
 
   override def visitCTEColumn(ctx: CTEColumnContext): ir.LogicalPlan = {

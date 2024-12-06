@@ -26,6 +26,12 @@ case class RemorphErrors(errors: Seq[SingleError]) extends RemorphError with Mul
   override def msg: String = s"Multiple errors: ${errors.map(_.msg).mkString(", ")}"
 }
 
+case class PreParsingError(line: Int, charPositionInLine: Int, offendingTokenText: String, message: String)
+    extends RemorphError
+    with SingleError {
+  override def msg: String = s"Pre-parsing error starting at $line:$charPositionInLine: $message"
+}
+
 case class ParsingError(
     line: Int,
     charPositionInLine: Int,

@@ -23,11 +23,11 @@ def _get_schema_query(catalog: str, schema: str, table: str):
     if catalog == "hive_metastore":
         return f"describe table {catalog}.{schema}.{table}"
 
-    query = f"""select 
+    query = f"""select
                             lower(column_name) as col_name,
                              full_data_type as data_type
                        from {catalog}.information_schema.columns
-                       where lower(table_catalog)='{catalog}' 
+                       where lower(table_catalog)='{catalog}'
                                     and lower(table_schema)='{schema}'
                                      and lower(table_name) ='{table}'
                        order by col_name"""
