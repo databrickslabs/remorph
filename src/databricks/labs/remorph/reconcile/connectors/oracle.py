@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
+from pyspark.sql.functions import col
 from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
@@ -24,7 +25,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                                               then data_type || '(' || data_precision || ')'
                                               when data_precision is null and (lower(data_type) in ('date') or
                                               lower(data_type) like 'timestamp%') then  data_type
-                                              when CHAR_LENGTH == 0 then data_type
+                                              when CHAR_LENGTH = 0 then data_type
                                               else data_type || '(' || CHAR_LENGTH || ')'
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
@@ -63,7 +64,12 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
             reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**reader_options).load()
+            df = self.reader(table_query).options(**reader_options).load()
+            logger.warning(f"Fetching data using query: \n`{table_query}`")
+
+            # Convert all column names to lower case
+            df = df.select([col(c).alias(c.lower()) for c in df.columns])
+            return df
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
@@ -81,8 +87,10 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             logger.debug(f"Fetching schema using query: \n`{schema_query}`")
             logger.info(f"Fetching Schema: Started at: {datetime.now()}")
-            schema_metadata = self.reader(schema_query).load().collect()
+            df = self.reader(schema_query).load()
+            schema_metadata = df.select([col(c).alias(c.lower()) for c in df.columns]).collect()
             logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
+            logger.debug(f"schema_metadata: ${schema_metadata}")
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
