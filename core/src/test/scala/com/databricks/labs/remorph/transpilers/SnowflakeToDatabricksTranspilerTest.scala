@@ -395,8 +395,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           |  INTERSECT
           |  (SELECT j, k FROM l)))
           |EXCEPT
-          |(SELECT m, n FROM o);""".stripMargin
-    )
+          |(SELECT m, n FROM o);""".stripMargin)
   }
 
   "Set operations" should {
