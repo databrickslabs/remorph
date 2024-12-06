@@ -19,6 +19,7 @@ class SnowflakeTypeBuilder {
     case null => ir.UnresolvedType
     case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
     case _ if ctx.OBJECT() != null => ir.UnparsedType("OBJECT") // TODO: get more examples
+    case _ if ctx.jinjaTemplate() != null => ir.JinjaAsDataType(ctx.jinjaTemplate().getText)
     case _ =>
       val typeDef = ctx.id.getText.toUpperCase()
       typeDef match {
