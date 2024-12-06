@@ -33,7 +33,7 @@ def safe_remove_file(file_path: Path):
 
 def write_data_to_file(path: Path, content: str):
     with path.open("w") as writable:
-        # writable.write(content)
+        # added encoding to avoid UnicodeEncodeError while writing to file for token error test
         writable.write(content.encode("utf-8", "ignore").decode("utf-8"))
 
 
@@ -538,7 +538,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
 
     expected_file_name = f"{input_dir}/query4.sql"
     expected_exception = "PARSING ERROR Start:"
-    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
+    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
 
     with open(Path(status[0]["error_log_file"])) as file:
         for line in file:
@@ -573,8 +573,6 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = morph(mock_workspace_client, config)
-    print("status")
-    print(status)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -593,9 +591,9 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
             ".lst"
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
-    expected_file_name = f"{input_dir}/query4.sql"
+    expected_file_name = f"{input_dir}/query5.sql"
     expected_exception = "TOKEN ERROR Start:"
-    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
+    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
 
     with open(Path(status[0]["error_log_file"])) as file:
         for line in file:

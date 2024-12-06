@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ParsedExpression:
     def __init__(self, expression: exp.Expression, original_sql: str):
-        self.expression = expression
+        self.parsed_expression = expression
         self.original_sql = original_sql
 
 
@@ -30,25 +30,23 @@ class SqlglotEngine:
     ) -> tuple[list[str], list[ParserError]]:
         transpiled_sql_statements = []
         parsed_expressions, errors = self.safe_parse(statements=sql, read=self.read_dialect)
-        logger.info("error start")
-        logger.info(errors)
-        logger.info("error end")
         for parsed_expression in parsed_expressions:
-            if parsed_expression.expression is not None:
+            if parsed_expression.parsed_expression is not None:
                 try:
-                    transpiled_sql = write_dialect.generate(parsed_expression.expression, pretty=True)
+                    transpiled_sql = write_dialect.generate(parsed_expression.parsed_expression, pretty=True)
+
+                    # Checking if the transpiled SQL is a comment and raise an error
+                    if transpiled_sql.startswith("--"):
+                        raise UnsupportedError("Unsupported SQL")
                     transpiled_sql_statements.append(transpiled_sql)
                 except ParseError as e:
                     error_statement = format_error_message("Parsing Error", e, parsed_expression.original_sql)
-                    # transpiled_sql_statements.append(error_statement)
                     errors.append(error_statement)
                 except UnsupportedError as e:
-                    error_statement = format_error_message("Unsupported Error", e, parsed_expression.original_sql)
-                    # transpiled_sql_statements.append(error_statement)
+                    error_statement = format_error_message("Unsupported SQL Error", e, parsed_expression.original_sql)
                     errors.append(error_statement)
                 except TokenError as e:
                     error_statement = format_error_message("Token Error", e, parsed_expression.original_sql)
-                    # transpiled_sql_statements.append(error_statement)
                     errors.append(error_statement)
         updated_error_list = self._handle_errors(errors, error_list, file_name, transpiled_sql_statements)
         return transpiled_sql_statements, updated_error_list
@@ -117,24 +115,17 @@ class SqlglotEngine:
         if current_sql_chunk:
             original_sql_chunks.append("".join(current_sql_chunk).strip())
 
-        expressions: list[Expression] = []
         parsed_expressions: list[ParsedExpression] = []
-        parser_opts: dict[str, str] = {}
+        parser_opts = {"error_level": ErrorLevel.RAISE}
         parser = dialect.parser(**parser_opts)
-
         for i, tokens in enumerate(chunks, start=1):
             original_sql = original_sql_chunks[i - 1]
             try:
-                # expressions.append(
-                #     t.cast(
-                #         list[Expression],
-                #         parser.parse(tokens),
-                #     )[0]
-                # )
                 expression = t.cast(
-                        list[Expression],
-                        parser.parse(tokens),
-                    )[0]
+                    list[Expression],
+                    parser.parse(tokens),
+                )[0]
+
                 parsed_expressions.append(ParsedExpression(expression, original_sql))
             except (ParseError, TokenError, UnsupportedError) as e:
                 error_statement = format_error_message("PARSING ERROR", e, original_sql)
