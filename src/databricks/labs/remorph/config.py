@@ -5,13 +5,13 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.snow import databricks, oracle, snowflake, presto
+from databricks.labs.remorph.snow import databricks, oracle, snowflake, presto, bigquery
 
 logger = logging.getLogger(__name__)
 
 SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "athena": Dialects.ATHENA,
-    "bigquery": Dialects.BIGQUERY,
+    "bigquery": bigquery.BigQuery,
     "databricks": databricks.Databricks,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
