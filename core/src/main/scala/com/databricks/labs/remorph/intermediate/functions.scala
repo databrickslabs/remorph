@@ -229,8 +229,8 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("RAND", args) => Rand(args.head)
     case CallFunction("RANDN", args) => Randn(args.head)
     case CallFunction("RANK", args) => Rank(args)
-    case CallFunction("REGEXP_EXTRACT", args) => RegExpExtract(args.head, args(1), args(2))
-    case CallFunction("REGEXP_EXTRACT_ALL", args) => RegExpExtractAll(args.head, args(1), args(2))
+    case CallFunction("REGEXP_EXTRACT", args) => RegExpExtract(args.head, args(1), args.lift(2))
+    case CallFunction("REGEXP_EXTRACT_ALL", args) => RegExpExtractAll(args.head, args(1), args.lift(2))
     case CallFunction("REGEXP_REPLACE", args) => RegExpReplace(args.head, args(1), args(2), args.lift(3))
     case CallFunction("REPEAT", args) => StringRepeat(args.head, args(1))
     case CallFunction("REPLACE", args) => StringReplace(args.head, args(1), args(2))
@@ -1160,9 +1160,9 @@ case class Randn(left: Expression) extends Unary(left) with Fn {
  * regexp_extract(str, regexp[, idx]) - Extract the first string in the `str` that match the `regexp` expression and
  * corresponding to the regex group index.
  */
-case class RegExpExtract(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class RegExpExtract(left: Expression, right: Expression, c: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "REGEXP_EXTRACT"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1170,9 +1170,11 @@ case class RegExpExtract(left: Expression, right: Expression, c: Expression) ext
  * regexp_extract_all(str, regexp[, idx]) - Extract all strings in the `str` that match the `regexp` expression and
  * corresponding to the regex group index.
  */
-case class RegExpExtractAll(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class RegExpExtractAll(left: Expression, right: Expression, c: Option[Expression] = None)
+    extends Expression
+    with Fn {
   override def prettyName: String = "REGEXP_EXTRACT_ALL"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2550,4 +2552,12 @@ case class ParseJson(left: Expression) extends Unary(left) with Fn {
 case class StartsWith(expr: Expression, startExpr: Expression) extends Binary(expr, startExpr) with Fn {
   override def prettyName: String = "STARTSWITH"
   override def dataType: DataType = BooleanType
+}
+
+/**
+ * array_append(array, elem) - Returns array appended by elem.
+ */
+case class ArrayAppend(array: Expression, elem: Expression) extends Binary(array, elem) with Fn {
+  override def prettyName: String = "ARRAY_APPEND"
+  override def dataType: DataType = array.dataType
 }
