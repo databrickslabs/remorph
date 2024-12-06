@@ -14,13 +14,21 @@ class TranspileConfig:
     __version__ = 1
 
     source_dialect: str
-    input_source: Path
-    output_folder: Path | None = None
+    input_source: str | None = None
+    output_folder: str | None = None
     sdk_config: dict[str, str] | None = None
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     mode: str = "current"
+
+    @property
+    def input_source_path(self):
+        return None if self.input_source is None else Path(self.input_source)
+
+    @property
+    def output_folder_path(self):
+        return None if self.output_folder is None else Path(self.output_folder)
 
     @property
     def target_dialect(self):

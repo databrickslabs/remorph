@@ -1,5 +1,6 @@
 import datetime
 import io
+from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -23,7 +24,7 @@ def mock_workspace_client_cli():
                 'version': 1,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
-                'source': 'snowflake',
+                'source_dialect': 'snowflake',
                 'sdk_config': {'cluster_id': 'test_cluster'},
             }
         ),
@@ -174,9 +175,9 @@ def test_transpile_with_no_sdk_config():
     ):
         default_config = TranspileConfig(
             sdk_config=None,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
+            source_dialect="snowflake",
+            input_source=Path("/path/to/sql/file.sql"),
+            output_folder=Path("/path/to/output"),
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
@@ -198,9 +199,9 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=None,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
+                source_dialect="snowflake",
+                input_source=Path("/path/to/sql/file.sql"),
+                output_folder=Path("/path/to/output"),
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
@@ -219,9 +220,9 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
+            source_dialect="snowflake",
+            input_source=Path("/path/to/sql/file.sql"),
+            output_folder=Path("/path/to/output"),
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
@@ -243,9 +244,9 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
+                source_dialect="snowflake",
+                input_source=Path("/path/to/sql/file.sql"),
+                output_folder=Path("/path/to/output"),
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
@@ -264,9 +265,9 @@ def test_transpile_with_cluster_id_in_sdk_config():
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
+            source_dialect="snowflake",
+            input_source=Path("/path/to/sql/file.sql"),
+            output_folder=Path("/path/to/output"),
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
@@ -288,9 +289,9 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
+                source_dialect="snowflake",
+                input_source=Path("/path/to/sql/file.sql"),
+                output_folder=Path("/path/to/output"),
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
@@ -375,8 +376,8 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source=source,
-                input_sql=input_sql,
+                source_dialect=source,
+                input_source=input_sql,
                 output_folder=output_folder,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -479,7 +480,7 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
-        mock_workspace_client_cli, source="snowflake", input_sql=str(input_dir), output_folder=str(output_dir)
+        mock_workspace_client_cli, source_dialect="snowflake", input_sql=str(input_dir), output_folder=str(output_dir)
     )
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
@@ -506,8 +507,8 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
         cli.generate_lineage(
             mock_workspace_client_cli,
             source="invalid_dialect",
-            input_sql="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
+            input_source=Path("/path/to/sql/file.sql"),
+            output_folder=Path("/path/to/output"),
         )
 
 
@@ -518,9 +519,9 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
     ):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            source="snowflake",
-            input_sql="/path/to/invalid/sql/file.sql",
-            output_folder="/path/to/output",
+            source_dialect="snowflake",
+            input_source=Path("/path/to/invalid/sql/file.sql"),
+            output_folder=Path("/path/to/output"),
         )
 
 
@@ -531,7 +532,7 @@ def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypa
     with pytest.raises(Exception, match="Error: Invalid value for '--output-folder'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            source="snowflake",
+            source_dialect="snowflake",
             input_sql=input_sql,
             output_folder=output_folder,
         )

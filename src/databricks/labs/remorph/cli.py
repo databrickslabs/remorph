@@ -76,7 +76,7 @@ def transpile(
     config = TranspileConfig(
         source_dialect=source_dialect.lower(),
         input_source=Path(input_folder),
-        output_folder=Path(output_folder) if output_folder else None,
+        output_folder=None if output_folder is None else Path(output_folder),
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
