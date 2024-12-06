@@ -3,15 +3,19 @@ from pathlib import Path
 
 
 @dataclass
-class ParserError:
+class _BaseError:
     file_path: Path
     exception: str
+
+    def __str__(self):
+        return f"{type(self).__name__}(file_path='{self.file_path!s}', exception='{self.exception}')"
+
+@dataclass
+class ParserError(_BaseError): pass
 
 
 @dataclass
-class ValidationError:
-    file_path: Path
-    exception: str
+class ValidationError(_BaseError): pass
 
 
 @dataclass

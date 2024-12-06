@@ -138,10 +138,10 @@ def initial_setup(tmp_path: Path):
 def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir),
-        output_folder="None",
+        input_source=input_dir,
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -194,10 +194,10 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir),
-        output_folder=str(input_dir / "output_transpiled"),
+        input_source=input_dir,
+        output_folder=input_dir / "output_transpiled",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
@@ -251,10 +251,10 @@ def test_with_file(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
-        output_folder="None",
+        input_source=input_dir / "query1.sql",
+        output_folder=None,
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -273,9 +273,9 @@ def test_with_file(initial_setup, mock_workspace_client):
         status = transpile(mock_workspace_client, config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -290,7 +290,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation error')
+ValidationError(file_path='{input_dir!s}/query1.sql', exception='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
@@ -304,10 +304,10 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
 def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
-        output_folder=str(input_dir / "output_transpiled"),
+        input_source=input_dir / "query1.sql",
+        output_folder=input_dir / "output_transpiled",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -338,10 +338,10 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
 def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "file.txt"),
-        output_folder="None",
+        input_source=input_dir / "file.txt",
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -352,9 +352,9 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         status = transpile(mock_workspace_client, config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 0, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 0, "total_queries_processed does not match expected value"
@@ -372,10 +372,10 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
 def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "file_not_exist.txt"),
-        output_folder="None",
+        input_source=input_dir / "file_not_exist.txt",
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
@@ -389,9 +389,10 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
     safe_remove_dir(input_dir)
 
 
-def test_morph_sql(mock_workspace_client):
+def test_transpile_sql(mock_workspace_client):
     config = TranspileConfig(
-        source="snowflake",
+        source_dialect="snowflake",
+        input_source=Path(""),
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
@@ -411,9 +412,10 @@ def test_morph_sql(mock_workspace_client):
         assert validation_result.exception_msg is None
 
 
-def test_morph_column_exp(mock_workspace_client):
+def test_transpile_column_exp(mock_workspace_client):
     config = TranspileConfig(
-        source="snowflake",
+        source_dialect="snowflake",
+        input_source=Path(""),
         skip_validation=True,
         catalog_name="catalog",
         schema_name="schema",
@@ -446,10 +448,10 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
-        output_folder="None",
+        input_source=input_dir / "query1.sql",
+        output_folder=None,
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -479,15 +481,3 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
             ), "no_of_sql_failed_while_validating does not match expected value"
             assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
 
-
-def test_with_input_sql_none(initial_setup, mock_workspace_client):
-    config = TranspileConfig(
-        input_sql=None,
-        output_folder="None",
-        sdk_config=None,
-        source="snowflake",
-        skip_validation=True,
-    )
-
-    with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        transpile(mock_workspace_client, config)

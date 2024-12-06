@@ -132,11 +132,12 @@ def _process_input_dir(config: TranspileConfig, validator: Validator | None, tra
     return TranspileStatus(file_list, counter, len(parse_error_list), len(validate_error_list), error_log)
 
 
-def _process_input_file(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine):
+def _process_input_file(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine) -> TranspileStatus:
     if not is_sql_file(config.input_source):
         msg = f"{config.input_source} is not a SQL file."
         logger.warning(msg)
-        return TranspileStatus([config.input_source], 0, 1, 0, [ParserError(config.input_source, msg)])
+        # silently ignore non-sql files
+        return TranspileStatus([], 0, 0, 0, [])
     msg = f"Processing sql from this file: {config.input_source}"
     logger.info(msg)
     if config.output_folder is None:
@@ -161,10 +162,6 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
-    if not config.input_source:
-        logger.error("Input SQL path is not provided.")
-        raise ValueError("Input SQL path is not provided.")
-
     status = []
 
     transpiler: TranspileEngine = SqlglotEngine()
@@ -175,7 +172,7 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
         validator = Validator(sql_backend)
     if config.input_source.is_dir():
         result = _process_input_dir(config, validator, transpiler)
-    if config.input_source.is_file():
+    elif config.input_source.is_file():
         result = _process_input_file(config, validator, transpiler)
     else:
         msg = f"{config.input_source} does not exist."
@@ -191,7 +188,7 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
         error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
         if result.error_log_list:
             with Path(error_log_file).open("a") as e:
-                e.writelines(f"{err}\n" for err in result.error_log_list)
+                e.writelines(f"{err!s}\n" for err in result.error_log_list)
 
     status.append(
         {
