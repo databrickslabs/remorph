@@ -168,19 +168,19 @@ trait SetOperationBehaviors[P <: Parser] extends ir.IRHelpers { this: ParserTest
           by_name = false,
           allow_missing_columns = false))
       testSimpleExample(
-        "(SELECT a, b FROM bb) UNION select x, y FROM zz",
+        "(SELECT 1, 2) UNION SELECT 3, 4",
         ir.SetOperation(
-          ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
-          ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+          ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType), ir.Literal(2, ir.IntegerType))),
+          ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType), ir.Literal(4, ir.IntegerType))),
           ir.UnionSetOp,
           is_all = false,
           by_name = false,
           allow_missing_columns = false))
       testSimpleExample(
-        "(SELECT a, b FROM bb) UNION ALL select x, y FROM zz",
+        "(SELECT 1, 2) UNION ALL SELECT 3, 4",
         ir.SetOperation(
-          ir.Project(namedTable("bb"), Seq(ir.Column(None, ir.Id("a")), ir.Column(None, ir.Id("b")))),
-          ir.Project(namedTable("zz"), Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+          ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType), ir.Literal(2, ir.IntegerType))),
+          ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType), ir.Literal(4, ir.IntegerType))),
           ir.UnionSetOp,
           is_all = true,
           by_name = false,
