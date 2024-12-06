@@ -22,7 +22,7 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "postgresql": Dialects.POSTGRES,
     "presto": presto.Presto,
     "redshift": Dialects.REDSHIFT,
-    "snowflake": snowflake.Snow,
+    "snowflake": snowflake.Snowflake,
     "sqlite": Dialects.SQLITE,
     "teradata": Dialects.TERADATA,
     "trino": Dialects.TRINO,
