@@ -5,10 +5,10 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.transpiler.generator import databricks
-from databricks.labs.remorph.transpiler.snowflake import snowflake
-from databricks.labs.remorph.transpiler.oracle import oracle
-from databricks.labs.remorph.transpiler.presto import presto
+from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
+from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
+from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
+from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
 
 logger = logging.getLogger(__name__)
 

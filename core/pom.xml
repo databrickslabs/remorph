@@ -19,7 +19,7 @@
     <mockito.version>4.11.0</mockito.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>2.0.9</slf4j.version>
-    <antlr.version>4.13.1</antlr.version>
+    <antlr.version>4.13.2</antlr.version>
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
     <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
