@@ -1,35 +1,40 @@
+from pathlib import Path
+
 from sqlglot import expressions as exp, parse, transpile
-from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
-from databricks.labs.remorph.transpiler.transpile_status import ParserError
+from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
-class SqlglotEngine:
-    def __init__(self, read_dialect: Dialect):
-        self.read_dialect = read_dialect
+class SqlglotEngine(TranspileEngine):
 
     def transpile(
-        self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
+        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
     ) -> TranspilationResult:
         try:
-            transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
+            transpiled_sql = transpile(
+                source_code, read=source_dialect, write=target_dialect, pretty=True, error_level=None
+            )
         except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = [""]
-            error_list.append(ParserError(file_name, refactor_hexadecimal_chars(str(e))))
+            error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(e))))
 
         return TranspilationResult(transpiled_sql, error_list)
 
-    def parse(self, sql: str, file_name: str) -> tuple[list[Expression | None] | None, ParserError | None]:
+    def parse(
+        self, source_dialect: str, source_sql: str, file_path: Path
+    ) -> tuple[list[Expression | None] | None, ParserError | None]:
         expression = None
         error = None
         try:
-            expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
+            expression = parse(source_sql, read=source_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
-            error = ParserError(file_name, str(e))
+            error = ParserError(file_path, str(e))
 
         return expression, error
 
@@ -50,3 +55,6 @@ class SqlglotEngine:
         for table in expression.find_all(exp.Table, bfs=False):
             return table.name
         return None
+
+    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
+        return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)

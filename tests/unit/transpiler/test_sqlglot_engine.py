@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from sqlglot import expressions
 
@@ -6,32 +8,26 @@ from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEng
 
 
 @pytest.fixture
-def transpiler(morph_config):
-    read_dialect = morph_config.get_read_dialect()
-    return SqlglotEngine(read_dialect)
+def transpiler():
+    return SqlglotEngine()
 
 
-@pytest.fixture
-def write_dialect(morph_config):
-    return morph_config.get_write_dialect()
-
-
-def test_transpile_snowflake(transpiler, write_dialect):
-    transpiler_result = transpiler.transpile(write_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
+def test_transpile_snowflake(transpiler, morph_config):
+    transpiler_result = transpiler.transpile(morph_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
     assert transpiler_result.transpiled_sql[0] == "SELECT\n  CURRENT_TIMESTAMP()"
 
 
-def test_transpile_exception(transpiler, write_dialect):
+def test_transpile_exception(transpiler, morph_config):
     transpiler_result = transpiler.transpile(
-        write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
+        morph_config.target_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
     )
     assert transpiler_result.transpiled_sql[0] == ""
-    assert transpiler_result.parse_error_list[0].file_name == "file.sql"
+    assert transpiler_result.parse_error_list[0].file_path == Path("file.sql")
     assert "Error Parsing args" in transpiler_result.parse_error_list[0].exception
 
 
-def test_parse_query(transpiler):
-    parsed_query, _ = transpiler.parse("SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", "file.sql")
+def test_parse_query(transpiler, morph_config):
+    parsed_query, _ = transpiler.parse(morph_config.source_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", "file.sql")
 
     expected_result = [
         local_expression.TryToNumber(
@@ -58,15 +54,15 @@ def test_parse_query(transpiler):
 def test_parse_invalid_query(transpiler):
     result, error_list = transpiler.parse("invalid sql query", "file.sql")
     assert result is None
-    assert error_list.file_name == "file.sql"
+    assert error_list.file_path == Path("file.sql")
     assert "Invalid expression / Unexpected token." in error_list.exception
 
 
-def test_tokenizer_exception(transpiler, write_dialect):
-    transpiler_result = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
+def test_tokenizer_exception(transpiler, morph_config):
+    transpiler_result = transpiler.transpile(morph_config.target_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
 
     assert transpiler_result.transpiled_sql == [""]
-    assert transpiler_result.parse_error_list[0].file_name == "file.sql"
+    assert transpiler_result.parse_error_list[0].file_path == ["file.sql"]
     assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
 

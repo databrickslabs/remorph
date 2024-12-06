@@ -1,13 +1,14 @@
 import logging
 from collections.abc import Iterable
+from pathlib import Path
 
 from sqlglot import expressions as exp
 from sqlglot import parse
-from sqlglot.dialects.dialect import DialectType
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
 from sqlglot.optimizer.scope import Scope, build_scope
 
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.transpile_status import ValidationError
 from databricks.labs.remorph.transpiler.sqlglot.local_expression import AliasInfo
 
@@ -15,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def check_for_unsupported_lca(
-    dialect: DialectType,
-    sql: str,
-    filename: str,
+    from_dialect: str,
+    source_sql: str,
+    file_path: Path,
 ) -> ValidationError | None:
     """
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
@@ -25,10 +26,13 @@ def check_for_unsupported_lca(
     """
 
     try:
-        all_parsed_expressions: Iterable[Expression | None] = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
+        dialect = get_dialect(from_dialect)
+        all_parsed_expressions: Iterable[Expression | None] = parse(
+            source_sql, read=dialect, error_level=ErrorLevel.RAISE
+        )
         root_expressions: Iterable[Expression] = [pe for pe in all_parsed_expressions if pe is not None]
     except (ParseError, TokenError, UnsupportedError) as e:
-        logger.warning(f"Error while preprocessing {filename}: {e}")
+        logger.warning(f"Error while preprocessing {file_path}: {e}")
         return None
 
     aliases_in_where = set()
@@ -43,14 +47,14 @@ def check_for_unsupported_lca(
     if not (aliases_in_where or aliases_in_window):
         return None
 
-    err_messages = [f"Unsupported operation found in file {filename}. Needs manual review of transpiled query."]
+    err_messages = [f"Unsupported operation found in file {file_path}. Needs manual review of transpiled query."]
     if aliases_in_where:
         err_messages.append(f"Lateral column aliases `{', '.join(aliases_in_where)}` found in where clause.")
 
     if aliases_in_window:
         err_messages.append(f"Lateral column aliases `{', '.join(aliases_in_window)}` found in window expressions.")
 
-    return ValidationError(filename, " ".join(err_messages))
+    return ValidationError(file_path, " ".join(err_messages))
 
 
 def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:

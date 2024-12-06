@@ -2,6 +2,7 @@ import dataclasses
 import logging
 import os
 import webbrowser
+from pathlib import Path
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
@@ -16,7 +17,6 @@ from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
     ReconcileConfig,
-    SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
     ReconcileMetadataConfig,
@@ -25,6 +25,7 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
@@ -143,11 +144,11 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            source=source,
+            source_dialect=source,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
-            input_sql=input_sql,
-            output_folder=output_folder,
+            input_source=Path(input_sql),
+            output_folder=Path(output_folder),
         )
 
     def _configure_catalog(

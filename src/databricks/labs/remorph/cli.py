@@ -1,9 +1,10 @@
 import json
 import os
+from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TranspileConfig
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
@@ -13,6 +14,8 @@ from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, 
 from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
+
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -34,8 +37,8 @@ proxy_command(remorph, "debug-bundle")
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    source: str,
-    input_sql: str,
+    source_dialect: str,
+    input_folder: str,
     output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
@@ -50,12 +53,13 @@ def transpile(
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-    if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
-    if not input_sql or not os.path.exists(input_sql):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
-    if not output_folder:
-        output_folder = default_config.output_folder if default_config.output_folder else None
+    # TODO get rid of the sqlglot dependency
+    if source_dialect.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
+    if not input_folder or not os.path.exists(input_folder):
+        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_folder}' does not exist.")
+    if not output_folder and default_config.output_folder:
+        output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'."
@@ -70,9 +74,9 @@ def transpile(
     schema_name = schema_name if schema_name else default_config.schema_name
 
     config = TranspileConfig(
-        source=source.lower(),
-        input_sql=input_sql,
-        output_folder=output_folder,
+        source_dialect=source_dialect.lower(),
+        input_source=Path(input_folder),
+        output_folder=Path(output_folder) if output_folder else None,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,

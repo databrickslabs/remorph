@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from sqlglot import parse_one
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 from databricks.labs.remorph.transpiler.sqlglot.lca_utils import check_for_unsupported_lca
 
