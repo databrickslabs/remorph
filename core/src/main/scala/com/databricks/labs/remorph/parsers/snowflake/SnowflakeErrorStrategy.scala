@@ -58,7 +58,7 @@ class SnowflakeErrorStrategy extends SqlErrorStrategy {
     }
   }
 
-  private val MaxExpectedTokensInErrorMessage = 12
+  private[this] val MaxExpectedTokensInErrorMessage = 12
 
   /**
    * When building the list of expected tokens, we do some custom manipulation so that we do not produce a list of 750
@@ -109,7 +109,7 @@ object SnowflakeErrorStrategy {
 
   // A map that will override the default display name for tokens that represent text with
   // pattern matches like IDENTIFIER, STRING, etc.
-  private val tokenTranslation: Map[Int, String] = Map(
+  private[SnowflakeErrorStrategy] val tokenTranslation: Map[Int, String] = Map(
     DOUBLE_QUOTE_ID -> "Identifier",
     FLOAT -> "Float",
     INT -> "Integer",
@@ -122,6 +122,7 @@ object SnowflakeErrorStrategy {
     STRING_CONTENT -> "'String'",
     STRING_END -> "'String'",
     -1 -> "End of batch",
+    JINJA_REF -> "Jinja Template Element",
 
     // When the next thing we expect can be every statement, we just say "statement"
     ALTER -> "Statement",
@@ -172,7 +173,7 @@ object SnowflakeErrorStrategy {
     MINUS -> "Operator",
     PLUS -> "Operator")
 
-  private val ruleTranslation: Map[String, String] = Map(
+  private[SnowflakeErrorStrategy] val ruleTranslation: Map[String, String] = Map(
     "alterCommand" -> "ALTER command",
     "batch" -> "Snowflake batch",
     "beginTxn" -> "BEGIN WORK | TRANSACTION statement",
@@ -208,7 +209,7 @@ object SnowflakeErrorStrategy {
     "tableSource" -> "table source",
     "tableSourceItem" -> "table source")
 
-  private val keywordIDs: IntervalSet = new IntervalSet(
+  private[SnowflakeErrorStrategy] val keywordIDs: IntervalSet = new IntervalSet(
     ACCOUNTADMIN,
     ACTION,
     ACTION,

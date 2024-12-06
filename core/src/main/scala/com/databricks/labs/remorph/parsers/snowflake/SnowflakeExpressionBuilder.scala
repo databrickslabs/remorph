@@ -16,8 +16,8 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
     with ParserCommon[ir.Expression]
     with ir.IRHelpers {
 
-  private val functionBuilder = new SnowflakeFunctionBuilder
-  private val typeBuilder = new SnowflakeTypeBuilder
+  private[this] val functionBuilder = new SnowflakeFunctionBuilder
+  private[this] val typeBuilder = new SnowflakeTypeBuilder
 
   // The default result is returned when there is no visitor implemented, and we produce an unresolved
   // object to represent the input that we have no visitor for.
@@ -555,7 +555,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions
   // default frameSpec(UNBOUNDED FOLLOWING) is not supported for:
   // "LAG", "DENSE_RANK","LEAD", "PERCENT_RANK","RANK","ROW_NUMBER"
-  private val rankRelatedWindowFunctions = Set("CUME_DIST", "FIRST_VALUE", "LAST_VALUE", "NTH_VALUE", "NTILE")
+  private[this] val rankRelatedWindowFunctions = Set("CUME_DIST", "FIRST_VALUE", "LAST_VALUE", "NTH_VALUE", "NTILE")
 
   /**
    * For rank-related window functions, snowflake's default frame deviate from ANSI standard. So in such case, we must
@@ -830,7 +830,7 @@ class SnowflakeExpressionBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+      NamedArgumentExpression(ctx.assocId().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = errorCheck(ctx) match {

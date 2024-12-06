@@ -1,9 +1,10 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles}
+import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, TestFile}
+import org.scalatest.Ignore
 import org.scalatest.flatspec.AnyFlatSpec
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec {
   runner.foreachTest { test =>
@@ -18,12 +19,18 @@ abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec 
   }
 }
 
+object SnowflakeAcceptanceSuite {
+
+  val rootPath: Path = Paths.get(
+    Option(System.getProperty("snowflake.test.resources.path"))
+      .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))
+}
+
 class SnowflakeAcceptanceSuite
     extends AcceptanceSpec(
       new AcceptanceTestRunner(
         AcceptanceTestConfig(
-          new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
-            .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))),
+          new NestedFiles(SnowflakeAcceptanceSuite.rootPath),
           new CommentBasedQueryExtractor("snowflake", "databricks"),
           new IsTranspiledFromSnowflakeQueryRunner,
           ignoredTestNames = Set(
@@ -43,6 +50,15 @@ class SnowflakeAcceptanceSuite
             "core_engine/test_invalid_syntax/syntax_error_1.sql",
             "core_engine/test_invalid_syntax/syntax_error_2.sql",
             "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
+
+@Ignore // this is for debugging individual acceptance tests, simply uncomment to debug the test
+class SnowflakeAcceptanceTest
+    extends AcceptanceSpec(
+      new AcceptanceTestRunner(
+        AcceptanceTestConfig(
+          new TestFile(Paths.get(SnowflakeAcceptanceSuite.rootPath.toString, "core_engine", "lca", "lca_homonym.sql")),
+          new CommentBasedQueryExtractor("snowflake", "databricks"),
+          new IsTranspiledFromSnowflakeQueryRunner)))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(

@@ -55,11 +55,21 @@ class TSqlAstBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      ir.UnresolvedRelation(
-        ruleText = contextText(ctx),
-        message = "Execute body batch is not supported yet",
-        ruleName = vc.ruleName(ctx),
-        tokenName = Some(tokenName(ctx.getStart)))
+      ctx match {
+        case templ if templ.jinjaTemplate() != null => templ.jinjaTemplate().accept(this)
+        case _ =>
+          ir.UnresolvedRelation(
+            ruleText = contextText(ctx),
+            message = "Execute body batch is not supported yet",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)))
+      }
+  }
+
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ir.JinjaAsStatement(ctx.getText)
   }
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = errorCheck(ctx) match {

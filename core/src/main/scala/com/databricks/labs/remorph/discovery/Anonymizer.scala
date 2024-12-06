@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Parsing, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, PartialResult, TranspilerState, WorkflowStage}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.security.MessageDigest
@@ -46,7 +46,7 @@ case class Fingerprints(fingerprints: Seq[Fingerprint]) {
 }
 
 class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
-  private val placeholder = Literal("?", UnresolvedType)
+  private[this] val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
   def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
@@ -55,7 +55,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse(Parsing(query.source)).flatMap(parser.visit).run(Parsing(query.source)) match {
+    parser.parse.flatMap(parser.visit).run(TranspilerState(Parsing(query.source))) match {
       case KoResult(WorkflowStage.PARSE, error) =>
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
         Fingerprint(

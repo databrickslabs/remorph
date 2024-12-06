@@ -33,7 +33,7 @@ object Main extends App with ApplicationContext {
     case Payload("debug-bundle", args) =>
       val dst = new File(args("dst"))
       val queryHistory = queryHistoryProvider.history()
-      fileSetGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(Init) match {
+      fileSetGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(TranspilerState()) match {
         case OkResult(output) => output.persist(dst)
         case PartialResult(output, error) =>
           prettyPrinter(error)
@@ -49,7 +49,7 @@ object Main extends App with ApplicationContext {
   def flags: Map[String, String] = cliFlags
 
   // placeholder for global CLI flags
-  private var cliFlags: Map[String, String] = Map.empty
+  private[this] var cliFlags: Map[String, String] = Map.empty
 
   // parse json from the last CLI argument
   private def route: Payload = {

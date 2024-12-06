@@ -8,8 +8,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TransformationConstructors {
-  private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
+  private[this] val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private[this] val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def generate(tree: ir.Expression): SQL =
     expression(tree)
@@ -66,6 +66,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case e: ir.Extract => extract(e)
       case c: ir.Concat => concat(c)
       case i: ir.In => in(i)
+      case ir.JinjaAsExpression(text) => code"$text"
 
       // keep this case after every case involving an `Fn`, otherwise it will make said case unreachable
       case fn: ir.Fn => code"${fn.prettyName}(${commas(fn.children)})"
@@ -79,7 +80,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = expr)
     }.flatMap(_ => sql)
   }
