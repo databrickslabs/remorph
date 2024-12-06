@@ -1,10 +1,12 @@
+from typing import Type
+
 from sqlglot import Dialects, Dialect
 
 from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
 from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
 from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
 
-SQLGLOT_DIALECTS: dict[str, Dialect | str] = {
+SQLGLOT_DIALECTS: dict[str, Type[Dialect] | str] = {
     "athena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "mysql": Dialects.MYSQL,
