@@ -1,0 +1,2 @@
+-- tsql sql:
+DBCC TRACESTATUS (1204, 1211);
