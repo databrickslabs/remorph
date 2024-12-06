@@ -32,13 +32,13 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TableThresholds,
 )
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.snowflake.snowflake import Snow
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from databricks.sdk.service import iam
 
-from .snow.helpers.functional_test_cases import (
+from .transpiler.helpers.functional_test_cases import (
     FunctionalTestFile,
     FunctionalTestFileWithExpectedException,
     expected_exceptions,

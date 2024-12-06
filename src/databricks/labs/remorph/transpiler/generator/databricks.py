@@ -9,7 +9,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.snow import lca_utils, local_expression
+from databricks.labs.remorph.transpiler.sqlglot import lca_utils, local_expression
 
 # pylint: disable=too-many-public-methods
 
