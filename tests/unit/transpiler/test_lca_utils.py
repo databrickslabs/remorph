@@ -308,7 +308,7 @@ def test_fix_nested_lca_with_no_scope(normalize_string):
     """
     ast = parse_one(input_sql)
     with patch(
-        'databricks.labs.remorph.snow.lca_utils.build_scope',
+        'databricks.labs.remorph.transpiler.sqlglot.lca_utils.build_scope',
         return_value=None,
     ):
         generated_sql = ast.sql(Databricks, pretty=False)
