@@ -32,8 +32,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TableThresholds,
 )
-from databricks.labs.remorph.transpiler.generator.databricks import Databricks
-from databricks.labs.remorph.transpiler.snowflake.snowflake import Snowflake
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake.snowflake import Snowflake
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from databricks.sdk.service import iam

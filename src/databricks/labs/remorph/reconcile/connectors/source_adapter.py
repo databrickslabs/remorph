@@ -5,9 +5,9 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.transpiler.generator.databricks import Databricks
-from databricks.labs.remorph.transpiler.oracle.oracle import Oracle
-from databricks.labs.remorph.transpiler.snowflake.snowflake import Snowflake
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle.oracle import Oracle
+from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake.snowflake import Snowflake
 from databricks.sdk import WorkspaceClient
 
 
