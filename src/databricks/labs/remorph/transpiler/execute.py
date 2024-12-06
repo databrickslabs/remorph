@@ -24,8 +24,8 @@ from databricks.labs.remorph.helpers.morph_status import (
     ValidationError,
 )
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.snow import lca_utils
-from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
+from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
 # pylint: disable=unspecified-encoding
