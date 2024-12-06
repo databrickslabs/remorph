@@ -11,7 +11,7 @@ from databricks.sdk.errors import NotFound
 from databricks.sdk.service import iam
 
 from databricks.labs.remorph.config import (
-    MorphConfig,
+    TranspileConfig,
     RemorphConfigs,
     ReconcileConfig,
     DatabaseConfig,
@@ -41,7 +41,7 @@ def test_install_all(ws):
     product_info = create_autospec(ProductInfo)
     upgrades = create_autospec(Upgrades)
 
-    transpile_config = MorphConfig(
+    transpile_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow6",
         output_folder="/tmp/queries/databricks6",
@@ -65,7 +65,7 @@ def test_install_all(ws):
             volume="reconcile_volume6",
         ),
     )
-    config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
+    config = RemorphConfigs(transpile=transpile_config, reconcile=reconcile_config)
     installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
     installation.install(config)
 
@@ -77,7 +77,7 @@ def test_no_recon_component_installation(ws):
     product_info = create_autospec(ProductInfo)
     upgrades = create_autospec(Upgrades)
 
-    transpile_config = MorphConfig(
+    transpile_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow7",
         output_folder="/tmp/queries/databricks7",
@@ -86,7 +86,7 @@ def test_no_recon_component_installation(ws):
         schema_name="transpiler7",
         mode="current",
     )
-    config = RemorphConfigs(morph=transpile_config)
+    config = RemorphConfigs(transpile=transpile_config)
     installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
     installation.install(config)
     recon_deployment.install.assert_not_called()
@@ -163,7 +163,7 @@ def test_uninstall_configs_exist(ws):
         }
     )
 
-    transpile_config = MorphConfig(
+    transpile_config = TranspileConfig(
         source="snowflake",
         input_sql="sf_queries1",
         output_folder="out_dir1",
@@ -190,7 +190,7 @@ def test_uninstall_configs_exist(ws):
             volume="reconcile_volume1",
         ),
     )
-    config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
+    config = RemorphConfigs(transpile=transpile_config, reconcile=reconcile_config)
     installation = MockInstallation({})
     recon_deployment = create_autospec(ReconDeployment)
     wheels = create_autospec(WheelsV2)

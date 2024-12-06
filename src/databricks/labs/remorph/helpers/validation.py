@@ -2,7 +2,7 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.labs.remorph.config import MorphConfig, ValidationResult
+from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class Validator:
     def __init__(self, sql_backend: SqlBackend):
         self._sql_backend = sql_backend
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str) -> ValidationResult:
+    def validate_format_result(self, config: TranspileConfig, input_sql: str) -> ValidationResult:
         """
         Validates the SQL query and formats the result.
 

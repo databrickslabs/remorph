@@ -21,7 +21,8 @@ from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Filters,
@@ -32,13 +33,13 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TableThresholds,
 )
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake.snowflake import Snowflake
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from databricks.sdk.service import iam
 
-from .snow.helpers.functional_test_cases import (
+from .transpiler.helpers.functional_test_cases import (
     FunctionalTestFile,
     FunctionalTestFileWithExpectedException,
     expected_exceptions,
@@ -68,11 +69,11 @@ def mock_workspace_client():
 
 @pytest.fixture()
 def morph_config():
-    yield MorphConfig(
+    yield TranspileConfig(
         sdk_config={"cluster_id": "test_cluster"},
-        source="snowflake",
-        input_sql="input_sql",
-        output_folder="output_folder",
+        source_dialect="snowflake",
+        input_source=Path("input_sql"),
+        output_folder=Path("output_folder"),
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
@@ -162,7 +163,9 @@ def validate_target_transpile(input_sql, *, target=None, pretty=False):
                     expression.sql(target_dialect, unsupported_level=ErrorLevel.RAISE)
         else:
             actual_sql = _normalize_string(
-                transpile(target_sql, read=Snow, write=get_dialect(target_dialect), pretty=pretty, error_level=None)[0]
+                transpile(
+                    target_sql, read=Snowflake, write=get_dialect(target_dialect), pretty=pretty, error_level=None
+                )[0]
             )
 
             expected_sql = _normalize_string(input_sql)

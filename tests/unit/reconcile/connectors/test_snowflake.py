@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException, InvalidSnowflakePemPrivateKey
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table

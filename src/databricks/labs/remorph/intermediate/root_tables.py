@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.helpers.file_utils import (
     get_sql_file,
     is_sql_file,

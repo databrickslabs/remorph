@@ -11,10 +11,10 @@ from sqlglot import Dialect
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
-    get_dialect,
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,

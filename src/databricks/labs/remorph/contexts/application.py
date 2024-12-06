@@ -12,7 +12,7 @@ from databricks.sdk.config import Config
 from databricks.sdk.errors import NotFound
 from databricks.sdk.service.iam import User
 
-from databricks.labs.remorph.config import MorphConfig, ReconcileConfig, RemorphConfigs
+from databricks.labs.remorph.config import TranspileConfig, ReconcileConfig, RemorphConfigs
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
@@ -50,9 +50,9 @@ class ApplicationContext:
         return Installation.assume_user_home(self.workspace_client, self.product_info.product_name())
 
     @cached_property
-    def transpile_config(self) -> MorphConfig | None:
+    def transpile_config(self) -> TranspileConfig | None:
         try:
-            return self.installation.load(MorphConfig)
+            return self.installation.load(TranspileConfig)
         except NotFound as err:
             logger.debug(f"Couldn't find existing `transpile` installation: {err}")
             return None
@@ -67,7 +67,7 @@ class ApplicationContext:
 
     @cached_property
     def remorph_config(self) -> RemorphConfigs:
-        return RemorphConfigs(morph=self.transpile_config, reconcile=self.recon_config)
+        return RemorphConfigs(transpile=self.transpile_config, reconcile=self.recon_config)
 
     @cached_property
     def connect_config(self) -> Config:

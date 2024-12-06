@@ -1,62 +1,38 @@
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
-from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
-
-from databricks.labs.remorph.helpers.morph_status import ParserError
+from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.snow import databricks, oracle, snowflake, presto
 
 logger = logging.getLogger(__name__)
 
-SQLGLOT_DIALECTS: dict[str, DialectType] = {
-    "athena": Dialects.ATHENA,
-    "bigquery": Dialects.BIGQUERY,
-    "databricks": databricks.Databricks,
-    "mysql": Dialects.MYSQL,
-    "netezza": Dialects.POSTGRES,
-    "oracle": oracle.Oracle,
-    "postgresql": Dialects.POSTGRES,
-    "presto": presto.Presto,
-    "redshift": Dialects.REDSHIFT,
-    "snowflake": snowflake.Snow,
-    "sqlite": Dialects.SQLITE,
-    "teradata": Dialects.TERADATA,
-    "trino": Dialects.TRINO,
-    "tsql": Dialects.TSQL,
-    "vertica": Dialects.POSTGRES,
-}
-
-
-def get_dialect(engine: str) -> Dialect:
-    return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
-
-
-def get_key_from_dialect(input_dialect: Dialect) -> str:
-    return [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == input_dialect][0]
-
 
 @dataclass
-class MorphConfig:
+class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 1
 
-    source: str
-    sdk_config: dict[str, str] | None = None
-    input_sql: str | None = None
+    source_dialect: str
+    input_source: str | None = None
     output_folder: str | None = None
+    sdk_config: dict[str, str] | None = None
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     mode: str = "current"
 
-    def get_read_dialect(self):
-        return get_dialect(self.source)
+    @property
+    def input_source_path(self):
+        return None if self.input_source is None else Path(self.input_source)
 
-    def get_write_dialect(self):
-        if self.mode == "experimental":
-            return get_dialect("experimental")
-        return get_dialect("databricks")
+    @property
+    def output_folder_path(self):
+        return None if self.output_folder is None else Path(self.output_folder)
+
+    @property
+    def target_dialect(self):
+        return "experimental" if self.mode == "experimental" else "databricks"
 
 
 @dataclass
@@ -126,5 +102,5 @@ class ReconcileConfig:
 
 @dataclass
 class RemorphConfigs:
-    morph: MorphConfig | None = None
+    transpile: TranspileConfig | None = None
     reconcile: ReconcileConfig | None = None
