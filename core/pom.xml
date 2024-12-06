@@ -12,7 +12,7 @@
   <properties>
     <httpclient.version>4.5.14</httpclient.version>
     <jackson.version>2.15.2</jackson.version>
-    <junit-bom.version>5.10.0</junit-bom.version>
+    <junit-bom.version>5.11.3</junit-bom.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- 5.x starting from 5.0.0 requires JRE 11 -->
