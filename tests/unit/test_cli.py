@@ -169,7 +169,7 @@ def test_transpile_with_no_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
@@ -194,7 +194,7 @@ def test_transpile_with_no_sdk_config():
             "my_schema",
             "current",
         )
-        mock_morph.assert_called_once_with(
+        mock_transpile.assert_called_once_with(
             workspace_client,
             TranspileConfig(
                 sdk_config=None,
@@ -214,7 +214,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
@@ -239,7 +239,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             "my_schema",
             "current",
         )
-        mock_morph.assert_called_once_with(
+        mock_transpile.assert_called_once_with(
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
@@ -259,7 +259,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
@@ -284,7 +284,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             "my_schema",
             "current",
         )
-        mock_morph.assert_called_once_with(
+        mock_transpile.assert_called_once_with(
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
@@ -359,7 +359,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
 
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -371,7 +371,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             schema_name,
             mode,
         )
-        mock_morph.assert_called_once_with(
+        mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
@@ -399,7 +399,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
 
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -411,7 +411,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             schema_name,
             mode,
         )
-        mock_morph.assert_called_once_with(
+        mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
