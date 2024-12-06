@@ -11,7 +11,7 @@ trait SetOperationBehaviors { this: TranspilerTestCommon with AnyWordSpec =>
     }
   }
 
-  protected[this] val expectedSetOperationTranslations: Map[String, String] = Map(
+  protected[this] def expectedSetOperationTranslations: Map[String, String] = Map(
     "SELECT a, b FROM c UNION SELECT x, y FROM z" -> "(SELECT a, b FROM c) UNION (SELECT x, y FROM z);",
     "SELECT a, b FROM c UNION ALL SELECT x, y FROM z" -> "(SELECT a, b FROM c) UNION ALL (SELECT x, y FROM z);",
     "SELECT a, b FROM c EXCEPT SELECT x, y FROM z" -> "(SELECT a, b FROM c) EXCEPT (SELECT x, y FROM z);",
@@ -38,7 +38,6 @@ trait SetOperationBehaviors { this: TranspilerTestCommon with AnyWordSpec =>
         |  (SELECT j, k FROM l)))
         |EXCEPT
         |(SELECT m, n FROM o);""".stripMargin)
-
 
   def setOperationsAreTranspiled(): Unit = {
     expectedSetOperationTranslations.foreach(correctlyTranspile)
