@@ -11,8 +11,10 @@ case class DiskSpec(
     diskType: Option[DiskType] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq()
-  def toSDK: compute.DiskSpec = {
-    val raw = new compute.DiskSpec()
-    raw
-  }
+  def toSDK: compute.DiskSpec = new compute.DiskSpec()
+    // .setDiskCount(diskCount.orNull)
+    // .setDiskIops(diskIops.orNull)
+    // .setDiskSize(diskSize.orNull)
+    // .setDiskThroughput(diskThroughput)
+    .setDiskType(diskType.map(_.toSDK).orNull)
 }

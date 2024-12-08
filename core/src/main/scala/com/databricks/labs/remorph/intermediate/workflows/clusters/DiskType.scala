@@ -9,8 +9,7 @@ case class DiskType(
     ebsVolumeType: Option[DiskTypeEbsVolumeType] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq()
-  def toSDK: compute.DiskType = {
-    val raw = new compute.DiskType()
-    raw
-  }
+  def toSDK: compute.DiskType = new compute.DiskType()
+    .setAzureDiskVolumeType(azureDiskVolumeType.orNull)
+    .setEbsVolumeType(ebsVolumeType.orNull)
 }
