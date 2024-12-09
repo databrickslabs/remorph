@@ -10,7 +10,7 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
@@ -186,7 +186,7 @@ def test_configure_transpile_no_existing_installation(ws):
         ctx.workspace_installation,
     )
     config = workspace_installer.configure()
-    expected_morph_config = MorphConfig(
+    expected_morph_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -195,7 +195,7 @@ def test_configure_transpile_no_existing_installation(ws):
         schema_name="transpiler",
         mode="current",
     )
-    expected_config = RemorphConfigs(morph=expected_morph_config)
+    expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
     installation.assert_file_written(
         "config.yml",
@@ -298,7 +298,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
         ctx.workspace_installation,
     )
     config = workspace_installer.configure()
-    expected_morph_config = MorphConfig(
+    expected_morph_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -307,7 +307,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
         schema_name="transpiler",
         mode="current",
     )
-    expected_config = RemorphConfigs(morph=expected_morph_config)
+    expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
     installation.assert_file_written(
         "config.yml",
@@ -355,7 +355,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
         ctx.workspace_installation,
     )
     config = workspace_installer.configure()
-    expected_morph_config = MorphConfig(
+    expected_morph_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -364,7 +364,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
         schema_name="transpiler",
         mode="current",
     )
-    expected_config = RemorphConfigs(morph=expected_morph_config)
+    expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
     installation.assert_file_written(
         "config.yml",
@@ -419,7 +419,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
-        morph=MorphConfig(
+        transpile=TranspileConfig(
             source="snowflake",
             input_sql="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
@@ -484,7 +484,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
-        morph=MorphConfig(
+        transpile=TranspileConfig(
             source="snowflake",
             input_sql="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
@@ -547,7 +547,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
-        morph=MorphConfig(
+        transpile=TranspileConfig(
             source="snowflake",
             input_sql="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
@@ -871,7 +871,7 @@ def test_configure_all_override_installation(ws):
         ctx.workspace_installation,
     )
     config = workspace_installer.configure()
-    expected_morph_config = MorphConfig(
+    expected_morph_config = TranspileConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -897,7 +897,7 @@ def test_configure_all_override_installation(ws):
             volume="reconcile_volume",
         ),
     )
-    expected_config = RemorphConfigs(morph=expected_morph_config, reconcile=expected_reconcile_config)
+    expected_config = RemorphConfigs(transpile=expected_morph_config, reconcile=expected_reconcile_config)
     assert config == expected_config
     installation.assert_file_written(
         "config.yml",
@@ -997,7 +997,7 @@ def test_runs_upgrades_on_more_recent_version(ws):
 
     mock_workspace_installation.install.assert_called_once_with(
         RemorphConfigs(
-            morph=MorphConfig(
+            transpile=TranspileConfig(
                 source="snowflake",
                 input_sql="/tmp/queries/snow",
                 output_folder="/tmp/queries/databricks",
