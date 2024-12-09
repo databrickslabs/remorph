@@ -4,6 +4,10 @@ from pathlib import Path
 
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
+from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
+from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
+from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
+from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
 
 logger = logging.getLogger(__name__)
 
