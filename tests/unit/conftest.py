@@ -68,12 +68,13 @@ def mock_workspace_client():
 
 
 @pytest.fixture()
-def morph_config():
+def transpile_config():
     yield TranspileConfig(
-        sdk_config={"cluster_id": "test_cluster"},
+        transpiler="sqlglot",
         source_dialect="snowflake",
         input_source="input_sql",
         output_folder="output_folder",
+        sdk_config={"cluster_id": "test_cluster"},
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",

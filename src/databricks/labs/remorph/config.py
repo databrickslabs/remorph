@@ -14,7 +14,8 @@ class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 1
 
-    source_dialect: str
+    transpiler: str
+    source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
     sdk_config: dict[str, str] | None = None
@@ -22,6 +23,10 @@ class TranspileConfig:
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     mode: str = "current"
+
+    @property
+    def transpiler_path(self):
+        return Path(self.transpiler)
 
     @property
     def input_path(self):

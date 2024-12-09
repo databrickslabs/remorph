@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
@@ -36,8 +37,9 @@ proxy_command(remorph, "debug-bundle")
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    source_dialect: str,
-    input_folder: str,
+    transpiler: str,
+    source_dialect: str | None,
+    input_source: str,
     output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
@@ -52,11 +54,18 @@ def transpile(
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
+    if transpiler.lower() != "sqlglot":
+        if not Path(transpiler).exists():
+            raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
     # TODO get rid of the sqlglot dependency
+    if not source_dialect:
+        source_dialect = ""
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
-    if not input_folder or not os.path.exists(input_folder):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_folder}' does not exist.")
+        raise_validation_exception(
+            f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
+    if not input_source or not os.path.exists(input_source):
+        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
@@ -73,8 +82,9 @@ def transpile(
     schema_name = schema_name if schema_name else default_config.schema_name
 
     config = TranspileConfig(
+        transpiler=transpiler,
         source_dialect=source_dialect.lower(),
-        input_source=input_folder,
+        input_source=input_source,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
@@ -136,14 +146,19 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
+    if transpiler.lower() != "sqlglot":
+        if not Path(transpiler).exists():
+            raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
+        raise_validation_exception(
+            f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
             f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."

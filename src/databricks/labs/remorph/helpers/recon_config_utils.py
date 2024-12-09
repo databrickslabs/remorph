@@ -88,7 +88,9 @@ class ReconConfigPrompts:
             logger.info(f"{info_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     def prompt_source(self):
-        source = self._prompts.choice("Select the source", [source_type.value for source_type in ReconSourceType])
+        source = self._prompts.choice(
+            "Select the source dialect", [source_type.value for source_type in ReconSourceType]
+        )
         self._source = source
         return source
 
