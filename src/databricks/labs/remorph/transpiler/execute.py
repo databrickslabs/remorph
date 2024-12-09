@@ -167,6 +167,10 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
+    if not config.input_source:
+        logger.error("Input SQL path is not provided.")
+        raise ValueError("Input SQL path is not provided.")
+
     status = []
 
     transpiler: TranspileEngine = SqlglotEngine()

@@ -72,8 +72,8 @@ def morph_config():
     yield TranspileConfig(
         sdk_config={"cluster_id": "test_cluster"},
         source_dialect="snowflake",
-        input_source=Path("input_sql"),
-        output_folder=Path("output_folder"),
+        input_source="input_sql",
+        output_folder="output_folder",
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
