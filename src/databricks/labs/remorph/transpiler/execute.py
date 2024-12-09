@@ -54,7 +54,7 @@ def _process_file(
         validate_error_list.append(lca_error)
 
     transpiler_result: TranspilationResult = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_file, []
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file, []
     )
 
     with output_file.open("w") as w:
@@ -258,7 +258,7 @@ def transpile_sql(
     transpiler: TranspileEngine = SqlglotEngine()
 
     transpiler_result = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"), []
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, Path("inline_sql"), []
     )
 
     if not config.skip_validation:
