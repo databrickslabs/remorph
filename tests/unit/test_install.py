@@ -145,12 +145,12 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         "config.yml",
         {
             "catalog_name": "remorph",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler",
             "skip_validation": True,
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -227,9 +227,9 @@ def test_configure_transpile_installation_no_override(ws):
         installation=MockInstallation(
             {
                 "config.yml": {
-                    "source": "snowflake",
+                    "source_dialect": "snowflake",
                     "catalog_name": "transpiler_test",
-                    "input_sql": "sf_queries",
+                    "input_source": "sf_queries",
                     "output_folder": "out_dir",
                     "schema_name": "convertor_test",
                     "sdk_config": {
@@ -271,7 +271,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
             "config.yml": {
                 "source_name": "snowflake",  # Invalid key
                 "catalog_name": "transpiler_test",
-                "input_sql": "sf_queries",
+                "input_source": "sf_queries",
                 "output_folder": "out_dir",
                 "schema_name": "convertor_test",
                 "sdk_config": {
@@ -370,12 +370,12 @@ def test_configure_transpile_installation_with_no_validation(ws):
         "config.yml",
         {
             "catalog_name": "remorph",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler",
             "skip_validation": True,
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -434,12 +434,12 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
         "config.yml",
         {
             "catalog_name": "remorph_test",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -499,12 +499,12 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
         "config.yml",
         {
             "catalog_name": "remorph_test",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -562,12 +562,12 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         "config.yml",
         {
             "catalog_name": "remorph_test",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler_test",
             "sdk_config": {"warehouse_id": "w_id"},
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -636,7 +636,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
     installation = MockInstallation(
         {
             "reconcile.yml": {
-                "source": "oracle",  # Invalid key
+                "source_dialect": "oracle",  # Invalid key
                 "report_type": "all",
                 "secret_scope": "remorph_oracle",
                 "database_config": {
@@ -818,9 +818,9 @@ def test_configure_all_override_installation(ws):
     installation = MockInstallation(
         {
             "config.yml": {
-                "source": "snowflake",
+                "source_dialect": "snowflake",
                 "catalog_name": "transpiler_test",
-                "input_sql": "sf_queries",
+                "input_source": "sf_queries",
                 "output_folder": "out_dir",
                 "schema_name": "convertor_test",
                 "sdk_config": {
@@ -903,12 +903,12 @@ def test_configure_all_override_installation(ws):
         "config.yml",
         {
             "catalog_name": "remorph",
-            "input_sql": "/tmp/queries/snow",
+            "input_source": "/tmp/queries/snow",
             "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "schema_name": "transpiler",
             "skip_validation": True,
-            "source": "snowflake",
+            "source_dialect": "snowflake",
             "version": 1,
         },
     )
@@ -946,9 +946,9 @@ def test_runs_upgrades_on_more_recent_version(ws):
                 }
             },
             'config.yml': {
-                "source": "snowflake",
+                "source_dialect": "snowflake",
                 "catalog_name": "upgrades",
-                "input_sql": "queries",
+                "input_source": "queries",
                 "output_folder": "out",
                 "schema_name": "test",
                 "sdk_config": {
