@@ -18,7 +18,7 @@ from databricks.labs.remorph.coverage.commons import (
     write_json_line,
 )
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake.snowflake import Snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 
 def test_get_supported_sql_files(tmp_path):

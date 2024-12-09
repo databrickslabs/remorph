@@ -6,9 +6,7 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import snowflake
-from databricks.labs.remorph.transpiler.sqlglot.parsers.oracle import oracle
-from databricks.labs.remorph.transpiler.sqlglot.parsers.presto import presto
+from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake
 
 logger = logging.getLogger(__name__)
 
