@@ -174,8 +174,8 @@ def test_transpile_with_no_sdk_config():
     ):
         default_config = TranspileConfig(
             sdk_config=None,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -198,8 +198,8 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=None,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -219,8 +219,8 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -243,8 +243,8 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -264,8 +264,8 @@ def test_transpile_with_cluster_id_in_sdk_config():
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -288,8 +288,8 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -375,8 +375,8 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source=source,
-                input_sql=input_sql,
+                source_dialect=source,
+                input_source=input_sql,
                 output_folder=output_folder,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -415,8 +415,8 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source=source,
-                input_sql=input_sql,
+                source_dialect=source,
+                input_source=input_sql,
                 output_folder=None,
                 skip_validation=False,
                 catalog_name=catalog_name,

@@ -70,8 +70,8 @@ def transpile(
     schema_name = schema_name if schema_name else default_config.schema_name
 
     config = TranspileConfig(
-        source=source.lower(),
-        input_sql=input_sql,
+        source_dialect=source.lower(),
+        input_source=input_sql,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,

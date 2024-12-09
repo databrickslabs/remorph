@@ -187,8 +187,8 @@ def test_configure_transpile_no_existing_installation(ws):
     )
     config = workspace_installer.configure()
     expected_morph_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
         skip_validation=True,
         catalog_name="remorph",
@@ -299,8 +299,8 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
     )
     config = workspace_installer.configure()
     expected_morph_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
         skip_validation=True,
         catalog_name="remorph",
@@ -356,8 +356,8 @@ def test_configure_transpile_installation_with_no_validation(ws):
     )
     config = workspace_installer.configure()
     expected_morph_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
         skip_validation=True,
         catalog_name="remorph",
@@ -420,8 +420,8 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
-            source="snowflake",
-            input_sql="/tmp/queries/snow",
+            source_dialect="snowflake",
+            input_source="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
@@ -485,8 +485,8 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
-            source="snowflake",
-            input_sql="/tmp/queries/snow",
+            source_dialect="snowflake",
+            input_source="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
@@ -548,8 +548,8 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
-            source="snowflake",
-            input_sql="/tmp/queries/snow",
+            source_dialect="snowflake",
+            input_source="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
@@ -872,8 +872,8 @@ def test_configure_all_override_installation(ws):
     )
     config = workspace_installer.configure()
     expected_morph_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
         skip_validation=True,
         catalog_name="remorph",
@@ -998,8 +998,8 @@ def test_runs_upgrades_on_more_recent_version(ws):
     mock_workspace_installation.install.assert_called_once_with(
         RemorphConfigs(
             transpile=TranspileConfig(
-                source="snowflake",
-                input_sql="/tmp/queries/snow",
+                source_dialect="snowflake",
+                input_source="/tmp/queries/snow",
                 output_folder="/tmp/queries/databricks",
                 catalog_name="remorph",
                 schema_name="transpiler",

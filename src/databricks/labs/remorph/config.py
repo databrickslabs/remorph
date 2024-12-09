@@ -42,9 +42,9 @@ class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 1
 
-    source: str
+    source_dialect: str
     sdk_config: dict[str, str] | None = None
-    input_sql: str | None = None
+    input_source: str | None = None
     output_folder: str | None = None
     skip_validation: bool = False
     catalog_name: str = "remorph"
@@ -52,7 +52,7 @@ class TranspileConfig:
     mode: str = "current"
 
     def get_read_dialect(self):
-        return get_dialect(self.source)
+        return get_dialect(self.source_dialect)
 
     def get_write_dialect(self):
         if self.mode == "experimental":
