@@ -37,7 +37,7 @@ proxy_command(remorph, "debug-bundle")
 def transpile(
     w: WorkspaceClient,
     source_dialect: str,
-    input_folder: str,
+    input_source: str,
     output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
@@ -54,9 +54,9 @@ def transpile(
     mode = mode if mode else "current"  # not checking for default config as it will always be current
     # TODO get rid of the sqlglot dependency
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
-    if not input_folder or not os.path.exists(input_folder):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_folder}' does not exist.")
+        raise_validation_exception(f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}.")
+    if not input_source or not os.path.exists(input_source):
+        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
@@ -74,7 +74,7 @@ def transpile(
 
     config = TranspileConfig(
         source_dialect=source_dialect.lower(),
-        input_source=input_folder,
+        input_source=input_source,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
@@ -141,9 +141,9 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
+        raise_validation_exception(f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}.")
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
             f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
