@@ -75,8 +75,8 @@ def transpile(
 
     config = TranspileConfig(
         source_dialect=source_dialect.lower(),
-        input_source=Path(input_folder),
-        output_folder=None if output_folder is None else Path(output_folder),
+        input_source=input_folder,
+        output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
@@ -137,20 +137,20 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
-    if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
-    if not input_sql or not os.path.exists(input_sql):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
+    if source_dialect.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source_dialect}' is not one of {DIALECTS}.")
+    if not input_source or not os.path.exists(input_source):
+        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
             f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
         )
 
-    lineage_generator(source, input_sql, output_folder)
+    lineage_generator(source_dialect, input_source, output_folder)
 
 
 @remorph.command

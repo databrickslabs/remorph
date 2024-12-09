@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class EngineAdapter:
-    def __init__(self, dialect: Dialect):
+    def __init__(self, dialect: str):
         self.dialect = dialect
 
     def select_engine(self, engine_type: str):
@@ -19,9 +19,9 @@ class EngineAdapter:
             raise ValueError(msg)
         return SqlglotEngine()
 
-    def parse_sql_content(self, dag, sql_content: str, file_name: str | Path, engine: str):
+    def parse_sql_content(self, dag, sql_content: str, file_path: str | Path, engine: str):
         # Not added type hints for dag as it is a cyclic import
         parser = self.select_engine(engine)
-        for root_table, child in parser.parse_sql_content(sql_content, file_name):
+        for root_table, child in parser.parse_sql_content(self.dialect, sql_content, file_path):
             dag.add_node(child)
             dag.add_edge(root_table, child)

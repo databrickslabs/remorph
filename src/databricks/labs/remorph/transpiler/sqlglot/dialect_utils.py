@@ -5,10 +5,12 @@ from sqlglot import Dialects, Dialect
 from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
 from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
 from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
 SQLGLOT_DIALECTS: dict[str, Type[Dialect] | str] = {
     "athena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
+    "databricks": Databricks,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
     "oracle": oracle.Oracle,

@@ -41,7 +41,7 @@ def test_workspace_context_attributes_not_none(ws):
         installation=MockInstallation(
             {
                 "config.yml": {
-                    "source": "snowflake",
+                    "source_dialect": "snowflake",
                     "catalog_name": "transpiler_test",
                     "input_sql": "sf_queries",
                     "output_folder": "out_dir",
