@@ -12,8 +12,8 @@ from databricks.labs.remorph.deployment.installation import WorkspaceInstallatio
 from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in ReconSourceType])
 RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReconReportType])
