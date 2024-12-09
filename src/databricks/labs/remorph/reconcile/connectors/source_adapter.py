@@ -5,9 +5,9 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.oracle import Oracle
-from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.parsers.oracle import Oracle
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
 from databricks.sdk import WorkspaceClient
 
 
@@ -17,7 +17,7 @@ def create_adapter(
     ws: WorkspaceClient,
     secret_scope: str,
 ) -> DataSource:
-    if isinstance(engine, Snow):
+    if isinstance(engine, Snowflake):
         return SnowflakeDataSource(engine, spark, ws, secret_scope)
     if isinstance(engine, Oracle):
         return OracleDataSource(engine, spark, ws, secret_scope)

@@ -8,13 +8,13 @@ import pytest
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.lsql.core import Row
-from databricks.labs.remorph.config import MorphConfig, ValidationResult
+from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
-    morph,
-    morph_column_exp,
-    morph_sql,
+    transpile,
+    transpile_column_exp,
+    transpile_sql,
 )
 from databricks.sdk.core import Config
 
@@ -137,7 +137,7 @@ def initial_setup(tmp_path: Path):
 
 def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir),
         output_folder="None",
         sdk_config=None,
@@ -147,7 +147,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 
     # call morph
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -193,7 +193,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 
 def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
@@ -201,7 +201,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -250,7 +250,7 @@ def test_with_file(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
         sdk_config=sdk_config,
@@ -270,7 +270,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -303,7 +303,7 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
 
 def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
@@ -315,7 +315,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -337,7 +337,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
 
 def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir / "file.txt"),
         output_folder="None",
         sdk_config=None,
@@ -349,7 +349,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -371,7 +371,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
 
 def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir / "file_not_exist.txt"),
         output_folder="None",
         sdk_config=None,
@@ -383,14 +383,14 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
             'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
             return_value=MockBackend(),
         ):
-            morph(mock_workspace_client, config)
+            transpile(mock_workspace_client, config)
 
     # cleanup
     safe_remove_dir(input_dir)
 
 
 def test_morph_sql(mock_workspace_client):
-    config = MorphConfig(
+    config = TranspileConfig(
         source="snowflake",
         skip_validation=False,
         catalog_name="catalog",
@@ -406,13 +406,13 @@ def test_morph_sql(mock_workspace_client):
             }
         ),
     ):
-        transpiler_result, validation_result = morph_sql(mock_workspace_client, config, query)
+        transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
         assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
         assert validation_result.exception_msg is None
 
 
 def test_morph_column_exp(mock_workspace_client):
-    config = MorphConfig(
+    config = TranspileConfig(
         source="snowflake",
         skip_validation=True,
         catalog_name="catalog",
@@ -428,7 +428,7 @@ def test_morph_column_exp(mock_workspace_client):
             }
         ),
     ):
-        result = morph_column_exp(mock_workspace_client, config, query)
+        result = transpile_column_exp(mock_workspace_client, config, query)
         assert len(result) == 3
         assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
         assert result[1][0].transpiled_sql[0] == 'col2 * 2'
@@ -445,7 +445,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
         sdk_config=sdk_config,
@@ -463,7 +463,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
         # assert the status
         assert status is not None, "Status returned by morph function is None"
         assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -481,7 +481,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
 
 
 def test_with_input_sql_none(initial_setup, mock_workspace_client):
-    config = MorphConfig(
+    config = TranspileConfig(
         input_sql=None,
         output_folder="None",
         sdk_config=None,
@@ -490,4 +490,4 @@ def test_with_input_sql_none(initial_setup, mock_workspace_client):
     )
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        morph(mock_workspace_client, config)
+        transpile(mock_workspace_client, config)

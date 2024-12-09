@@ -3,7 +3,7 @@ from sqlglot import exp
 from sqlglot.helper import seq_get
 from sqlglot.dialects.bigquery import BigQuery as bigquery
 
-from databricks.labs.remorph.snow import local_expression
+from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 logger = logging.getLogger(__name__)
 

@@ -3,9 +3,10 @@ from dataclasses import dataclass
 
 from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
-from databricks.labs.remorph.helpers.morph_status import ParserError
+from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.snow import databricks, oracle, snowflake, presto, bigquery
+from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
+from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake, bigquery
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "postgresql": Dialects.POSTGRES,
     "presto": presto.Presto,
     "redshift": Dialects.REDSHIFT,
-    "snowflake": snowflake.Snow,
+    "snowflake": snowflake.Snowflake,
     "sqlite": Dialects.SQLITE,
     "teradata": Dialects.TERADATA,
     "trino": Dialects.TRINO,
@@ -37,7 +38,7 @@ def get_key_from_dialect(input_dialect: Dialect) -> str:
 
 
 @dataclass
-class MorphConfig:
+class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 1
 
@@ -126,5 +127,5 @@ class ReconcileConfig:
 
 @dataclass
 class RemorphConfigs:
-    morph: MorphConfig | None = None
+    transpile: TranspileConfig | None = None
     reconcile: ReconcileConfig | None = None
