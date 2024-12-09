@@ -37,11 +37,11 @@ class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestComm
             |  UNION
             |  (SELECT d, e FROM f))
             | UNION ALL
-            | (SELECT g, h FROM i))
-            |INTERSECT
-            | ((SELECT j, k FROM l)
-            |  EXCEPT
-            |  (SELECT m, n FROM o));""".stripMargin)
+            | ((SELECT g, h FROM i)
+            |  INTERSECT
+            |  (SELECT j, k FROM l)))
+            |EXCEPT
+            |(SELECT m, n FROM o);""".stripMargin)
       expectedTranslations.foreach(correctlyTranspile)
     }
     "mixing CTEs with set operations" should {
