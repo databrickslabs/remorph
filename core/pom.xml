@@ -23,6 +23,7 @@
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
     <databricks-sdk-java.version>0.36.0</databricks-sdk-java.version>
+    <!-- Note: DB-connect must match the version in our testing infrastructure. -->
     <databricks-connect.version>15.1.0</databricks-connect.version>
     <circe.version>0.14.2</circe.version>
     <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
