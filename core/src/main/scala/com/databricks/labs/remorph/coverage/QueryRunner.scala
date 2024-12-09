@@ -3,8 +3,8 @@ package com.databricks.labs.remorph.coverage
 import com.databricks.labs.remorph.WorkflowStage.PARSE
 import com.databricks.labs.remorph.intermediate.{RemorphError, UnexpectedOutput}
 import com.databricks.labs.remorph.queries.ExampleQuery
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Parsing}
 import com.databricks.labs.remorph.transpilers._
+import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, PreProcessing, TranspilerState}
 
 trait QueryRunner extends Formatter {
   def runQuery(exampleQuery: ExampleQuery): ReportEntryReport
@@ -17,25 +17,31 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
       exampleQuery: ExampleQuery,
       output: String,
       error: Option[RemorphError] = None): ReportEntryReport = {
-    val expected = exampleQuery.expectedTranslation.getOrElse("")
+    val expected = exampleQuery.expectedTranslation
     val parsed = if (error.isEmpty) 1 else 0
-    if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
-      ReportEntryReport(
-        parsed = parsed,
-        statements = 1,
-        failures = Some(UnexpectedOutput(format(expected), format(output))))
-    } else {
-      ReportEntryReport(
-        parsed = parsed,
-        transpiled = if (parsed == 1) 1 else 0,
-        statements = 1,
-        transpiled_statements = 1,
-        failures = error)
+    val formattedOutput = if (exampleQuery.shouldFormat) format(output) else output
+    val formattedExpected = expected.map(e => if (exampleQuery.shouldFormat) format(e) else e)
+
+    formattedExpected match {
+      case Some(`formattedOutput`) | None =>
+        ReportEntryReport(
+          parsed = parsed,
+          transpiled = parsed,
+          statements = 1,
+          transpiled_statements = 1,
+          failures = error)
+      case Some(expectedOutput) =>
+        ReportEntryReport(
+          parsed = parsed,
+          statements = 1,
+          failures = Some(UnexpectedOutput(expectedOutput, formattedOutput)))
     }
   }
 
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
-    transpiler.transpile(Parsing(exampleQuery.query)).runAndDiscardState(Parsing(exampleQuery.query)) match {
+    transpiler
+      .transpile(PreProcessing(exampleQuery.query))
+      .runAndDiscardState(TranspilerState(PreProcessing(exampleQuery.query))) match {
       case KoResult(PARSE, error) => ReportEntryReport(statements = 1, failures = Some(error))
       case KoResult(_, error) =>
         // If we got past the PARSE stage, then remember to record that we parsed it correctly

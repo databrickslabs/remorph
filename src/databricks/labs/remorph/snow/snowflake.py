@@ -240,6 +240,12 @@ def contains_expression(expr, target_type):
     return False
 
 
+def _parse_sha2(args: list) -> exp.SHA2:
+    if len(args) == 1:
+        return exp.SHA2(this=seq_get(args, 0), length=exp.Literal.number(256))
+    return exp.SHA2(this=seq_get(args, 0), length=seq_get(args, 1))
+
+
 def _parse_last_day(args: list) -> exp.LastDay | exp.DateSub:
     if len(args) == 1:
         return exp.LastDay.from_arg_list(args)
@@ -437,6 +443,7 @@ class Snow(Snowflake):
             "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
+            "SHA2": _parse_sha2,
             "LAST_DAY": _parse_last_day,
             "ARRAY_FLATTEN": exp.Flatten.from_arg_list,
             "SEQ1": _parse_seq,

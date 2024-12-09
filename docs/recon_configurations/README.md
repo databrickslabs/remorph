@@ -18,6 +18,7 @@ when comparing the source with the Databricks target.
     * [table_thresholds](#table_thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
+* [Key Considerations for Oracle JDBC Reader Options](#key-considerations-for-oracle-jdbc-reader-options)
 * [Reconciliation Example](#reconciliation-example)
 * [DataFlow Example](#dataflow-example)
 * [Aggregates Reconcile](#remorph-aggregates-reconciliation)
@@ -263,6 +264,14 @@ class JdbcReaderOptions:
 | upper_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the maximum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                     | required                | "1"           |
 | lower_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the minimum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                     | required                | "100000"      |
 | fetch_size        | string    | This parameter influences the number of rows fetched per round-trip between Spark and the JDBC database, optimising data retrieval performance. Adjusting this option significantly impacts the efficiency of data extraction, controlling the volume of data retrieved in each fetch operation. More details on configuring fetch size can be found [here](https://docs.databricks.com/en/connect/external-systems/jdbc.html#control-number-of-rows-fetched-per-query) | optional(default="100") | "10000"       |
+
+#### Key Considerations for Oracle JDBC Reader Options:
+For Oracle source, the following options are automatically set:
+
+- "oracle.jdbc.mapDateToTimestamp": "False",
+- "sessionInitStatement": "BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');END;"
+
+While configuring Recon for Oracle source, the above options should be taken into consideration.
 
 ### column_mapping
 

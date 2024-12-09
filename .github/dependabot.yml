@@ -8,3 +8,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    ignore:
+      # Ignore updates for Databricks Connect: the version in use needs to match the testing infrastructure.
+      - dependency-name: "com.databricks:databricks-connect"

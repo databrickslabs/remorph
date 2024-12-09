@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.transpilers
 
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
+class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon with SetOperationBehaviors {
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
@@ -263,6 +263,30 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
     }
 
+    "transpile LCA replacing aliases" in {
+      "SELECT column_a AS alias_a FROM table_a WHERE alias_a = '123';" transpilesTo
+        "SELECT column_a AS alias_a FROM table_a WHERE column_a = '123';"
+    }
+
+    "transpile LCA replacing aliased literals" in {
+      "SELECT '123' as alias_a FROM table_a where alias_a = '123';" transpilesTo
+        "SELECT '123' as alias_a FROM table_a where '123' = '123';"
+    }
+
+    "transpile LCA with aliased table" in {
+      "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 t WHERE ca in ('v1', 'v2');" transpilesTo
+        "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 as t WHERE t.col3 in ('v1', 'v2');"
+    }
+
+    "transpile LCA with partition" in {
+      "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by ca ORDER BY ca) FROM table1 t;" transpilesTo
+        "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by t.col1 ORDER BY t.col1 ASC NULLS LAST) FROM table1 AS t;"
+    }
+
+    "transpile LCA with function" in {
+      "SELECT col1 AS ca FROM table1 where SUBSTR(ca, 1, 3) = '123';" transpilesTo
+        "SELECT col1 AS ca FROM table1 where SUBSTR(col1, 1, 3) = '123';"
+    }
   }
 
   "Snowflake transpile function with optional brackets" should {
@@ -351,6 +375,33 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  override protected[this] final val expectedSetOperationTranslations: Map[String, String] = {
+    super.expectedSetOperationTranslations ++ Map(
+      "SELECT a, b FROM c MINUS SELECT x, y FROM z" -> "(SELECT a, b FROM c) EXCEPT (SELECT x, y FROM z);",
+      """SELECT a, b FROM c
+        |UNION
+        |SELECT d, e FROM f
+        |MINUS
+        |SELECT g, h FROM i
+        |INTERSECT
+        |SELECT j, k FROM l
+        |EXCEPT
+        |SELECT m, n FROM o""".stripMargin ->
+        """(((SELECT a, b FROM c)
+          |  UNION
+          |  (SELECT d, e FROM f))
+          | EXCEPT
+          | ((SELECT g, h FROM i)
+          |  INTERSECT
+          |  (SELECT j, k FROM l)))
+          |EXCEPT
+          |(SELECT m, n FROM o);""".stripMargin)
+  }
+
+  "Set operations" should {
+    behave like setOperationsAreTranspiled()
+  }
+
   "Common Table Expressions (CTEs)" should {
     "support expressions" in {
       """WITH
@@ -385,6 +436,27 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
           |(SELECT * FROM a)
           |UNION
           |(SELECT * FROM f);""".stripMargin
+    }
+    "allow nested set operations" in {
+      """WITH
+        |   a AS (
+        |     SELECT b, c, d from e
+        |     UNION
+        |     SELECT e, f, g from h),
+        |   i AS (SELECT j, k, l from m)
+        |SELECT * FROM a
+        |UNION
+        |SELECT * FROM i;""".stripMargin transpilesTo
+        """WITH
+          |   a AS (
+          |     (SELECT b, c, d from e)
+          |     UNION
+          |     (SELECT e, f, g from h)
+          |   ),
+          |   i AS (SELECT j, k, l from m)
+          |(SELECT * FROM a)
+          |UNION
+          |(SELECT * FROM i);""".stripMargin
     }
   }
 

@@ -71,7 +71,8 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
         ("[", SnowflakeLexer.LSB),
         ("]", SnowflakeLexer.RSB),
         (":", SnowflakeLexer.COLON),
-        ("::", SnowflakeLexer.COLON_COLON))
+        ("::", SnowflakeLexer.COLON_COLON),
+        ("_!Jinja0001", SnowflakeLexer.JINJA_REF))
 
       forAll(testInput) { (input: String, expectedType: Int) =>
         val inputString = CharStreams.fromString(input)

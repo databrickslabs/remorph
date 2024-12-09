@@ -1,10 +1,17 @@
-package com.databricks.labs.remorph.parsers.snowflake
+package com.databricks.labs.remorph.parsers
+package snowflake
 
 import com.databricks.labs.remorph.intermediate._
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
+class SnowflakeAstBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with SetOperationBehaviors[SnowflakeParser]
+    with Matchers
+    with IRHelpers {
 
   override protected def astBuilder: SnowflakeAstBuilder = vc.astBuilder
 
@@ -34,6 +41,20 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT a, b AS bb, c FROM table_x",
         expectedAst = Project(NamedTable("table_x", Map.empty), Seq(Id("a"), Alias(Id("b"), Id("bb")), Id("c"))))
+    }
+
+    "translate a SELECT query involving a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a FROM table_x t",
+        expectedAst = Project(TableAlias(NamedTable("table_x"), "t"), Seq(Dot(Id("t"), Id("a")))))
+    }
+
+    "translate a SELECT query involving a column alias and a table alias" in {
+      singleQueryExample(
+        query = "SELECT t.a, t.b as b FROM table_x t",
+        expectedAst = Project(
+          TableAlias(NamedTable("table_x"), "t"),
+          Seq(Dot(Id("t"), Id("a")), Alias(Dot(Id("t"), Id("b")), Id("b")))))
     }
 
     val simpleJoinAst =
@@ -325,29 +346,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(Id("c2"), Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
     }
 
-    "translate a query with set operators" should {
-      "SELECT a FROM t1 UNION SELECT b FROM t2" in {
-        singleQueryExample(
-          "SELECT a FROM t1 UNION SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            UnionSetOp,
-            is_all = false,
-            by_name = false,
-            allow_missing_columns = false))
-      }
-      "SELECT a FROM t1 UNION ALL SELECT b FROM t2" in {
-        singleQueryExample(
-          "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            UnionSetOp,
-            is_all = true,
-            by_name = false,
-            allow_missing_columns = false))
-      }
+    behave like setOperationsAreTranslated(_.queryExpression())
+
+    "translate Snowflake-specific set operators" should {
       "SELECT a FROM t1 MINUS SELECT b FROM t2" in {
         singleQueryExample(
           "SELECT a FROM t1 MINUS SELECT b FROM t2",
@@ -359,47 +360,125 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             by_name = false,
             allow_missing_columns = false))
       }
-      "SELECT a FROM t1 EXCEPT SELECT b FROM t2" in {
+      // Part of checking that UNION, EXCEPT and MINUS are processed with the same precedence: left-to-right
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4" should {
         singleQueryExample(
-          "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4",
           SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
             ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))
       }
-      "SELECT a FROM t1 INTERSECT SELECT b FROM t2" in {
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4" should {
         singleQueryExample(
-          "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            IntersectSetOp,
-            is_all = false,
-            by_name = false,
-            allow_missing_columns = false))
-      }
-      "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4" in {
-        singleQueryExample(
-          "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4",
           SetOperation(
             SetOperation(
               SetOperation(
-                Project(namedTable("t1"), Seq(Id("a"))),
-                Project(namedTable("t2"), Seq(Id("b"))),
-                IntersectSetOp,
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                UnionSetOp,
                 is_all = false,
                 by_name = false,
                 allow_missing_columns = false),
-              Project(namedTable("t3"), Seq(Id("c"))),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
               ExceptSetOp,
               is_all = false,
               by_name = false,
               allow_missing_columns = false),
-            Project(namedTable("t4"), Seq(Id("d"))),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 EXCEPT SELECT 2 MINUS SELECT 3 UNION SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 EXCEPT SELECT 2 MINUS SELECT 3 UNION SELECT 4",
+          SetOperation(
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                ExceptSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
             UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 MINUS SELECT 2 UNION SELECT 3 EXCEPT SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 MINUS SELECT 2 UNION SELECT 3 EXCEPT SELECT 4",
+          SetOperation(
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                ExceptSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              UnionSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      // INTERSECT has higher precedence than UNION, EXCEPT and MINUS
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 INTERSECT SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4 INTERSECT SELECT 5",
+          ir.SetOperation(
+            ir.SetOperation(
+              ir.SetOperation(
+                ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
+                ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
+                ir.UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
+              ir.ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.SetOperation(
+              ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
+              ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
+              ir.IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))
@@ -522,42 +601,60 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate with recursive" should {
-      """WITH RECURSIVE employee_hierarchy""".stripMargin in {
+      "WITH RECURSIVE employee_hierarchy" in {
         singleQueryExample(
           """WITH RECURSIVE employee_hierarchy AS (
-                             |    SELECT
-                             |        employee_id,
-                             |        manager_id,
-                             |        employee_name,
-                             |        1 AS level
-                             |    FROM
-                             |        employees
-                             |    WHERE
-                             |        manager_id IS NULL
-                             |    UNION ALL
-                             |    SELECT
-                             |        e.employee_id,
-                             |        e.manager_id,
-                             |        e.employee_name,
-                             |        eh.level + 1 AS level
-                             |    FROM
-                             |        employees e
-                             |    INNER JOIN
-                             |        employee_hierarchy eh ON e.manager_id = eh.employee_id
-                             |)
-                             |SELECT *
-                             |FROM employee_hierarchy
-                             |ORDER BY level, employee_id;""".stripMargin,
+            |    SELECT
+            |        employee_id,
+            |        manager_id,
+            |        employee_name,
+            |        1 AS level
+            |    FROM
+            |        employees
+            |    WHERE
+            |        manager_id IS NULL
+            |    UNION ALL
+            |    SELECT
+            |        e.employee_id,
+            |        e.manager_id,
+            |        e.employee_name,
+            |        eh.level + 1 AS level
+            |    FROM
+            |        employees e
+            |    INNER JOIN
+            |        employee_hierarchy eh ON e.manager_id = eh.employee_id
+            |)
+            |SELECT *
+            |FROM employee_hierarchy
+            |ORDER BY level, employee_id;""".stripMargin,
           WithRecursiveCTE(
             Seq(
               SubqueryAlias(
-                Project(
-                  Filter(NamedTable("employees", Map.empty), IsNull(Id("manager_id"))),
-                  Seq(
-                    Id("employee_id"),
-                    Id("manager_id"),
-                    Id("employee_name"),
-                    Alias(Literal(1, IntegerType), Id("level")))),
+                SetOperation(
+                  Project(
+                    Filter(NamedTable("employees"), IsNull(Id("manager_id"))),
+                    Seq(
+                      Id("employee_id"),
+                      Id("manager_id"),
+                      Id("employee_name"),
+                      Alias(Literal(1, IntegerType), Id("level")))),
+                  Project(
+                    Join(
+                      TableAlias(NamedTable("employees"), "e"),
+                      TableAlias(NamedTable("employee_hierarchy"), "eh"),
+                      join_condition = Some(Equals(Dot(Id("e"), Id("manager_id")), Dot(Id("eh"), Id("employee_id")))),
+                      InnerJoin,
+                      using_columns = Seq(),
+                      JoinDataType(is_left_struct = false, is_right_struct = false)),
+                    Seq(
+                      Dot(Id("e"), Id("employee_id")),
+                      Dot(Id("e"), Id("manager_id")),
+                      Dot(Id("e"), Id("employee_name")),
+                      Alias(Add(Dot(Id("eh"), Id("level")), Literal(1, IntegerType)), Id("level")))),
+                  UnionSetOp,
+                  is_all = true,
+                  by_name = false,
+                  allow_missing_columns = false),
                 Id("employee_hierarchy"),
                 Seq.empty)),
             Project(
@@ -566,7 +663,6 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 Seq(SortOrder(Id("level"), Ascending, NullsLast), SortOrder(Id("employee_id"), Ascending, NullsLast))),
               Seq(Star(None)))))
       }
-
     }
   }
 }

@@ -50,6 +50,8 @@ class LogicalPlanGenerator(
       case a: ir.AlterTableCommand => alterTable(a)
       case l: ir.Lateral => lateral(l)
       case c: ir.CreateTableParams => createTableParams(c)
+      case ir.JinjaAsStatement(text) => code"$text"
+
       // We see an unresolved for parsing errors, when we have no visitor for a given rule,
       // when something went wrong with IR generation, or when we have a visitor but it is not
       // yet implemented.
@@ -60,7 +62,7 @@ class LogicalPlanGenerator(
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = tree)
     }.flatMap(_ => sql)
   }
@@ -70,7 +72,7 @@ class LogicalPlanGenerator(
     seqSql.map { seq =>
       seq
         .map { elem =>
-          if (!elem.endsWith("*/")) s"$elem;"
+          if (!elem.endsWith("*/") && !elem.startsWith("_!Jinja")) s"$elem;"
           else elem
         }
         .mkString("\n")

@@ -35,7 +35,7 @@ THE SOFTWARE.
 
 parser grammar TSqlParser;
 
-import procedure, commonparse;
+import procedure, commonparse, jinja;
 
 options {
     tokenVocab = TSqlLexer;
@@ -56,7 +56,7 @@ stringList: string (COMMA string)*
     ;
 
 // expr is just an alias for expression, for Snowflake compatibility
-// TODO: Change Snowflake to use the rule anme expression instead of expr as this is what the Spark parser uses
+// TODO: Change Snowflake to use the rule name expression instead of expr as this is what the Spark parser uses
 expr: expression
     ;
 // ======================================================
@@ -84,6 +84,7 @@ sqlClauses
     | createOrAlterTrigger SEMI*
     | createView SEMI*
     | goStatement SEMI*
+    | jinjaTemplate SEMI*
     ;
 
 dmlClause: withExpression? ( selectStatement | merge | delete | insert | update | bulkStatement)
@@ -1528,7 +1529,7 @@ outputClause
     )?
     ;
 
-outputDmlListElem: (expression | asterisk) asColumnAlias?
+outputDmlListElem: (expression | asterisk) (AS? columnAlias)?
     ;
 
 createDatabase
@@ -2213,7 +2214,9 @@ killStatsJob: STATS JOB INT
 executeStatement: EXECUTE executeBody SEMI?
     ;
 
-executeBodyBatch: dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
+executeBodyBatch
+    : jinjaTemplate
+    | dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
 executeBody
@@ -2731,6 +2734,7 @@ expression
     | DOLLAR_ACTION                                           # exprDollar
     | STAR                                                    # exprStar
     | id                                                      # exprId
+    | jinjaTemplate                                           # exprJinja
     ;
 
 // TODO: Implement this ?
@@ -2791,20 +2795,19 @@ predicate
 queryExpression
     // INTERSECT has higher precedence than EXCEPT and UNION ALL.
     // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
-    : LPAREN queryExpression RPAREN                          # queryInParenthesis
-    | queryExpression (UNION ALL? | EXCEPT) queryExpression  # queryUnion
-    | queryExpression INTERSECT queryExpression              # queryIntersect
-    | querySpecification                                     # querySimple
+    : LPAREN queryExpression RPAREN                         # queryInParenthesis
+    | queryExpression INTERSECT queryExpression             # queryIntersect
+    | queryExpression (UNION ALL? | EXCEPT) queryExpression # queryUnion
+    | querySpecification                                    # querySimple
     ;
 
-querySpecification
-    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)* selectOptionalClauses
+querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptionalClauses
     ;
 
 selectOptionalClauses
     // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
-    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
     : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
     ;
 
 groupByClause
@@ -2861,13 +2864,26 @@ orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
 optionClause: OPTION lparenOptionList
     ;
 
-selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
+// Note that comma is optional to cater for complications added by Jinja template element
+// references, which, if they are specifying the presence of COMMA or not, will look consecutive
+// elements without a COMMA, such as:
+//
+// select
+//    order_id,
+//    {%- for payment_method in payment_methods %}
+//    sum(case when payment_method = '{{payment_method}}' then amount end) as {{payment_method}}_amount
+//    {%- if not loop.last %},{% endif -%}
+//    {% endfor %}
+selectList: selectListElem selectElemTempl*
+    ;
+
+selectElemTempl: COMMA selectListElem | COMMA? jinjaTemplate selectListElem?
     ;
 
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
-expressionElem: columnAlias EQ expression | expression asColumnAlias?
+expressionElem: columnAlias EQ expression | expression (AS? columnAlias)?
     ;
 
 selectListElem
@@ -2902,6 +2918,7 @@ tsiElement
     | openJson                                                    # tsiOpenJson
     | dotIdentifier? DOUBLE_COLON functionCall                    # tsiDoubleColonFunctionCall
     | LPAREN tableSource RPAREN                                   # tsiParenTableSource
+    | jinjaTemplate                                               # tsiJinja
     ;
 
 openJson
@@ -3047,10 +3064,7 @@ nodesMethod
 switchSection: WHEN searchCondition THEN expression
     ;
 
-asColumnAlias: AS? columnAlias
-    ;
-
-asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
+asTableAlias: AS? (jinjaTemplate | id | DOUBLE_QUOTE_ID)
     ;
 
 withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
@@ -3065,7 +3079,7 @@ tableHint
 columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
-columnAlias: id | STRING
+columnAlias: jinjaTemplate | id | STRING
     ;
 
 tableValueConstructor: VALUES tableValueRow (COMMA tableValueRow)*
@@ -3082,7 +3096,7 @@ withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
 
 // The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
 // but trails certain windowing functions such as LAG and LEAD. However, all such functions
-// must use the OVER clause, so it is included here to make build the IR simpler.
+// must use the OVER clause, so it is included here to make building the IR simpler.
 overClause
     : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
@@ -3192,7 +3206,11 @@ sendConversation
     )? SEMI?
     ;
 
-dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType
+    : jinjaTemplate
+    | dataTypeIdentity
+    | XML LPAREN id RPAREN
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
 dataTypeList: dataType (COMMA dataType)*

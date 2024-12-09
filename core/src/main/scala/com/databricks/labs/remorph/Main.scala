@@ -33,7 +33,7 @@ object Main extends App with ApplicationContext {
     case Payload("debug-bundle", args) =>
       val dst = new File(args("dst"))
       val queryHistory = queryHistoryProvider.history()
-      fileSetGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(Init) match {
+      fileSetGenerator.generate(RawMigration(queryHistory)).runAndDiscardState(TranspilerState()) match {
         case OkResult(output) => output.persist(dst)
         case PartialResult(output, error) =>
           prettyPrinter(error)

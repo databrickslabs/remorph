@@ -92,7 +92,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
       // A single column definition could also hold an ErrorNode that it recovered from so we collect all of them
       val columns: Seq[ir.Expression] =
-        ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
+        vc.expressionBuilder.buildSelectList(ctx.selectList())
       // Note that ALL is the default so we don't need to check for it
       ctx match {
         case c if c.DISTINCT() != null =>
@@ -267,9 +267,10 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     }
   }
 
-  private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
+  private[tsql] def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
       case c if c.id() != null => vc.expressionBuilder.buildId(c.id())
+      case t if t.jinjaTemplate() != null => ir.Id(vc.expressionBuilder.removeQuotes(ctx.jinjaTemplate.getText))
       case _ => ir.Id(vc.expressionBuilder.removeQuotes(ctx.getText))
     }
   }
@@ -296,6 +297,12 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
       result
   }
+
+  override def visitTsiJinja(ctx: TsiJinjaContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ctx.jinjaTemplate().accept(this))
+
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ir.JinjaAsStatement(ctx.getText))
 
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
@@ -540,6 +547,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     // correct source code to be given to remorph.
     val aggregateFunction = ctx.pivotClause().expression().accept(vc.expressionBuilder)
     val column = ctx.pivotClause().fullColumnName().accept(vc.expressionBuilder)
+    // TODO: All other aliases are handled as ir.Id, but here we use ir.Literal - should it change?
     val values = ctx.pivotClause().columnAliasList().columnAlias().asScala.map(c => buildLiteral(c.getText))
     ir.Aggregate(
       child = left,
