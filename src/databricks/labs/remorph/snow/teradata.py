@@ -23,9 +23,9 @@ class Teradata(org_Teradata):
         }
 
         PROPERTY_PARSERS = {
-             **org_Teradata.Parser.PROPERTY_PARSERS,
+            **org_Teradata.Parser.PROPERTY_PARSERS,
             "MAP": lambda self: self._parse_map_property(),
-         }
+        }
 
         def _parse_create(self) -> exp.Create | exp.Command:
 
@@ -162,5 +162,23 @@ class Teradata(org_Teradata):
 
         def _parse_map_property(self) -> local_expression.MapProperty:
             self._match(TokenType.EQ)
-            return self.expression(local_expression.MapProperty, this = "MAP", name=self._parse_var(any_token=False,tokens=[TokenType.VAR]))
+            return self.expression(
+                local_expression.MapProperty, this="MAP", name=self._parse_var(any_token=False, tokens=[TokenType.VAR])
+            )
 
+        def _parse_rangen(self):
+            this = self._parse_id_var()
+            self._match(TokenType.BETWEEN)
+            expressions = self._parse_csv(self._parse_assignment)
+            each = self._match_text_seq("EACH") and self._parse_assignment()
+            final_option = None
+            self._advance(1)
+            if self._match(TokenType.VAR) or self._match(TokenType.UNKNOWN):
+                final_option = self._prev.text
+                if self._match_texts(["UNKNOWN", "RANGE"]):
+                    final_option = f"{final_option} " + self._prev.text
+                    if self._match_texts(["OR", ",", "|"]):
+                        final_option = f"{final_option} {self._prev.text} {self._curr.text}"
+                        self._advance(1)
+
+            return self.expression(exp.RangeN, this=this, expressions=expressions, each=each, range_spec=final_option)
