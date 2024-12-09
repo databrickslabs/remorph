@@ -23,7 +23,10 @@ def check_for_unsupported_lca(
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
     """
+    # avoid cyclic import
+    # pylint: disable=import-outside-toplevel
     from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
+
     try:
         dialect = get_dialect(from_dialect)
         all_parsed_expressions: Iterable[Expression | None] = parse(

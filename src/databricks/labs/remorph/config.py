@@ -4,10 +4,6 @@ from pathlib import Path
 
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
-from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
-from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
-from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +23,13 @@ class TranspileConfig:
     mode: str = "current"
 
     @property
-    def input_source_path(self):
-        return None if self.input_source is None else Path(self.input_source)
+    def input_path(self):
+        if self.input_source is None:
+            raise ValueError("Missing input source!")
+        return Path(self.input_source)
 
     @property
-    def output_folder_path(self):
+    def output_path(self):
         return None if self.output_folder is None else Path(self.output_folder)
 
     @property

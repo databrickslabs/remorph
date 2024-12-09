@@ -1,6 +1,5 @@
 import json
 import os
-from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger

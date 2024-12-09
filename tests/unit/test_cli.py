@@ -480,7 +480,10 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
-        mock_workspace_client_cli, source_dialect="snowflake", input_source=str(input_dir), output_folder=str(output_dir)
+        mock_workspace_client_cli,
+        source_dialect="snowflake",
+        input_source=str(input_dir),
+        output_folder=str(output_dir),
     )
 
     date_str = datetime.datetime.now().strftime("%d%m%y")

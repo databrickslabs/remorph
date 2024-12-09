@@ -1,13 +1,11 @@
-from typing import Type
-
 from sqlglot import Dialects, Dialect
 
-from databricks.labs.remorph.transpiler.sqlglot.dialects.oracle import oracle
-from databricks.labs.remorph.transpiler.sqlglot.dialects.presto import presto
-from databricks.labs.remorph.transpiler.sqlglot.dialects.snowflake import snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers.oracle import oracle
+from databricks.labs.remorph.transpiler.sqlglot.parsers.presto import presto
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import snowflake
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
-SQLGLOT_DIALECTS: dict[str, Type[Dialect] | str] = {
+SQLGLOT_DIALECTS: dict[str, type[Dialect] | str] = {
     "athena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "databricks": Databricks,

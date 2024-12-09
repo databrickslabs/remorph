@@ -10,12 +10,15 @@ class _BaseError:
     def __str__(self):
         return f"{type(self).__name__}(file_path='{self.file_path!s}', exception='{self.exception}')"
 
+
 @dataclass
-class ParserError(_BaseError): pass
+class ParserError(_BaseError):
+    pass
 
 
 @dataclass
-class ValidationError(_BaseError): pass
+class ValidationError(_BaseError):
+    pass
 
 
 @dataclass

@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-from sqlglot.dialects.dialect import Dialect
 
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 

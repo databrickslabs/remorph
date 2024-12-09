@@ -2,7 +2,6 @@ import dataclasses
 import logging
 import os
 import webbrowser
-from pathlib import Path
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
@@ -147,8 +146,8 @@ class WorkspaceInstaller:
             source_dialect=source,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
-            input_source=Path(input_sql),
-            output_folder=Path(output_folder),
+            input_source=input_sql,
+            output_folder=output_folder,
         )
 
     def _configure_catalog(

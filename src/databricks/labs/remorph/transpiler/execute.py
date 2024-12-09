@@ -16,6 +16,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     make_dir,
     remove_bom,
 )
+from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
@@ -114,9 +115,11 @@ def _process_input_dir(config: TranspileConfig, validator: Validator | None, tra
 
     file_list = []
     counter = 0
-    for root, _, files in dir_walk(config.input_source):
-        base_root = Path(str(root).replace(str(config.input_source), ""))
-        folder = str(config.input_source.resolve().joinpath(base_root))
+    input_source = str(config.input_source)
+    input_path = Path(input_source)
+    for root, _, files in dir_walk(input_path):
+        base_root = Path(str(root).replace(input_source, ""))
+        folder = str(input_path.resolve().joinpath(base_root))
         msg = f"Processing for sqls under this folder: {folder}"
         logger.info(msg)
         file_list.extend(files)
@@ -132,26 +135,28 @@ def _process_input_dir(config: TranspileConfig, validator: Validator | None, tra
     return TranspileStatus(file_list, counter, len(parse_error_list), len(validate_error_list), error_log)
 
 
-def _process_input_file(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine) -> TranspileStatus:
-    if not is_sql_file(config.input_source):
+def _process_input_file(
+    config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine
+) -> TranspileStatus:
+    if not is_sql_file(config.input_path):
         msg = f"{config.input_source} is not a SQL file."
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, 0, 0, [])
     msg = f"Processing sql from this file: {config.input_source}"
     logger.info(msg)
-    if config.output_folder is None:
-        output_folder = config.input_source.parent / "transpiled"
+    if config.output_path is None:
+        output_path = config.input_path.parent / "transpiled"
     else:
-        output_folder = config.output_folder
+        output_path = config.output_path
 
-    make_dir(output_folder)
-    output_file = output_folder / config.input_source.name
+    make_dir(output_path)
+    output_file = output_path / config.input_path.name
     no_of_sqls, parse_error, validation_error = _process_file(
-        config, validator, transpiler, config.input_source, output_file
+        config, validator, transpiler, config.input_path, output_file
     )
     error_log = parse_error + validation_error
-    return TranspileStatus([config.input_source], no_of_sqls, len(parse_error), len(validation_error), error_log)
+    return TranspileStatus([config.input_path], no_of_sqls, len(parse_error), len(validation_error), error_log)
 
 
 @timeit
@@ -170,9 +175,11 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
         sql_backend = db_sql.get_sql_backend(workspace_client)
         logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
         validator = Validator(sql_backend)
-    if config.input_source.is_dir():
+    if config.input_source is None:
+        raise InvalidInputException("Missing input source!")
+    if config.input_path.is_dir():
         result = _process_input_dir(config, validator, transpiler)
-    elif config.input_source.is_file():
+    elif config.input_path.is_file():
         result = _process_input_file(config, validator, transpiler)
     else:
         msg = f"{config.input_source} does not exist."

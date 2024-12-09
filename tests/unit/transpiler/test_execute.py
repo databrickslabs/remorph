@@ -480,4 +480,3 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
                 stat["no_of_sql_failed_while_validating"] == 0
             ), "no_of_sql_failed_while_validating does not match expected value"
             assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
-
