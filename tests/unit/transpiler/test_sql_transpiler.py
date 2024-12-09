@@ -1,8 +1,8 @@
 import pytest
 from sqlglot import expressions
 
-from databricks.labs.remorph.snow import local_expression
-from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
+from databricks.labs.remorph.transpiler.sqlglot import local_expression
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@ from pathlib import Path
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.coverage import commons
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 if __name__ == "__main__":
     input_dir = commons.get_env_var("INPUT_DIR_PARENT", required=True)
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         "Remorph",
         REMORPH_COMMIT_HASH,
         remorph_version,
-        Snow,
+        Snowflake,
         Databricks,
         Path(input_dir) / 'snowflake',
         Path(output_dir),
