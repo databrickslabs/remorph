@@ -3,7 +3,7 @@ from pathlib import Path
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.coverage import commons
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake.snowflake import Snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 if __name__ == "__main__":
     input_dir = commons.get_env_var("INPUT_DIR_PARENT", required=True)

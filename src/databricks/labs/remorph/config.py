@@ -5,6 +5,7 @@ from pathlib import Path
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
+
 logger = logging.getLogger(__name__)
 
 

@@ -1,8 +1,6 @@
 from sqlglot import Dialects, Dialect
 
-from databricks.labs.remorph.transpiler.sqlglot.parsers.oracle import oracle
-from databricks.labs.remorph.transpiler.sqlglot.parsers.presto import presto
-from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
 SQLGLOT_DIALECTS: dict[str, type[Dialect] | str] = {
