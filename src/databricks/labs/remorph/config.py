@@ -43,9 +43,9 @@ class TranspileConfig:
     __version__ = 1
 
     source_dialect: str
-    sdk_config: dict[str, str] | None = None
     input_source: str | None = None
     output_folder: str | None = None
+    sdk_config: dict[str, str] | None = None
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
