@@ -12,14 +12,14 @@
   <properties>
     <httpclient.version>4.5.14</httpclient.version>
     <jackson.version>2.15.2</jackson.version>
-    <junit-bom.version>5.10.0</junit-bom.version>
+    <junit-bom.version>5.11.3</junit-bom.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- 5.x starting from 5.0.0 requires JRE 11 -->
     <mockito.version>4.11.0</mockito.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>2.0.9</slf4j.version>
-    <antlr.version>4.13.1</antlr.version>
+    <antlr.version>4.13.2</antlr.version>
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
     <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
