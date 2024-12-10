@@ -84,7 +84,7 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = do_transpile(ctx.workspace_client, config)
+    status = do_transpile(ctx.workspace_client, engine, config)
 
     print(json.dumps(status))
 

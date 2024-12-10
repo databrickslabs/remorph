@@ -160,7 +160,7 @@ def _process_input_file(
 
 
 @timeit
-def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
+def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig):
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -173,7 +173,6 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
 
     status = []
 
-    transpiler: TranspileEngine = SqlglotEngine()
     validator = None
     if not config.skip_validation:
         sql_backend = db_sql.get_sql_backend(workspace_client)
@@ -182,9 +181,9 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     if config.input_source is None:
         raise InvalidInputException("Missing input source!")
     if config.input_path.is_dir():
-        result = _process_input_dir(config, validator, transpiler)
+        result = _process_input_dir(config, validator, engine)
     elif config.input_path.is_file():
-        result = _process_input_file(config, validator, transpiler)
+        result = _process_input_file(config, validator, engine)
     else:
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
