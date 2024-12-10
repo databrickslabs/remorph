@@ -177,7 +177,7 @@ class Teradata(org_Teradata):
             expressions = self._parse_csv(self._parse_assignment)
             each = self._match_text_seq("EACH") and self._parse_assignment()
             final_option = None
-            self._advance(1)
+            self._match(TokenType.COMMA)
             if self._match(TokenType.VAR) or self._match(TokenType.UNKNOWN):
                 final_option = self._prev.text
                 if self._match_texts(["UNKNOWN", "RANGE"]):
