@@ -196,15 +196,18 @@ class Teradata(org_Teradata):
             case_spec = None
             while self._match(TokenType.COMMA):
                 if self._match_texts(["NO"]):
-                    case_spec = "NO " + self._curr.text
-                    self._advance(1)
-                    if self._match_texts(["OR", ",", "|"]):
-                        case_spec = f"{case_spec} {self._prev.text} {self._curr.text}"
-                        self._advance(1)
-
+                    case_spec = self._process_case_spec()
                 elif self._match_texts(["UNKNOWN"]):
                     case_spec = self._prev.text
                 else:
                     list_exp.append(self._parse_assignment())
 
             return self.expression(local_expression.CaseN, this="CASE_N", expression=list_exp, case_spec=case_spec)
+
+        def _process_case_spec(self) -> str:
+            case_spec = "NO " + self._curr.text
+            self._advance(1)
+            if self._match_texts(["OR", ",", "|"]):
+                case_spec = f"{case_spec} {self._prev.text} {self._curr.text}"
+                self._advance(1)
+            return case_spec
