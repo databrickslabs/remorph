@@ -8,8 +8,6 @@ from sqlglot.tokens import Token, TokenType
 
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.string_utils import format_error_message, refactor_hexadecimal_chars
-from databricks.labs.remorph.helpers.morph_status import ParserError
-from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 
 logger = logging.getLogger(__name__)

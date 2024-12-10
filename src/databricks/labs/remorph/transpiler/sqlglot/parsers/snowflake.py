@@ -3,10 +3,8 @@ import re
 
 from sqlglot import expressions as exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
-from sqlglot.dialects.snowflake import Snowflake
-from sqlglot.errors import ParseError, TokenError
 from sqlglot.dialects.snowflake import Snowflake as SqlglotSnowflake
-from sqlglot.errors import ParseError
+from sqlglot.errors import TokenError, ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map

@@ -516,7 +516,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -572,7 +572,7 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
