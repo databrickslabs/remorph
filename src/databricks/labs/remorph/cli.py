@@ -54,24 +54,18 @@ def transpile(
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler))
-    if not source_dialect:
-        source_dialect = ""
-    supported_dialects = engine.supported_dialects
-    if source_dialect not in supported_dialects:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {supported_dialects}."
-        )
+    source_dialect = engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
+            f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'."
+            f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'."
         )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
@@ -149,17 +143,17 @@ def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, i
     logger.info(f"User: {ctx.current_user}")
     if transpiler.lower() != "sqlglot":
         if not Path(transpiler).exists():
-            raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
+            raise_validation_exception(f"Invalid value for '--transpiler': '{transpiler}', file does not exist.")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
         dialects = sorted(SQLGLOT_DIALECTS.keys())
         raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {dialects}."
+            f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {dialects}."
         )
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
-            f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
+            f"Invalid value for '--output-folder': Path '{output_folder}' does not exist."
         )
 
     lineage_generator(source_dialect, input_source, output_folder)
