@@ -62,15 +62,15 @@ def transpile(
         source_dialect = ""
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(
-            f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}."
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
         )
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'."
+            f"Error: Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
         raise_validation_exception(
@@ -155,10 +155,10 @@ def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, i
             raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(
-            f"Error: Invalid value for '--source_dialect': '{source_dialect}' is not one of {DIALECTS}."
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
         )
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input_source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
             f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."

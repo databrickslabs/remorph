@@ -1,5 +1,7 @@
 import datetime
 import io
+from unittest.mock import create_autospec, patch
+
 import pytest
 import yaml
 
@@ -311,7 +313,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
 
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source_dialect'"):
+    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot",
@@ -328,7 +330,7 @@ def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
 def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--skip_validation'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--skip-validation'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -343,10 +345,10 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
         )
 
 
-def test_invalid_input_sql(mock_workspace_client_cli):
+def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input_source'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -446,40 +448,13 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_incorrect_mode(mock_workspace_client_cli):
+def test_transpile_with_invalid_mode(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
     ):
         transpiler = "sqlglot"
         source_dialect = "snowflake"
-        input_source = "/path/to/sql/file2.sql"
-        output_folder = ""
-        skip_validation = "false"
-        catalog_name = "my_catalog"
-        schema_name = "my_schema"
-        mode = "preview"
-
-        cli.transpile(
-            mock_workspace_client_cli,
-            transpiler,
-            source_dialect,
-            input_source,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
-
-
-def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--source_dialect':"),
-    ):
-        transpiler = "sqlglot"
-        source_dialect = "postgres"
         input_source = "/path/to/sql/file2.sql"
         output_folder = ""
         skip_validation = "false"
@@ -530,7 +505,7 @@ def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_clie
 
 
 def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source_dialect'"):
+    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
             transpiler="sqlglot",
@@ -543,7 +518,7 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
 def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input_source'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
     ):
         cli.generate_lineage(
             mock_workspace_client_cli,
@@ -555,15 +530,15 @@ def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
 
 
 def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypatch):
-    input_sql = "/path/to/sql/file.sql"
+    input_source = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
-    monkeypatch.setattr("os.path.exists", lambda x: x == input_sql)
+    monkeypatch.setattr("os.path.exists", lambda x: x == input_source)
     with pytest.raises(Exception, match="Error: Invalid value for '--output-folder'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
             transpiler="sqlglot",
             source_dialect="snowflake",
-            input_source=input_sql,
+            input_source=input_source,
             output_folder=output_folder,
         )
 
