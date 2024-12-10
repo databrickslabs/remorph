@@ -1,6 +1,11 @@
+from unittest.mock import create_autospec
+
 import pytest
 
 from databricks.labs.remorph.intermediate.root_tables import RootTableLocator
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
 @pytest.fixture(autouse=True)
@@ -17,7 +22,7 @@ def setup_file(tmpdir):
 
 
 def test_generate_lineage(tmpdir):
-    root_table_identifier = RootTableLocator("snowflake", str(tmpdir))
+    root_table_identifier = RootTableLocator(SqlglotEngine(), "snowflake", tmpdir)
     dag = root_table_identifier.generate_lineage()
     roots = ["table2", "table3", "table4"]
 
@@ -30,8 +35,8 @@ def test_generate_lineage(tmpdir):
 
 
 def test_generate_lineage_sql_file(setup_file):
-    root_table_identifier = RootTableLocator("snowflake", str(setup_file))
-    dag = root_table_identifier.generate_lineage(engine="sqlglot")
+    root_table_identifier = RootTableLocator(SqlglotEngine(), "snowflake", setup_file)
+    dag = root_table_identifier.generate_lineage()
     roots = ["table2", "table3", "table4"]
 
     assert len(dag.nodes["table4"].parents) == 0
@@ -42,7 +47,7 @@ def test_generate_lineage_sql_file(setup_file):
     assert dag.identify_immediate_children("none") == []
 
 
-def test_non_sqlglot_engine_raises_error(tmpdir):
-    root_table_identifier = RootTableLocator("snowflake", str(tmpdir))
-    with pytest.raises(ValueError):
-        root_table_identifier.generate_lineage(engine="antlr")
+def test_lsp_engine_raises_error(tmpdir):
+    root_table_identifier = RootTableLocator(LSPEngine(), "snowflake", str(tmpdir))
+    with pytest.raises(NotImplementedError):
+        root_table_identifier.generate_lineage()

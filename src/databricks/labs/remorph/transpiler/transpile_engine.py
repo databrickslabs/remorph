@@ -21,7 +21,7 @@ class TranspileEngine(abc.ABC):
         # pylint: disable=import-outside-toplevel, cyclic-import
         from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
-        return LSPEngine(transpiler)
+        return LSPEngine.with_config_path(transpiler)
 
     @abc.abstractmethod
     def analyse_table_lineage(

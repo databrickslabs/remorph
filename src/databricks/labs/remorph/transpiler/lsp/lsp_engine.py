@@ -38,10 +38,13 @@ class _LSPRemorphConfigV1:
 
 class LSPEngine(TranspileEngine):
 
-    def __init__(self, config_path: Path):
-        self.config, self.custom = self._load_config(config_path)
+    @classmethod
+    def with_config_path(cls, config_path: Path) -> LSPEngine:
+        config, custom = cls._load_config(config_path)
+        return LSPEngine(config, custom)
 
-    def _load_config(self, config_path: Path) -> tuple[_LSPRemorphConfigV1, dict[str, Any]]:
+    @classmethod
+    def _load_config(cls, config_path: Path) -> tuple[_LSPRemorphConfigV1, dict[str, Any]]:
         yaml_text = config_path.read_text()
         data = yaml.safe_load(yaml_text)
         if not isinstance(data, dict):
@@ -51,6 +54,10 @@ class LSPEngine(TranspileEngine):
             raise ValueError(f"Invalid transpiler config, expecting a 'remorh' dict entry, got {remorph}")
         config = _LSPRemorphConfigV1.parse(remorph)
         return config, data.get("custom", {})
+
+    def __init__(self, config: _LSPRemorphConfigV1, custom: dict[str, Any]):
+        self.config = config
+        self.custom = custom
 
     @property
     def supported_dialects(self) -> list[str]:

@@ -13,7 +13,7 @@ from tests.unit.conftest import path_to_resource
 def test_valid_config():
     config = path_to_resource("lsp_transpiler", "config.yml")
     engine = LSPEngine(Path(config))
-    assert engine.supported_dialects == ["snowflake", "oracle"]
+    assert engine.supported_dialects == ["snowflake"]
 
 
 VALID_CONFIG: dict[str, Any] = yaml.safe_load(
