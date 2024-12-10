@@ -52,7 +52,9 @@ def transpile(
     mode = mode if mode else "current"  # not checking for default config as it will always be current
     # TODO get rid of the sqlglot dependency
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}.")
+        raise_validation_exception(
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
@@ -139,7 +141,9 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}.")
+        raise_validation_exception(
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
