@@ -1,4 +1,4 @@
-from unittest.mock import create_autospec, patch
+from unittest.mock import create_autospec, patch, PropertyMock, ANY
 
 import pytest
 
@@ -65,6 +65,7 @@ def test_transpile_with_no_sdk_config():
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
+            ANY,
             TranspileConfig(
                 transpiler="sqlglot",
                 source_dialect="snowflake",
@@ -113,6 +114,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
+            ANY,
             TranspileConfig(
                 transpiler="sqlglot",
                 source_dialect="snowflake",
@@ -161,6 +163,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
+            ANY,
             TranspileConfig(
                 transpiler="sqlglot",
                 source_dialect="snowflake",
@@ -176,7 +179,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
 
 
 def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--transpiler'"):
+    with pytest.raises(Exception, match="Invalid value for '--transpiler'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot2",
@@ -191,7 +194,7 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
 
 
 def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
+    with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot",
@@ -207,11 +210,12 @@ def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
 
 def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
     engine = create_autospec(TranspileEngine)
-    engine.supported_dialects.return_value = []
+    type(engine).supported_dialects = PropertyMock(return_value=["oracle"])
+    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
     with (
         patch("os.path.exists", return_value=True),
         patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"),
+        pytest.raises(Exception, match="Invalid value for '--source-dialect'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -225,11 +229,53 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
             "current",
         )
 
+def test_transpile_with_single_transpiler_dialect(mock_workspace_client_cli):
+    engine = create_autospec(TranspileEngine)
+    type(engine).supported_dialects = PropertyMock(return_value=["snowflake"])
+    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
+        patch("databricks.labs.remorph.cli.do_transpile", return_value={})
+
+    ):
+        cli.transpile(
+            mock_workspace_client_cli,
+            "some_transpiler",
+            "",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+
+def test_transpile_with_missing_transpiler_dialect(mock_workspace_client_cli):
+    engine = create_autospec(TranspileEngine)
+    type(engine).supported_dialects = PropertyMock(return_value=["snowflake", "oracle"])
+    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
+        pytest.raises(Exception, match="Missing value for '--source-dialect'"),
+    ):
+        cli.transpile(
+            mock_workspace_client_cli,
+            "some_transpiler",
+            "",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
 
 def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--skip-validation'"),
+        pytest.raises(Exception, match="Invalid value for '--skip-validation'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -247,7 +293,7 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
 def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
+        pytest.raises(Exception, match="Invalid value for '--input-source'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -290,6 +336,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
+            ANY,
             TranspileConfig(
                 transpiler="sqlglot",
                 source_dialect=source_dialect,
@@ -329,6 +376,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
+            ANY,
             TranspileConfig(
                 transpiler=transpiler,
                 source_dialect=source_dialect,
@@ -372,6 +420,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
+            ANY,
             TranspileConfig(
                 transpiler=transpiler,
                 source_dialect=source_dialect,
@@ -389,7 +438,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
 def test_transpile_with_invalid_mode(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
+        pytest.raises(Exception, match="Invalid value for '--mode':"),
     ):
         transpiler = "sqlglot"
         source_dialect = "snowflake"

@@ -54,7 +54,7 @@ def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_clie
 
 
 def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
+    with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
             transpiler="sqlglot",
@@ -67,7 +67,7 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
 def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
+        pytest.raises(Exception, match="Invalid value for '--input-source'"),
     ):
         cli.generate_lineage(
             mock_workspace_client_cli,
@@ -82,7 +82,7 @@ def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypa
     input_source = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
     monkeypatch.setattr("os.path.exists", lambda x: x == input_source)
-    with pytest.raises(Exception, match="Error: Invalid value for '--output-folder'"):
+    with pytest.raises(Exception, match="Invalid value for '--output-folder'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
             transpiler="sqlglot",
