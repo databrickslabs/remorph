@@ -1,10 +1,9 @@
 import datetime
 import io
-from pathlib import Path
-from unittest.mock import create_autospec, patch
-
 import pytest
 import yaml
+
+from unittest.mock import create_autospec, patch
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
@@ -536,8 +535,8 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
             mock_workspace_client_cli,
             transpiler="sqlglot",
             source_dialect="invalid_dialect",
-            input_source=Path("/path/to/sql/file.sql"),
-            output_folder=Path("/path/to/output"),
+            input_source="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
         )
 
 
@@ -550,8 +549,8 @@ def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
             mock_workspace_client_cli,
             transpiler="sqlglot",
             source_dialect="snowflake",
-            input_source=Path("/path/to/invalid/sql/file.sql"),
-            output_folder=Path("/path/to/output"),
+            input_source="/path/to/invalid/sql/file.sql",
+            output_folder="/path/to/output",
         )
 
 
