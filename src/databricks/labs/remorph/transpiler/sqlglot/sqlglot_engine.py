@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from pathlib import Path
 
 from sqlglot import expressions as exp, parse, transpile
@@ -7,11 +8,16 @@ from sqlglot.expressions import Expression
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
 class SqlglotEngine(TranspileEngine):
+
+    @property
+    def supported_dialects(self) -> list[str]:
+        return sorted(SQLGLOT_DIALECTS.keys())
 
     def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
@@ -38,23 +44,29 @@ class SqlglotEngine(TranspileEngine):
 
         return expression, error
 
-    def parse_sql_content(self, source_dialect: str, source_code: str, file_path: Path):
+    def analyse_table_lineage(
+        self, source_dialect: str, source_code: str, file_path: Path
+    ) -> Iterable[tuple[str, str]]:
         parsed_expression, _ = self.parse(source_dialect, source_code, file_path)
         if parsed_expression is not None:
             for expr in parsed_expression:
-                child: str | None = str(file_path)
+                child: str = str(file_path)
                 if expr is not None:
-                    for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        child = self._find_root_tables(create)
+                    for ddl in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
+                        _child = self._find_root_tables(ddl)
+                        child = _child or child
 
-                    for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                        yield self._find_root_tables(select), child
+                    for query in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
+                        _table = self._find_root_tables(query)
+                        if not _table:
+                            continue
+                        yield _table, child
 
     @staticmethod
-    def _find_root_tables(expression) -> str | None:
+    def _find_root_tables(expression) -> str:
         for table in expression.find_all(exp.Table, bfs=False):
             return table.name
-        return None
+        return ""
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
