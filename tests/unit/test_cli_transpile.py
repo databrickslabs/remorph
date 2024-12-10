@@ -7,9 +7,8 @@ from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from tests.unit.conftest import path_to_resource
-
-
 
 
 def test_transpile_with_missing_installation():
@@ -191,12 +190,33 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
+def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
     with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot",
             "invalid_dialect",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+
+
+def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
+    engine = create_autospec(TranspileEngine)
+    engine.supported_dialects.return_value = []
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
+        pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"),
+    ):
+        cli.transpile(
+            mock_workspace_client_cli,
+            "some_transpiler",
+            "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
             "true",

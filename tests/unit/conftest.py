@@ -6,7 +6,6 @@ from unittest.mock import create_autospec
 
 import pytest
 import yaml
-from databricks.sdk.errors import NotFound
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     ArrayType,
@@ -23,6 +22,8 @@ from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
+
+from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS

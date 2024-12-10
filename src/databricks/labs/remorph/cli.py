@@ -16,11 +16,10 @@ from databricks.labs.remorph.jvmproxy import proxy_command
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
 logger = get_logger(__file__)
-
-DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
 
 
 def raise_validation_exception(msg: str) -> Exception:
@@ -54,15 +53,13 @@ def transpile(
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-    if transpiler.lower() != "sqlglot":
-        if not Path(transpiler).exists():
-            raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
-    # TODO get rid of the sqlglot dependency
+    engine = TranspileEngine.load_engine(Path(transpiler))
     if not source_dialect:
         source_dialect = ""
-    if source_dialect.lower() not in SQLGLOT_DIALECTS:
+    supported_dialects = engine.supported_dialects
+    if source_dialect not in supported_dialects:
         raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {supported_dialects}."
         )
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
@@ -154,8 +151,9 @@ def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, i
         if not Path(transpiler).exists():
             raise_validation_exception(f"Error: Invalid value for '--transpiler': '{transpiler}', file does not exist.")
     if source_dialect.lower() not in SQLGLOT_DIALECTS:
+        dialects = sorted(SQLGLOT_DIALECTS.keys())
         raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {dialects}."
         )
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")

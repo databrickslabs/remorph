@@ -7,11 +7,16 @@ from sqlglot.expressions import Expression
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
 class SqlglotEngine(TranspileEngine):
+
+    @property
+    def supported_dialects(self) -> list[str]:
+        return sorted(SQLGLOT_DIALECTS.keys())
 
     def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]

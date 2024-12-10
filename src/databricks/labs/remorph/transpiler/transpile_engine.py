@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 from pathlib import Path
 
@@ -7,6 +8,20 @@ from databricks.labs.remorph.transpiler.transpile_status import ParserError, Val
 
 class TranspileEngine(abc.ABC):
 
+    @classmethod
+    def load_engine(cls, transpiler: Path) -> TranspileEngine:
+        if str(transpiler) == "sqlglot":
+            # pylint: disable=import-outside-toplevel, cyclic-import
+            from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+
+            return SqlglotEngine()
+        if not transpiler.exists():
+            raise ValueError(f"Error: Invalid value for '--transpiler': '{str(transpiler)}', file does not exist.")
+        # pylint: disable=import-outside-toplevel, cyclic-import
+        from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
+
+        return LSPEngine(transpiler)
+
     @abc.abstractmethod
     def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
@@ -14,3 +29,7 @@ class TranspileEngine(abc.ABC):
 
     @abc.abstractmethod
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None: ...
+
+    @property
+    @abc.abstractmethod
+    def supported_dialects(self) -> list[str]: ...

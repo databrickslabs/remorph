@@ -1,21 +1,9 @@
-import datetime
-import io
-from unittest.mock import create_autospec, patch
-
-import pytest
-import yaml
+from unittest.mock import patch
 
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
-from databricks.labs.blueprint.installation import MockInstallation
-from databricks.sdk.config import Config
-
-from tests.unit.conftest import path_to_resource
 
 
 def test_configure_secrets_databricks(mock_workspace_client):

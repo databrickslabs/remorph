@@ -5,6 +5,8 @@ remorph:
     - oracle
   environment:
     - SOME_ENV: abc
-  command_line: python lsp_server.py
-transpiler:
+  command_line:
+    - python
+    - lsp_server.py
+custom:
   whatever: xyz
