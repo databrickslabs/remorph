@@ -17,8 +17,15 @@ case class AwsAttributes(
     zoneId: Option[String] = None)
     extends JobNode {
   override def children: Seq[JobNode] = Seq()
-  def toSDK: compute.AwsAttributes = {
-    val raw = new compute.AwsAttributes()
-    raw
-  }
+  def toSDK: compute.AwsAttributes = new compute.AwsAttributes()
+    .setAvailability(availability.orNull)
+    // .setEbsVolumeCount(ebsVolumeCount.orNull)
+    // .setEbsVolumeIops(ebsVolumeIops.orNull)
+    // .setEbsVolumeSize(ebsVolumeSize.orNull)
+    // .setEbsVolumeThroughput(ebsVolumeThroughput.orNull)
+    .setEbsVolumeType(ebsVolumeType.orNull)
+    // .setFirstOnDemand(firstOnDemand.orNull)
+    .setInstanceProfileArn(instanceProfileArn.orNull)
+    // .setSpotBidPricePercent(spotBidPricePercent.orNull)
+    .setZoneId(zoneId.orNull)
 }
