@@ -27,8 +27,8 @@ def lineage_generator(engine: TranspileEngine, source_dialect: str, input_source
 
     msg = f"Processing for SQLs at this location: {input_sql_path}"
     logger.info(msg)
-    root_table_identifier = RootTableLocator(engine, source_dialect, input_sql_path)
-    generated_dag = root_table_identifier.generate_lineage()
+    root_table_locator = RootTableLocator(engine, source_dialect, input_sql_path)
+    generated_dag = root_table_locator.generate_lineage_dag()
     lineage_file_content = _generate_dot_file_contents(generated_dag)
 
     date_str = datetime.datetime.now().strftime("%d%m%y")

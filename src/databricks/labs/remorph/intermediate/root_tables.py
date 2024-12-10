@@ -18,7 +18,7 @@ class RootTableLocator:
         self.source_dialect = source_dialect
         self.input_path = input_path
 
-    def generate_lineage(self) -> DAG:
+    def generate_lineage_dag(self) -> DAG:
         dag = DAG()
 
         # when input is sql file then parse the file

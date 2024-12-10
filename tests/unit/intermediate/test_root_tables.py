@@ -22,8 +22,8 @@ def setup_file(tmpdir):
 
 
 def test_generate_lineage(tmpdir):
-    root_table_identifier = RootTableLocator(SqlglotEngine(), "snowflake", tmpdir)
-    dag = root_table_identifier.generate_lineage()
+    root_table_locator = RootTableLocator(SqlglotEngine(), "snowflake", tmpdir)
+    dag = root_table_locator.generate_lineage_dag()
     roots = ["table2", "table3", "table4"]
 
     assert len(dag.nodes["table4"].parents) == 0
@@ -35,8 +35,8 @@ def test_generate_lineage(tmpdir):
 
 
 def test_generate_lineage_sql_file(setup_file):
-    root_table_identifier = RootTableLocator(SqlglotEngine(), "snowflake", setup_file)
-    dag = root_table_identifier.generate_lineage()
+    root_table_locator = RootTableLocator(SqlglotEngine(), "snowflake", setup_file)
+    dag = root_table_locator.generate_lineage_dag()
     roots = ["table2", "table3", "table4"]
 
     assert len(dag.nodes["table4"].parents) == 0
@@ -48,6 +48,6 @@ def test_generate_lineage_sql_file(setup_file):
 
 
 def test_lsp_engine_raises_error(tmpdir):
-    root_table_identifier = RootTableLocator(LSPEngine(), "snowflake", str(tmpdir))
+    root_table_locator = RootTableLocator(LSPEngine(), "snowflake", str(tmpdir))
     with pytest.raises(NotImplementedError):
-        root_table_identifier.generate_lineage()
+        root_table_locator.generate_lineage_dag()
