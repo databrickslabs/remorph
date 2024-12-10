@@ -12,7 +12,7 @@ from tests.unit.conftest import path_to_resource
 
 def test_valid_config():
     config = path_to_resource("lsp_transpiler", "config.yml")
-    engine = LSPEngine(Path(config))
+    engine = LSPEngine.from_config_path(Path(config))
     assert engine.supported_dialects == ["snowflake"]
 
 
@@ -40,7 +40,7 @@ def test_missing_version_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Unsupported transpiler config version"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))
 
 
 def test_invalid_version_raises_error():
@@ -50,7 +50,7 @@ def test_invalid_version_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Unsupported transpiler config version"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))
 
 
 def test_missing_dialects_raises_error():
@@ -60,7 +60,7 @@ def test_missing_dialects_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Missing dialects entry"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))
 
 
 def test_empty_dialects_raises_error():
@@ -70,7 +70,7 @@ def test_empty_dialects_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Missing dialects entry"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))
 
 
 def test_missing_cmd_line_raises_error():
@@ -80,7 +80,7 @@ def test_missing_cmd_line_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Missing command_line entry"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))
 
 
 def test_empty_cmd_line_raises_error():
@@ -90,4 +90,4 @@ def test_empty_cmd_line_raises_error():
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
         pytest.raises(ValueError, match="Missing command_line entry"),
     ):
-        _ = LSPEngine(Path("stuff"))
+        _ = LSPEngine.from_config_path(Path("stuff"))

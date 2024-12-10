@@ -39,7 +39,7 @@ class _LSPRemorphConfigV1:
 class LSPEngine(TranspileEngine):
 
     @classmethod
-    def with_config_path(cls, config_path: Path) -> LSPEngine:
+    def from_config_path(cls, config_path: Path) -> LSPEngine:
         config, custom = cls._load_config(config_path)
         return LSPEngine(config, custom)
 
