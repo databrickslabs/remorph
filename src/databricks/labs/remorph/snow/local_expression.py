@@ -196,5 +196,14 @@ class NamedStruct(Func):
 class GetJsonObject(Func):
     arg_types = {"this": True, "path": True}
 
+
 class MapProperty(Property):
     arg_types = {"this": False, "name": False}
+
+
+class RangeN(Func):
+    arg_types = {"this": True, "expressions": True, "each": False, "range_spec": False}
+
+
+class CaseN(Func):
+    arg_types = {"this": True, "expression": True, "case_spec": False}

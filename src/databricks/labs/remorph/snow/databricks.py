@@ -476,7 +476,7 @@ class Databricks(org_databricks.Databricks):  #
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)
 
         def create_sql(self, expression: exp.Create) -> str:
-            expression.args["indexes"] = None #Removing indexes from create statement
+            expression.args["indexes"] = None  # Removing indexes from create statement
             return super().create_sql(expression)
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -644,7 +644,6 @@ class Databricks(org_databricks.Databricks):  #
                     return kind_sql
                 case _:
                     return f"CONSTRAINT {this} {kind_sql}" if this else kind_sql
-
 
         def strtok_sql(self, expression: local_expression.StrTok) -> str:
             """

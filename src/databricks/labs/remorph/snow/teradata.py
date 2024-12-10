@@ -1,6 +1,6 @@
-from sqlglot.dialects.teradata import Teradata as org_Teradata
 import typing as t
 
+from sqlglot.dialects.teradata import Teradata as org_Teradata
 from sqlglot import exp
 from sqlglot.tokens import TokenType
 
@@ -25,6 +25,11 @@ class Teradata(org_Teradata):
         PROPERTY_PARSERS = {
             **org_Teradata.Parser.PROPERTY_PARSERS,
             "MAP": lambda self: self._parse_map_property(),
+        }
+
+        FUNCTION_PARSERS = {
+            **org_Teradata.Parser.FUNCTION_PARSERS,
+            "CASE_N": lambda self: self._parse_case_n(),
         }
 
         def _parse_create(self) -> exp.Create | exp.Command:
@@ -166,7 +171,7 @@ class Teradata(org_Teradata):
                 local_expression.MapProperty, this="MAP", name=self._parse_var(any_token=False, tokens=[TokenType.VAR])
             )
 
-        def _parse_rangen(self):
+        def _parse_rangen(self) -> local_expression.RangeN:
             this = self._parse_id_var()
             self._match(TokenType.BETWEEN)
             expressions = self._parse_csv(self._parse_assignment)
@@ -181,4 +186,25 @@ class Teradata(org_Teradata):
                         final_option = f"{final_option} {self._prev.text} {self._curr.text}"
                         self._advance(1)
 
-            return self.expression(exp.RangeN, this=this, expressions=expressions, each=each, range_spec=final_option)
+            return self.expression(
+                local_expression.RangeN, this=this, expressions=expressions, each=each, range_spec=final_option
+            )
+
+        def _parse_case_n(self) -> local_expression.CaseN:
+            list_exp = []
+            list_exp.append(self._parse_assignment())
+            case_spec = None
+            while self._match(TokenType.COMMA):
+                if self._match_texts(["NO"]):
+                    case_spec = "NO " + self._curr.text
+                    self._advance(1)
+                    if self._match_texts(["OR", ",", "|"]):
+                        case_spec = f"{case_spec} {self._prev.text} {self._curr.text}"
+                        self._advance(1)
+
+                elif self._match_texts(["UNKNOWN"]):
+                    case_spec = self._prev.text
+                else:
+                    list_exp.append(self._parse_assignment())
+
+            return self.expression(local_expression.CaseN, this="CASE_N", expression=list_exp, case_spec=case_spec)
