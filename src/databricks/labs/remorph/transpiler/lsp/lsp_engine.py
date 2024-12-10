@@ -20,7 +20,7 @@ class _LSPRemorphConfigV1:
     def parse(cls, data: dict[str, Any]) -> _LSPRemorphConfigV1:
         version = data.get("version", 0)
         if version != 1:
-            raise ValueError(f"Unsupported transpiler version: {version}")
+            raise ValueError(f"Unsupported transpiler config version: {version}")
         dialects = data.get("dialects", [])
         if len(dialects) == 0:
             raise ValueError("Missing dialects entry")
