@@ -23,7 +23,7 @@ def mock_workspace_client_cli():
                 'version': 1,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
-                'source': 'snowflake',
+                'source_dialect': 'snowflake',
                 'sdk_config': {'cluster_id': 'test_cluster'},
             }
         ),
@@ -174,8 +174,8 @@ def test_transpile_with_no_sdk_config():
     ):
         default_config = TranspileConfig(
             sdk_config=None,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -198,8 +198,8 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=None,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -219,8 +219,8 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -243,8 +243,8 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -264,8 +264,8 @@ def test_transpile_with_cluster_id_in_sdk_config():
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
             sdk_config=sdk_config,
-            source="snowflake",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
             skip_validation=True,
             catalog_name="my_catalog",
@@ -288,8 +288,8 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source="snowflake",
-                input_sql="/path/to/sql/file.sql",
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -300,7 +300,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
 
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source'"):
+    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
         cli.transpile(
             mock_workspace_client_cli,
             "invalid_dialect",
@@ -316,7 +316,7 @@ def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
 def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--skip_validation'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--skip-validation'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -330,10 +330,10 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
         )
 
 
-def test_invalid_input_sql(mock_workspace_client_cli):
+def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input_sql'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -375,8 +375,8 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source=source,
-                input_sql=input_sql,
+                source_dialect=source,
+                input_source=input_sql,
                 output_folder=output_folder,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -387,7 +387,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
 
 
 def test_transpile_empty_output_folder(mock_workspace_client_cli):
-    source = "snowflake"
+    source_dialect = "snowflake"
     input_sql = "/path/to/sql/file2.sql"
     output_folder = ""
     skip_validation = "false"
@@ -403,7 +403,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     ):
         cli.transpile(
             mock_workspace_client_cli,
-            source,
+            source_dialect,
             input_sql,
             output_folder,
             skip_validation,
@@ -415,9 +415,9 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             mock_workspace_client_cli,
             TranspileConfig(
                 sdk_config=sdk_config,
-                source=source,
-                input_sql=input_sql,
-                output_folder=None,
+                source_dialect=source_dialect,
+                input_source=input_sql,
+                output_folder="",
                 skip_validation=False,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
@@ -426,7 +426,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
+def test_transpile_with_invalid_mode(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
@@ -451,35 +451,13 @@ def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--source':"),
-    ):
-        source = "postgres"
-        input_sql = "/path/to/sql/file2.sql"
-        output_folder = ""
-        skip_validation = "false"
-        catalog_name = "my_catalog"
-        schema_name = "my_schema"
-        mode = "preview"
-
-        cli.transpile(
-            mock_workspace_client_cli,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
-
-
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
-        mock_workspace_client_cli, source="snowflake", input_sql=str(input_dir), output_folder=str(output_dir)
+        mock_workspace_client_cli,
+        source_dialect="snowflake",
+        input_source=str(input_dir),
+        output_folder=str(output_dir),
     )
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
@@ -502,24 +480,24 @@ def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_clie
 
 
 def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Error: Invalid value for '--source'"):
+    with pytest.raises(Exception, match="Error: Invalid value for '--source-dialect'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            source="invalid_dialect",
-            input_sql="/path/to/sql/file.sql",
+            source_dialect="invalid_dialect",
+            input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
         )
 
 
-def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
+def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Error: Invalid value for '--input_sql'"),
+        pytest.raises(Exception, match="Error: Invalid value for '--input-source'"),
     ):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            source="snowflake",
-            input_sql="/path/to/invalid/sql/file.sql",
+            source_dialect="snowflake",
+            input_source="/path/to/invalid/sql/file.sql",
             output_folder="/path/to/output",
         )
 
@@ -531,8 +509,8 @@ def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypa
     with pytest.raises(Exception, match="Error: Invalid value for '--output-folder'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            source="snowflake",
-            input_sql=input_sql,
+            source_dialect="snowflake",
+            input_source=input_sql,
             output_folder=output_folder,
         )
 
