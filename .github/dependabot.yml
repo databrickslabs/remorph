@@ -13,6 +13,11 @@ updates:
     schedule:
       interval: "daily"
     ignore:
+      # Ignore "preview" releases: in general we only want final releases.
+      # Example: com.microsoft.sqlserver:mssql-jdbc:12.9.0.jre8-preview
+      - dependency-name: "*"
+        versions:
+          - "*-preview"
       # Ignore updates for Databricks Connect: the version in use needs to match the testing infrastructure.
       - dependency-name: "com.databricks:databricks-connect"
       # Ignore updates for Scala: we manage this dependency manually.
