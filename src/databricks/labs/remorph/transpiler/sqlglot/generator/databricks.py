@@ -2,14 +2,14 @@ import logging
 import re
 
 from sqlglot import expressions as exp
-from sqlglot.dialects import databricks as org_databricks
-from sqlglot.dialects import hive
+from sqlglot.dialects.databricks import Databricks as SqlglotDatabricks
+from sqlglot.dialects.hive import Hive
 from sqlglot.dialects.dialect import if_sql
 from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.transpiler.sqlglot import lca_utils, local_expression
+from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 # pylint: disable=too-many-public-methods
 
@@ -127,7 +127,7 @@ def _generate_lateral_statement(self, select_contains_index, has_parse_json, gen
     return lateral_statement
 
 
-def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
+def _lateral_view(self: SqlglotDatabricks.Generator, expression: exp.Lateral) -> str:
     has_parse_json = _has_parse_json(expression)
     this = expression.args['this']
     alias = expression.args['alias']
@@ -186,7 +186,7 @@ def try_to_date(self, expression: local_expression.TryToDate):
     func = "TRY_TO_TIMESTAMP"
     time_format = self.sql(expression, "format")
     if not time_format:
-        time_format = hive.Hive.DATE_FORMAT
+        time_format = Hive.DATE_FORMAT
 
     ts_result = self.func(func, expression.this, time_format)
     return exp.Date(this=ts_result)
@@ -212,7 +212,7 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _to_boolean(self: org_databricks.Databricks.Generator, expression: local_expression.ToBoolean) -> str:
+def _to_boolean(self: SqlglotDatabricks.Generator, expression: local_expression.ToBoolean) -> str:
     this = self.sql(expression, "this")
     logger.debug(f"Converting {this} to Boolean")
     raise_error = self.sql(expression, "raise_error")
@@ -239,7 +239,7 @@ def _to_boolean(self: org_databricks.Databricks.Generator, expression: local_exp
     return transformed
 
 
-def _is_integer(self: org_databricks.Databricks.Generator, expression: local_expression.IsInteger) -> str:
+def _is_integer(self: SqlglotDatabricks.Generator, expression: local_expression.IsInteger) -> str:
     this = self.sql(expression, "this")
     transformed = f"""
     CASE
@@ -252,7 +252,7 @@ def _is_integer(self: org_databricks.Databricks.Generator, expression: local_exp
 
 
 def _parse_json_extract_path_text(
-    self: org_databricks.Databricks.Generator, expression: local_expression.JsonExtractPathText
+    self: SqlglotDatabricks.Generator, expression: local_expression.JsonExtractPathText
 ) -> str:
     this = self.sql(expression, "this")
     path_name = expression.args["path_name"]
@@ -264,14 +264,14 @@ def _parse_json_extract_path_text(
 
 
 def _array_construct_compact(
-    self: org_databricks.Databricks.Generator, expression: local_expression.ArrayConstructCompact
+    self: SqlglotDatabricks.Generator, expression: local_expression.ArrayConstructCompact
 ) -> str:
     exclude = "ARRAY(NULL)"
     array_expr = f"ARRAY({self.expressions(expression, flat=True)})"
     return f"ARRAY_EXCEPT({array_expr}, {exclude})"
 
 
-def _array_slice(self: org_databricks.Databricks.Generator, expression: local_expression.ArraySlice) -> str:
+def _array_slice(self: SqlglotDatabricks.Generator, expression: local_expression.ArraySlice) -> str:
     from_expr = self.sql(expression, "from")
     # In Databricks: array indices start at 1 in function `slice(array, start, length)`
     parsed_from_expr = 1 if from_expr == "0" else from_expr
@@ -328,7 +328,7 @@ def _to_number(self, expression: local_expression.ToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _uuid(self: org_databricks.Databricks.Generator, expression: local_expression.UUID) -> str:
+def _uuid(self: SqlglotDatabricks.Generator, expression: local_expression.UUID) -> str:
     namespace = self.sql(expression, "this")
     name = self.sql(expression, "name")
 
@@ -339,7 +339,7 @@ def _uuid(self: org_databricks.Databricks.Generator, expression: local_expressio
     return "UUID()"
 
 
-def _parse_date_trunc(self: org_databricks.Databricks.Generator, expression: local_expression.DateTrunc) -> str:
+def _parse_date_trunc(self: SqlglotDatabricks.Generator, expression: local_expression.DateTrunc) -> str:
     if not expression.args.get("unit"):
         error_message = f"Required keyword: 'unit' missing for {exp.DateTrunc}"
         raise UnsupportedError(error_message)
@@ -396,21 +396,21 @@ def to_array(self, expression: exp.ToArray) -> str:
     return f"IF({self.sql(expression.this)} IS NULL, NULL, {self.func('ARRAY', expression.this)})"
 
 
-class Databricks(org_databricks.Databricks):  #
+class Databricks(SqlglotDatabricks):  #
     # Instantiate Databricks Dialect
-    databricks = org_databricks.Databricks()
+    databricks = SqlglotDatabricks()
     NULL_ORDERING = "nulls_are_small"
 
-    class Generator(org_databricks.Databricks.Generator):
+    class Generator(SqlglotDatabricks.Generator):
         INVERSE_TIME_MAPPING: dict[str, str] = {
-            **{v: k for k, v in org_databricks.Databricks.TIME_MAPPING.items()},
+            **{v: k for k, v in SqlglotDatabricks.TIME_MAPPING.items()},
             "%-d": "dd",
         }
 
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
         TYPE_MAPPING = {
-            **org_databricks.Databricks.Generator.TYPE_MAPPING,
+            **SqlglotDatabricks.Generator.TYPE_MAPPING,
             exp.DataType.Type.TINYINT: "TINYINT",
             exp.DataType.Type.SMALLINT: "SMALLINT",
             exp.DataType.Type.INT: "INT",
@@ -424,7 +424,7 @@ class Databricks(org_databricks.Databricks):  #
         }
 
         TRANSFORMS = {
-            **org_databricks.Databricks.Generator.TRANSFORMS,
+            **SqlglotDatabricks.Generator.TRANSFORMS,
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
@@ -467,7 +467,11 @@ class Databricks(org_databricks.Databricks):  #
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
-            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
+            # avoid cyclic import
+            # pylint: disable=import-outside-toplevel, cyclic-import
+            from databricks.labs.remorph.transpiler.sqlglot.lca_utils import unalias_lca_in_select
+
+            fixed_ast = expression.transform(unalias_lca_in_select, copy=False)
             return super().preprocess(fixed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
@@ -746,7 +750,7 @@ class Databricks(org_databricks.Databricks):  #
 
             return self.function_fallback_sql(expression)
 
-        def anonymous_sql(self: org_databricks.Databricks.Generator, expression: exp.Anonymous) -> str:
+        def anonymous_sql(self: SqlglotDatabricks.Generator, expression: exp.Anonymous) -> str:
             if expression.this == "EDITDISTANCE":
                 return self.func("LEVENSHTEIN", *expression.expressions)
             if expression.this == "TO_TIMESTAMP":

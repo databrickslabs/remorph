@@ -11,10 +11,10 @@ from pyspark.testing import assertDataFrameEqual
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
-    get_dialect,
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource

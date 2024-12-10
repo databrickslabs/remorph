@@ -1,40 +1,12 @@
 import logging
 from dataclasses import dataclass
-
-from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
+from pathlib import Path
 
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake
+
 
 logger = logging.getLogger(__name__)
-
-SQLGLOT_DIALECTS: dict[str, DialectType] = {
-    "athena": Dialects.ATHENA,
-    "bigquery": Dialects.BIGQUERY,
-    "databricks": databricks.Databricks,
-    "mysql": Dialects.MYSQL,
-    "netezza": Dialects.POSTGRES,
-    "oracle": oracle.Oracle,
-    "postgresql": Dialects.POSTGRES,
-    "presto": presto.Presto,
-    "redshift": Dialects.REDSHIFT,
-    "snowflake": snowflake.Snowflake,
-    "sqlite": Dialects.SQLITE,
-    "teradata": Dialects.TERADATA,
-    "trino": Dialects.TRINO,
-    "tsql": Dialects.TSQL,
-    "vertica": Dialects.POSTGRES,
-}
-
-
-def get_dialect(engine: str) -> Dialect:
-    return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
-
-
-def get_key_from_dialect(input_dialect: Dialect) -> str:
-    return [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == input_dialect][0]
 
 
 @dataclass
@@ -51,13 +23,19 @@ class TranspileConfig:
     schema_name: str = "transpiler"
     mode: str = "current"
 
-    def get_read_dialect(self):
-        return get_dialect(self.source_dialect)
+    @property
+    def input_path(self):
+        if self.input_source is None:
+            raise ValueError("Missing input source!")
+        return Path(self.input_source)
 
-    def get_write_dialect(self):
-        if self.mode == "experimental":
-            return get_dialect("experimental")
-        return get_dialect("databricks")
+    @property
+    def output_path(self):
+        return None if self.output_folder is None else Path(self.output_folder)
+
+    @property
+    def target_dialect(self):
+        return "experimental" if self.mode == "experimental" else "databricks"
 
 
 @dataclass
