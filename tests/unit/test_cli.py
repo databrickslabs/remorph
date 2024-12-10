@@ -1,6 +1,5 @@
 import datetime
 import io
-from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -485,8 +484,8 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
         cli.generate_lineage(
             mock_workspace_client_cli,
             source_dialect="invalid_dialect",
-            input_source=Path("/path/to/sql/file.sql"),
-            output_folder=Path("/path/to/output"),
+            input_source="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
         )
 
 
@@ -498,8 +497,8 @@ def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
         cli.generate_lineage(
             mock_workspace_client_cli,
             source_dialect="snowflake",
-            input_source=Path("/path/to/invalid/sql/file.sql"),
-            output_folder=Path("/path/to/output"),
+            input_source="/path/to/invalid/sql/file.sql",
+            output_folder="/path/to/output",
         )
 
 
