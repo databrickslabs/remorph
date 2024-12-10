@@ -1,0 +1,10 @@
+remorph:
+  version: 1
+  dialects:
+    - snowflake
+    - oracle
+  environment:
+    - SOME_ENV: abc
+  command_line: python lsp_server.py
+transpiler:
+  whatever: xyz
