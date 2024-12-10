@@ -1,0 +1,2 @@
+-- tsql sql:
+CREATE SEARCH PROPERTY LIST ContractPropertyList; -- REMORPH CLEANUP: DROP SEARCH PROPERTY LIST ContractPropertyList;

@@ -1,0 +1,4 @@
+-- tsql sql:
+CREATE DATABASE NewParts;
+ALTER AUTHORIZATION ON DATABASE::NewParts TO HiroshiNakamura;
+-- REMORPH CLEANUP: DROP DATABASE NewParts;
