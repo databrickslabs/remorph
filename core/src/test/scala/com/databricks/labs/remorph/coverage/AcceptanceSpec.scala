@@ -12,7 +12,7 @@ abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec 
       runner.runAcceptanceTest(test) match {
         case None => pending
         case Some(r) if r.isSuccess => succeed
-        case Some(r) if runner.shouldFailParse.contains(test.testName) && r.failedParseOnly => succeed
+        case Some(r) if runner.shouldFailParse(test.testName) && r.failedParseOnly => succeed
         case Some(report) => fail(report.errorMessage.getOrElse(""))
       }
     }
