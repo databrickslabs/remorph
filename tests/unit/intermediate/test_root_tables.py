@@ -1,11 +1,9 @@
-from unittest.mock import create_autospec
 
 import pytest
 
 from databricks.labs.remorph.intermediate.root_tables import RootTableLocator
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
 @pytest.fixture(autouse=True)

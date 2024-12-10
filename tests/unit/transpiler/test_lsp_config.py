@@ -33,61 +33,25 @@ custom:
 )
 
 
-def test_missing_version_raises_error():
+@pytest.mark.parametrize(
+    "key, value, message",
+    [
+        ("version", None, "Unsupported transpiler config version"),
+        ("version", 0, "Unsupported transpiler config version"),
+        ("dialects", None, "Missing dialects entry"),
+        ("dialects", [], "Missing dialects entry"),
+        ("command_line", None, "Missing command_line entry"),
+        ("command_line", [], "Missing command_line entry"),
+    ],
+)
+def test_invalid_config_raises_error(key, value, message):
     config = copy.deepcopy(VALID_CONFIG)
-    del config["remorph"]["version"]
+    if value is None:
+        del config["remorph"][key]
+    else:
+        config["remorph"][key] = value
     with (
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Unsupported transpiler config version"),
-    ):
-        _ = LSPEngine.from_config_path(Path("stuff"))
-
-
-def test_invalid_version_raises_error():
-    config = copy.deepcopy(VALID_CONFIG)
-    config["remorph"]["version"] = 0
-    with (
-        patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Unsupported transpiler config version"),
-    ):
-        _ = LSPEngine.from_config_path(Path("stuff"))
-
-
-def test_missing_dialects_raises_error():
-    config = copy.deepcopy(VALID_CONFIG)
-    del config["remorph"]["dialects"]
-    with (
-        patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Missing dialects entry"),
-    ):
-        _ = LSPEngine.from_config_path(Path("stuff"))
-
-
-def test_empty_dialects_raises_error():
-    config = copy.deepcopy(VALID_CONFIG)
-    config["remorph"]["dialects"] = []
-    with (
-        patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Missing dialects entry"),
-    ):
-        _ = LSPEngine.from_config_path(Path("stuff"))
-
-
-def test_missing_cmd_line_raises_error():
-    config = copy.deepcopy(VALID_CONFIG)
-    del config["remorph"]["command_line"]
-    with (
-        patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Missing command_line entry"),
-    ):
-        _ = LSPEngine.from_config_path(Path("stuff"))
-
-
-def test_empty_cmd_line_raises_error():
-    config = copy.deepcopy(VALID_CONFIG)
-    config["remorph"]["command_line"] = []
-    with (
-        patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
-        pytest.raises(ValueError, match="Missing command_line entry"),
+        pytest.raises(ValueError, match=message),
     ):
         _ = LSPEngine.from_config_path(Path("stuff"))
