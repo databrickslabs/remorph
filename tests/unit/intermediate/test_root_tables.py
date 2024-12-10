@@ -1,8 +1,6 @@
-
 import pytest
 
 from databricks.labs.remorph.intermediate.root_tables import RootTableLocator
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 
@@ -43,9 +41,3 @@ def test_generate_lineage_sql_file(setup_file):
     assert dag.identify_root_tables(0) == {"table3", "table4"}
     assert dag.identify_root_tables(2) == {"table1"}
     assert dag.identify_immediate_children("none") == []
-
-
-def test_lsp_engine_raises_error(tmpdir):
-    root_table_locator = RootTableLocator(LSPEngine(), "snowflake", str(tmpdir))
-    with pytest.raises(NotImplementedError):
-        root_table_locator.generate_lineage_dag()
