@@ -50,7 +50,7 @@ def _process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(get_dialect(config.source.lower()), sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(get_dialect(config.source_dialect.lower()), sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)
@@ -155,11 +155,11 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
-    if not config.input_sql:
+    if not config.input_source:
         logger.error("Input SQL path is not provided.")
         raise ValueError("Input SQL path is not provided.")
 
-    input_sql = Path(config.input_sql)
+    input_sql = Path(config.input_source)
     status = []
     result = TranspileStatus([], 0, 0, 0, [])
 

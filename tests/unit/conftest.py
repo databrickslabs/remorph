@@ -70,8 +70,8 @@ def mock_workspace_client():
 def morph_config():
     yield TranspileConfig(
         sdk_config={"cluster_id": "test_cluster"},
-        source="snowflake",
-        input_sql="input_sql",
+        source_dialect="snowflake",
+        input_source="input_sql",
         output_folder="output_folder",
         skip_validation=False,
         catalog_name="catalog",

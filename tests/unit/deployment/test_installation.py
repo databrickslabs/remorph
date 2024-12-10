@@ -42,8 +42,8 @@ def test_install_all(ws):
     upgrades = create_autospec(Upgrades)
 
     transpile_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow6",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow6",
         output_folder="/tmp/queries/databricks6",
         skip_validation=True,
         catalog_name="remorph6",
@@ -78,8 +78,8 @@ def test_no_recon_component_installation(ws):
     upgrades = create_autospec(Upgrades)
 
     transpile_config = TranspileConfig(
-        source="snowflake",
-        input_sql="/tmp/queries/snow7",
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow7",
         output_folder="/tmp/queries/databricks7",
         skip_validation=True,
         catalog_name="remorph7",
@@ -164,8 +164,8 @@ def test_uninstall_configs_exist(ws):
     )
 
     transpile_config = TranspileConfig(
-        source="snowflake",
-        input_sql="sf_queries1",
+        source_dialect="snowflake",
+        input_source="sf_queries1",
         output_folder="out_dir1",
         skip_validation=True,
         catalog_name="transpiler_test1",
