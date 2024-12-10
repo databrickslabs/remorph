@@ -3,12 +3,12 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.transpiler.execute import morph
+from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
 
@@ -69,7 +69,7 @@ def transpile(
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
     schema_name = schema_name if schema_name else default_config.schema_name
 
-    config = MorphConfig(
+    config = TranspileConfig(
         source=source.lower(),
         input_sql=input_sql,
         output_folder=output_folder,
@@ -80,7 +80,7 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = morph(ctx.workspace_client, config)
+    status = do_transpile(ctx.workspace_client, config)
 
     print(json.dumps(status))
 
