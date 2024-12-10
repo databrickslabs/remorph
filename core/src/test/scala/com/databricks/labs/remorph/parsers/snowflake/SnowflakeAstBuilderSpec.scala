@@ -1,10 +1,17 @@
-package com.databricks.labs.remorph.parsers.snowflake
+package com.databricks.labs.remorph.parsers
+package snowflake
 
 import com.databricks.labs.remorph.intermediate._
+import com.databricks.labs.remorph.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
+class SnowflakeAstBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with SetOperationBehaviors[SnowflakeParser]
+    with Matchers
+    with IRHelpers {
 
   override protected def astBuilder: SnowflakeAstBuilder = vc.astBuilder
 
@@ -339,29 +346,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(Id("c2"), Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
     }
 
-    "translate a query with set operators" should {
-      "SELECT a FROM t1 UNION SELECT b FROM t2" in {
-        singleQueryExample(
-          "SELECT a FROM t1 UNION SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            UnionSetOp,
-            is_all = false,
-            by_name = false,
-            allow_missing_columns = false))
-      }
-      "SELECT a FROM t1 UNION ALL SELECT b FROM t2" in {
-        singleQueryExample(
-          "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            UnionSetOp,
-            is_all = true,
-            by_name = false,
-            allow_missing_columns = false))
-      }
+    behave like setOperationsAreTranslated(_.queryExpression())
+
+    "translate Snowflake-specific set operators" should {
       "SELECT a FROM t1 MINUS SELECT b FROM t2" in {
         singleQueryExample(
           "SELECT a FROM t1 MINUS SELECT b FROM t2",
@@ -373,47 +360,125 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             by_name = false,
             allow_missing_columns = false))
       }
-      "SELECT a FROM t1 EXCEPT SELECT b FROM t2" in {
+      // Part of checking that UNION, EXCEPT and MINUS are processed with the same precedence: left-to-right
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4" should {
         singleQueryExample(
-          "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4",
           SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
             ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))
       }
-      "SELECT a FROM t1 INTERSECT SELECT b FROM t2" in {
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4" should {
         singleQueryExample(
-          "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
-          SetOperation(
-            Project(namedTable("t1"), Seq(Id("a"))),
-            Project(namedTable("t2"), Seq(Id("b"))),
-            IntersectSetOp,
-            is_all = false,
-            by_name = false,
-            allow_missing_columns = false))
-      }
-      "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4" in {
-        singleQueryExample(
-          "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4",
           SetOperation(
             SetOperation(
               SetOperation(
-                Project(namedTable("t1"), Seq(Id("a"))),
-                Project(namedTable("t2"), Seq(Id("b"))),
-                IntersectSetOp,
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                UnionSetOp,
                 is_all = false,
                 by_name = false,
                 allow_missing_columns = false),
-              Project(namedTable("t3"), Seq(Id("c"))),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
               ExceptSetOp,
               is_all = false,
               by_name = false,
               allow_missing_columns = false),
-            Project(namedTable("t4"), Seq(Id("d"))),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 EXCEPT SELECT 2 MINUS SELECT 3 UNION SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 EXCEPT SELECT 2 MINUS SELECT 3 UNION SELECT 4",
+          SetOperation(
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                ExceptSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
             UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT 1 MINUS SELECT 2 UNION SELECT 3 EXCEPT SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 MINUS SELECT 2 UNION SELECT 3 EXCEPT SELECT 4",
+          SetOperation(
+            SetOperation(
+              SetOperation(
+                Project(NoTable, Seq(Literal(1, IntegerType))),
+                Project(NoTable, Seq(Literal(2, IntegerType))),
+                ExceptSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(NoTable, Seq(Literal(3, IntegerType))),
+              UnionSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(NoTable, Seq(Literal(4, IntegerType))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      // INTERSECT has higher precedence than UNION, EXCEPT and MINUS
+      "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 INTERSECT SELECT 4" should {
+        singleQueryExample(
+          "SELECT 1 UNION SELECT 2 EXCEPT SELECT 3 MINUS SELECT 4 INTERSECT SELECT 5",
+          ir.SetOperation(
+            ir.SetOperation(
+              ir.SetOperation(
+                ir.Project(ir.NoTable, Seq(ir.Literal(1, ir.IntegerType))),
+                ir.Project(ir.NoTable, Seq(ir.Literal(2, ir.IntegerType))),
+                ir.UnionSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              ir.Project(ir.NoTable, Seq(ir.Literal(3, ir.IntegerType))),
+              ir.ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.SetOperation(
+              ir.Project(ir.NoTable, Seq(ir.Literal(4, ir.IntegerType))),
+              ir.Project(ir.NoTable, Seq(ir.Literal(5, ir.IntegerType))),
+              ir.IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            ir.ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false))

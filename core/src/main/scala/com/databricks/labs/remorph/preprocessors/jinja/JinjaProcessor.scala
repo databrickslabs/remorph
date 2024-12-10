@@ -40,8 +40,14 @@ class JinjaProcessor extends Processor {
               loopStep(tokenStream, DBTPreprocessorLexer.COMMENT_END, preprocessedSoFar)
             case DBTPreprocessorLexer.C | DBTPreprocessorLexer.WS =>
               updatePhase { case p: PreProcessing =>
-                tokenStream.consume()
-                p.copy(preprocessedInputSoFar = preprocessedSoFar + token.getText)
+                val sb = new StringBuilder()
+                var tok = token
+                while (tok.getType == DBTPreprocessorLexer.C || tok.getType == DBTPreprocessorLexer.WS) {
+                  tokenStream.consume()
+                  sb.append(tok.getText)
+                  tok = tokenStream.LT(1)
+                }
+                p.copy(preprocessedInputSoFar = preprocessedSoFar + sb.toString())
               }.flatMap(_ => loop)
             case _ =>
               lift(

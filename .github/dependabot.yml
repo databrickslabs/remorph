@@ -12,3 +12,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      # Ignore updates for Databricks Connect: the version in use needs to match the testing infrastructure.
+      - dependency-name: "com.databricks:databricks-connect"
+      # Ignore updates for Scala: we manage this dependency manually.
+      - dependency-name: "org.scala-lang:scala-library"

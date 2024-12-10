@@ -12,7 +12,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     SchemaReconcileOutput,
     Table,
 )
-from databricks.labs.remorph.snow.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 

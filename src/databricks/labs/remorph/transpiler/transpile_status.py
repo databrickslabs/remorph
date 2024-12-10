@@ -14,7 +14,7 @@ class ValidationError:
 
 
 @dataclass
-class MorphStatus:
+class TranspileStatus:
     file_list: list[str]
     no_of_queries: int
     parse_error_count: int
