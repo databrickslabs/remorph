@@ -414,3 +414,10 @@ def report_tables_schema():
     )
 
     return recon_schema, metrics_schema, details_schema
+
+
+def path_to_resource(*args: str) -> str:
+    resource_path = Path(__file__).parent.parent / "resources"
+    for arg in args:
+        resource_path = resource_path / arg
+    return str(resource_path)
