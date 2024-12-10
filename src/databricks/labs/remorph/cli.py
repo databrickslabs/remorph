@@ -15,7 +15,6 @@ from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
@@ -54,7 +53,7 @@ def transpile(
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler))
-    source_dialect = engine.check_source_dialect(source_dialect)
+    source_dialect = engine.check_source_dialect(source_dialect or "")
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
@@ -64,9 +63,7 @@ def transpile(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
-        raise_validation_exception(
-            f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'."
-        )
+        raise_validation_exception(f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'.")
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
@@ -141,22 +138,14 @@ def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, i
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
-    if transpiler.lower() != "sqlglot":
-        if not Path(transpiler).exists():
-            raise_validation_exception(f"Invalid value for '--transpiler': '{transpiler}', file does not exist.")
-    if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        dialects = sorted(SQLGLOT_DIALECTS.keys())
-        raise_validation_exception(
-            f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {dialects}."
-        )
+    engine = TranspileEngine.load_engine(Path(transpiler))
+    source_dialect = engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
-        raise_validation_exception(
-            f"Invalid value for '--output-folder': Path '{output_folder}' does not exist."
-        )
+        raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
 
-    lineage_generator(source_dialect, input_source, output_folder)
+    lineage_generator(engine, source_dialect, input_source, output_folder)
 
 
 @remorph.command

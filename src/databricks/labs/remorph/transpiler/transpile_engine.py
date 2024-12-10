@@ -1,5 +1,6 @@
 from __future__ import annotations
 import abc
+from collections.abc import Iterable
 from pathlib import Path
 
 from databricks.labs.remorph.config import TranspilationResult
@@ -23,6 +24,11 @@ class TranspileEngine(abc.ABC):
         return LSPEngine(transpiler)
 
     @abc.abstractmethod
+    def analyse_table_lineage(
+        self, source_dialect: str, source_code: str, file_path: Path
+    ) -> Iterable[tuple[str, str]]: ...
+
+    @abc.abstractmethod
     def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
     ) -> TranspilationResult: ...
@@ -38,8 +44,9 @@ class TranspileEngine(abc.ABC):
         if not source_dialect:
             if len(self.supported_dialects) == 1:
                 return self.supported_dialects[0]
-            else:
-                raise ValueError(f"Missing value for '--source-dialect': '{source_dialect}'.")
+            raise ValueError(f"Missing value for '--source-dialect': '{source_dialect}'.")
         if source_dialect not in self.supported_dialects:
-            raise ValueError(f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {self.supported_dialects}.")
+            raise ValueError(
+                f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {self.supported_dialects}."
+            )
         return source_dialect

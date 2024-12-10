@@ -15,7 +15,9 @@ def test_valid_config():
     engine = LSPEngine(Path(config))
     assert engine.supported_dialects == ["snowflake", "oracle"]
 
-VALID_CONFIG: dict[str, Any] = yaml.safe_load("""remorph:
+
+VALID_CONFIG: dict[str, Any] = yaml.safe_load(
+    """remorph:
   version: 1
   dialects:
     - snowflake
@@ -27,7 +29,8 @@ VALID_CONFIG: dict[str, Any] = yaml.safe_load("""remorph:
     - lsp_server.py
 custom:
   whatever: xyz
-""")
+"""
+)
 
 
 def test_missing_version_raises_error():
@@ -39,6 +42,7 @@ def test_missing_version_raises_error():
     ):
         _ = LSPEngine(Path("stuff"))
 
+
 def test_invalid_version_raises_error():
     config = copy.deepcopy(VALID_CONFIG)
     config["remorph"]["version"] = 0
@@ -47,6 +51,7 @@ def test_invalid_version_raises_error():
         pytest.raises(ValueError, match="Unsupported transpiler config version"),
     ):
         _ = LSPEngine(Path("stuff"))
+
 
 def test_missing_dialects_raises_error():
     config = copy.deepcopy(VALID_CONFIG)
@@ -57,6 +62,7 @@ def test_missing_dialects_raises_error():
     ):
         _ = LSPEngine(Path("stuff"))
 
+
 def test_empty_dialects_raises_error():
     config = copy.deepcopy(VALID_CONFIG)
     config["remorph"]["dialects"] = []
@@ -66,6 +72,7 @@ def test_empty_dialects_raises_error():
     ):
         _ = LSPEngine(Path("stuff"))
 
+
 def test_missing_cmd_line_raises_error():
     config = copy.deepcopy(VALID_CONFIG)
     del config["remorph"]["command_line"]
@@ -74,6 +81,7 @@ def test_missing_cmd_line_raises_error():
         pytest.raises(ValueError, match="Missing command_line entry"),
     ):
         _ = LSPEngine(Path("stuff"))
+
 
 def test_empty_cmd_line_raises_error():
     config = copy.deepcopy(VALID_CONFIG)

@@ -164,8 +164,9 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
-    :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
+    :param engine: The TranspileEngine.
+    :param config: The configuration for the morph operation.
     """
     if not config.input_source:
         logger.error("Input SQL path is not provided.")

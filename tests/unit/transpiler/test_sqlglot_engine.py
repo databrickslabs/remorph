@@ -94,6 +94,6 @@ def test_find_root_tables(transpiler):
 
 
 def test_parse_sql_content(transpiler):
-    result = list(transpiler.parse_sql_content("databricks", "SELECT * FROM table_name", Path("test.sql")))
+    result = list(transpiler.analyse_table_lineage("databricks", "SELECT * FROM table_name", Path("test.sql")))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"

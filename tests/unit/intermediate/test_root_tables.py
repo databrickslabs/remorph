@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.remorph.intermediate.root_tables import RootTableIdentifier
+from databricks.labs.remorph.intermediate.root_tables import RootTableLocator
 
 
 @pytest.fixture(autouse=True)
@@ -17,7 +17,7 @@ def setup_file(tmpdir):
 
 
 def test_generate_lineage(tmpdir):
-    root_table_identifier = RootTableIdentifier("snowflake", str(tmpdir))
+    root_table_identifier = RootTableLocator("snowflake", str(tmpdir))
     dag = root_table_identifier.generate_lineage()
     roots = ["table2", "table3", "table4"]
 
@@ -30,7 +30,7 @@ def test_generate_lineage(tmpdir):
 
 
 def test_generate_lineage_sql_file(setup_file):
-    root_table_identifier = RootTableIdentifier("snowflake", str(setup_file))
+    root_table_identifier = RootTableLocator("snowflake", str(setup_file))
     dag = root_table_identifier.generate_lineage(engine="sqlglot")
     roots = ["table2", "table3", "table4"]
 
@@ -43,6 +43,6 @@ def test_generate_lineage_sql_file(setup_file):
 
 
 def test_non_sqlglot_engine_raises_error(tmpdir):
-    root_table_identifier = RootTableIdentifier("snowflake", str(tmpdir))
+    root_table_identifier = RootTableLocator("snowflake", str(tmpdir))
     with pytest.raises(ValueError):
         root_table_identifier.generate_lineage(engine="antlr")

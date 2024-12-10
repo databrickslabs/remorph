@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -60,4 +62,9 @@ class LSPEngine(TranspileEngine):
         raise NotImplementedError
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
+        raise NotImplementedError
+
+    def analyse_table_lineage(
+        self, source_dialect: str, source_code: str, file_path: Path
+    ) -> Iterable[tuple[str, str]]:
         raise NotImplementedError
