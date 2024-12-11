@@ -138,10 +138,10 @@ def initial_setup(tmp_path: Path):
 def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir),
+        input_source=str(input_dir),
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -194,10 +194,10 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir),
+        input_source=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
@@ -251,10 +251,10 @@ def test_with_file(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
+        input_source=str(input_dir / "query1.sql"),
         output_folder="None",
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -304,10 +304,10 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
 def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
+        input_source=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -338,10 +338,10 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
 def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "file.txt"),
+        input_source=str(input_dir / "file.txt"),
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -372,10 +372,10 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
 def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "file_not_exist.txt"),
+        input_source=str(input_dir / "file_not_exist.txt"),
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
@@ -391,7 +391,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
 
 def test_morph_sql(mock_workspace_client):
     config = TranspileConfig(
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
@@ -413,7 +413,7 @@ def test_morph_sql(mock_workspace_client):
 
 def test_morph_column_exp(mock_workspace_client):
     config = TranspileConfig(
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
         catalog_name="catalog",
         schema_name="schema",
@@ -446,10 +446,10 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
-        input_sql=str(input_dir / "query1.sql"),
+        input_source=str(input_dir / "query1.sql"),
         output_folder="None",
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -482,10 +482,10 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
 
 def test_with_input_sql_none(initial_setup, mock_workspace_client):
     config = TranspileConfig(
-        input_sql=None,
+        input_source=None,
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 

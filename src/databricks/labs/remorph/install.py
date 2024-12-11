@@ -143,10 +143,10 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            source=source,
+            source_dialect=source,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
-            input_sql=input_sql,
+            input_source=input_sql,
             output_folder=output_folder,
         )
 
