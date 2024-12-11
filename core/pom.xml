@@ -22,7 +22,7 @@
     <antlr.version>4.13.2</antlr.version>
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
-    <databricks-sdk-java.version>0.36.0</databricks-sdk-java.version>
+    <databricks-sdk-java.version>0.37.0</databricks-sdk-java.version>
     <!-- Note: DB-connect must match the version in our testing infrastructure. -->
     <databricks-connect.version>15.1.0</databricks-connect.version>
     <circe.version>0.14.2</circe.version>
@@ -253,7 +253,7 @@
           <plugin>
             <groupId>com.github.eirslett</groupId>
             <artifactId>frontend-maven-plugin</artifactId>
-            <version>1.15.0</version>
+            <version>1.15.1</version>
             <configuration>
               <nodeVersion>v22.3.0</nodeVersion>
               <installDirectory>${project.build.directory}</installDirectory>
@@ -319,7 +319,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.6.0</version>
+            <version>3.7.1</version>
             <configuration>
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>

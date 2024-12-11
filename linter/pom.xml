@@ -62,7 +62,7 @@
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
-      <version>0.36.0</version>
+      <version>0.37.0</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
