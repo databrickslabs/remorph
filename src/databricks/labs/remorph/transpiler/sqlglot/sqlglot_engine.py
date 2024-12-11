@@ -53,20 +53,17 @@ class SqlglotEngine(TranspileEngine):
                 child: str = str(file_path)
                 if expr is not None:
                     for ddl in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        _child = self._find_root_tables(ddl)
-                        child = _child or child
+                        child = self._find_root_table(ddl) or child
 
                     for query in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                        _table = self._find_root_tables(query)
-                        if not _table:
-                            continue
-                        yield _table, child
+                        table = self._find_root_table(query)
+                        if table:
+                            yield table, child
 
     @staticmethod
-    def _find_root_tables(expression) -> str:
-        for table in expression.find_all(exp.Table, bfs=False):
-            return table.name
-        return ""
+    def _find_root_table(expression) -> str:
+        table = expression.find_all(exp.Table, bfs=False)
+        return table.name if table else ""
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
