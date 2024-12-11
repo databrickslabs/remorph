@@ -71,32 +71,112 @@ class TSqlRelationBuilderSpec
     }
 
     "translate ORDER BY clauses" should {
-      "FROM some_table ORDER BY some_column" in {
+      "SELECT 1 AS n ORDER BY n" in {
         example(
-          "FROM some_table ORDER BY some_column",
-          _.selectOptionalClauses(),
+          "SELECT 1 AS n ORDER BY n",
+          _.selectStatement(),
           ir.Sort(
-            namedTable("some_table"),
-            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-            is_global = false))
+            ir.Project(ir.NoTable, Seq(ir.Alias(ir.Literal(1, ir.IntegerType), ir.Id("n")))),
+            Seq(ir.SortOrder(simplyNamedColumn("n"), ir.Ascending, ir.SortNullsUnspecified))))
       }
-      "FROM some_table ORDER BY some_column ASC" in {
+      "SELECT 1 AS n ORDER BY n ASC" in {
         example(
-          "FROM some_table ORDER BY some_column ASC",
-          _.selectOptionalClauses(),
+          "SELECT 1 AS n ORDER BY n ASC",
+          _.selectStatement(),
           ir.Sort(
-            namedTable("some_table"),
-            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-            is_global = false))
+            ir.Project(ir.NoTable, Seq(ir.Alias(ir.Literal(1, ir.IntegerType), ir.Id("n")))),
+            Seq(ir.SortOrder(simplyNamedColumn("n"), ir.Ascending, ir.SortNullsUnspecified))))
       }
-      "FROM some_table ORDER BY some_column DESC" in {
+      "SELECT 1 AS n ORDER BY n DESC" in {
         example(
-          "FROM some_table ORDER BY some_column DESC",
-          _.selectOptionalClauses(),
+          "SELECT 1 AS n ORDER BY n DESC",
+          _.selectStatement(),
           ir.Sort(
-            namedTable("some_table"),
-            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Descending, ir.SortNullsUnspecified)),
-            is_global = false))
+            ir.Project(ir.NoTable, Seq(ir.Alias(ir.Literal(1, ir.IntegerType), ir.Id("n")))),
+            Seq(ir.SortOrder(simplyNamedColumn("n"), ir.Descending, ir.SortNullsUnspecified))))
+      }
+      "SELECT 1 AS n, 2 AS m ORDER BY m, n DESC" in {
+        example(
+          "SELECT 1 AS n, 2 AS m ORDER BY m, n DESC",
+          _.selectStatement(),
+          ir.Sort(
+            ir.Project(
+              ir.NoTable,
+              Seq(
+                ir.Alias(ir.Literal(1, ir.IntegerType), ir.Id("n")),
+                ir.Alias(ir.Literal(2, ir.IntegerType), ir.Id("m")))),
+            Seq(
+              ir.SortOrder(simplyNamedColumn("m"), ir.Ascending, ir.SortNullsUnspecified),
+              ir.SortOrder(simplyNamedColumn("n"), ir.Descending, ir.SortNullsUnspecified))))
+      }
+      "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS",
+          _.selectStatement(),
+          ir.Offset(
+            ir.Sort(
+              ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+              Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified))),
+            ir.Literal(0, ir.IntegerType)))
+      }
+      "SELECT * FROM some_table ORDER BY some_column OFFSET 1 ROW" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column OFFSET 1 ROW",
+          _.selectStatement(),
+          ir.Offset(
+            ir.Sort(
+              ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+              Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified))),
+            ir.Literal(1, ir.IntegerType)))
+      }
+      "SELECT * FROM some_table ORDER BY some_column DESC, another_column OFFSET 10 ROWS" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column DESC, another_column OFFSET 10 ROWS",
+          _.selectStatement(),
+          ir.Offset(
+            ir.Sort(
+              ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+              Seq(
+                ir.SortOrder(simplyNamedColumn("some_column"), ir.Descending, ir.SortNullsUnspecified),
+                ir.SortOrder(simplyNamedColumn("another_column"), ir.Ascending, ir.SortNullsUnspecified))),
+            ir.Literal(10, ir.IntegerType)))
+      }
+      // OFFSET expression (ROW | ROWS) (FETCH (FIRST | NEXT) expression (ROW | ROWS) ONLY)?
+      "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY",
+          _.selectStatement(),
+          ir.Limit(
+            ir.Offset(
+              ir.Sort(
+                ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+                Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified))),
+              ir.Literal(0, ir.IntegerType)),
+            ir.Literal(5, ir.IntegerType)))
+      }
+      "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY",
+          _.selectStatement(),
+          ir.Limit(
+            ir.Offset(
+              ir.Sort(
+                ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+                Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified))),
+              ir.Literal(0, ir.IntegerType)),
+            ir.Literal(5, ir.IntegerType)))
+      }
+      "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 1 ROW ONLY" in {
+        example(
+          "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 1 ROW ONLY",
+          _.selectStatement(),
+          ir.Limit(
+            ir.Offset(
+              ir.Sort(
+                ir.Project(namedTable("some_table"), Seq(ir.Star(None))),
+                Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified))),
+              ir.Literal(0, ir.IntegerType)),
+            ir.Literal(1, ir.IntegerType)))
       }
     }
 
@@ -110,19 +190,6 @@ class TSqlRelationBuilderSpec
             group_type = ir.GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None))
-      }
-      "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column" in {
-        example(
-          "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column",
-          _.selectOptionalClauses(),
-          ir.Sort(
-            ir.Aggregate(
-              child = ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))),
-              group_type = ir.GroupBy,
-              grouping_expressions = Seq(simplyNamedColumn("some_column")),
-              pivot = None),
-            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-            is_global = false))
       }
     }
 
