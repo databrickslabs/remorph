@@ -38,7 +38,7 @@ class SqlglotEngine(TranspileEngine):
 
         return expression, error
 
-    def parse_sql_content(self, source_dialect: str, source_code: str, file_path: Path):
+    def analyse_table_lineage(self, source_dialect: str, source_code: str, file_path: Path):
         parsed_expression, _ = self.parse(source_dialect, source_code, file_path)
         if parsed_expression is not None:
             for expr in parsed_expression:
