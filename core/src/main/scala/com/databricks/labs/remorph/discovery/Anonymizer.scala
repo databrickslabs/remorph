@@ -144,7 +144,6 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging with TransformationC
       }
       .map { erasedLiterals =>
         val code = erasedLiterals.asCode
-        println(code)
         val digest = MessageDigest.getInstance("SHA-1")
         digest.update(code.getBytes)
         digest.digest().map("%02x".format(_)).mkString

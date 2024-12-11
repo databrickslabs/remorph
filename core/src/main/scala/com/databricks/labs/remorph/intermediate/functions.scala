@@ -20,7 +20,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers with TransformationCon
   override final def apply(plan: LogicalPlan): Transformation[LogicalPlan] = {
     plan transformAllExpressions { case fn: Fn =>
       try {
-        ok(convert(fn))
+        convert(fn)
       } catch {
         case e: IndexOutOfBoundsException =>
           lift(PartialResult(fn, WrongNumberOfArguments(fn.prettyName, fn.children.size, e.getMessage)))
@@ -31,7 +31,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers with TransformationCon
   }
 
   /** This function is supposed to be overridden by dialects */
-  def convert(call: Fn): Expression = withNormalizedName(call) match {
+  def convert(call: Fn): Transformation[Expression] = ok(withNormalizedName(call) match {
     case CallFunction("ABS", args) => Abs(args.head)
     case CallFunction("ACOS", args) => Acos(args.head)
     case CallFunction("ACOSH", args) => Acosh(args.head)
@@ -330,7 +330,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers with TransformationCon
     case CallFunction("YEAR", args) => Year(args.head)
     case CallFunction("ZIP_WITH", args) => ZipWith(args.head, args(1), args(2))
     case _ => call // fallback
-  }
+  })
 }
 
 /** abs(expr) - Returns the absolute value of the numeric value. */

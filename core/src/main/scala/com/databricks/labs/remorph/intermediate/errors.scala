@@ -110,3 +110,5 @@ case class IncoherentState(currentPhase: Phase, expectedPhase: Class[_]) extends
   override def msg: String =
     s"Incoherent state: current phase is ${currentPhase.getClass.getSimpleName} but should be ${expectedPhase.getSimpleName}"
 }
+
+case class SimpleError(msg: String) extends RemorphError with SingleError
