@@ -1,8 +1,8 @@
 --
 -- Descending ORDER BY on the end of a SELECT.
 --
--- tsql sql:
 
+-- tsql sql:
 SELECT 1 AS n
 ORDER BY n DESC;
 
