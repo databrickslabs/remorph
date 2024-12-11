@@ -45,16 +45,15 @@ class SqlglotEngine(TranspileEngine):
                 child: str | None = str(file_path)
                 if expr is not None:
                     for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        child = self._find_root_tables(create)
+                        child = self._find_root_table(create)
 
                     for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                        yield self._find_root_tables(select), child
+                        yield self._find_root_table(select), child
 
     @staticmethod
-    def _find_root_tables(expression) -> str | None:
-        for table in expression.find_all(exp.Table, bfs=False):
-            return table.name
-        return None
+    def _find_root_table(expression) -> str | None:
+        table = expression.find_all(exp.Table, bfs=False)
+        return table.name if table else None
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
