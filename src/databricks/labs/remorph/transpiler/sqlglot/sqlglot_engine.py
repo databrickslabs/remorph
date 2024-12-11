@@ -44,6 +44,7 @@ class SqlglotEngine(TranspileEngine):
             for expr in parsed_expression:
                 child: str | None = str(file_path)
                 if expr is not None:
+                    # TODO: fix possible issue where the file reference is lost (if we have a 'create')
                     for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
                         child = self._find_root_table(create)
 
