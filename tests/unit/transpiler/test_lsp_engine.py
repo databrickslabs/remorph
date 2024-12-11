@@ -11,6 +11,6 @@ def lsp_engine():
     config_path = path_to_resource("lsp_transpiler", "config.yml")
     return LSPEngine.from_config_path(Path(config_path))
 
-def test_loads_lsp_server(lsp_engine):
-    lsp_engine.initialize()
-    assert lsp_engine.is_alive()
+async def test_initializes_lsp_server(lsp_engine):
+    await lsp_engine.initialize()
+    assert lsp_engine.is_alive
