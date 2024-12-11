@@ -21,3 +21,7 @@ updates:
           # (Scala 2 patch releases are binary compatible, so they're the only type allowed.)
           - "version-update:semver-minor"
           - "version-update:semver-major"
+      # Mockito from 5.x requires JDK 11, but we are using JDK 8.
+      - dependency-name: "org.mockito:mockito-core"
+        versions:
+          - ">=5.0.0"
