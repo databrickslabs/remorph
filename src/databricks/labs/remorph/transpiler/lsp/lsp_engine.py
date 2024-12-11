@@ -95,6 +95,11 @@ class LSPEngine(TranspileEngine):
         args = self._config.command_line[1:]
         await self._client.start_io(executable, *args)
 
+    async def shutdown(self):
+        await self._client.shutdown_async(None)
+        self._client.exit(None)
+        await self._client.stop()
+
     @property
     def is_alive(self):
         return self._client.is_alive
@@ -111,5 +116,6 @@ class LSPEngine(TranspileEngine):
         self, source_dialect: str, source_code: str, file_path: Path
     ) -> Iterable[tuple[str, str]]:
         raise NotImplementedError
+
 
 
