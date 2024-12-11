@@ -12,7 +12,8 @@ from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 logger = logging.getLogger(__name__)
 
 
-class RootTableExtractor:
+class RootTableAnalyzer:
+
     def __init__(self, engine: TranspileEngine, source_dialect: str, input_path: Path):
         self.engine = engine
         self.source_dialect = source_dialect

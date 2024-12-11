@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 from databricks.labs.remorph.intermediate.dag import DAG
-from databricks.labs.remorph.intermediate.root_tables import RootTableExtractor
+from databricks.labs.remorph.intermediate.root_tables import RootTableAnalyzer
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ def lineage_generator(engine: TranspileEngine, source_dialect: str, input_source
 
     msg = f"Processing for SQLs at this location: {input_sql_path}"
     logger.info(msg)
-    root_table_extractor = RootTableExtractor(engine, source_dialect, input_sql_path)
-    generated_dag = root_table_extractor.generate_lineage_dag()
+    root_table_analyzer = RootTableAnalyzer(engine, source_dialect, input_sql_path)
+    generated_dag = root_table_analyzer.generate_lineage_dag()
     lineage_file_content = _generate_dot_file_contents(generated_dag)
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
