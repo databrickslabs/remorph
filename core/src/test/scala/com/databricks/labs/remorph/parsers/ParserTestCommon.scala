@@ -43,8 +43,8 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
       }
     }
 
-    val result = astBuilder.visit(sfTree)
-    comparePlans(expectedAst, result.asInstanceOf[ir.LogicalPlan])
+    val result = astBuilder.visit(sfTree).asInstanceOf[ir.LogicalPlan]
+    comparePlans(ok(result), expectedAst)
   }
 
   protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression): Unit = {
@@ -55,7 +55,7 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     }
     val result = astBuilder.visit(sfTree)
     val wrapExpr = (expr: ir.Expression) => ir.Filter(ir.NoopNode, expr)
-    comparePlans(wrapExpr(expectedAst), wrapExpr(result.asInstanceOf[ir.Expression]))
+    comparePlans(ok(wrapExpr(result.asInstanceOf[ir.Expression])), wrapExpr(expectedAst))
   }
 
   /**

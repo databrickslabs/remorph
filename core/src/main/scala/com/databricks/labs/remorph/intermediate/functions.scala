@@ -1,8 +1,9 @@
 package com.databricks.labs.remorph.intermediate
 
-import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.{PartialResult, Transformation, TransformationConstructors, WorkflowStage}
 
 import java.util.Locale
+import scala.util.control.NonFatal
 
 trait Fn extends Expression {
   def prettyName: String
@@ -14,16 +15,17 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
-class CallMapper extends Rule[LogicalPlan] with IRHelpers {
+class CallMapper extends Rule[LogicalPlan] with IRHelpers with TransformationConstructors {
 
-  override final def apply(plan: LogicalPlan): LogicalPlan = {
+  override final def apply(plan: LogicalPlan): Transformation[LogicalPlan] = {
     plan transformAllExpressions { case fn: Fn =>
       try {
-        convert(fn)
+        ok(convert(fn))
       } catch {
         case e: IndexOutOfBoundsException =>
-          throw TranspileException(WrongNumberOfArguments(fn.prettyName, fn.children.size, e.getMessage))
-
+          lift(PartialResult(fn, WrongNumberOfArguments(fn.prettyName, fn.children.size, e.getMessage)))
+        case NonFatal(e) =>
+          ko(WorkflowStage.OPTIMIZE, TranspileFailure(e))
       }
     }
   }
