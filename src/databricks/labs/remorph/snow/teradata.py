@@ -3,6 +3,7 @@ import typing as t
 from sqlglot.dialects.teradata import Teradata as org_Teradata
 from sqlglot import exp
 from sqlglot.tokens import TokenType
+from sqlglot.errors import ErrorLevel
 
 from databricks.labs.remorph.snow import local_expression
 
@@ -33,7 +34,7 @@ class Teradata(org_Teradata):
         }
 
         def _parse_create(self) -> exp.Create | exp.Command:
-
+            self.error_level = ErrorLevel.WARN
             # Note: this can't be None because we've matched a statement parser
             start = self._prev
             comments = self._prev_comments
