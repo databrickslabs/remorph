@@ -12,7 +12,7 @@ from databricks.labs.remorph.intermediate.engine_adapter import EngineAdapter
 logger = logging.getLogger(__name__)
 
 
-class RootTableExtractor:
+class RootTableAnalyzer:
     def __init__(self, source_dialect: str, input_path: str | Path):
         self.source_dialect = source_dialect
         self.input_path = input_path

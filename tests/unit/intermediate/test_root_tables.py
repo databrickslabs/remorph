@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.remorph.intermediate.root_tables import RootTableExtractor
+from databricks.labs.remorph.intermediate.root_tables import RootTableAnalyzer
 
 
 @pytest.fixture(autouse=True)
@@ -17,8 +17,8 @@ def setup_file(tmpdir):
 
 
 def test_generate_lineage(tmpdir):
-    root_table_extractor = RootTableExtractor("snowflake", str(tmpdir))
-    dag = root_table_extractor.generate_lineage_dag()
+    root_table_analyzer = RootTableAnalyzer("snowflake", str(tmpdir))
+    dag = root_table_analyzer.generate_lineage_dag()
     roots = ["table2", "table3", "table4"]
 
     assert len(dag.nodes["table4"].parents) == 0
@@ -30,8 +30,8 @@ def test_generate_lineage(tmpdir):
 
 
 def test_generate_lineage_sql_file(setup_file):
-    root_table_extractor = RootTableExtractor("snowflake", str(setup_file))
-    dag = root_table_extractor.generate_lineage_dag(engine="sqlglot")
+    root_table_analyzer = RootTableAnalyzer("snowflake", str(setup_file))
+    dag = root_table_analyzer.generate_lineage_dag(engine="sqlglot")
     roots = ["table2", "table3", "table4"]
 
     assert len(dag.nodes["table4"].parents) == 0
@@ -43,6 +43,6 @@ def test_generate_lineage_sql_file(setup_file):
 
 
 def test_non_sqlglot_engine_raises_error(tmpdir):
-    root_table_extractor = RootTableExtractor("snowflake", str(tmpdir))
+    root_table_analyzer = RootTableAnalyzer("snowflake", str(tmpdir))
     with pytest.raises(ValueError):
-        root_table_extractor.generate_lineage_dag(engine="antlr")
+        root_table_analyzer.generate_lineage_dag(engine="antlr")
