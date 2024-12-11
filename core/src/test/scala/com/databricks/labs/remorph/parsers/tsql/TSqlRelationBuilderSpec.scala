@@ -141,7 +141,6 @@ class TSqlRelationBuilderSpec
                 ir.SortOrder(simplyNamedColumn("another_column"), ir.Ascending, ir.SortNullsUnspecified))),
             ir.Literal(10, ir.IntegerType)))
       }
-      // OFFSET expression (ROW | ROWS) (FETCH (FIRST | NEXT) expression (ROW | ROWS) ONLY)?
       "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY" in {
         example(
           "SELECT * FROM some_table ORDER BY some_column OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY",
