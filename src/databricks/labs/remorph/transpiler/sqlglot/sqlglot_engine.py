@@ -52,8 +52,9 @@ class SqlglotEngine(TranspileEngine):
             for expr in parsed_expression:
                 child: str = str(file_path)
                 if expr is not None:
-                    for ddl in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        child = self._find_root_table(ddl) or child
+                    # TODO: fix possible issue where the file reference is lost (if we have a 'create')
+                    for change in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
+                        child = self._find_root_table(change)
 
                     for query in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
                         table = self._find_root_table(query)
