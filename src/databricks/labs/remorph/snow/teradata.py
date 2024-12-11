@@ -176,18 +176,29 @@ class Teradata(org_Teradata):
             self._match(TokenType.BETWEEN)
             expressions = self._parse_csv(self._parse_assignment)
             each = self._match_text_seq("EACH") and self._parse_assignment()
-            final_option = None
-            self._match(TokenType.COMMA)
-            if self._match(TokenType.VAR) or self._match(TokenType.UNKNOWN):
-                final_option = self._prev.text
-                if self._match_texts(["UNKNOWN", "RANGE"]):
-                    final_option = f"{final_option} " + self._prev.text
-                    if self._match_texts(["OR", ",", "|"]):
-                        final_option = f"{final_option} {self._prev.text} {self._curr.text}"
+
+            range = []
+            while self._match(TokenType.COMMA):
+                if self._match(TokenType.VAR) or self._match(TokenType.UNKNOWN):
+                    final_option = self._prev.text
+                    if self._match_texts(["UNKNOWN", "RANGE"]):
+                        final_option = f"{final_option} " + self._prev.text
+                        if self._match_texts(["OR", ",", "|"]):
+                            final_option = f"{final_option} {self._prev.text} {self._curr.text}"
+                            self._advance(1)
+                    range.append(final_option)
+                else:
+                    final_option = self._curr.text
+                    self._advance(1)
+                    while not self._match(TokenType.COMMA, advance=False) and not self._match(
+                        TokenType.R_PAREN, advance=False
+                    ):
+                        final_option = final_option + " " + self._curr.text
                         self._advance(1)
+                    range.append(final_option)
 
             return self.expression(
-                local_expression.RangeN, this=this, expressions=expressions, each=each, range_spec=final_option
+                local_expression.RangeN, this=this, expressions=expressions, each=each, range_spec=range
             )
 
         def _parse_case_n(self) -> local_expression.CaseN:
