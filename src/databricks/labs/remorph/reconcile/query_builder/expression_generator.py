@@ -85,7 +85,7 @@ def array_sort(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Expression:
+def anonymous(expr: exp.Column, func: str, is_expr: bool = False, dialect=None) -> exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -104,6 +104,8 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Express
 
     """
     if is_expr:
+        if dialect:
+            return exp.Column(this=func.format(expr.sql(dialect=dialect)))
         return exp.Column(this=func.format(expr))
     is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
@@ -268,6 +270,6 @@ Dialect_hash_algo_mapping = [
     ),
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
-        dialect=get_dialect("teradata"), algo=[partial(anonymous, func="thirty_day_tables.hash_sha256({})", is_expr=True)],
+        dialect=get_dialect("teradata"), algo=[partial(anonymous, func="thirty_day_tables.hash_sha256({})", is_expr=True, dialect=get_dialect("teradata"))],
     ),
 ]

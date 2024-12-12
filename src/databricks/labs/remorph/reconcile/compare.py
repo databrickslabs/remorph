@@ -1,7 +1,7 @@
 import logging
 from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, expr, lit
+from pyspark.sql.functions import col, expr, lit, trim
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_capture import (
@@ -113,8 +113,8 @@ def reconcile_data(
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
     return (
         df.filter(
-            col(f"{src_alias}_{_JOIN_COLUMN_HASH_NAME}")
-            == col(f"{tgt_alias}_{_JOIN_COLUMN_HASH_NAME}")
+            trim(col(f"{src_alias}_{_JOIN_COLUMN_HASH_NAME}"))
+            == trim(col(f"{tgt_alias}_{_JOIN_COLUMN_HASH_NAME}"))
         )
         .filter(
             (col(f"{src_alias}_{_HASH_COLUMN_NAME}").isNotNull())
@@ -122,7 +122,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFra
         )
         .withColumn(
             "hash_match",
-            col(f"{src_alias}_{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}_{_HASH_COLUMN_NAME}"),
+            trim(col(f"{src_alias}_{_HASH_COLUMN_NAME}")) == trim(col(f"{tgt_alias}_{_HASH_COLUMN_NAME}")),
         )
         .filter(col("hash_match") == lit(False))
         .select(
