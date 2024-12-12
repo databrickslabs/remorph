@@ -508,10 +508,10 @@ def test_with_input_sql_none(initial_setup, mock_workspace_client):
 def test_parse_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "query4.sql"),
+        input_source=str(input_dir / "query4.sql"),
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -564,10 +564,10 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
 def test_token_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
-        input_sql=str(input_dir / "query5.sql"),
+        input_source=str(input_dir / "query5.sql"),
         output_folder="None",
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
