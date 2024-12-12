@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from databricks.labs.remorph.transpiler.transpile_status import ParserError
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
 
@@ -73,7 +73,7 @@ class DatabaseConfig:
 class TranspileResult:
     transpiled_code: str
     success_count: int
-    error_list: list[ParserError]
+    error_list: list[TranspileError]
 
 
 @dataclass

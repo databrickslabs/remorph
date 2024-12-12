@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from databricks.labs.remorph.config import TranspileResult
-from databricks.labs.remorph.transpiler.transpile_status import ValidationError
 
 
 class TranspileEngine(abc.ABC):
@@ -32,9 +31,6 @@ class TranspileEngine(abc.ABC):
     def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
     ) -> TranspileResult: ...
-
-    @abc.abstractmethod
-    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None: ...
 
     @property
     @abc.abstractmethod

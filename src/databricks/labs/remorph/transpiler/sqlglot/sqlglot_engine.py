@@ -9,7 +9,7 @@ from databricks.labs.remorph.config import TranspileResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
+from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError, TranspileError
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 
@@ -20,6 +20,9 @@ class SqlglotEngine(TranspileEngine):
         return sorted(SQLGLOT_DIALECTS.keys())
 
     def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
+        error: TranspileError | None = self._check_supported(source_dialect, source_code, file_path)
+        if error:
+            return TranspileResult("", 0, [error])
         try:
             transpiled_expressions = transpile(
                 source_code, read=source_dialect, write=target_dialect, pretty=True, error_level=None
@@ -27,7 +30,7 @@ class SqlglotEngine(TranspileEngine):
             transpiled_code = "\n".join(transpiled_expressions)
             missing_sqls = list(filter(lambda x: x is None, transpiled_expressions))
             sql_count = len(transpiled_expressions) - len(missing_sqls)
-            errors: list[ParserError] = (
+            errors: list[TranspileError] = (
                 []
                 if not missing_sqls
                 else [
@@ -76,5 +79,5 @@ class SqlglotEngine(TranspileEngine):
         table = expression.find(exp.Table, bfs=False)
         return table.name if table else ""
 
-    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
+    def _check_supported(self, source_dialect: str, source_code: str, file_path: Path) -> ValidationError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
