@@ -12,16 +12,27 @@ def lsp_engine():
     config_path = path_to_resource("lsp_transpiler", "config.yml")
     return LSPEngine.from_config_path(Path(config_path))
 
-async def test_initializes_lsp_server(lsp_engine):
-    await lsp_engine.initialize()
+async def test_initializes_lsp_server(lsp_engine, transpile_config):
+    assert not lsp_engine.is_alive
+    await lsp_engine.initialize(transpile_config)
     assert lsp_engine.is_alive
 
-async def test_initializes_lsp_server_only_once(lsp_engine):
-    await lsp_engine.initialize()
+async def test_initializes_lsp_server_only_once(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
     with pytest.raises(IllegalStateException):
-        await lsp_engine.initialize()
+        await lsp_engine.initialize(transpile_config)
 
-async def test_shuts_lsp_server_down(lsp_engine):
-    await lsp_engine.initialize()
+async def test_shuts_lsp_server_down(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
     await lsp_engine.shutdown()
     assert not lsp_engine.is_alive
+
+async def test_sets_env_variables(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text()
+    assert "SOME_ENV=abc" in log # see environment in lsp_transpiler/config.yml
+
+async def test_passes_extra_args(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text()
+    assert "--stuff=12" in log # see command_line in lsp_transpiler/config.yml

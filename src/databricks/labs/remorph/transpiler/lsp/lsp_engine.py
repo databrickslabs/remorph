@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from lsprotocol.types import InitializeParams, ClientCapabilities
+from lsprotocol.types import InitializeParams, ClientCapabilities, InitializeResult
 from pygls.lsp.client import BaseLanguageClient
 
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.remorph.config import TranspilationResult
+from databricks.labs.remorph.config import TranspilationResult, TranspileConfig
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
@@ -75,25 +76,48 @@ class LSPEngine(TranspileEngine):
         self._custom = custom
         version = ProductInfo.from_class(type(self)).version()
         self._client = _LanguageClient("Remorph", version)
+        self._init_response: InitializeResult | None = None
 
     @property
     def supported_dialects(self) -> list[str]:
         return self._config.dialects
 
-    async def initialize(self) -> None:
+    async def initialize(self, config: TranspileConfig) -> None:
         if self.is_alive:
             raise IllegalStateException("LSP engine is already initialized")
         cwd = os.getcwd()
         try:
             os.chdir(self._workdir)
-            await self._do_initialize()
+            await self._do_initialize(config)
         except:
             os.chdir(cwd)
 
-    async def _do_initialize(self) -> None:
+    async def _do_initialize(self, config: TranspileConfig) -> None:
         executable = self._config.command_line[0]
+        env = deepcopy(os.environ)
+        for name, value in self._config.env_vars.items():
+            env[name] = value
         args = self._config.command_line[1:]
-        await self._client.start_io(executable, *args)
+        await self._client.start_io(executable, env=env, *args)
+        input_path = config.input_path
+        root_path = input_path if input_path.is_dir() else input_path.parent
+        params = InitializeParams(
+            capabilities=self._client_capabilities(),
+            root_path=str(root_path),
+            initialization_options=self._initialization_options(config)
+        )
+        self._init_response = await self._client.initialize_async(params)
+
+    def _client_capabilities(self):
+        return ClientCapabilities() # TODO do we need to refine this ?
+
+    def _initialization_options(self, config: TranspileConfig):
+        return {
+            "remorph": {
+                "source-dialect": config.source_dialect,
+            },
+            "custome": self._custom
+        }
 
     async def shutdown(self):
         await self._client.shutdown_async(None)
