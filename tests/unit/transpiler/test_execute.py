@@ -417,7 +417,7 @@ def test_transpile_sql(mock_workspace_client):
         ),
     ):
         transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
-        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        assert transpiler_result.transpiled_code == 'SELECT\n  col\nFROM table'
         assert validation_result.exception_msg is None
 
 

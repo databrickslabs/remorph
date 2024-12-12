@@ -5,7 +5,7 @@ from sqlglot import expressions as exp, parse, transpile
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 
-from databricks.labs.remorph.config import TranspilationResult
+from databricks.labs.remorph.config import TranspileResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
@@ -19,18 +19,28 @@ class SqlglotEngine(TranspileEngine):
     def supported_dialects(self) -> list[str]:
         return sorted(SQLGLOT_DIALECTS.keys())
 
-    def transpile(
-        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
-    ) -> TranspilationResult:
+    def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
         try:
-            transpiled_sql = transpile(
+            transpiled_expressions = transpile(
                 source_code, read=source_dialect, write=target_dialect, pretty=True, error_level=None
             )
+            transpiled_code = "\n".join(transpiled_expressions)
+            missing_sqls = list(filter(lambda x: x is None, transpiled_expressions))
+            sql_count = len(transpiled_expressions) - len(missing_sqls)
+            errors: list[ParserError] = (
+                []
+                if not missing_sqls
+                else [
+                    ParserError(
+                        file_path,
+                        f"Skipped {len(missing_sqls)} queries from file {file_path!s}. Check for unsupported operations related to STREAM, TASK, SESSION etc.",
+                    )
+                ]
+            )
+            return TranspileResult(transpiled_code, sql_count, errors)
         except (ParseError, TokenError, UnsupportedError) as e:
-            transpiled_sql = [""]
-            error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(e))))
-
-        return TranspilationResult(transpiled_sql, error_list)
+            error = ParserError(file_path, refactor_hexadecimal_chars(str(e)))
+            return TranspileResult("", 0, [error])
 
     def parse(
         self, source_dialect: str, source_sql: str, file_path: Path
