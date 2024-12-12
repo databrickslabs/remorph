@@ -301,6 +301,10 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     ir.Offset(namedTable("a"), ir.Literal(10)) generates "a OFFSET 10"
   }
 
+  "transpile to LIMIT and OFFSET" in {
+    ir.Limit(ir.Offset(namedTable("a"), ir.Literal(10)), ir.Literal(20)) generates "a LIMIT 20 OFFSET 10"
+  }
+
   "transpile to ORDER BY" in {
     ir.Sort(
       namedTable("a"),

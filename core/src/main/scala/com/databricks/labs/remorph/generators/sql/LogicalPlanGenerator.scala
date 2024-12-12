@@ -25,6 +25,8 @@ class LogicalPlanGenerator(
         }
         code"${source} WHERE ${expr.generate(condition)}"
       }
+      case ir.Limit(ir.Offset(input, offset), limit) =>
+        code"${generate(input)} LIMIT ${expr.generate(limit)} OFFSET ${expr.generate(offset)}"
       case ir.Limit(input, limit) =>
         code"${generate(input)} LIMIT ${expr.generate(limit)}"
       case ir.Offset(child, offset) =>
