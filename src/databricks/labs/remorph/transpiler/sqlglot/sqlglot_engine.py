@@ -22,7 +22,7 @@ class SqlglotEngine(TranspileEngine):
     def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
         error: TranspileError | None = self._check_supported(source_dialect, source_code, file_path)
         if error:
-            return TranspileResult("", 0, [error])
+            return TranspileResult(str(file_path), 1, [error])
         try:
             return self._unsafe_transpile(source_dialect, target_dialect, source_code, file_path)
         except (ParseError, TokenError, UnsupportedError) as e:

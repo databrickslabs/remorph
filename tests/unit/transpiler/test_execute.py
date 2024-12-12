@@ -149,7 +149,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
         skip_validation=True,
     )
 
-    # call morph
+    # call transpile
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
