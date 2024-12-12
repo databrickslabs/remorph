@@ -489,4 +489,5 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     }
   }
+
 }
