@@ -28,8 +28,7 @@ class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestComm
         "SELECT a, b FROM c ORDER BY a OFFSET 0 ROWS FETCH FIRST 10 ROWS ONLY" ->
           "SELECT a, b FROM c ORDER BY a LIMIT 10 OFFSET 0;",
         "SELECT a, b FROM c ORDER BY a OFFSET 10 ROWS FETCH NEXT 1 ROW ONLY" ->
-          "SELECT a, b FROM c ORDER BY a LIMIT 1 OFFSET 10;"
-      )
+          "SELECT a, b FROM c ORDER BY a LIMIT 1 OFFSET 10;")
       expectedOrderByTranslations.foreach(correctlyTranspile)
     }
   }
