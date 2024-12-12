@@ -10,6 +10,7 @@ from tests.unit.conftest import path_to_resource
 # See https://github.com/pytest-dev/pytest-asyncio/issues/1015
 # To run these tests locally, simply pip install pytest-asyncio
 
+
 @pytest.fixture
 def lsp_engine():
     config_path = path_to_resource("lsp_transpiler", "config.yml")
