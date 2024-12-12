@@ -24,7 +24,7 @@ def test_transpile_exception(transpiler, transpile_config):
         "snowflake",
         transpile_config.target_dialect,
         "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table",
-        Path("file.sql")
+        Path("file.sql"),
     )
     assert transpiler_result.transpiled_code == ""
     assert transpiler_result.error_list[0].file_path == Path("file.sql")
