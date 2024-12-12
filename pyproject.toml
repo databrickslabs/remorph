@@ -49,7 +49,8 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "pytest-cov>=4.0.0,<5.0.0",
-  "pytest-asyncio>=0.24.0",
+ # disablibg asyncio, see https://github.com/pytest-dev/pytest-asyncio/issues/1015
+ # "pytest-asyncio>=0.24.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
