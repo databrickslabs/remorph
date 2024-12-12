@@ -4,7 +4,7 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, get_dialect
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
@@ -97,14 +97,16 @@ class QueryBuilder(ABC):
             with_transform.append(alias)
         return with_transform
 
-    @staticmethod
-    def _user_transformer(node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
+    def _user_transformer(self, node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
+        engine = self._engine
+        if self.layer != "source":
+            engine = get_dialect("databricks")
         if isinstance(node, exp.Column) and user_transformations:
             column_name = node.name
             if column_name in user_transformations.keys():
-                return parse_one(user_transformations.get(column_name, column_name))
+                return parse_one(user_transformations.get(column_name, column_name), read=engine)
         if isinstance(node, exp.Alias) and node.alias_or_name in user_transformations.keys():
-            return exp.Alias(this=parse_one(user_transformations.get(node.alias_or_name, node.alias_or_name)), alias=node.alias)
+            return exp.Alias(this=parse_one(user_transformations.get(node.alias_or_name, node.alias_or_name), read=engine), alias=node.alias)
         return node
 
     def _apply_default_transformation(

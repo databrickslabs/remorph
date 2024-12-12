@@ -156,6 +156,9 @@ class Ntile(Func):
     arg_types = {"this": True, "is_string": False}
 
 
+class Translate(Func):
+    arg_types = {"this": True, "from": True, "to": True, "with_error": False}
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
