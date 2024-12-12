@@ -47,7 +47,8 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scala.binary.version>2.12</scala.binary.version>
-    <scala.version>2.12.19</scala.version>
+    <!-- Don't upgrade this automatically: it's a breaking change. -->
+    <scala.version>2.12.20</scala.version>
     <scoverage.plugin.version>2.0.6</scoverage.plugin.version>
     <spark.version>3.3.0</spark.version>
   </properties>
@@ -56,7 +57,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>3.7.1</version>
         <configuration>
           <appendAssemblyId>false</appendAssemblyId>
           <descriptorRefs>
@@ -132,7 +133,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>add-source</id>
@@ -251,7 +252,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.3.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>

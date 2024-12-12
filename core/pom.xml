@@ -11,7 +11,7 @@
   <packaging>jar</packaging>
   <properties>
     <httpclient.version>4.5.14</httpclient.version>
-    <jackson.version>2.15.2</jackson.version>
+    <jackson.version>2.18.2</jackson.version>
     <junit-bom.version>5.11.3</junit-bom.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -22,7 +22,7 @@
     <antlr.version>4.13.2</antlr.version>
     <sql-formatter.version>2.0.5</sql-formatter.version>
     <scala-logging.version>3.9.5</scala-logging.version>
-    <databricks-sdk-java.version>0.36.0</databricks-sdk-java.version>
+    <databricks-sdk-java.version>0.37.0</databricks-sdk-java.version>
     <!-- Note: DB-connect must match the version in our testing infrastructure. -->
     <databricks-connect.version>15.1.0</databricks-connect.version>
     <circe.version>0.14.2</circe.version>
@@ -66,7 +66,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.14.0</version>
+      <version>2.18.2</version>
     </dependency>
     <dependency>
       <groupId>com.databricks</groupId>
@@ -101,7 +101,7 @@
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.binary.version}</artifactId>
-      <version>3.3.0-SNAP3</version>
+      <version>3.3.0-SNAP4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -253,7 +253,7 @@
           <plugin>
             <groupId>com.github.eirslett</groupId>
             <artifactId>frontend-maven-plugin</artifactId>
-            <version>1.15.0</version>
+            <version>1.15.1</version>
             <configuration>
               <nodeVersion>v22.3.0</nodeVersion>
               <installDirectory>${project.build.directory}</installDirectory>
@@ -319,7 +319,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.6.0</version>
+            <version>3.7.1</version>
             <configuration>
               <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
