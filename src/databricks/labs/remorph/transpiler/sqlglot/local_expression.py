@@ -195,7 +195,3 @@ class NamedStruct(Func):
 
 class GetJsonObject(Func):
     arg_types = {"this": True, "path": True}
-
-
-class MonotonicallyIncreasingId(Func):
-    arg_types = {"this": False}

@@ -464,7 +464,6 @@ class Databricks(org_databricks.Databricks):  #
             exp.Not: _not_sql,
             local_expression.ToArray: to_array,
             local_expression.ArrayExists: rename_func("EXISTS"),
-            local_expression.MonotonicallyIncreasingId: rename_func("monotonically_increasing_id"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
