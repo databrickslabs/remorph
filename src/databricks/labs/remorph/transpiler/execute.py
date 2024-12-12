@@ -16,13 +16,13 @@ from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
     is_sql_file,
     make_dir,
-    remove_bom,
 )
 from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
     ParserError,
     ValidationError,
 )
+from databricks.labs.remorph.helpers.string_utils import remove_bom
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
