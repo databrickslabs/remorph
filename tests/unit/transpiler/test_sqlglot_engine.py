@@ -14,9 +14,9 @@ def transpiler():
 
 def test_transpile_snowflake(transpiler, transpile_config):
     transpiler_result = transpiler.transpile(
-        "snowflake", transpile_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", []
+        "snowflake", transpile_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", Path("file.sql")
     )
-    assert transpiler_result.transpiled_sql[0] == "SELECT\n  CURRENT_TIMESTAMP()"
+    assert transpiler_result.transpiled_code == "SELECT\n  CURRENT_TIMESTAMP()"
 
 
 def test_transpile_exception(transpiler, transpile_config):
@@ -24,12 +24,11 @@ def test_transpile_exception(transpiler, transpile_config):
         "snowflake",
         transpile_config.target_dialect,
         "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table",
-        Path("file.sql"),
-        [],
+        Path("file.sql")
     )
-    assert transpiler_result.transpiled_sql[0] == ""
-    assert transpiler_result.parse_error_list[0].file_path == Path("file.sql")
-    assert "Error Parsing args" in transpiler_result.parse_error_list[0].exception
+    assert transpiler_result.transpiled_code == ""
+    assert transpiler_result.error_list[0].file_path == Path("file.sql")
+    assert "Error Parsing args" in transpiler_result.error_list[0].error_msg
 
 
 def test_parse_query(transpiler, transpile_config):
@@ -60,37 +59,37 @@ def test_parse_query(transpiler, transpile_config):
 
 
 def test_parse_invalid_query(transpiler):
-    result, error_list = transpiler.parse("snowflake", "invalid sql query", Path("file.sql"))
+    result, error = transpiler.parse("snowflake", "invalid sql query", Path("file.sql"))
     assert result is None
-    assert error_list.file_path == Path("file.sql")
-    assert "Invalid expression / Unexpected token." in error_list.exception
+    assert error.file_path == Path("file.sql")
+    assert "Invalid expression / Unexpected token." in error.error_msg
 
 
 def test_tokenizer_exception(transpiler, transpile_config):
     transpiler_result = transpiler.transpile(
-        "snowflake", transpile_config.target_dialect, "1SELECT ~v\ud83d' ", Path("file.sql"), []
+        "snowflake", transpile_config.target_dialect, "1SELECT ~v\ud83d' ", Path("file.sql")
     )
 
-    assert transpiler_result.transpiled_sql == [""]
-    assert transpiler_result.parse_error_list[0].file_path == Path("file.sql")
-    assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
+    assert transpiler_result.transpiled_code == ""
+    assert transpiler_result.error_list[0].file_path == Path("file.sql")
+    assert "Error tokenizing" in transpiler_result.error_list[0].error_msg
 
 
 def test_procedure_conversion(transpiler, transpile_config):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
     transpiler_result = transpiler.transpile(
-        "databricks", transpile_config.target_dialect, procedure_sql, Path("file.sql"), []
+        "databricks", transpile_config.target_dialect, procedure_sql, Path("file.sql")
     )
     assert (
-        transpiler_result.transpiled_sql[0]
-        == "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
+        transpiler_result.transpiled_code
+        == "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table\nEND"
     )
 
 
 def test_find_root_tables(transpiler):
     expression, _ = transpiler.parse("snowflake", "SELECT * FROM table_name", Path("test.sql"))
     # pylint: disable=protected-access
-    assert transpiler._find_root_tables(expression[0]) == "table_name"
+    assert transpiler._find_root_table(expression[0]) == "table_name"
 
 
 def test_analyse_table_lineage(transpiler):
