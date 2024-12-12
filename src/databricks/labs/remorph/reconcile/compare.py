@@ -155,7 +155,6 @@ def capture_mismatch_data_and_columns(source: DataFrame, target: DataFrame, key_
 def _get_mismatch_columns(df: DataFrame, columns: list[str]):
     # Collect the DataFrame to a local variable
     local_df = df.collect()
-    df.show(truncate=False)
     mismatch_columns = []
     for column in columns:
         # Check if any row has False in the column
@@ -165,11 +164,8 @@ def _get_mismatch_columns(df: DataFrame, columns: list[str]):
 
 
 def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str], column_list: list[str]):
-    # source_aliased = [col('base.' + column).alias(column + '_base') for column in column_list]
-    # target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
-
-    source_aliased = [col('base.' + column).cast("String").alias(column + '_base') for column in column_list]
-    target_aliased = [col('compare.' + column).cast("String").alias(column + '_compare') for column in column_list]
+    source_aliased = [col('base.' + column).alias(column + '_base') for column in column_list]
+    target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
 
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
@@ -179,19 +175,12 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     filter_columns = " and ".join([column + "_match" for column in column_list])
     filter_expr = ~expr(filter_columns) if filter_columns else lit(True)
     
-    source.printSchema()
-    target.printSchema()
-    print(f"KEY COLUMNS: {key_columns}")
-    print(f"FILTER COLUMNS: {filter_expr}")
-    # print(f"SELECT COLUMNS: {select_expr}")
-
     mismatch_df = (
         source.alias('base')
         .join(other=target.alias('compare'), on=key_columns, how="inner")
         .select(*select_expr)
         .filter(filter_expr)
     )
-    mismatch_df.show(n=10,truncate=False)
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]
     return mismatch_df.select(*key_columns + sorted(compare_columns))
 
