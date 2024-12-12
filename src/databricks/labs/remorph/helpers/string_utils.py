@@ -60,4 +60,3 @@ def format_error_message(error_type: str, error_message: Exception, error_sql: s
         f"------------------------- {error_type} End:-------------------------"
     ).strip()
     return error_str
-
