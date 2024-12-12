@@ -90,7 +90,7 @@ def test_procedure_conversion(transpiler, transpile_config):
 def test_find_root_tables(transpiler):
     expression, _ = transpiler.parse("snowflake", "SELECT * FROM table_name", Path("test.sql"))
     # pylint: disable=protected-access
-    assert transpiler._find_root_tables(expression[0]) == "table_name"
+    assert transpiler._find_root_table(expression[0]) == "table_name"
 
 
 def test_analyse_table_lineage(transpiler):
