@@ -4,10 +4,9 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
-    DataType_transform_mapping,
+    datatype_transformations,
     transform_expression,
 )
 from databricks.labs.remorph.reconcile.recon_config import Schema, Table, Aggregate
@@ -111,17 +110,9 @@ class QueryBuilder(ABC):
     def _default_transformer(node: exp.Expression, schema: list[Schema], source: Dialect) -> exp.Expression:
 
         def _get_transform(datatype: str):
-            source_dialects = [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
-            source_dialect = source_dialects[0] if source_dialects else "universal"
-
-            source_mapping = DataType_transform_mapping.get(source_dialect, {})
-
-            if source_mapping.get(datatype.upper()) is not None:
-                return source_mapping.get(datatype.upper())
-            if source_mapping.get("default") is not None:
-                return source_mapping.get("default")
-
-            return DataType_transform_mapping.get("universal", {}).get("default")
+            data_type = exp.DataType.build(datatype, dialect=source)
+            transformations = datatype_transformations(data_type, source)
+            return transformations
 
         schema_dict = {v.column_name: v.data_type for v in schema}
         if isinstance(node, exp.Column):
