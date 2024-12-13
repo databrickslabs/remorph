@@ -101,9 +101,7 @@ def test_analyse_table_lineage(transpiler):
 
 def test_safe_parse(transpiler, transpile_config):
     result, error = transpiler.safe_parse(
-        get_dialect(transpile_config.source_dialect),
-        "SELECT col1 from tab1;SELECT11 col1 from tab2",
-        Path("file.sql")
+        get_dialect(transpile_config.source_dialect), "SELECT col1 from tab1;SELECT11 col1 from tab2", Path("file.sql")
     )
     expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
     expected_from_result = expressions.From(
@@ -121,7 +119,7 @@ def test_safe_parse_with_semicolon(transpiler, transpile_config):
     result, error = transpiler.safe_parse(
         get_dialect(transpile_config.source_dialect),
         "SELECT split(col2,';') from tab1 where col1 like ';%'",
-        Path("file.sql")
+        Path("file.sql"),
     )
     expected_result = [
         expressions.Split(
