@@ -1,15 +1,4 @@
-/***************************************************************************************************
-* SUB-VERSION                                                                                      *
-* ================================================================================================ *
-* SVN Infostamp             (DO NOT EDIT THE NEXT 8 LINES!)                                        *
-* ================================================================================================ *
-* $Id: BKD_REV_LEG_AGG.ddl 154408 2024-04-03 16:00:56Z UDEPLOY $
-* $LastChangedBy: UDEPLOY $
-* $LastChangedDate: 2024-04-03 18:00:56 +0200 (śr., 03 kwi 2024) $
-* $LastChangedRevision: 154408 $
-* ================================================================================================ *
-* SVN Info END                                                                                     *
-***************************************************************************************************/
+--snow sql
 CREATE MULTISET TABLE DB_IDM_PLUS.BKD_REV_LEG_AGG ,FALLBACK ,
      NO BEFORE JOURNAL,
      NO AFTER JOURNAL,
@@ -44,4 +33,14 @@ CTRL_AIRL_CD =  'EN',
 CTRL_AIRL_CD =  '4Y',
 CTRL_AIRL_CD =  'SN',
  NO CASE OR UNKNOWN) );
+-- dbsql
+CREATE TABLE DB_IDM_PLUS.BKD_REV_LEG_AGG (
+                                             CAP_CY DECIMAL(9, 2),
+                                             CAP_PY DECIMAL(9, 2),
+                                             RPK_CY DECIMAL(18, 4),
+                                             RPK_PY DECIMAL(18, 4),
+                                             ASK_CY DECIMAL(18, 4),
+                                             ASK_PY DECIMAL(18, 4),
+                                             CO_UPD_TMS TIMESTAMP_NTZ
+);
 
