@@ -91,12 +91,11 @@ class QueryBuilder(ABC):
             with_transform.append(alias.transform(self._user_transformer, self.user_transformations))
         return with_transform
 
-    @staticmethod
-    def _user_transformer(node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
+    def _user_transformer(self, node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
         if isinstance(node, exp.Column) and user_transformations:
             column_name = node.name
             if column_name in user_transformations.keys():
-                return parse_one(user_transformations.get(column_name, column_name))
+                return parse_one(user_transformations.get(column_name, column_name), read=self._engine)
         return node
 
     def _apply_default_transformation(
