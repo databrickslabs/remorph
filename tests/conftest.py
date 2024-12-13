@@ -1,8 +1,6 @@
 from unittest.mock import create_autospec
 
 import pytest
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service import iam
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -14,7 +12,8 @@ from pyspark.sql.types import (
     ArrayType,
     MapType,
 )
-
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service import iam
 from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     JdbcReaderOptions,
