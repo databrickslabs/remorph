@@ -100,7 +100,9 @@ def test_parse_sql_content(transpiler):
 
 
 def test_safe_parse(transpiler, morph_config):
-    result, error = transpiler.safe_parse("SELECT col1 from tab1;SELECT11 col1 from tab2", get_dialect(morph_config.source_dialect))
+    result, error = transpiler.safe_parse(
+        "SELECT col1 from tab1;SELECT11 col1 from tab2", get_dialect(morph_config.source_dialect)
+    )
     expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
     expected_from_result = expressions.From(
         this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))

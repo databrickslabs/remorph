@@ -98,7 +98,7 @@ def normalize_string():
     return _normalize_string
 
 
-def get_dialect(input_dialect:str) -> Dialect:
+def get_dialect(input_dialect: str) -> Dialect:
     value = SQLGLOT_DIALECTS.get(input_dialect)
     if isinstance(value, Dialect):
         return value
