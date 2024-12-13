@@ -18,7 +18,7 @@ def no_cheat(diff_text: str) -> str:
         idx = line.find(DISABLE_TAG)
         if idx < 0:
             continue
-        codes = set([_strip_code(code) for code in line[idx + len(DISABLE_TAG) :].split(',')])
+        codes = {_strip_code(code) for code in line[idx + len(DISABLE_TAG) :].split(',')}
         allowed_local_cyclic_imports = {'cyclic-import', 'import-outside-toplevel'}
         if len(codes.intersection(allowed_local_cyclic_imports)) == 2:
             codes = codes.difference(allowed_local_cyclic_imports)
