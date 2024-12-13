@@ -68,7 +68,6 @@ class SqlglotEngine(TranspileEngine):
             return TranspilationResult(transpiled_sql, error_list)
         except (ParseError, TokenError, UnsupportedError) as e:
             logger.error(f"Exception caught for file {file_path!s}: {e}")
-            error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(e))))
             transpiled_sql, _ = self.__partial_transpile(
                 read_dialect, write_dialect, source_code, file_path, error_list
             )

@@ -43,9 +43,6 @@ def _process_file(
     validate_error_list = []
     no_of_sqls = 0
 
-    input_file = Path(input_file)
-    output_file = Path(output_file)
-
     with input_file.open("r") as f:
         source_sql = remove_bom(f.read())
 
