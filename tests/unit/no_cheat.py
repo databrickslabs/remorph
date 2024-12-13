@@ -3,6 +3,8 @@ from pathlib import Path
 
 DISABLE_TAG = '# pylint: disable='
 
+def _strip_code(code: str) -> str:
+    return code.strip().strip('\n').strip('"').strip("'")
 
 def no_cheat(diff_text: str) -> str:
     lines = diff_text.split('\n')
@@ -14,9 +16,11 @@ def no_cheat(diff_text: str) -> str:
         idx = line.find(DISABLE_TAG)
         if idx < 0:
             continue
-        codes = line[idx + len(DISABLE_TAG) :].split(',')
+        codes = set([_strip_code(code) for code in line[idx + len(DISABLE_TAG) :].split(',')])
+        allowed_local_cyclic_imports = {'cyclic-import', 'import-outside-toplevel'}
+        if len(codes.intersection(allowed_local_cyclic_imports)) == 2:
+            codes = codes.difference(allowed_local_cyclic_imports)
         for code in codes:
-            code = code.strip().strip('\n').strip('"').strip("'")
             if line.startswith("-"):
                 removed[code] = removed.get(code, 0) + 1
                 continue
