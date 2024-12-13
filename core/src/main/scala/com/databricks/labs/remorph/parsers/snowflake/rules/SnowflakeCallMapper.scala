@@ -18,7 +18,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers with Transform
       case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
         ok(ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null))))
       case ir.CallFunction("ARRAY_CONTAINS", args) => ok(ir.ArrayContains(args(1), args.head))
-      case ir.CallFunction("ARRAY_FLATTEN", args) => ir.Flatten(args.head)
+      case ir.CallFunction("ARRAY_FLATTEN", args) => ok(ir.Flatten(args.head))
       case ir.CallFunction("ARRAY_INTERSECTION", args) => ok(ir.ArrayIntersect(args.head, args(1)))
       case ir.CallFunction("ARRAY_SIZE", args) => ok(ir.Size(args.head))
       case ir.CallFunction("ARRAY_SLICE", args) =>
@@ -664,25 +664,22 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers with Transform
     }
   }
 
-  private def parseLastDay(args: Seq[ir.Expression]): ir.Expression = {
+  private def parseLastDay(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+
+    def lastDay(datePart: String): ir.Expression =
+      ir.DateAdd(ir.TimestampAdd(datePart, oneLiteral, ir.TruncDate(args.head, args(1))), ir.Literal(-1))
+
     if (args.length == 1) {
-      return ir.LastDay(args.head)
+      ok(ir.LastDay(args.head))
+    } else {
+      val validDateParts = Set("YEAR", "QUARTER", "MONTH", "WEEK")
+      args(1) match {
+        case ir.StringLiteral(part) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case ir.Column(_, ir.Id(part, _)) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case ir.Name(part) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case x => lift(PartialResult(x, ir.UnsupportedDateTimePart(x)))
+      }
     }
-
-    val datePart = args(1) match {
-      case ir.StringLiteral(part) => part.toUpperCase()
-      case ir.Column(_, part) => part.toString.toUpperCase()
-      case _ => throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
-    }
-
-    if (!Set("YEAR", "QUARTER", "MONTH", "WEEK").contains(datePart)) {
-      throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
-    }
-
-    val dateTruncExpr = ir.TruncDate(args.head, args(1))
-    val dateAddExpr = ir.TimestampAdd(datePart, oneLiteral, dateTruncExpr)
-    val dateSubExpr = ir.DateAdd(dateAddExpr, ir.Literal(-1))
-    dateSubExpr
   }
 
 }
