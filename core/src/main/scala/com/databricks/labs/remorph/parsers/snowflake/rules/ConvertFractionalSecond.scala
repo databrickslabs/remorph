@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors, intermediate => ir}
 
-class ConvertFractionalSecond extends ir.Rule[ir.LogicalPlan] {
+class ConvertFractionalSecond extends ir.Rule[ir.LogicalPlan] with TransformationConstructors {
 
   // Please read the note here : https://docs.snowflake.com/en/sql-reference/functions/current_timestamp#arguments
   // TODO Fractional seconds are only displayed if they have been explicitly
@@ -20,22 +20,22 @@ class ConvertFractionalSecond extends ir.Rule[ir.LogicalPlan] {
     8 -> "HH:mm:ss",
     9 -> "HH:mm:ss")
 
-  override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
+  override def apply(plan: ir.LogicalPlan): Transformation[ir.LogicalPlan] = {
     plan transformAllExpressions {
-      case ir.CallFunction("CURRENT_TIME", right) => handleSpecialTSFunctions("CURRENT_TIME", right)
-      case ir.CallFunction("LOCALTIME", right) => handleSpecialTSFunctions("LOCALTIME", right)
+      case ir.CallFunction("CURRENT_TIME", right) => ok(handleSpecialTSFunctions("CURRENT_TIME", right))
+      case ir.CallFunction("LOCALTIME", right) => ok(handleSpecialTSFunctions("LOCALTIME", right))
       case ir.CallFunction("CURRENT_TIMESTAMP", right) =>
-        if (right.isEmpty) {
+        ok(if (right.isEmpty) {
           ir.CurrentTimestamp()
         } else {
           handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
-        }
+        })
       case ir.CallFunction("LOCALTIMESTAMP", right) =>
-        if (right.isEmpty) {
+        ok(if (right.isEmpty) {
           ir.CurrentTimestamp()
         } else {
           handleSpecialTSFunctions("LOCALTIMESTAMP", right)
-        }
+        })
     }
   }
 
