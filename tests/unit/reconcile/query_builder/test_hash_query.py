@@ -29,9 +29,9 @@ def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, table_schema
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_oracle_src(table_conf_mock, table_schema, column_mapping):
+def test_hash_query_builder_for_oracle_src(table_conf, table_schema, column_mapping):
     schema, _ = table_schema
-    table_conf = table_conf_mock(
+    table_conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
         column_mapping=[ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
@@ -63,8 +63,8 @@ def test_hash_query_builder_for_oracle_src(table_conf_mock, table_schema, column
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_databricks_src(table_conf_mock, table_schema, column_mapping):
-    table_conf = table_conf_mock(
+def test_hash_query_builder_for_databricks_src(table_conf, table_schema, column_mapping):
+    table_conf = table_conf(
         join_columns=["s_suppkey"],
         column_mapping=column_mapping,
         filters=Filters(target="s_nationkey_t=1"),
@@ -96,8 +96,8 @@ def test_hash_query_builder_for_databricks_src(table_conf_mock, table_schema, co
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_without_column_mapping(table_conf_mock, table_schema):
-    table_conf = table_conf_mock(
+def test_hash_query_builder_without_column_mapping(table_conf, table_schema):
+    table_conf = table_conf(
         join_columns=["s_suppkey"],
         filters=Filters(target="s_nationkey=1"),
     )
@@ -126,8 +126,8 @@ def test_hash_query_builder_without_column_mapping(table_conf_mock, table_schema
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_without_transformation(table_conf_mock, table_schema, column_mapping):
-    table_conf = table_conf_mock(
+def test_hash_query_builder_without_transformation(table_conf, table_schema, column_mapping):
+    table_conf = table_conf(
         join_columns=["s_suppkey"],
         transformations=[
             Transformation(column_name="s_address", source=None, target="trim(s_address_t)"),
@@ -189,8 +189,8 @@ def test_hash_query_builder_for_report_type_is_row(table_conf_with_opts, table_s
     assert tgt_actual == tgt_expected
 
 
-def test_config_case_sensitivity(table_conf_mock, table_schema, column_mapping):
-    table_conf = table_conf_mock(
+def test_config_case_sensitivity(table_conf, table_schema, column_mapping):
+    table_conf = table_conf(
         select_columns=["S_SUPPKEY", "S_name", "S_ADDRESS", "S_NATIOnKEY", "S_PhONE", "S_acctbal"],
         drop_columns=["s_Comment"],
         join_columns=["S_SUPPKEY"],
