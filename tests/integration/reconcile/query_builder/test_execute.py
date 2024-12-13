@@ -1823,7 +1823,7 @@ def test_initialise_data_source(mock_workspace_client, mock_spark):
     assert isinstance(target, databricks_data_source)
 
 
-def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema):
+def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for_report_type_row):
     source, target, table_recon, reconcile_config = mock_for_report_type_row
     reconcile_config.report_type = "ro"
     with (

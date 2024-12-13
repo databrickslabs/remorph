@@ -13,7 +13,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     AggregateQueryOutput,
 )
 from databricks.labs.remorph.reconcile.recon_capture import generate_final_reconcile_aggregate_output
-from .test_aggregates_reconcile import expected_reconcile_output_dict, expected_rule_output
+from tests.integration.reconcile.test_aggregates_reconcile import expected_reconcile_output_dict, expected_rule_output
 
 
 def remove_directory_recursively(directory_path):

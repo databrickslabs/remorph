@@ -4,7 +4,6 @@ from collections.abc import Sequence
 from unittest.mock import create_autospec
 
 import pytest
-from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -34,9 +33,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
-from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
-from databricks.sdk.service import iam
 
 from .transpiler.helpers.functional_test_cases import (
     FunctionalTestFile,
@@ -46,24 +43,8 @@ from .transpiler.helpers.functional_test_cases import (
 
 
 @pytest.fixture(scope="session")
-def mock_spark() -> SparkSession:
-    """
-    Method helps to create spark session
-    :return: returns the spark session
-    """
-    return SparkSession.builder.appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
-
-
-@pytest.fixture(scope="session")
 def mock_databricks_config():
     yield create_autospec(Config)
-
-
-@pytest.fixture()
-def mock_workspace_client():
-    client = create_autospec(WorkspaceClient)
-    client.current_user.me = lambda: iam.User(user_name="remorph", groups=[iam.ComplexValue(display="admins")])
-    yield client
 
 
 @pytest.fixture()

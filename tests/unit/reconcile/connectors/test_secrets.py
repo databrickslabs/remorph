@@ -14,6 +14,9 @@ class Test(SecretsMixin):
         self._ws = ws
         self._secret_scope = secret_scope
 
+    def get_secret(self, secret_key: str) -> str:
+        return self._get_secret(secret_key)
+
 
 def mock_secret(scope, key):
     secret_mock = {
@@ -36,8 +39,8 @@ def test_get_secrets_happy():
 
     mock = Test(ws, "scope")
 
-    assert mock._get_secret("user_name") == "my_user"
-    assert mock._get_secret("password") == "my_password"
+    assert mock.get_secret("user_name") == "my_user"
+    assert mock.get_secret("password") == "my_password"
 
 
 def test_get_secrets_not_found_exception():
@@ -46,4 +49,4 @@ def test_get_secrets_not_found_exception():
     mock = Test(ws, "scope")
 
     with pytest.raises(NotFound, match="Secret does not exist with scope: scope and key: unknown : Test Exception"):
-        mock._get_secret("unknown")
+        mock.get_secret("unknown")
