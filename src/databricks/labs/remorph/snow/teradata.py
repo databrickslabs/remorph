@@ -1,5 +1,3 @@
-import typing as t
-
 from sqlglot.dialects.teradata import Teradata as org_Teradata
 from sqlglot import exp
 from sqlglot.tokens import TokenType
@@ -33,6 +31,7 @@ class Teradata(org_Teradata):
             "CASE_N": lambda self: self._parse_case_n(),
         }
 
+
         def _parse_create(self) -> exp.Create | exp.Command:
             self.error_level = ErrorLevel.WARN
             # Note: this can't be None because we've matched a statement parser
@@ -58,14 +57,14 @@ class Teradata(org_Teradata):
 
             exists = self._parse_exists(not_=True)
             this = None
-            expression: t.Optional[exp.Expression] = None
+            expression: exp.Expression | None = None
             indexes = None
             no_schema_binding = None
             begin = None
             end = None
             clone = None
 
-            def extend_props(temp_props: t.Optional[exp.Properties]) -> None:
+            def extend_props(temp_props: exp.Properties | None) -> None:
                 nonlocal properties
                 if properties and temp_props:
                     properties.expressions.extend(temp_props.expressions)
@@ -127,9 +126,9 @@ class Teradata(org_Teradata):
 
                         if not index:
                             break
-                        else:
-                            self._match(TokenType.COMMA)
-                            indexes.append(index)
+
+                        self._match(TokenType.COMMA)
+                        indexes.append(index)
                 elif create_token.token_type == TokenType.VIEW:
                     if self._match_text_seq("WITH", "NO", "SCHEMA", "BINDING"):
                         no_schema_binding = True
@@ -178,7 +177,7 @@ class Teradata(org_Teradata):
             expressions = self._parse_csv(self._parse_assignment)
             each = self._match_text_seq("EACH") and self._parse_assignment()
 
-            range = []
+            range_spec = []
             while self._match(TokenType.COMMA):
                 if self._match(TokenType.VAR) or self._match(TokenType.UNKNOWN):
                     final_option = self._prev.text
@@ -187,7 +186,7 @@ class Teradata(org_Teradata):
                         if self._match_texts(["OR", ",", "|"]):
                             final_option = f"{final_option} {self._prev.text} {self._curr.text}"
                             self._advance(1)
-                    range.append(final_option)
+                    range_spec.append(final_option)
                 else:
                     final_option = self._curr.text
                     self._advance(1)
@@ -196,7 +195,7 @@ class Teradata(org_Teradata):
                     ):
                         final_option = final_option + " " + self._curr.text
                         self._advance(1)
-                    range.append(final_option)
+                    range_spec.append(final_option)
 
             return self.expression(
                 local_expression.RangeN, this=this, expressions=expressions, each=each, range_spec=range

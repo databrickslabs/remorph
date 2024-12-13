@@ -637,9 +637,9 @@ class Databricks(org_databricks.Databricks):  #
                 case exp.DefaultColumnConstraint():
                     if kind_sql == "DEFAULT DATE":
                         return "DEFAULT CURRENT_DATE()"
-                    elif kind_sql == "DEFAULT TIME":
+                    if kind_sql == "DEFAULT TIME":
                         return "DEFAULT (DATE_FORMAT(CURRENT_TIMESTAMP(), 'hh:mm:ss'))"
-                    elif kind_sql == "DEFAULT USER":
+                    if kind_sql == "DEFAULT USER":
                         return "DEFAULT CURRENT_USER()"
                     return kind_sql
                 case _:
