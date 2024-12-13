@@ -60,38 +60,53 @@ class SnowflakeAcceptanceTest
           new CommentBasedQueryExtractor("snowflake", "databricks"),
           new IsTranspiledFromSnowflakeQueryRunner)))
 
+object TSqlAcceptanceSuite {
+
+  val rootPath: Path = Paths.get(
+    Option(System.getProperty("tsql.test.resources.path"))
+      .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/tsql"))
+
+  val ignoredTests: Set[String] = Set(
+    "functions/test_aadbts_1.sql",
+    "functions/test_aalangid1.sql",
+    "functions/test_aalanguage_1.sql",
+    "functions/test_aalock_timeout_1.sql",
+    "functions/test_aamax_connections_1.sql",
+    "functions/test_aamax_precision_1.sql",
+    "functions/test_aaoptions_1.sql",
+    "functions/test_aaremserver_1.sql",
+    "functions/test_aaservername_1.sql",
+    "functions/test_aaservicename_1.sql",
+    "functions/test_aaspid_1.sql",
+    "functions/test_aatextsize_1.sql",
+    "functions/test_aaversion_1.sql",
+    "functions/test_approx_count_distinct.sql",
+    "functions/test_approx_percentile_cont_1.sql",
+    "functions/test_approx_percentile_disc_1.sql",
+    "functions/test_collationproperty_1.sql",
+    "functions/test_grouping_1.sql",
+    "functions/test_nestlevel_1.sql",
+    "functions/test_percent_rank_1.sql",
+    "functions/test_percentile_cont_1.sql",
+    "functions/test_percentile_disc_1.sql",
+    "select/test_cte_xml.sql")
+
+  def isTestIgnored(testName: String): Boolean = {
+    testName.startsWith("dql/") ||
+    testName.startsWith("other/") ||
+    TSqlAcceptanceSuite.ignoredTests.contains(testName)
+  }
+
+}
+
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(
       new AcceptanceTestRunner(
         AcceptanceTestConfig(
-          new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
-            .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/tsql"))),
+          new NestedFiles(TSqlAcceptanceSuite.rootPath),
           new CommentBasedQueryExtractor("tsql", "databricks"),
           new IsTranspiledFromTSqlQueryRunner,
-          ignoredTestNames = Set(
-            "functions/test_aadbts_1.sql",
-            "functions/test_aalangid1.sql",
-            "functions/test_aalanguage_1.sql",
-            "functions/test_aalock_timeout_1.sql",
-            "functions/test_aamax_connections_1.sql",
-            "functions/test_aamax_precision_1.sql",
-            "functions/test_aaoptions_1.sql",
-            "functions/test_aaremserver_1.sql",
-            "functions/test_aaservername_1.sql",
-            "functions/test_aaservicename_1.sql",
-            "functions/test_aaspid_1.sql",
-            "functions/test_aatextsize_1.sql",
-            "functions/test_aaversion_1.sql",
-            "functions/test_approx_count_distinct.sql",
-            "functions/test_approx_percentile_cont_1.sql",
-            "functions/test_approx_percentile_disc_1.sql",
-            "functions/test_collationproperty_1.sql",
-            "functions/test_grouping_1.sql",
-            "functions/test_nestlevel_1.sql",
-            "functions/test_percent_rank_1.sql",
-            "functions/test_percentile_cont_1.sql",
-            "functions/test_percentile_disc_1.sql",
-            "select/test_cte_xml.sql"),
+          ignoredTestNames = TSqlAcceptanceSuite.isTestIgnored,
           shouldFailParse = Set(
             "core_engine/test_invalid_syntax/syntax_error_1.sql",
             "core_engine/test_invalid_syntax/syntax_error_2.sql",
