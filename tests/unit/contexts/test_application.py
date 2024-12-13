@@ -41,7 +41,7 @@ def test_workspace_context_attributes_not_none(ws):
         installation=MockInstallation(
             {
                 "config.yml": {
-                    "source": "snowflake",
+                    "source_dialect": "snowflake",
                     "catalog_name": "transpiler_test",
                     "input_sql": "sf_queries",
                     "output_folder": "out_dir",
@@ -89,7 +89,7 @@ def test_workspace_context_attributes_not_none(ws):
     assert ctx.recon_config is not None
     assert hasattr(ctx, "remorph_config")
     assert ctx.remorph_config is not None
-    assert ctx.remorph_config.morph is not None
+    assert ctx.remorph_config.transpile is not None
     assert ctx.remorph_config.reconcile is not None
     assert hasattr(ctx, "install_state")
     assert ctx.install_state is not None
@@ -117,5 +117,5 @@ def test_workspace_context_missing_configs(ws):
     assert ctx.recon_config is None
     assert hasattr(ctx, "remorph_config")
     assert ctx.remorph_config is not None
-    assert ctx.remorph_config.morph is None
+    assert ctx.remorph_config.transpile is None
     assert ctx.remorph_config.reconcile is None

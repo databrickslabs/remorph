@@ -439,8 +439,8 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   }
 
   private def regexpExtract(extract: ir.RegExpExtract): SQL = {
-    val c = if (extract.c == ir.Literal(1)) { code"" }
-    else { code", ${expression(extract.c)}" }
+    val c = if (extract.c.isEmpty || extract.c.contains(ir.Literal(1))) { code"" }
+    else { code", ${expression(extract.c.get)}" }
     code"${extract.prettyName}(${expression(extract.left)}, ${expression(extract.right)}$c)"
   }
 

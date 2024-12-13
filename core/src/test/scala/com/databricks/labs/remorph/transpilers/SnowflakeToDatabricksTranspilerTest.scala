@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.transpilers
 
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
+class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon with SetOperationBehaviors {
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
@@ -373,6 +373,33 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |WHEN NOT MATCHED THEN
            |  INSERT (id, value, status) VALUES (s.id, s.value, s.status);""".stripMargin
     }
+  }
+
+  override protected[this] final val expectedSetOperationTranslations: Map[String, String] = {
+    super.expectedSetOperationTranslations ++ Map(
+      "SELECT a, b FROM c MINUS SELECT x, y FROM z" -> "(SELECT a, b FROM c) EXCEPT (SELECT x, y FROM z);",
+      """SELECT a, b FROM c
+        |UNION
+        |SELECT d, e FROM f
+        |MINUS
+        |SELECT g, h FROM i
+        |INTERSECT
+        |SELECT j, k FROM l
+        |EXCEPT
+        |SELECT m, n FROM o""".stripMargin ->
+        """(((SELECT a, b FROM c)
+          |  UNION
+          |  (SELECT d, e FROM f))
+          | EXCEPT
+          | ((SELECT g, h FROM i)
+          |  INTERSECT
+          |  (SELECT j, k FROM l)))
+          |EXCEPT
+          |(SELECT m, n FROM o);""".stripMargin)
+  }
+
+  "Set operations" should {
+    behave like setOperationsAreTranspiled()
   }
 
   "Common Table Expressions (CTEs)" should {

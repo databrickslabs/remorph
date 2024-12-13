@@ -3,8 +3,8 @@ from unittest.mock import patch
 from sqlglot import parse_one
 
 from databricks.labs.remorph.config import get_dialect
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.lca_utils import check_for_unsupported_lca
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.lca_utils import check_for_unsupported_lca
 
 
 def test_query_with_no_unsupported_lca_usage():
@@ -308,7 +308,7 @@ def test_fix_nested_lca_with_no_scope(normalize_string):
     """
     ast = parse_one(input_sql)
     with patch(
-        'databricks.labs.remorph.snow.lca_utils.build_scope',
+        'databricks.labs.remorph.transpiler.sqlglot.lca_utils.build_scope',
         return_value=None,
     ):
         generated_sql = ast.sql(Databricks, pretty=False)

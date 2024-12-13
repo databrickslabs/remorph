@@ -3,12 +3,12 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.transpiler.execute import morph
+from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
 
@@ -34,8 +34,8 @@ proxy_command(remorph, "debug-bundle")
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    source: str,
-    input_sql: str,
+    source_dialect: str,
+    input_source: str,
     output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
@@ -50,15 +50,18 @@ def transpile(
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-    if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
-    if not input_sql or not os.path.exists(input_sql):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
-    if not output_folder:
-        output_folder = default_config.output_folder if default_config.output_folder else None
+    # TODO get rid of the sqlglot dependency
+    if source_dialect.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
+    if not input_source or not os.path.exists(input_source):
+        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
+    if not output_folder and default_config.output_folder:
+        output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'."
+            f"Error: Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
         raise_validation_exception(
@@ -69,9 +72,9 @@ def transpile(
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
     schema_name = schema_name if schema_name else default_config.schema_name
 
-    config = MorphConfig(
-        source=source.lower(),
-        input_sql=input_sql,
+    config = TranspileConfig(
+        source_dialect=source_dialect.lower(),
+        input_source=input_source,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
@@ -80,7 +83,7 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = morph(ctx.workspace_client, config)
+    status = do_transpile(ctx.workspace_client, config)
 
     print(json.dumps(status))
 
@@ -133,20 +136,22 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
-    if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
-    if not input_sql or not os.path.exists(input_sql):
-        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
+    if source_dialect.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(
+            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
+        )
+    if not input_source or not os.path.exists(input_source):
+        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
             f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
         )
 
-    lineage_generator(source, input_sql, output_folder)
+    lineage_generator(source_dialect, input_source, output_folder)
 
 
 @remorph.command

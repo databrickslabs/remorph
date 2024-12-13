@@ -3,15 +3,15 @@ import re
 
 from sqlglot import expressions as exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
-from sqlglot.dialects.snowflake import Snowflake
-from sqlglot.errors import ParseError
+from sqlglot.dialects.snowflake import Snowflake as SqlglotSnowflake
+from sqlglot.errors import TokenError, ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
-from databricks.labs.remorph.snow import local_expression
+from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 logger = logging.getLogger(__name__)
 # pylint: disable=protected-access
@@ -246,11 +246,38 @@ def _parse_sha2(args: list) -> exp.SHA2:
     return exp.SHA2(this=seq_get(args, 0), length=seq_get(args, 1))
 
 
-class Snow(Snowflake):
-    # Instantiate Snowflake Dialect
-    snowflake = Snowflake()
+def _parse_last_day(args: list) -> exp.LastDay | exp.DateSub:
+    if len(args) == 1:
+        return exp.LastDay.from_arg_list(args)
 
-    class Tokenizer(Snowflake.Tokenizer):
+    date_part = seq_get(args, 1)
+    if isinstance(date_part, exp.Literal):
+        date_part = DATE_DELTA_INTERVAL.get(date_part.this.lower(), None)
+    elif isinstance(date_part, exp.Column):
+        date_part = DATE_DELTA_INTERVAL.get(date_part.name.lower(), None)
+
+    if date_part is None or date_part.lower() not in ('year', 'quarter', 'month', 'week'):
+        raise ParseError(f'Invalid date part {date_part} for last_day')
+
+    date_trunc_expr = local_expression.DateTrunc(this=seq_get(args, 0), unit=exp.Literal.string(date_part))
+    # Add one date part
+    date_add_expr = parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL)(
+        [exp.Literal.string(date_part), exp.Literal.number(1), date_trunc_expr]
+    )
+
+    # Subtract one day
+    date_sub_expr = parse_date_delta(exp.DateSub, unit_mapping=DATE_DELTA_INTERVAL)(
+        [exp.Literal.string('DAY'), exp.Literal.number(1), date_add_expr]
+    )
+
+    return date_sub_expr
+
+
+class Snowflake(SqlglotSnowflake):
+    # Instantiate Snowflake Dialect
+    snowflake = SqlglotSnowflake()
+
+    class Tokenizer(SqlglotSnowflake.Tokenizer):
 
         COMMENTS = ["--", "//", ("/*", "*/")]
         STRING_ESCAPES = ["\\", "'"]
@@ -261,12 +288,12 @@ class Snow(Snowflake):
         }
 
         SINGLE_TOKENS = {
-            **Snowflake.Tokenizer.SINGLE_TOKENS,
+            **SqlglotSnowflake.Tokenizer.SINGLE_TOKENS,
             "&": TokenType.PARAMETER,  # https://docs.snowflake.com/en/user-guide/snowsql-use#substituting-variables-in-a-session
             "!": TokenType.COMMAND,
         }
 
-        KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS}
+        KEYWORDS = {**SqlglotSnowflake.Tokenizer.KEYWORDS}
         # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
 
@@ -348,12 +375,12 @@ class Snow(Snowflake):
                 end = end if end < self.size else self.size - 1
                 context = self.sql[start:end]
                 msg = f"Error tokenizing '{context}'"
-                raise ParseError(msg) from e
+                raise TokenError(msg) from e
             return self.tokens
 
-    class Parser(Snowflake.Parser):
+    class Parser(SqlglotSnowflake.Parser):
         FUNCTIONS = {
-            **Snowflake.Parser.FUNCTIONS,
+            **SqlglotSnowflake.Parser.FUNCTIONS,
             "ARRAY_AGG": exp.ArrayAgg.from_arg_list,
             "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
@@ -412,31 +439,33 @@ class Snow(Snowflake):
             "NTILE": local_expression.Ntile.from_arg_list,
             "TO_ARRAY": local_expression.ToArray.from_arg_list,
             "SHA2": _parse_sha2,
+            "LAST_DAY": _parse_last_day,
+            "ARRAY_FLATTEN": exp.Flatten.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
-            **Snowflake.Parser.FUNCTION_PARSERS,
+            **SqlglotSnowflake.Parser.FUNCTION_PARSERS,
             "LISTAGG": lambda self: self._parse_list_agg(),
         }
 
         PLACEHOLDER_PARSERS = {
-            **Snowflake.Parser.PLACEHOLDER_PARSERS,
+            **SqlglotSnowflake.Parser.PLACEHOLDER_PARSERS,
             TokenType.PARAMETER: lambda self: self._parse_parameter(),
         }
 
-        FUNC_TOKENS = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
+        FUNC_TOKENS = {*SqlglotSnowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
 
         COLUMN_OPERATORS = {
-            **Snowflake.Parser.COLUMN_OPERATORS,
+            **SqlglotSnowflake.Parser.COLUMN_OPERATORS,
         }
 
-        TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
+        TIMESTAMPS: set[TokenType] = SqlglotSnowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
 
         RANGE_PARSERS = {
-            **Snowflake.Parser.RANGE_PARSERS,
+            **SqlglotSnowflake.Parser.RANGE_PARSERS,
         }
 
-        ALTER_PARSERS = {**Snowflake.Parser.ALTER_PARSERS}
+        ALTER_PARSERS = {**SqlglotSnowflake.Parser.ALTER_PARSERS}
 
         def _parse_list_agg(self) -> exp.GroupConcat:
             if self._match(TokenType.DISTINCT):

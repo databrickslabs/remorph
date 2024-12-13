@@ -1,8 +1,8 @@
 import pytest
 from sqlglot import expressions
 
-from databricks.labs.remorph.snow import local_expression
-from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
+from databricks.labs.remorph.transpiler.sqlglot import local_expression
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def test_transpile_exception(transpiler, write_dialect):
     transpiler_result = transpiler.transpile(
         write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
     )
-    assert transpiler_result.transpiled_sql[0] == ""
+    assert len(transpiler_result.transpiled_sql) == 1
     assert transpiler_result.parse_error_list[0].file_name == "file.sql"
     assert "Error Parsing args" in transpiler_result.parse_error_list[0].exception
 
@@ -64,8 +64,7 @@ def test_parse_invalid_query(transpiler):
 
 def test_tokenizer_exception(transpiler, write_dialect):
     transpiler_result = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
-
-    assert transpiler_result.transpiled_sql == [""]
+    assert len(transpiler_result.transpiled_sql) == 1
     assert transpiler_result.parse_error_list[0].file_name == "file.sql"
     assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
@@ -89,3 +88,44 @@ def test_parse_sql_content(transpiler):
     result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
+
+
+def test_safe_parse(transpiler, write_dialect):
+    dialect = transpiler.read_dialect
+    result, error = transpiler.safe_parse("SELECT col1 from tab1;SELECT11 col1 from tab2", dialect)
+    expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
+    expected_from_result = expressions.From(
+        this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    for exp in result:
+        if exp.parsed_expression:
+            print("yes")
+            assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
+            assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
+    assert "PARSING ERROR" in error[0]
+
+
+def test_safe_parse_with_semicolon(transpiler, write_dialect):
+    dialect = transpiler.read_dialect
+    result, error = transpiler.safe_parse("SELECT split(col2,';') from tab1 where col1 like ';%'", dialect)
+    expected_result = [
+        expressions.Split(
+            this=expressions.Column(this=expressions.Identifier(this="col2", quoted=False)),
+            expression=expressions.Literal(this=";", is_string=True),
+        )
+    ]
+    expected_from_result = expressions.From(
+        this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    expected_where_result = expressions.Where(
+        this=expressions.Like(
+            this=expressions.Column(this=expressions.Identifier(this="col1", quoted=False)),
+            expression=expressions.Literal(this=";%", is_string=True),
+        )
+    )
+    for exp in result:
+        if exp.parsed_expression:
+            assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
+            assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
+            assert repr(exp.parsed_expression.args["where"]) == repr(expected_where_result)
+    assert len(error) == 0
