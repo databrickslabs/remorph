@@ -19,6 +19,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
         ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null)))
       case ir.CallFunction("ARRAY_CONTAINS", args) => ir.ArrayContains(args(1), args.head)
+      case ir.CallFunction("ARRAY_FLATTEN", args) => ir.Flatten(args.head)
       case ir.CallFunction("ARRAY_INTERSECTION", args) => ir.ArrayIntersect(args.head, args(1))
       case ir.CallFunction("ARRAY_SIZE", args) => ir.Size(args.head)
       case ir.CallFunction("ARRAY_SLICE", args) =>
@@ -50,6 +51,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
       case ir.CallFunction("IS_INTEGER", args) => isInteger(args)
       case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
+      case ir.CallFunction("LAST_DAY", args) => parseLastDay(args)
       case ir.CallFunction("LAST_VALUE", args) => ir.Last(args.head, args.lift(1))
       case ir.CallFunction("LEN", args) => ir.Length(args.head)
       case ir.CallFunction("LISTAGG", args) =>
@@ -646,6 +648,27 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
 
     irSortArray
+  }
+
+  private def parseLastDay(args: Seq[ir.Expression]): ir.Expression = {
+    if (args.length == 1) {
+      return ir.LastDay(args.head)
+    }
+
+    val datePart = args(1) match {
+      case ir.StringLiteral(part) => part.toUpperCase()
+      case ir.Column(_, part) => part.toString.toUpperCase()
+      case _ => throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
+    }
+
+    if (!Set("YEAR", "QUARTER", "MONTH", "WEEK").contains(datePart)) {
+      throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
+    }
+
+    val dateTruncExpr = ir.TruncDate(args.head, args(1))
+    val dateAddExpr = ir.TimestampAdd(datePart, oneLiteral, dateTruncExpr)
+    val dateSubExpr = ir.DateAdd(dateAddExpr, ir.Literal(-1))
+    dateSubExpr
   }
 
 }
