@@ -5,6 +5,7 @@ from sqlglot import expressions
 
 from databricks.labs.remorph.transpiler.sqlglot import local_expression
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from tests.unit.conftest import get_dialect
 
 
 @pytest.fixture
@@ -86,7 +87,7 @@ def test_procedure_conversion(transpiler, transpile_config):
     )
 
 
-def test_find_root_tables(transpiler):
+def test_find_root_table(transpiler):
     expression, _ = transpiler.parse("snowflake", "SELECT * FROM table_name", Path("test.sql"))
     # pylint: disable=protected-access
     assert transpiler._find_root_table(expression[0]) == "table_name"
@@ -96,3 +97,48 @@ def test_analyse_table_lineage(transpiler):
     result = list(transpiler.analyse_table_lineage("databricks", "SELECT * FROM table_name", Path("test.sql")))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
+
+
+def test_safe_parse(transpiler, transpile_config):
+    result, error = transpiler.safe_parse(
+        get_dialect(transpile_config.source_dialect), "SELECT col1 from tab1;SELECT11 col1 from tab2", Path("file.sql")
+    )
+    expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
+    expected_from_result = expressions.From(
+        this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    for exp in result:
+        if exp.parsed_expression:
+            print("yes")
+            assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
+            assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
+    assert "PARSING ERROR" in error[0].parser_error.error_msg
+
+
+def test_safe_parse_with_semicolon(transpiler, transpile_config):
+    result, error = transpiler.safe_parse(
+        get_dialect(transpile_config.source_dialect),
+        "SELECT split(col2,';') from tab1 where col1 like ';%'",
+        Path("file.sql"),
+    )
+    expected_result = [
+        expressions.Split(
+            this=expressions.Column(this=expressions.Identifier(this="col2", quoted=False)),
+            expression=expressions.Literal(this=";", is_string=True),
+        )
+    ]
+    expected_from_result = expressions.From(
+        this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
+    )
+    expected_where_result = expressions.Where(
+        this=expressions.Like(
+            this=expressions.Column(this=expressions.Identifier(this="col1", quoted=False)),
+            expression=expressions.Literal(this=";%", is_string=True),
+        )
+    )
+    for exp in result:
+        if exp.parsed_expression:
+            assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
+            assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
+            assert repr(exp.parsed_expression.args["where"]) == repr(expected_where_result)
+    assert len(error) == 0

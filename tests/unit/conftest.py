@@ -18,7 +18,7 @@ from pyspark.sql.types import (
     StructType,
     TimestampType,
 )
-from sqlglot import ErrorLevel, UnsupportedError
+from sqlglot import ErrorLevel, UnsupportedError, Dialect
 from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
@@ -103,8 +103,13 @@ def normalize_string():
     return _normalize_string
 
 
-def get_dialect(input_dialect=None):
-    return SQLGLOT_DIALECTS.get(input_dialect)
+def get_dialect(input_dialect: str) -> Dialect:
+    value = SQLGLOT_DIALECTS.get(input_dialect)
+    if isinstance(value, Dialect):
+        return value
+    if isinstance(value, type(Dialect)):
+        return value()
+    raise ValueError(f"Can't instantiate dialect from {value}")
 
 
 def parse_one(sql):
