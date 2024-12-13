@@ -1,17 +1,17 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.UnresolvedNamedLambdaVariable
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors, intermediate => ir}
 
 import scala.annotation.tailrec
 
-class TranslateWithinGroup extends ir.Rule[ir.LogicalPlan] {
+class TranslateWithinGroup extends ir.Rule[ir.LogicalPlan] with TransformationConstructors {
 
-  override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
+  override def apply(plan: ir.LogicalPlan): Transformation[ir.LogicalPlan] = {
     plan transformAllExpressions {
-      case ir.WithinGroup(ir.CallFunction("ARRAY_AGG", args), sorts) => sortArray(args.head, sorts)
+      case ir.WithinGroup(ir.CallFunction("ARRAY_AGG", args), sorts) => ok(sortArray(args.head, sorts))
       case ir.WithinGroup(ir.CallFunction("LISTAGG", args), sorts) =>
-        ir.ArrayJoin(sortArray(args.head, sorts), args(1))
+        ok(ir.ArrayJoin(sortArray(args.head, sorts), args(1)))
     }
   }
 

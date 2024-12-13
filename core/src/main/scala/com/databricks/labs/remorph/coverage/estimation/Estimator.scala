@@ -44,7 +44,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       parsedSet += fingerprint
       planParser.parse
         .flatMap(planParser.visit)
-        .run(initialState) match {
+        .flatMap(plan => anonymizer(plan).map(hash => (hash, plan)))
+        .runAndDiscardState(initialState) match {
         case KoResult(PARSE, error) =>
           Some(
             EstimationReportRecord(
@@ -61,14 +62,13 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
                 score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
-        case OkResult(plan) =>
-          val queryHash = anonymizer(plan._2)
-          val score = analyzer.evaluateTree(plan._2)
+        case OkResult((queryHash, plan)) =>
+          val score = analyzer.evaluateTree(plan)
           // Note that the plan hash will generally be more accurate than the query hash, hence we check here
           // as well as against the plain text
           if (!parsedSet.contains(queryHash)) {
             parsedSet += queryHash
-            Some(generateReportRecord(query, plan._2, score, anonymizer))
+            Some(generateReportRecord(query, plan, score, anonymizer))
           } else {
             None
           }
@@ -96,7 +96,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
     val initialState = TranspilerState(Optimizing(plan, None))
-    planParser.optimize(plan).flatMap(generator.generate).run(initialState) match {
+    planParser.optimize(plan).flatMap(generator.generate).runAndDiscardState(initialState) match {
       case KoResult(_, error) =>
         // KoResult to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
@@ -112,7 +112,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             score = tfr,
             complexity = SqlComplexity.fromScore(tfr.rule.score)))
 
-      case OkResult((_, output: String)) =>
+      case OkResult(output) =>
         val newScore =
           RuleScore(SuccessfulTranspileRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
