@@ -3,8 +3,17 @@ from unittest.mock import create_autospec
 import pytest
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
-from pyspark.sql.types import StructType, StructField, LongType, StringType, TimestampType, IntegerType, BooleanType, \
-    ArrayType, MapType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    LongType,
+    StringType,
+    TimestampType,
+    IntegerType,
+    BooleanType,
+    ArrayType,
+    MapType,
+)
 
 from databricks.labs.remorph.reconcile.recon_config import (
     Table,
@@ -13,7 +22,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ColumnThresholds,
     Filters,
     TableThresholds,
-    ColumnMapping, Schema,
+    ColumnMapping,
+    Schema,
 )
 
 

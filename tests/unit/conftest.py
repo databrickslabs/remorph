@@ -196,5 +196,3 @@ def get_functional_test_files_from_directory(
 @pytest.fixture
 def expr():
     return parse_one("SELECT col1 FROM DUAL")
-
-
