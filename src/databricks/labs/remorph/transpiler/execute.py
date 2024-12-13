@@ -14,7 +14,6 @@ from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
     is_sql_file,
     make_dir,
-    remove_bom,
 )
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
@@ -23,6 +22,7 @@ from databricks.labs.remorph.transpiler.transpile_status import (
     ParserError,
     ValidationError,
 )
+from databricks.labs.remorph.helpers.string_utils import remove_bom
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
@@ -42,9 +42,6 @@ def _process_file(
     logger.info(f"started processing for the file ${input_file}")
     validate_error_list = []
     no_of_sqls = 0
-
-    input_file = Path(input_file)
-    output_file = Path(output_file)
 
     with input_file.open("r") as f:
         source_sql = remove_bom(f.read())
