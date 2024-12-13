@@ -60,19 +60,27 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
   }
 
-  override def visitQueryExpression(ctx: TSqlParser.QueryExpressionContext): ir.LogicalPlan = errorCheck(ctx) match {
-    case Some(errorResult) => errorResult
-    case None =>
-      ctx match {
-        case qs if qs.querySpecification() != null => qs.querySpecification().accept(this) // TODO: Implement set ops
-        case qe if qe.queryExpression() != null =>
-          qe.queryExpression().asScala.map(_.accept(this)) match {
-            case Seq(lhs) => lhs
-            case Seq(lhs, rhs) =>
-              val isAll = qe.ALL() != null
-              ir.SetOperation(lhs, rhs, ir.UnionSetOp, is_all = isAll, by_name = false, allow_missing_columns = false)
-          }
-      }
+  override def visitQueryInParenthesis(ctx: TSqlParser.QueryInParenthesisContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse(visit(ctx.queryExpression()))
+  }
+
+  override def visitQueryUnion(ctx: TSqlParser.QueryUnionContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(visit)
+    val setOp = ctx match {
+      case u if u.UNION() != null => ir.UnionSetOp
+      case e if e.EXCEPT() != null => ir.ExceptSetOp
+    }
+    val isAll = ctx.ALL() != null
+    ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+  }
+
+  override def visitQueryIntersect(ctx: TSqlParser.QueryIntersectContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(visit)
+    ir.SetOperation(lhs, rhs, ir.IntersectSetOp, is_all = false, by_name = false, allow_missing_columns = false)
+  }
+
+  override def visitQuerySimple(ctx: TSqlParser.QuerySimpleContext): ir.LogicalPlan = errorCheck(ctx).getOrElse {
+    visitQuerySpecification(ctx.querySpecification())
   }
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = errorCheck(
@@ -84,7 +92,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
       // A single column definition could also hold an ErrorNode that it recovered from so we collect all of them
       val columns: Seq[ir.Expression] =
-        ctx.selectListElem().asScala.flatMap(vc.expressionBuilder.buildSelectListElem)
+        vc.expressionBuilder.buildSelectList(ctx.selectList())
       // Note that ALL is the default so we don't need to check for it
       ctx match {
         case c if c.DISTINCT() != null =>
@@ -107,7 +115,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable)
       buildOrderBy(
         ctx.selectOrderByClause(),
         buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))
@@ -259,9 +267,10 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     }
   }
 
-  private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
+  private[tsql] def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
       case c if c.id() != null => vc.expressionBuilder.buildId(c.id())
+      case t if t.jinjaTemplate() != null => ir.Id(vc.expressionBuilder.removeQuotes(ctx.jinjaTemplate.getText))
       case _ => ir.Id(vc.expressionBuilder.removeQuotes(ctx.getText))
     }
   }
@@ -289,6 +298,12 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       result
   }
 
+  override def visitTsiJinja(ctx: TsiJinjaContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ctx.jinjaTemplate().accept(this))
+
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.LogicalPlan =
+    errorCheck(ctx).getOrElse(ir.JinjaAsStatement(ctx.getText))
+
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
@@ -313,7 +328,8 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
 
       val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
       val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
-      val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
+      // Reduce is safe: Grammar rule for tableSources ensures that there is always at least one tableSource.
+      val sourcePlan = tableSourcesPlan.reduceLeft(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
       // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
@@ -403,12 +419,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       val output = Option(ctx.outputClause()).map(_.accept(this))
       val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
@@ -426,15 +437,19 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
       }
 
       val output = Option(ctx.outputClause()).map(_.accept(this))
-      val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-      val sourceRelation = tableSourcesOption.map { tableSources =>
-        tableSources.tail.foldLeft(tableSources.head)(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      }
-
+      val sourceRelation = buildTableSourcesPlan(Option(ctx.tableSources()))
       val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
       val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
       ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
+  }
+
+  private[this] def buildTableSourcesPlan(tableSources: Option[TableSourcesContext]): Option[ir.LogicalPlan] = {
+    val sources = tableSources
+      .map(_.tableSource().asScala)
+      .getOrElse(Seq())
+      .map(_.accept(vc.relationBuilder))
+    sources.reduceLeftOption(
+      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
   }
 
   override def visitInsert(ctx: InsertContext): ir.LogicalPlan = errorCheck(ctx) match {
@@ -532,6 +547,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     // correct source code to be given to remorph.
     val aggregateFunction = ctx.pivotClause().expression().accept(vc.expressionBuilder)
     val column = ctx.pivotClause().fullColumnName().accept(vc.expressionBuilder)
+    // TODO: All other aliases are handled as ir.Id, but here we use ir.Literal - should it change?
     val values = ctx.pivotClause().columnAliasList().columnAlias().asScala.map(c => buildLiteral(c.getText))
     ir.Aggregate(
       child = left,

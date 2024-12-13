@@ -24,7 +24,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
     case None =>
       // Note that the optional select clauses may be null on very simple statements
       // such as SELECT 1;
-      val select = Option(ctx.selectOptionalClauses()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val select = Option(ctx.selectOptionalClauses()).map(_.accept(this)).getOrElse(ir.NoTable)
       val relation = buildLimitOffset(ctx.limitClause(), select)
       val (top, allOrDistinct, selectListElements) = ctx match {
         case c if ctx.selectClause() != null =>
@@ -51,6 +51,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   }
 
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+    // TODO: This is backwards: the IR should be LIMIT(OFFSET(input, offset), limit)
+    // TODO: Snowflake supports the OFFSET/FETCH syntax but currently the IR is emitted with reversed arguments.
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
         val limit = ir.Limit(input, ctx.expr(0).accept(vc.expressionBuilder))
@@ -82,7 +84,7 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+      val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable)
       buildOrderBy(
         ctx.orderByClause(),
         buildQualify(
@@ -332,10 +334,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
         case null => Seq.empty[ir.Id]
         case c => c.columnName().asScala.flatMap(_.id.asScala.map(vc.expressionBuilder.buildId))
       }
-
-      val query = ctx.selectStatement().accept(this)
-      ir.SubqueryAlias(query, tableName, columns)
-
+      val queryExpression = ctx.queryExpression().accept(vc.astBuilder)
+      ir.SubqueryAlias(queryExpression, tableName, columns)
     }
 
   override def visitCTEColumn(ctx: CTEColumnContext): ir.LogicalPlan = {

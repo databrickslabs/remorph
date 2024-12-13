@@ -2,21 +2,22 @@ package com.databricks.labs.remorph.transpilers
 
 import org.scalatest.wordspec.AnyWordSpec
 
-class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
+class TsqlToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon with SetOperationBehaviors {
 
   protected final val transpiler = new TSqlToDatabricksTranspiler
 
   "The TSQL-to-Databricks transpiler" when {
     "transpiling set operations" should {
-      val expectedTranslations = Map(
-        "(SELECT a, b from c) UNION SELECT x, y FROM z" -> "(SELECT a, b from c) UNION (SELECT x, y from z);",
-        "(SELECT a, b from c) UNION ALL SELECT x, y FROM z" -> "(SELECT a, b from c) UNION ALL (SELECT x, y from z);",
-        "(SELECT a, b FROM c)" -> "SELECT a, b FROM c;")
-      expectedTranslations.foreach { case (originalTSql, expectedDatabricksSql) =>
-        s"correctly transpile: $originalTSql" in {
-          originalTSql transpilesTo expectedDatabricksSql
-        }
-      }
+      behave like setOperationsAreTranspiled()
+    }
+    "mixing CTEs with set operations" should {
+      correctlyTranspile(
+        """WITH cte1 AS (SELECT a, b FROM c),
+          |     cte2 AS (SELECT x, y FROM z)
+          |SELECT a, b FROM cte1 UNION SELECT x, y FROM cte2""".stripMargin ->
+          """WITH cte1 AS (SELECT a, b FROM c),
+            |     cte2 AS (SELECT x, y FROM z)
+            |(SELECT a, b FROM cte1) UNION (SELECT x, y FROM cte2);""".stripMargin)
     }
   }
 }

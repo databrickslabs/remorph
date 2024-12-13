@@ -30,21 +30,21 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
           - for quoted identifiers refer:
              https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers
        * ORDINAL_POSITION:
-          - indicates the sequential order of a column within a table or view, 
+          - indicates the sequential order of a column within a table or view,
              starting from 1 based on the order of column definition.
     """
     _SCHEMA_QUERY = """select column_name,
                                                       case
                                                             when numeric_precision is not null and numeric_scale is not null
-                                                            then 
+                                                            then
                                                                 concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
                                                             when lower(data_type) = 'text'
-                                                            then 
+                                                            then
                                                                 concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
                                                             else data_type
                                                       end as data_type
                                                       from {catalog}.INFORMATION_SCHEMA.COLUMNS
-                                                      where lower(table_name)='{table}' and table_schema = '{schema}' 
+                                                      where lower(table_name)='{table}' and table_schema = '{schema}'
                                                       order by ordinal_position"""
 
     def __init__(

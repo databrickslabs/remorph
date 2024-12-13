@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.discovery.{QueryHistoryProvider, SnowflakeQue
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 
-class SnowflakeContext(private val envGetter: EnvGetter) extends SupportContext {
+class SnowflakeContext(private[this] val envGetter: EnvGetter) extends SupportContext {
   override def name: String = "snowflake"
   override def planParser: PlanParser[_] = new SnowflakePlanParser
   override lazy val connectionFactory: ConnectionFactory = new SnowflakeConnectionFactory(envGetter)

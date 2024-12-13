@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
 import com.databricks.labs.remorph.generators.orchestration.rules.history.RawMigration
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.transpilers.{PySparkGenerator, SqlGenerator}
-import com.databricks.labs.remorph.{Init, KoResult, OkResult, PartialResult}
+import com.databricks.labs.remorph.{TranspilerState, KoResult, OkResult, PartialResult}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -12,10 +12,10 @@ import java.sql.Timestamp
 import java.time.Duration
 
 class FileSetGeneratorTest extends AnyWordSpec with Matchers {
-  private val parser = new SnowflakePlanParser()
-  private val sqlGen = new SqlGenerator
-  private val pyGen = new PySparkGenerator
-  private val queryHistory = QueryHistory(
+  private[this] val parser = new SnowflakePlanParser()
+  private[this] val sqlGen = new SqlGenerator
+  private[this] val pyGen = new PySparkGenerator
+  private[this] val queryHistory = QueryHistory(
     Seq(
       ExecutedQuery(
         "query1",
@@ -34,7 +34,7 @@ class FileSetGeneratorTest extends AnyWordSpec with Matchers {
 
   "FileSetGenerator" should {
     "work" in {
-      new FileSetGenerator(parser, sqlGen, pyGen).generate(RawMigration(queryHistory)).run(Init) match {
+      new FileSetGenerator(parser, sqlGen, pyGen).generate(RawMigration(queryHistory)).run(TranspilerState()) match {
         case OkResult((_, fileSet)) =>
           fileSet.getFile("notebooks/query1.sql").get shouldBe
             s"""INSERT INTO

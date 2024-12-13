@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.generators.py
 import com.databricks.labs.remorph.generators.{CodeInterpolator, TBASeqOps}
 import com.databricks.labs.remorph.intermediate.Expression
 
-class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
+class StatementGenerator(private[this] val exprs: ExpressionGenerator) extends BasePythonGenerator[Statement] {
   override def generate(tree: Statement): Python = {
     withGenCtx { ctx =>
       code"${ctx.ws}${statement(tree)}"
@@ -67,15 +67,9 @@ class StatementGenerator(private val exprs: ExpressionGenerator) extends BasePyt
   private def e(expr: Expression): Python = exprs.generate(expr)
 
   private def lines(statements: Seq[Statement], finish: String = "\n"): Python = {
-    if (statements.isEmpty) {
-      code""
-    } else {
-      val body = statements.map(generate(_))
-      val separatedItems = body.tail.foldLeft[Python](body.head) { case (agg, item) =>
-        code"$agg\n$item"
-      }
-      code"$separatedItems$finish"
-    }
+    val body = statements.map(generate)
+    val separatedItems = body.reduceLeftOption[Python] { case (agg, item) => code"$agg\n$item" }
+    separatedItems.map(items => code"$items$finish").getOrElse(code"")
   }
 
   // decorators need their leading whitespace trimmed and get followed by a trailing whitespace

@@ -17,8 +17,16 @@ class LogicalPlanGenerator(
       case w: ir.WithCTE => cte(w)
       case p: ir.Project => project(p)
       case ir.NamedTable(id, _, _) => lift(OkResult(id))
-      case ir.Filter(input, condition) =>
-        code"${generate(input)} WHERE ${expr.generate(condition)}"
+      case ir.Filter(input, condition) => {
+        val source = input match {
+          // enclose subquery in parenthesis
+          case project: ir.Project => code"(${generate(project)})"
+          case _ => code"${generate(input)}"
+        }
+        code"${source} WHERE ${expr.generate(condition)}"
+      }
+      case ir.Limit(ir.Offset(input, offset), limit) =>
+        code"${generate(input)} LIMIT ${expr.generate(limit)} OFFSET ${expr.generate(offset)}"
       case ir.Limit(input, limit) =>
         code"${generate(input)} LIMIT ${expr.generate(limit)}"
       case ir.Offset(child, offset) =>
@@ -44,6 +52,8 @@ class LogicalPlanGenerator(
       case a: ir.AlterTableCommand => alterTable(a)
       case l: ir.Lateral => lateral(l)
       case c: ir.CreateTableParams => createTableParams(c)
+      case ir.JinjaAsStatement(text) => code"$text"
+
       // We see an unresolved for parsing errors, when we have no visitor for a given rule,
       // when something went wrong with IR generation, or when we have a visitor but it is not
       // yet implemented.
@@ -54,7 +64,7 @@ class LogicalPlanGenerator(
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = tree)
     }.flatMap(_ => sql)
   }
@@ -64,7 +74,7 @@ class LogicalPlanGenerator(
     seqSql.map { seq =>
       seq
         .map { elem =>
-          if (!elem.endsWith("*/")) s"$elem;"
+          if (!elem.endsWith("*/") && !elem.startsWith("_!Jinja")) s"$elem;"
           else elem
         }
         .mkString("\n")
@@ -278,7 +288,7 @@ class LogicalPlanGenerator(
   }
 
   private def project(proj: ir.Project): SQL = {
-    val fromClause = if (proj.input != ir.NoTable()) {
+    val fromClause = if (proj.input != ir.NoTable) {
       code" FROM ${generate(proj.input)}"
     } else {
       code""

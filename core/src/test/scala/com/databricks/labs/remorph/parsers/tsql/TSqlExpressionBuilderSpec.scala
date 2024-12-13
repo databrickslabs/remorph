@@ -419,7 +419,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate the $ACTION special column reference" in {
-      exampleExpr("$ACTION", _.expression(), ir.DollarAction())
+      exampleExpr("$ACTION", _.expression(), ir.DollarAction)
     }
 
     "translate a timezone reference" in {

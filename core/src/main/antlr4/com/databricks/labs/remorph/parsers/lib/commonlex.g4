@@ -1430,11 +1430,22 @@ SQL_COMMENT  : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : ('--' | '//') ~[\r\n]*        -> channel(HIDDEN);
 
 // Identifiers
-ID              : ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+// Note that we consume any Jinja template reference that directly follows an ID
+// so that the parser does not have to deal with it. Down the line we may have to
+// spot template references in IDs and not mess with them if we are doing ID name trnsformations
+// as if the ID is a composite of a template reference and a static string, we cannot use them
+// to say build a schema for a table etc.
+ID              : IDFORM JINJA_REF_FORM?;
 DOUBLE_QUOTE_ID : '"' ('""' | ~[\r\n"])* '"';
 
+// Jinja Template Elements - note that composite elements whereby an identifier
+// is constricted at runtime, fall out by eating the following text here. The post
+// processor will only replace the template identifier. So:
+// {{ ref("something") }}_mysuffix will be tokenized as the template reference
+JINJA_REF: JINJA_REF_FORM ID?;
+
 // This lexer rule is needed so that any unknown character in the lexicon does not
-// cause an incomprehensible error message from teh lexer. This rule will allow the parser to issue
+// cause an incomprehensible error message from the lexer. This rule will allow the parser to issue
 // something more meaningful and perform error recovery as the lexer CANNOT raise an error - it
 // will alwys match at least one character using this catch-all rule.
 //
@@ -1443,9 +1454,11 @@ BADCHAR: .;
 
 // -------------------------------------------------------
 // Fragments for use in other lexer rules
-fragment LETTER      : [A-Z_];
-fragment HEX_DIGIT   : [0-9A-F];
-fragment DEC_DOT_DEC : [0-9]+ '.' [0-9]+ | [0-9]+ '.' | '.' [0-9]+;
+fragment IDFORM         : ( [A-Z_] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+fragment JINJA_REF_FORM : '_!Jinja' [0-9]+ ID?;
+fragment LETTER         : [A-Z_];
+fragment HEX_DIGIT      : [0-9A-F];
+fragment DEC_DOT_DEC    : [0-9]+ '.' [0-9]+ | [0-9]+ '.' | '.' [0-9]+;
 fragment FullWidthLetter options {
     caseInsensitive = false;
 }:

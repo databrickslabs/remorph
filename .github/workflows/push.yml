@@ -18,7 +18,7 @@ env:
   HATCH_VERSION: 1.9.1
 
 jobs:
-  ci:
+  test-python:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,7 +43,7 @@ jobs:
         run: hatch run test
 
       - name: Publish test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           codecov_yml_path: codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
           # Exit with status code 1 if there are differences (i.e. unformatted files)
           git diff --exit-code
 
-  fmt-core:
+  fmt-scala:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -101,7 +101,7 @@ jobs:
           # Exit with status code 1 if there are differences (i.e. unformatted files)
           git diff --exit-code
 
-  no-lint-disabled:
+  python-no-pylint-disable:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize')
     steps:
@@ -112,14 +112,16 @@ jobs:
 
       - name: Verify no lint disabled in the new code
         run: |
-          NEW_CODE=$(git diff origin/main..$(git branch --show-current) | grep -e '^+')
-          CHEAT=$(echo "${NEW_CODE}" | grep '# pylint: disable' | grep -v "CHEAT" | wc -c)
-          if [ "${CHEAT}" -ne 0 ]; then
-            echo "Do not cheat the linter: ${CHEAT}"
+          git fetch origin $GITHUB_BASE_REF:$GITHUB_BASE_REF
+          git diff $GITHUB_BASE_REF...$(git branch --show-current) >> diff_data.txt
+          python tests/unit/no_cheat.py diff_data.txt >> cheats.txt
+          COUNT=$(cat cheats.txt | wc -c)
+          if [ ${COUNT} -gt 1 ]; then
+            cat cheats.txt
             exit 1
           fi
 
-  test-core:
+  test-scala:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -176,7 +178,7 @@ jobs:
         continue-on-error: true
 
       - name: Publish test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 

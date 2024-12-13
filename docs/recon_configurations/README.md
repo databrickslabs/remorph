@@ -10,7 +10,7 @@ when comparing the source with the Databricks target.
 * [Supported Source System](#supported-source-system)
 * [TABLE Config JSON filename](#table-config-json-filename)
 * [TABLE Config Elements](#table-config-elements)
-    * [aggregates](#aggregate) 
+    * [aggregates](#aggregate)
     * [jdbc_reader_options](#jdbc_reader_options)
     * [column_mapping](#column_mapping)
     * [transformations](#transformations)
@@ -18,6 +18,7 @@ when comparing the source with the Databricks target.
     * [table_thresholds](#table_thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
+* [Key Considerations for Oracle JDBC Reader Options](#key-considerations-for-oracle-jdbc-reader-options)
 * [Reconciliation Example](#reconciliation-example)
 * [DataFlow Example](#dataflow-example)
 * [Aggregates Reconcile](#remorph-aggregates-reconciliation)
@@ -89,7 +90,7 @@ flowchart TD
 [[&#8593; back to top](#remorph-reconciliation)]
 
 ### TABLE Config Json filename:
-The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` within the Databricks Workspace. 
+The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` within the Databricks Workspace.
 
 > The filename pattern would remain the same for all the data_sources.
 
@@ -100,7 +101,7 @@ Please find the `Table Recon` filename examples below for the `Snowflake`, `Orac
        <th>Data Source</th>
        <th>Reconcile Config</th>
        <th>Table Recon filename</th>
-    </tr>  
+    </tr>
     <tr>
         <th>Snowflake</th>
         <td>
@@ -113,7 +114,7 @@ metadata_config:
   ...
 data_source: snowflake
 report_type: all
-...   
+...
              </pre>
         </td>
         <td>recon_config_snowflake_sample_data_all.json</td>
@@ -129,7 +130,7 @@ metadata_config:
   ...
 data_source: oracle
 report_type: data
-...   
+...
              </pre>
         </td>
         <td>recon_config_oracle_orc_data.json</td>
@@ -145,7 +146,7 @@ metadata_config:
   ...
 data_source: databricks
 report_type: schema
-...   
+...
              </pre>
         </td>
         <td>recon_config_databricks_hms_schema.json</td>
@@ -219,7 +220,7 @@ class Table:
 | column_mapping      | list[ColumnMapping]    | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None) | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
 | transformations     | list[Transformations]  | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None) | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
 | column_thresholds   | list[ColumnThresholds] | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None) | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
-| table_thresholds    | list[TableThresholds]  | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       | optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                             | 
+| table_thresholds    | list[TableThresholds]  | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       | optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                             |
 | filters             | Filters                | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None) | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
 
 
@@ -263,6 +264,14 @@ class JdbcReaderOptions:
 | upper_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the maximum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                     | required                | "1"           |
 | lower_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the minimum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                     | required                | "100000"      |
 | fetch_size        | string    | This parameter influences the number of rows fetched per round-trip between Spark and the JDBC database, optimising data retrieval performance. Adjusting this option significantly impacts the efficiency of data extraction, controlling the volume of data retrieved in each fetch operation. More details on configuring fetch size can be found [here](https://docs.databricks.com/en/connect/external-systems/jdbc.html#control-number-of-rows-fetched-per-query) | optional(default="100") | "10000"       |
+
+#### Key Considerations for Oracle JDBC Reader Options:
+For Oracle source, the following options are automatically set:
+
+- "oracle.jdbc.mapDateToTimestamp": "False",
+- "sessionInitStatement": "BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');END;"
+
+While configuring Recon for Oracle source, the above options should be taken into consideration.
 
 ### column_mapping
 
@@ -381,7 +390,7 @@ transformations=[Transformation(column_name)="array_col",source=sort_array_input
         <td>"oracle": DataType...NVARCHAR: ..."NVL(TRIM(TO_CHAR..,'_null_recon_')"</td>
         <td>Transformation rule for oracle dialect 'NVARCHAR' datatype. Applies TO_CHAR, TRIM transformation functions. If column is NULL, then  defaults to `_null_recon_` </td>
     </tr>
-</table>  
+</table>
 
 
 ## column_thresholds
@@ -423,8 +432,8 @@ class ColumnThresholds:
 | field_name  | data_type | description                                                                                                 | required/optional | example_value      |
 |-------------|-----------|-------------------------------------------------------------------------------------------------------------|-------------------|--------------------|
 | column_name | string    | the column that should be considered for column threshold reconciliation                                    | required          | "product_discount" |
-| lower_bound | string    | the lower bound of the difference between the source value and the target value                             | required          | -5%                | 
-| upper_bound | string    | the upper bound of the difference between the source value and the target value                             | required          | 5%                 |            
+| lower_bound | string    | the lower bound of the difference between the source value and the target value                             | required          | -5%                |
+| upper_bound | string    | the upper bound of the difference between the source value and the target value                             | required          | 5%                 |
 | type        | string    | The user must specify the column type. Supports SQLGLOT DataType.NUMERIC_TYPES and DataType.TEMPORAL_TYPES. | required          | int                |
 
 ### table_thresholds
@@ -464,8 +473,8 @@ model: str
 
 | field_name  | data_type | description                                                                                          | required/optional | example_value |
 |-------------|-----------|------------------------------------------------------------------------------------------------------|-------------------|---------------|
-| lower_bound | string    | the lower bound of the difference between the source mismatch and the target mismatch count          | required          | 0%            | 
-| upper_bound | string    | the upper bound of the difference between the source mismatch and the target mismatch count          | required          | 5%            |            
+| lower_bound | string    | the lower bound of the difference between the source mismatch and the target mismatch count          | required          | 0%            |
+| upper_bound | string    | the upper bound of the difference between the source mismatch and the target mismatch count          | required          | 5%            |
 | model       | string    | The user must specify on which table model it should be applied; for now, we support only "mismatch" | required          | int           |
 
 
@@ -514,7 +523,7 @@ class Filters:
    the source transformation is None, so the raw value in the source is considered for reconciliation.
 4. If no user transformation is provided for a given column in the configuration by default, depending on the source
    data
-   type, our reconciler will apply  
+   type, our reconciler will apply
    default transformation on both source and target to get the matching hash value in source and target. Please find the
    detailed default transformations here.
 5. Always the column reference to be source column names in all the configs, except **Transformations** and **Filters**
@@ -598,7 +607,7 @@ between source and target data residing on Databricks.
 
 | <a href="https://docs.databricks.com/en/sql/language-manual/sql-ref-functions-builtin.html#aggregate-functions" target="_blank"> Aggregate Functions </a> |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| <a href="https://docs.databricks.com/en/sql/language-manual/functions/min.html" target="_blank">**min**</a>                                               |  
+| <a href="https://docs.databricks.com/en/sql/language-manual/functions/min.html" target="_blank">**min**</a>                                               |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/max.html" target="_blank">**max**</a>                                               |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/count.html" target="_blank">**count**</a>                                           |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/sum.html" target="_blank">**sum**</a>                                               |
@@ -735,7 +744,7 @@ type= "max"
 6. Existing features like `column_mapping`, `transformations`, `JDBCReaderOptions` and `filters` are leveraged for the aggregate metric reconciliation.
 7. Existing `select_columns` and `drop_columns` are not considered for the aggregate metric reconciliation.
 8. Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
-9. If Transformations are defined, those are applied to both the “aggregate columns” and “group by columns”. 
+9. If Transformations are defined, those are applied to both the “aggregate columns” and “group by columns”.
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 

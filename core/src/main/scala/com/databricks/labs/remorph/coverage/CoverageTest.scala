@@ -15,7 +15,7 @@ case class ErrorsSummary(parseErrors: Seq[IndividualError], transpileErrors: Seq
 
 class CoverageTest extends ErrorEncoders {
 
-  private val dialectCoverageTests = Seq(
+  private[this] val dialectCoverageTests = Seq(
     DialectCoverageTest("snowflake", new IsTranspiledFromSnowflakeQueryRunner),
     DialectCoverageTest("tsql", new IsTranspiledFromTSqlQueryRunner))
 

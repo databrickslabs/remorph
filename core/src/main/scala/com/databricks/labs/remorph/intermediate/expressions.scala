@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
-import java.util.{UUID}
+import java.util.UUID
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -20,7 +20,7 @@ abstract class LeafExpression extends Expression {
 }
 
 object NamedExpression {
-  private val curId = new java.util.concurrent.atomic.AtomicLong()
+  private[this] val curId = new java.util.concurrent.atomic.AtomicLong()
   private[intermediate] val jvmId = UUID.randomUUID()
   def newExprId: ExprId = ExprId(curId.getAndIncrement(), jvmId)
   def unapply(expr: NamedExpression): Option[(String, DataType)] = Some((expr.name, expr.dataType))

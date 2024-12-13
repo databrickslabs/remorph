@@ -6,15 +6,15 @@ case class AcceptanceTestConfig(
     testFileSource: ExampleSource,
     queryExtractor: QueryExtractor,
     queryRunner: QueryRunner,
-    ignoredTestNames: Set[String] = Set.empty,
-    shouldFailParse: Set[String] = Set.empty)
+    ignoredTestNames: String => Boolean = Set.empty,
+    shouldFailParse: String => Boolean = Set.empty)
 
 class AcceptanceTestRunner(config: AcceptanceTestConfig) {
 
-  def shouldFailParse: Set[String] = config.shouldFailParse
+  def shouldFailParse: String => Boolean = config.shouldFailParse
 
   def runAcceptanceTest(acceptanceTest: AcceptanceTest): Option[ReportEntryReport] = {
-    if (config.ignoredTestNames.contains(acceptanceTest.testName)) {
+    if (config.ignoredTestNames(acceptanceTest.testName)) {
       None
     } else {
       config.queryExtractor.extractQuery(acceptanceTest.inputFile).map(config.queryRunner.runQuery)

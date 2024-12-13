@@ -26,14 +26,14 @@ flowchart TB
         L["sum(population): 330<br>state: CA"]
         M["sum(population): 600<br>state: DC"]
     end
-    
+
     subgraph target-aggregated
         direction TB
         N["sum(population): 110<br>state: NY"]
         O["sum(population): 340<br>state: CA"]
         P["sum(population): 500<br>state: AZ"]
     end
-    
+
     subgraph missing_in_src
         direction TB
         Q["sum(population): 500<br>state: AZ"]
@@ -43,17 +43,17 @@ flowchart TB
         direction TB
         R["sum(population): 600<br>state: DC"]
     end
-    
+
     subgraph mismatch
         direction TB
         S["state: CA<br>source_sum(population): 330<br>target_sum(population): 340<br>sum(population)_match: false"]
     end
-    
+
     subgraph aggregates-reconcile
         direction TB
         T["aggregate: <b>SUM</b> as type<br><b>population</b> as agg-columns<br><b>state</b> as group_by_columns"]
     end
-    
+
     source --> source-aggregated
     target --> target-aggregated
     source-aggregated --> aggregates-reconcile
@@ -85,23 +85,23 @@ flowchart TB
         direction TB
         K["min(population): 30"]
     end
-    
+
     subgraph target-aggregated
         direction TB
         O["min(population): 40"]
     end
-    
-    
+
+
     subgraph mismatch
         direction TB
         S["source_min(population): 30<br>target_min(population): 40<br>min(population)_match: false"]
     end
-    
+
     subgraph aggregates-reconcile
         direction TB
         T["aggregate: <b>MIN</b> as type<br><b>population</b> as agg-columns"]
     end
-    
+
     source --> source-aggregated
     target --> target-aggregated
     source-aggregated --> aggregates-reconcile

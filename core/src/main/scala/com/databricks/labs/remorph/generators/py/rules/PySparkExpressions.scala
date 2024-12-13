@@ -13,8 +13,8 @@ case class RawExpr(expr: ir.Expression) extends ir.LeafExpression {
 }
 
 class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
-  private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
+  private[this] val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private[this] val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def apply(expr: ir.Expression): ir.Expression = expr transformUp {
     case _: ir.Bitwise => bitwise(expr)

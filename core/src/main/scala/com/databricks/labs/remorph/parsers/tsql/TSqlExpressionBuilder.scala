@@ -62,6 +62,18 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     //       generate UnresolvedExpression
   }
 
+  private[tsql] def buildSelectList(ctx: TSqlParser.SelectListContext): Seq[ir.Expression] = {
+    val first = buildSelectListElem(ctx.selectListElem())
+    val rest = ctx.selectElemTempl().asScala.flatMap(buildSelectListElemTempl)
+    first ++ rest
+  }
+
+  private def buildSelectListElemTempl(ctx: TSqlParser.SelectElemTemplContext): Seq[ir.Expression] = {
+    val templ = Option(ctx.jinjaTemplate()).map(_.accept(this)).toSeq
+    val elem = Option(ctx.selectListElem()).toSeq.flatMap(buildSelectListElem)
+    errorCheck(ctx).toSeq ++ templ ++ elem
+  }
+
   private[tsql] def buildSelectListElem(ctx: TSqlParser.SelectListElemContext): Seq[ir.Expression] = {
 
     // If this node has an error such as an extra comma, then don't discard it, prefix it with the errorNode
@@ -279,7 +291,7 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      ir.DollarAction()
+      ir.DollarAction
   }
 
   override def visitExprStar(ctx: ExprStarContext): ir.Expression = errorCheck(ctx) match {
@@ -487,6 +499,12 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
       case _ => ir.Id(removeQuotes(ctx.getText))
     }
 
+  override def visitJinjaTemplate(ctx: TSqlParser.JinjaTemplateContext): ir.Expression = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ir.JinjaAsExpression(ctx.getText)
+  }
+
   private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
@@ -603,11 +621,10 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       val columnDef = ctx.expression().accept(this)
-      val aliasOption =
-        Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
-          val name = Option(alias.id()).map(buildId).getOrElse(ir.Id(alias.STRING().getText))
-          ir.Alias(columnDef, name)
-        }
+      val aliasOption = Option(ctx.columnAlias()).map { alias =>
+        val name = vc.relationBuilder.buildColumnAlias(alias)
+        ir.Alias(columnDef, name)
+      }
       aliasOption.getOrElse(columnDef)
   }
 
@@ -624,6 +641,12 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
     case None =>
       // Support for functions such as COUNT(DISTINCT column), which is an expression not a child
       ir.Distinct(ctx.expression().accept(this))
+  }
+
+  override def visitExprJinja(ctx: ExprJinjaContext): ir.Expression = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx.jinjaTemplate().accept(this)
   }
 
   override def visitExprAll(ctx: ExprAllContext): ir.Expression = errorCheck(ctx) match {
@@ -700,12 +723,12 @@ class TSqlExpressionBuilder(override val vc: TSqlVisitorCoordinator)
   override def visitOutputDmlListElem(ctx: OutputDmlListElemContext): ir.Expression = errorCheck(ctx) match {
     case Some(errorResult) => errorResult
     case None =>
-      val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
-      val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
-        val name = Option(alias.id()).map(buildId).getOrElse(ir.Id(alias.STRING().getText))
-        ir.Alias(expression, name)
+      val columnDef = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
+      val aliasOption = Option(ctx.columnAlias()).map { alias =>
+        val name = vc.relationBuilder.buildColumnAlias(alias)
+        ir.Alias(columnDef, name)
       }
-      aliasOption.getOrElse(expression)
+      aliasOption.getOrElse(columnDef)
   }
 
   /**

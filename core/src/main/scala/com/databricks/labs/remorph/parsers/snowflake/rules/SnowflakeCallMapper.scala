@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
+import com.databricks.labs.remorph.intermediate.UnresolvedNamedLambdaVariable
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -7,8 +8,8 @@ import java.time.format.DateTimeFormatter
 import scala.util.Try
 
 class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
-  private val zeroLiteral: ir.Literal = ir.IntLiteral(0)
-  private val oneLiteral: ir.Literal = ir.IntLiteral(1)
+  private[this] val zeroLiteral: ir.Literal = ir.IntLiteral(0)
+  private[this] val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
   override def convert(call: ir.Fn): ir.Expression = {
     withNormalizedName(call) match {
@@ -18,6 +19,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
         ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null)))
       case ir.CallFunction("ARRAY_CONTAINS", args) => ir.ArrayContains(args(1), args.head)
+      case ir.CallFunction("ARRAY_FLATTEN", args) => ir.Flatten(args.head)
       case ir.CallFunction("ARRAY_INTERSECTION", args) => ir.ArrayIntersect(args.head, args(1))
       case ir.CallFunction("ARRAY_SIZE", args) => ir.Size(args.head)
       case ir.CallFunction("ARRAY_SLICE", args) =>
@@ -49,6 +51,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
       case ir.CallFunction("IS_INTEGER", args) => isInteger(args)
       case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
+      case ir.CallFunction("LAST_DAY", args) => parseLastDay(args)
       case ir.CallFunction("LAST_VALUE", args) => ir.Last(args.head, args.lift(1))
       case ir.CallFunction("LEN", args) => ir.Length(args.head)
       case ir.CallFunction("LISTAGG", args) =>
@@ -214,14 +217,78 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       throw TranspileException(ir.WrongNumberOfArguments("SPLIT_PART", other.size, "3"))
   }
 
+  // REGEXP_SUBSTR( <subject> , <pattern> [ , <position> [ , <occurrence> [ , <regex_parameters> [ , <group_num> ]]]])
   private def regexpExtract(args: Seq[ir.Expression]): ir.Expression = {
-    if (args.size == 2) {
-      ir.RegExpExtract(args.head, args(1), zeroLiteral)
-    } else if (args.size == 3) {
-      ir.RegExpExtract(args.head, args(1), args(2))
+    val subject = if (args.size >= 3) {
+      ir.Substring(args.head, args(2))
+    } else args.head
+    if (args.size <= 3) {
+      ir.RegExpExtract(subject, args(1), Some(zeroLiteral))
     } else {
-      throw TranspileException(ir.WrongNumberOfArguments("REGEXP_EXTRACT", args.size, "2 or 3"))
+      val occurrence = args(3) match {
+        case ir.IntLiteral(o) => ir.Literal(o - 1)
+        case o => ir.Subtract(o, oneLiteral)
+      }
+      val pattern = args.lift(4) match {
+        case None => args(1)
+        case Some(ir.StringLiteral(regexParams)) => translateLiteralRegexParameters(regexParams, args(1))
+        case Some(regexParams) => translateRegexParameters(regexParams, args(1))
+      }
+      val groupNumber = args.lift(5).orElse(Some(zeroLiteral))
+      ir.ArrayAccess(ir.RegExpExtractAll(subject, pattern, groupNumber), occurrence)
     }
+  }
+
+  private def translateLiteralRegexParameters(regexParams: String, pattern: ir.Expression): ir.Expression = {
+    val filtered = regexParams.foldLeft("") { case (agg, item) =>
+      if (item == 'c') agg.filter(_ != 'i')
+      else if ("ism".contains(item)) agg + item
+      else agg
+    }
+    pattern match {
+      case ir.StringLiteral(pat) => ir.Literal(s"(?$filtered)$pat")
+      case e => ir.Concat(Seq(ir.Literal(s"(?$filtered)"), e))
+    }
+  }
+
+  /**
+   * regex_params may be any expression (a literal, but also a column, etc), this changes it to
+   *
+   * aggregate(
+   *   split(regex_params, ''),
+   *   cast(array() as array<string>),
+   *   (agg, item) ->
+   *     case
+   *       when item = 'c' then filter(agg, c -> c != 'i')
+   *       when item in ('i', 's', 'm') then array_append(agg, item)
+   *       else agg
+   *     end,
+   *   filtered -> '(?' || array_join(array_distinct(filtered), '') || ')'
+   * )
+   */
+  private def translateRegexParameters(regexParameters: ir.Expression, pattern: ir.Expression): ir.Expression = {
+    ir.ArrayAggregate(
+      ir.StringSplit(regexParameters, ir.Literal(""), None),
+      ir.Cast(ir.CreateArray(Seq()), ir.ArrayType(ir.StringType)),
+      ir.LambdaFunction(
+        ir.Case(
+          expression = None,
+          branches = Seq(
+            ir.WhenBranch(
+              ir.Equals(ir.Id("item"), ir.Literal("c")),
+              ir.ArrayFilter(
+                ir.Id("agg"),
+                ir.LambdaFunction(
+                  ir.NotEquals(ir.Id("item"), ir.Literal("i")),
+                  Seq(ir.UnresolvedNamedLambdaVariable(Seq("item")))))),
+            ir.WhenBranch(
+              ir.In(ir.Id("item"), Seq(ir.Literal("i"), ir.Literal("s"), ir.Literal("m"))),
+              ir.ArrayAppend(ir.Id("agg"), ir.Id("item")))),
+          otherwise = Some(ir.Id("agg"))),
+        Seq(UnresolvedNamedLambdaVariable(Seq("agg")), UnresolvedNamedLambdaVariable(Seq("item")))),
+      ir.LambdaFunction(
+        ir.Concat(Seq(ir.Literal("(?"), ir.ArrayJoin(ir.Id("filtered"), ir.Literal("")), ir.Literal(")"), pattern)),
+        Seq(UnresolvedNamedLambdaVariable(Seq("filtered")))))
   }
 
   private def dateDiff(args: Seq[ir.Expression]): ir.Expression = {
@@ -336,7 +403,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   // Timestamp formats that can be automatically inferred by Snowflake but not by Databricks
-  private val unsupportedAutoTimestampFormats = Seq(
+  private[this] val unsupportedAutoTimestampFormats = Seq(
     "yyyy-MM-dd'T'HH:mmXXX",
     "yyyy-MM-dd HH:mmXXX",
     "EEE, dd MMM yyyy HH:mm:ss ZZZ",
@@ -350,7 +417,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     "M/dd/yyyy HH:mm:ss",
     "EEE MMM dd HH:mm:ss ZZZ yyyy")
 
-  private val unsupportedAutoTimeFormats =
+  private[this] val unsupportedAutoTimeFormats =
     Seq("HH:MM:ss.SSSSSSSSS", "HH:MM:ss", "HH:MM", "hh:MM:ss.SSSSSSSSS a", "hh:MM:ss a", "hh:MM a")
 
   // In Snowflake, when TO_TIME/TO_TIMESTAMP is called without a specific format, the system is capable of inferring the
@@ -395,7 +462,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       ir.TryToTimestamp(expr, Some(ir.Literal(javaDateTimeFormatString)))
     }
 
-  private val temporalFormatMapping = Seq(
+  private[this] val temporalFormatMapping = Seq(
     "YYYY" -> "yyyy",
     "YY" -> "yy",
     "MON" -> "MMM",
@@ -581,6 +648,27 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
 
     irSortArray
+  }
+
+  private def parseLastDay(args: Seq[ir.Expression]): ir.Expression = {
+    if (args.length == 1) {
+      return ir.LastDay(args.head)
+    }
+
+    val datePart = args(1) match {
+      case ir.StringLiteral(part) => part.toUpperCase()
+      case ir.Column(_, part) => part.toString.toUpperCase()
+      case _ => throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
+    }
+
+    if (!Set("YEAR", "QUARTER", "MONTH", "WEEK").contains(datePart)) {
+      throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
+    }
+
+    val dateTruncExpr = ir.TruncDate(args.head, args(1))
+    val dateAddExpr = ir.TimestampAdd(datePart, oneLiteral, dateTruncExpr)
+    val dateSubExpr = ir.DateAdd(dateAddExpr, ir.Literal(-1))
+    dateSubExpr
   }
 
 }

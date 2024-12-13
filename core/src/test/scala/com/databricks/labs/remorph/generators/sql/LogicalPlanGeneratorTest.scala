@@ -16,7 +16,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     "transpile to SELECT" in {
       ir.Project(namedTable("t1"), Seq(ir.Id("c1"))) generates "SELECT c1 FROM t1"
       ir.Project(namedTable("t1"), Seq(ir.Star(None))) generates "SELECT * FROM t1"
-      ir.Project(ir.NoTable(), Seq(ir.Literal(1))) generates "SELECT 1"
+      ir.Project(ir.NoTable, Seq(ir.Literal(1))) generates "SELECT 1"
     }
 
     "transpile to SELECT with COMMENTS" in {
@@ -58,7 +58,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     "transpile to WHERE" in {
       ir.Filter(
         ir.Project(namedTable("t1"), Seq(ir.Id("c1"))),
-        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "SELECT c1 FROM t1 WHERE IS_DATE(c2)"
+        ir.CallFunction("IS_DATE", Seq(ir.Id("c2")))) generates "(SELECT c1 FROM t1) WHERE IS_DATE(c2)"
     }
   }
 
@@ -299,6 +299,10 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
 
   "transpile to OFFSET" in {
     ir.Offset(namedTable("a"), ir.Literal(10)) generates "a OFFSET 10"
+  }
+
+  "transpile to LIMIT and OFFSET" in {
+    ir.Limit(ir.Offset(namedTable("a"), ir.Literal(10)), ir.Literal(20)) generates "a LIMIT 20 OFFSET 10"
   }
 
   "transpile to ORDER BY" in {

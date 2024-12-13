@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 trait Source extends Iterator[Parsing]
 
 class DirectorySource(root: String, fileFilter: Option[Path => Boolean] = None) extends Source {
-  private val files =
+  private[this] val files =
     Files
       .walk(Paths.get(root))
       .iterator()

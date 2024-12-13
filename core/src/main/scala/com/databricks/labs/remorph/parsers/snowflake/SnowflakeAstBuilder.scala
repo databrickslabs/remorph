@@ -67,13 +67,37 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // TODO: Sort out where to visitSubquery
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        val select = ctx.selectStatement().accept(vc.relationBuilder)
-        val withCTE = buildCTE(ctx.withExpression(), select)
-        ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
+    errorCheck(ctx).getOrElse {
+      val query = ctx.queryExpression().accept(this)
+      Option(ctx.withExpression()).foldRight(query)(buildCTE)
     }
+  }
+
+  override def visitQueryInParenthesis(ctx: QueryInParenthesisContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse(ctx.queryExpression().accept(this))
+  }
+
+  override def visitQueryIntersect(ctx: QueryIntersectContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse {
+      val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(_.accept(this))
+      ir.SetOperation(lhs, rhs, ir.IntersectSetOp, is_all = false, by_name = false, allow_missing_columns = false)
+    }
+  }
+
+  override def visitQueryUnion(ctx: QueryUnionContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse {
+      val Seq(lhs, rhs) = ctx.queryExpression().asScala.map(_.accept(this))
+      val setOp = ctx match {
+        case u if u.UNION() != null => ir.UnionSetOp
+        case e if e.EXCEPT() != null || e.MINUS_() != null => ir.ExceptSetOp
+      }
+      val isAll = ctx.ALL() != null
+      ir.SetOperation(lhs, rhs, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
+    }
+  }
+
+  override def visitQuerySimple(ctx: QuerySimpleContext): ir.LogicalPlan = {
+    errorCheck(ctx).getOrElse(ctx.selectStatement().accept(vc.relationBuilder))
   }
 
   override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
@@ -98,23 +122,6 @@ class SnowflakeAstBuilder(override val vc: SnowflakeVisitorCoordinator)
           val ctes = vc.relationBuilder.visitMany(ctx.commonTableExpression())
           ir.WithRecursiveCTE(ctes, relation)
         }
-    }
-  }
-
-  private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
-    errorCheck(ctx) match {
-      case Some(errorResult) => errorResult
-      case None =>
-        val right = ctx.selectStatement().accept(vc.relationBuilder)
-        val (isAll, setOp) = ctx match {
-          case c if c.UNION() != null =>
-            (c.ALL() != null, ir.UnionSetOp)
-          case c if c.MINUS_() != null || c.EXCEPT() != null =>
-            (false, ir.ExceptSetOp)
-          case c if c.INTERSECT() != null =>
-            (false, ir.IntersectSetOp)
-        }
-        ir.SetOperation(left, right, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
     }
   }
 

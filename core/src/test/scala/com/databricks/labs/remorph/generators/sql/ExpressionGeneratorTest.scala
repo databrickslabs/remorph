@@ -15,9 +15,9 @@ class ExpressionGeneratorTest
 
   override protected val generator = new ExpressionGenerator
 
-  private val optionGenerator = new OptionGenerator(generator)
+  private[this] val optionGenerator = new OptionGenerator(generator)
 
-  private val logical = new LogicalPlanGenerator(generator, optionGenerator)
+  private[this] val logical = new LogicalPlanGenerator(generator, optionGenerator)
 
   override protected def initialState(expr: ir.Expression) =
     Generating(optimizedPlan = ir.Batch(Seq.empty), currentNode = expr, ctx = GeneratorContext(logical))

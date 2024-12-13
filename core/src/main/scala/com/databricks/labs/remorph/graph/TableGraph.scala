@@ -3,15 +3,15 @@ package com.databricks.labs.remorph.graph
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, TableDefinition}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.typesafe.scalalogging.LazyLogging
-import com.databricks.labs.remorph.{KoResult, OkResult, PartialResult, Parsing, intermediate => ir}
+import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, PartialResult, TranspilerState, intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 // `from` is the table which is sourced to create `to` table
 protected case class Edge(from: Node, to: Option[Node], metadata: Map[String, String])
 
 class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
-  private val nodes = scala.collection.mutable.Set.empty[Node]
-  private val edges = scala.collection.mutable.Set.empty[Edge]
+  private[this] val nodes = scala.collection.mutable.Set.empty[Node]
+  private[this] val edges = scala.collection.mutable.Set.empty[Edge]
 
   override protected def addNode(id: TableDefinition, metadata: Map[String, Set[String]]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
@@ -107,7 +107,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       try {
-        val plan = parser.parse(Parsing(query.source)).flatMap(parser.visit).run(Parsing(query.source))
+        val plan = parser.parse.flatMap(parser.visit).run(TranspilerState(Parsing(query.source)))
         plan match {
           case KoResult(_, error) =>
             logger.warn(s"Failed to produce plan from query: ${query.id}")

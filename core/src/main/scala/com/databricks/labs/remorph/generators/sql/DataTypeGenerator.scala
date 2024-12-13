@@ -44,6 +44,7 @@ object DataTypeGenerator extends TransformationConstructors {
     case ir.VarcharType(size) => code"VARCHAR${maybeSize(size)}"
     case ir.CharType(size) => code"CHAR${maybeSize(size)}"
     case ir.VariantType => code"VARIANT"
+    case ir.JinjaAsDataType(text) => code"$text"
     case _ => lift(PartialResult(s"!!! $dt !!!", ir.UnsupportedDataType(dt.toString)))
   }
 

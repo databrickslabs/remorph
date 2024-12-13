@@ -8,8 +8,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with TransformationConstructors {
-  private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
+  private[this] val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private[this] val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def generate(tree: ir.Expression): SQL =
     expression(tree)
@@ -66,6 +66,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case e: ir.Extract => extract(e)
       case c: ir.Concat => concat(c)
       case i: ir.In => in(i)
+      case ir.JinjaAsExpression(text) => code"$text"
 
       // keep this case after every case involving an `Fn`, otherwise it will make said case unreachable
       case fn: ir.Fn => code"${fn.prettyName}(${commas(fn.children)})"
@@ -79,7 +80,7 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
       case x => partialResult(x)
     }
 
-    update { case g: Generating =>
+    updatePhase { case g: Generating =>
       g.copy(currentNode = expr)
     }.flatMap(_ => sql)
   }
@@ -371,11 +372,21 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
 
   private def in(inExpr: ir.In): SQL = {
     val values = commas(inExpr.other)
-    code"${expression(inExpr.left)} IN ($values)"
+    val enclosed = values.map { sql =>
+      if (sql.charAt(0) == '(' && sql.charAt(sql.length - 1) == ')') {
+        sql
+      } else {
+        "(" + sql + ")"
+      }
+    }
+    code"${expression(inExpr.left)} IN ${enclosed}"
   }
 
   private def scalarSubquery(subquery: ir.ScalarSubquery): SQL = {
-    withGenCtx(ctx => ctx.logical.generate(subquery.relation))
+    withGenCtx(ctx => {
+      val subcode = ctx.logical.generate(subquery.relation)
+      code"(${subcode})"
+    })
   }
 
   private def window(window: ir.Window): SQL = {
@@ -428,8 +439,8 @@ class ExpressionGenerator extends BaseSQLGenerator[ir.Expression] with Transform
   }
 
   private def regexpExtract(extract: ir.RegExpExtract): SQL = {
-    val c = if (extract.c == ir.Literal(1)) { code"" }
-    else { code", ${expression(extract.c)}" }
+    val c = if (extract.c.isEmpty || extract.c.contains(ir.Literal(1))) { code"" }
+    else { code", ${expression(extract.c.get)}" }
     code"${extract.prettyName}(${expression(extract.left)}, ${expression(extract.right)}$c)"
   }
 

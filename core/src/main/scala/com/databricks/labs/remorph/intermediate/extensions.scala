@@ -26,7 +26,7 @@ case class Column(tableNameOrAlias: Option[ObjectReference], columnName: NameOrP
     with AstExtension {}
 
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
-case class DollarAction() extends ToRefactor with AstExtension {}
+case object DollarAction extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
 
 case object Noop extends LeafExpression {
@@ -61,7 +61,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 }
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends LeafNode {
+case object NoTable extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -91,7 +91,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
@@ -250,3 +250,12 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def dataType: DataType = UnresolvedType
 }
 
+case class JinjaAsStatement(text: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case class JinjaAsExpression(text: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
+
+case class JinjaAsDataType(text: String) extends DataType

@@ -8,7 +8,7 @@ class ConvertFractionalSecond extends ir.Rule[ir.LogicalPlan] {
   // TODO Fractional seconds are only displayed if they have been explicitly
   // set in the TIME_OUTPUT_FORMAT parameter for the session (e.g. 'HH24:MI:SS.FF').
 
-  private val timeMapping: Map[Int, String] = Map(
+  private[this] val timeMapping: Map[Int, String] = Map(
     0 -> "HH:mm:ss",
     1 -> "HH:mm:ss",
     2 -> "HH:mm:ss",

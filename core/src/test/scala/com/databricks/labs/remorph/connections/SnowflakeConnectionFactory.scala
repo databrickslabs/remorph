@@ -12,8 +12,8 @@ class SnowflakeConnectionFactory(env: EnvGetter) {
   Class.forName("net.snowflake.client.jdbc.SnowflakeDriver")
   // scalastyle:on
 
-  private val url = env.get("TEST_SNOWFLAKE_JDBC")
-  private val privateKeyPEM = env.get("TEST_SNOWFLAKE_PRIVATE_KEY")
+  private[this] val url = env.get("TEST_SNOWFLAKE_JDBC")
+  private[this] val privateKeyPEM = env.get("TEST_SNOWFLAKE_PRIVATE_KEY")
 
   private def privateKey: PrivateKey = {
     Security.addProvider(new BouncyCastleProvider())
@@ -28,8 +28,11 @@ class SnowflakeConnectionFactory(env: EnvGetter) {
     kf.generatePrivate(keySpecPKCS8)
   }
 
-  private val props = new Properties()
-  props.put("privateKey", privateKey)
+  private[this] val props = {
+    val p = new Properties()
+    p.put("privateKey", privateKey)
+    p
+  }
 
   def newConnection(): Connection = DriverManager.getConnection(url, props)
 }
