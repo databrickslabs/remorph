@@ -34,7 +34,7 @@ class SqlglotEngine(TranspileEngine):
         error_list: list[ParserError],
     ) -> tuple[list[str], list[ParserError]]:
         transpiled_sql_statements = []
-        parsed_expressions, errors = self.safe_parse(statements=source_code, read=read_dialect)
+        parsed_expressions, errors = self.safe_parse(statements=source_code, read_dialect=read_dialect)
         for parsed_expression in parsed_expressions:
             if parsed_expression.parsed_expression is not None:
                 try:
@@ -69,7 +69,7 @@ class SqlglotEngine(TranspileEngine):
         except (ParseError, TokenError, UnsupportedError) as e:
             logger.error(f"Exception caught for file {file_path!s}: {e}")
             error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(e))))
-            transpiled_sql, error = self.__partial_transpile(
+            transpiled_sql, _ = self.__partial_transpile(
                 read_dialect, write_dialect, source_code, file_path, error_list
             )
             return TranspilationResult(transpiled_sql, error_list)
@@ -99,11 +99,10 @@ class SqlglotEngine(TranspileEngine):
                         yield self._find_root_tables(select), child
 
     @staticmethod
-    def safe_parse(statements: str, read: Dialect) -> tuple[list[ParsedExpression], list[str]]:
-        dialect = read
+    def safe_parse(statements: str, read_dialect: Dialect) -> tuple[list[ParsedExpression], list[str]]:
         errors = []
         try:
-            tokens = dialect.tokenize(sql=statements)
+            tokens = read_dialect.tokenize(sql=statements)
         except TokenError as e:
             error_statement = format_error_message("TOKEN ERROR", e, statements)
             errors.append(error_statement)
@@ -130,7 +129,7 @@ class SqlglotEngine(TranspileEngine):
 
         parsed_expressions: list[ParsedExpression] = []
         parser_opts = {"error_level": ErrorLevel.RAISE}
-        parser = dialect.parser(**parser_opts)
+        parser = read_dialect.parser(**parser_opts)
         for i, tokens in enumerate(chunks, start=1):
             original_sql = original_sql_chunks[i - 1]
             try:

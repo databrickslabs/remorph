@@ -100,9 +100,8 @@ def test_parse_sql_content(transpiler):
     assert result[0][1] == "test.sql"
 
 
-def test_safe_parse(transpiler, write_dialect):
-    dialect = transpiler.read_dialect
-    result, error = transpiler.safe_parse("SELECT col1 from tab1;SELECT11 col1 from tab2", dialect)
+def test_safe_parse(transpiler, morph_config):
+    result, error = transpiler.safe_parse("SELECT col1 from tab1;SELECT11 col1 from tab2", morph_config.source_dialect)
     expected_result = [expressions.Column(this=expressions.Identifier(this="col1", quoted=False))]
     expected_from_result = expressions.From(
         this=expressions.Table(this=expressions.Identifier(this="tab1", quoted=False))
@@ -115,9 +114,10 @@ def test_safe_parse(transpiler, write_dialect):
     assert "PARSING ERROR" in error[0]
 
 
-def test_safe_parse_with_semicolon(transpiler, write_dialect):
-    dialect = transpiler.read_dialect
-    result, error = transpiler.safe_parse("SELECT split(col2,';') from tab1 where col1 like ';%'", dialect)
+def test_safe_parse_with_semicolon(transpiler, morph_config):
+    result, error = transpiler.safe_parse(
+        "SELECT split(col2,';') from tab1 where col1 like ';%'", morph_config.source_dialect
+    )
     expected_result = [
         expressions.Split(
             this=expressions.Column(this=expressions.Identifier(this="col2", quoted=False)),
