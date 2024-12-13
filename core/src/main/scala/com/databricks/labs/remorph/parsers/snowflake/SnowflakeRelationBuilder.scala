@@ -51,6 +51,8 @@ class SnowflakeRelationBuilder(override val vc: SnowflakeVisitorCoordinator)
   }
 
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
+    // TODO: This is backwards: the IR should be LIMIT(OFFSET(input, offset), limit)
+    // TODO: Snowflake supports the OFFSET/FETCH syntax but currently the IR is emitted with reversed arguments.
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
         val limit = ir.Limit(input, ctx.expr(0).accept(vc.expressionBuilder))
