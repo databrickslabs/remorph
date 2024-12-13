@@ -148,7 +148,7 @@ class SqlglotEngine(TranspileEngine):
 
     @staticmethod
     def _find_root_table(expression) -> str | None:
-        table = expression.find_all(exp.Table, bfs=False)
+        table = expression.find(exp.Table, bfs=False)
         return table.name if table else None
 
     @staticmethod
