@@ -3,8 +3,10 @@ from pathlib import Path
 
 DISABLE_TAG = '# pylint: disable='
 
+
 def _strip_code(code: str) -> str:
     return code.strip().strip('\n').strip('"').strip("'")
+
 
 def no_cheat(diff_text: str) -> str:
     lines = diff_text.split('\n')
