@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 from sqlglot import parse_one
@@ -18,7 +19,7 @@ def test_query_with_no_unsupported_lca_usage():
     """
     filename = "test_file1.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert not error
 
 
@@ -76,7 +77,7 @@ def test_query_with_valid_alias_usage():
     """
     filename = "test_file1.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert not error
 
 
@@ -92,7 +93,7 @@ def test_query_with_lca_in_where():
     """
     filename = "test_file2.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert error
 
 
@@ -108,7 +109,7 @@ def test_query_with_lca_in_window():
     """
     filename = "test_file3.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert error
 
 
@@ -123,7 +124,7 @@ def test_query_with_error():
     """
     filename = "test_file4.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert not error
 
 
@@ -141,7 +142,7 @@ def test_query_with_same_alias_and_column_name():
     """
     filename = "test_file5.sql"
 
-    error = check_for_unsupported_lca(dialect, sql, filename)
+    error = check_for_unsupported_lca(dialect, sql, Path(filename))
     assert not error
 
 

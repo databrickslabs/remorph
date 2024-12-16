@@ -171,4 +171,4 @@ class SqlglotEngine(TranspileEngine):
         return error_list
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
-        return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
+        return lca_utils.check_for_unsupported_lca(get_dialect(source_dialect), source_code, file_path)

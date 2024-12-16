@@ -1,111 +1,111 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.UnresolvedNamedLambdaVariable
-import com.databricks.labs.remorph.{intermediate => ir}
-import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.{PartialResult, Transformation, TransformationConstructors, intermediate => ir}
 
 import java.time.format.DateTimeFormatter
 import scala.util.Try
 
-class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
+class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers with TransformationConstructors {
   private[this] val zeroLiteral: ir.Literal = ir.IntLiteral(0)
   private[this] val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
-  override def convert(call: ir.Fn): ir.Expression = {
+  override def convert(call: ir.Fn): Transformation[ir.Expression] = {
     withNormalizedName(call) match {
       // keep all the names in alphabetical order
-      case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)
-      case ir.CallFunction("ARRAY_CONSTRUCT", args) => ir.CreateArray(args)
+      case ir.CallFunction("ARRAY_CAT", args) => ok(ir.Concat(args))
+      case ir.CallFunction("ARRAY_CONSTRUCT", args) => ok(ir.CreateArray(args))
       case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
-        ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null)))
-      case ir.CallFunction("ARRAY_CONTAINS", args) => ir.ArrayContains(args(1), args.head)
-      case ir.CallFunction("ARRAY_FLATTEN", args) => ir.Flatten(args.head)
-      case ir.CallFunction("ARRAY_INTERSECTION", args) => ir.ArrayIntersect(args.head, args(1))
-      case ir.CallFunction("ARRAY_SIZE", args) => ir.Size(args.head)
+        ok(ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null))))
+      case ir.CallFunction("ARRAY_CONTAINS", args) => ok(ir.ArrayContains(args(1), args.head))
+      case ir.CallFunction("ARRAY_FLATTEN", args) => ok(ir.Flatten(args.head))
+      case ir.CallFunction("ARRAY_INTERSECTION", args) => ok(ir.ArrayIntersect(args.head, args(1)))
+      case ir.CallFunction("ARRAY_SIZE", args) => ok(ir.Size(args.head))
       case ir.CallFunction("ARRAY_SLICE", args) =>
         // @see https://docs.snowflake.com/en/sql-reference/functions/array_slice
         // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
         // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
-        ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral))
+        ok(ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral)))
       case ir.CallFunction("ARRAY_SORT", args) => arraySort(args)
-      case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
-      case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("BASE64_ENCODE", args) => ir.Base64(args.head)
-      case ir.CallFunction("BITOR_AGG", args) => ir.BitOrAgg(args.head)
-      case ir.CallFunction("BOOLAND_AGG", args) => ir.BoolAnd(args.head)
-      case ir.CallFunction("DATEADD", args) => dateAdd(args)
+      case ir.CallFunction("ARRAY_TO_STRING", args) => ok(ir.ArrayJoin(args.head, args(1), None))
+      case ir.CallFunction("BASE64_DECODE_STRING", args) => ok(ir.UnBase64(args.head))
+      case ir.CallFunction("BASE64_DECODE_BINARY", args) => ok(ir.UnBase64(args.head))
+      case ir.CallFunction("BASE64_ENCODE", args) => ok(ir.Base64(args.head))
+      case ir.CallFunction("BITOR_AGG", args) => ok(ir.BitOrAgg(args.head))
+      case ir.CallFunction("BOOLAND_AGG", args) => ok(ir.BoolAnd(args.head))
+      case da @ ir.CallFunction("DATEADD", args) => dateAdd(da, args)
       case ir.CallFunction("DATEDIFF", args) => dateDiff(args)
-      case ir.CallFunction("DATE_FROM_PARTS", args) => ir.MakeDate(args.head, args(1), args(2))
+      case ir.CallFunction("DATE_FROM_PARTS", args) => ok(ir.MakeDate(args.head, args(1), args(2)))
       case ir.CallFunction("DATE_PART", args) => datePart(args)
       case ir.CallFunction("DATE_TRUNC", args) => dateTrunc(args)
-      case ir.CallFunction("DAYNAME", args) => dayname(args)
-      case ir.CallFunction("DECODE", args) => decode(args)
-      case ir.CallFunction("DIV0", args) => div0(args)
-      case ir.CallFunction("DIV0NULL", args) => div0null(args)
-      case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1), args.lift(2))
-      case ir.CallFunction("FIRST_VALUE", args) => ir.First(args.head, args.lift(1))
+      case ir.CallFunction("DAYNAME", args) => ok(dayname(args))
+      case d @ ir.CallFunction("DECODE", args) => decode(d, args)
+      case ir.CallFunction("DIV0", args) => ok(div0(args))
+      case ir.CallFunction("DIV0NULL", args) => ok(div0null(args))
+      case ir.CallFunction("EDITDISTANCE", args) => ok(ir.Levenshtein(args.head, args(1), args.lift(2)))
+      case ir.CallFunction("FIRST_VALUE", args) => ok(ir.First(args.head, args.lift(1)))
       case ir.CallFunction("FLATTEN", args) =>
         // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
-        ir.Explode(args.head)
-      case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
-      case ir.CallFunction("IS_INTEGER", args) => isInteger(args)
-      case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
+        ok(ir.Explode(args.head))
+      case ir.CallFunction("IFNULL", args) => ok(ir.Coalesce(args))
+      case ir.CallFunction("IS_INTEGER", args) => ok(isInteger(args))
+      case jept @ ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(jept, args)
       case ir.CallFunction("LAST_DAY", args) => parseLastDay(args)
-      case ir.CallFunction("LAST_VALUE", args) => ir.Last(args.head, args.lift(1))
-      case ir.CallFunction("LEN", args) => ir.Length(args.head)
+      case ir.CallFunction("LAST_VALUE", args) => ok(ir.Last(args.head, args.lift(1)))
+      case ir.CallFunction("LEN", args) => ok(ir.Length(args.head))
       case ir.CallFunction("LISTAGG", args) =>
-        ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None)
-      case ir.CallFunction("MONTHNAME", args) => ir.DateFormatClass(args.head, ir.Literal("MMM"))
-      case ir.CallFunction("MONTHS_BETWEEN", args) => ir.MonthsBetween(args.head, args(1), ir.Literal.True)
-      case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
-      case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
+        ok(ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None))
+      case ir.CallFunction("MONTHNAME", args) => ok(ir.DateFormatClass(args.head, ir.Literal("MMM")))
+      case ir.CallFunction("MONTHS_BETWEEN", args) => ok(ir.MonthsBetween(args.head, args(1), ir.Literal.True))
+      case ir.CallFunction("NULLIFZERO", args) => ok(nullIfZero(args.head))
+      case ir.CallFunction("OBJECT_KEYS", args) => ok(ir.JsonObjectKeys(args.head))
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
-      case ir.CallFunction("PARSE_JSON", args) => ir.ParseJson(args.head)
-      case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
-      case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
-      case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
-      case ir.CallFunction("SHA2", args) => ir.Sha2(args.head, args.lift(1).getOrElse(ir.Literal(256)))
-      case ir.CallFunction("SPLIT_PART", args) => splitPart(args)
-      case ir.CallFunction("SQUARE", args) => ir.Pow(args.head, ir.Literal(2))
-      case ir.CallFunction("STRTOK", args) => strtok(args)
-      case ir.CallFunction("STRTOK_TO_ARRAY", args) => split(args)
-      case ir.CallFunction("SYSDATE", _) => ir.CurrentTimestamp()
+      case ir.CallFunction("PARSE_JSON", args) => ok(ir.ParseJson(args.head))
+      case ir.CallFunction("POSITION", args) => ok(ir.CallFunction("LOCATE", args))
+      case ir.CallFunction("REGEXP_LIKE", args) => ok(ir.RLike(args.head, args(1)))
+      case ir.CallFunction("REGEXP_SUBSTR", args) => ok(regexpExtract(args))
+      case ir.CallFunction("SHA2", args) => ok(ir.Sha2(args.head, args.lift(1).getOrElse(ir.Literal(256))))
+      case sp @ ir.CallFunction("SPLIT_PART", args) => splitPart(sp, args)
+      case ir.CallFunction("SQUARE", args) => ok(ir.Pow(args.head, ir.Literal(2)))
+      case st @ ir.CallFunction("STRTOK", args) => strtok(st, args)
+      case ir.CallFunction("STRTOK_TO_ARRAY", args) => ok(split(args))
+      case ir.CallFunction("SYSDATE", _) => ok(ir.CurrentTimestamp())
       case ir.CallFunction("TIMESTAMPADD", args) => timestampAdd(args)
-      case ir.CallFunction("TIMESTAMP_FROM_PARTS", args) => makeTimestamp(args)
-      case ir.CallFunction("TO_ARRAY", args) => toArray(args)
-      case ir.CallFunction("TO_BOOLEAN", args) => toBoolean(args)
-      case ir.CallFunction("TO_DATE", args) => toDate(args)
-      case ir.CallFunction("TO_DOUBLE", args) => ir.CallFunction("DOUBLE", args)
-      case ir.CallFunction("TO_NUMBER", args) => toNumber(args)
-      case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args.lift(1))
-      case ir.CallFunction("TO_VARCHAR", args) => ir.CallFunction("TO_CHAR", args)
-      case ir.CallFunction("TO_VARIANT", args) => ir.StructsToJson(args.head, None)
-      case ir.CallFunction("TO_TIME", args) => toTime(args)
-      case ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(args)
-      case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("TRY_PARSE_JSON", args) => ir.ParseJson(args.head)
-      case ir.CallFunction("TRY_TO_BOOLEAN", args) => tryToBoolean(args)
-      case ir.CallFunction("TRY_TO_DATE", args) => tryToDate(args)
-      case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
-      case ir.CallFunction("UUID_STRING", _) => ir.Uuid()
-      case ir.CallFunction("ZEROIFNULL", args) => ir.If(ir.IsNull(args.head), ir.Literal(0), args.head)
+      case tfp @ ir.CallFunction("TIMESTAMP_FROM_PARTS", args) => makeTimestamp(tfp, args)
+      case ir.CallFunction("TO_ARRAY", args) => ok(toArray(args))
+      case ir.CallFunction("TO_BOOLEAN", args) => ok(toBoolean(args))
+      case td @ ir.CallFunction("TO_DATE", args) => toDate(td, args)
+      case ir.CallFunction("TO_DOUBLE", args) => ok(ir.CallFunction("DOUBLE", args))
+      case ir.CallFunction("TO_NUMBER", args) => ok(toNumber(args))
+      case ir.CallFunction("TO_OBJECT", args) => ok(ir.StructsToJson(args.head, args.lift(1)))
+      case ir.CallFunction("TO_VARCHAR", args) => ok(ir.CallFunction("TO_CHAR", args))
+      case ir.CallFunction("TO_VARIANT", args) => ok(ir.StructsToJson(args.head, None))
+      case tt @ ir.CallFunction("TO_TIME", args) => toTime(tt, args)
+      case tt @ ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(tt, args)
+      case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ok(ir.UnBase64(args.head))
+      case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ok(ir.UnBase64(args.head))
+      case ir.CallFunction("TRY_PARSE_JSON", args) => ok(ir.ParseJson(args.head))
+      case ir.CallFunction("TRY_TO_BOOLEAN", args) => ok(tryToBoolean(args))
+      case ir.CallFunction("TRY_TO_DATE", args) => ok(tryToDate(args))
+      case ir.CallFunction("TRY_TO_NUMBER", args) => ok(tryToNumber(args))
+      case ir.CallFunction("UUID_STRING", _) => ok(ir.Uuid())
+      case ir.CallFunction("ZEROIFNULL", args) => ok(ir.If(ir.IsNull(args.head), ir.Literal(0), args.head))
       case x => super.convert(x)
     }
   }
 
-  private def objectConstruct(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(s @ ir.Star(_)) => ir.StructExpr(Seq(s))
+  private def objectConstruct(args: Seq[ir.Expression]): Transformation[ir.Expression] = args match {
+    case Seq(s @ ir.Star(_)) => ok(ir.StructExpr(Seq(s)))
     case pairs: Seq[ir.Expression] =>
-      ir.StructExpr(
-        pairs
-          .sliding(2, 2)
-          .collect {
-            case Seq(ir.StringLiteral(key), v) => ir.Alias(v, ir.Id(key))
-            case args => throw TranspileException(ir.UnsupportedArguments("OBJECT_CONSTRUCT", args))
-          }
-          .toList)
+      val (validPairs, invalidPairs) = pairs
+        .sliding(2, 2)
+        .partition {
+          case Seq(ir.StringLiteral(_), _) => true
+          case _ => false
+        }
+      val expr = ir.StructExpr(validPairs.map { case Seq(ir.StringLiteral(key), v) => ir.Alias(v, ir.Id(key)) }.toSeq)
+      if (invalidPairs.isEmpty) ok(expr)
+      else lift(PartialResult(expr, ir.UnsupportedArguments("OBJECT_CONSTRUCT", args)))
   }
 
   private def nullIfZero(expr: ir.Expression): ir.Expression =
@@ -127,18 +127,19 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     case x => ir.If(ir.GreaterThanOrEqual(x, zeroLiteral), ir.Add(x, oneLiteral), x)
   }
 
-  private def getJsonObject(args: Seq[ir.Expression]): ir.Expression = {
-    val translatedFmt = args match {
-      case Seq(_, ir.StringLiteral(path)) => ir.Literal("$." + path)
-      case Seq(_, id: ir.Id) => ir.Concat(Seq(ir.Literal("$."), id))
+  private def getJsonObject(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+    (args match {
+      case Seq(_, ir.StringLiteral(path)) => ok(ir.Literal("$." + path))
+      case Seq(_, id: ir.Id) => ok(ir.Concat(Seq(ir.Literal("$."), id)))
 
       // As well as CallFunctions, we can receive concrete functions, which are already resolved,
       // and don't need to be converted
-      case x: ir.Fn => x
+      case x: ir.Fn => ok(x)
 
-      case a => throw TranspileException(ir.UnsupportedArguments("GET_JSON_OBJECT", a))
+      case a => lift(PartialResult(functionCall, ir.UnsupportedArguments("GET_JSON_OBJECT", a)))
+    }).map { translatedFmt =>
+      ir.GetJsonObject(args.head, translatedFmt)
     }
-    ir.GetJsonObject(args.head, translatedFmt)
   }
 
   private def split(args: Seq[ir.Expression]): ir.Expression = {
@@ -196,26 +197,27 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def strtok(args: Seq[ir.Expression]): ir.Expression = {
+  private def strtok(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     if (args.size == 1) {
-      splitPart(Seq(args.head, ir.Literal(" "), oneLiteral))
+      splitPart(functionCall, Seq(args.head, ir.Literal(" "), oneLiteral))
     } else if (args.size == 2) {
-      splitPart(Seq(args.head, args(1), oneLiteral))
-    } else splitPart(args)
+      splitPart(functionCall, Seq(args.head, args(1), oneLiteral))
+    } else splitPart(functionCall, args)
   }
 
   /**
    * Snowflake and DB SQL differ in the `partNumber` argument: in Snowflake, a value of 0 is interpreted as "get the
    * first part" while it raises an error in DB SQL.
    */
-  private def splitPart(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(str, delim, ir.IntLiteral(0)) => ir.StringSplitPart(str, delim, oneLiteral)
-    case Seq(str, delim, ir.IntLiteral(p)) => ir.StringSplitPart(str, delim, ir.Literal(p))
-    case Seq(str, delim, expr) =>
-      ir.StringSplitPart(str, delim, ir.If(ir.Equals(expr, zeroLiteral), oneLiteral, expr))
-    case other =>
-      throw TranspileException(ir.WrongNumberOfArguments("SPLIT_PART", other.size, "3"))
-  }
+  private def splitPart(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] =
+    args match {
+      case Seq(str, delim, ir.IntLiteral(0)) => ok(ir.StringSplitPart(str, delim, oneLiteral))
+      case Seq(str, delim, ir.IntLiteral(p)) => ok(ir.StringSplitPart(str, delim, ir.Literal(p)))
+      case Seq(str, delim, expr) =>
+        ok(ir.StringSplitPart(str, delim, ir.If(ir.Equals(expr, zeroLiteral), oneLiteral, expr)))
+      case other =>
+        lift(PartialResult(functionCall, ir.WrongNumberOfArguments("SPLIT_PART", other.size, "3")))
+    }
 
   // REGEXP_SUBSTR( <subject> , <pattern> [ , <position> [ , <occurrence> [ , <regex_parameters> [ , <group_num> ]]]])
   private def regexpExtract(args: Seq[ir.Expression]): ir.Expression = {
@@ -291,42 +293,45 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         Seq(UnresolvedNamedLambdaVariable(Seq("filtered")))))
   }
 
-  private def dateDiff(args: Seq[ir.Expression]): ir.Expression = {
-    val datePart = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
-    ir.TimestampDiff(datePart, args(1), args(2))
+  private def dateDiff(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+    SnowflakeTimeUnits.translateDateOrTimePart(args.head).map { datePart =>
+      ir.TimestampDiff(datePart, args(1), args(2))
+    }
   }
 
   private def tryToDate(args: Seq[ir.Expression]): ir.Expression = {
     ir.CallFunction("DATE", Seq(ir.TryToTimestamp(args.head, args.lift(1))))
   }
 
-  private def dateAdd(args: Seq[ir.Expression]): ir.Expression = {
+  private def dateAdd(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     if (args.size == 2) {
-      ir.DateAdd(args.head, args(1))
+      ok(ir.DateAdd(args.head, args(1)))
     } else if (args.size == 3) {
       timestampAdd(args)
     } else {
-      throw TranspileException(ir.WrongNumberOfArguments("DATEADD", args.size, "2 or 3"))
-
+      lift(PartialResult(functionCall, ir.WrongNumberOfArguments("DATEADD", args.size, "2 or 3")))
     }
   }
 
-  private def timestampAdd(args: Seq[ir.Expression]): ir.Expression = {
-    val dateOrTimePart = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
-    ir.TimestampAdd(dateOrTimePart, args(1), args(2))
+  private def timestampAdd(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+    SnowflakeTimeUnits.translateDateOrTimePart(args.head).map { dateOrTimePart =>
+      ir.TimestampAdd(dateOrTimePart, args(1), args(2))
+    }
   }
 
-  private def datePart(args: Seq[ir.Expression]): ir.Expression = {
-    val part = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
-    ir.Extract(ir.Id(part), args(1))
+  private def datePart(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+    SnowflakeTimeUnits.translateDateOrTimePart(args.head).map { part =>
+      ir.Extract(ir.Id(part), args(1))
+    }
   }
 
-  private def dateTrunc(args: Seq[ir.Expression]): ir.Expression = {
-    val part = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
-    ir.TruncTimestamp(ir.Literal(part.toUpperCase()), args(1))
+  private def dateTrunc(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+    SnowflakeTimeUnits.translateDateOrTimePart(args.head).map { part =>
+      ir.TruncTimestamp(ir.Literal(part.toUpperCase()), args(1))
+    }
   }
 
-  private def makeTimestamp(args: Seq[ir.Expression]): ir.Expression = {
+  private def makeTimestamp(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     if (args.size == 2) {
       // Snowflake's TIMESTAMP_FROM_PARTS can be invoked with only two arguments
       // that, in this case, represent a date and a time. In such case, we need to
@@ -338,9 +343,9 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       val hour = ir.Hour(args(1))
       val minute = ir.Minute(args(1))
       val second = ir.Second(args(1))
-      ir.MakeTimestamp(year, month, day, hour, minute, second, None)
+      ok(ir.MakeTimestamp(year, month, day, hour, minute, second, None))
     } else if (args.size == 6) {
-      ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None)
+      ok(ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None))
     } else if (args.size == 7) {
       // When call with individual parts (as opposed to the two-arguments scenario above)
       // Snowflake allows for two additional optional parameters: an amount of nanoseconds
@@ -351,37 +356,40 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         case ir.IntLiteral(_) =>
           // We ignore that last parameter as DB SQL doesn't handle nanoseconds
           // TODO warn the user about this
-          ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None)
+          ok(ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None))
         case timezone @ ir.StringLiteral(_) =>
-          ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(timezone))
-        case _ => throw TranspileException(ir.UnsupportedArguments("TIMESTAMP_FROM_PART", Seq(args(6))))
+          ok(ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(timezone)))
+        case _ => lift(PartialResult(functionCall, ir.UnsupportedArguments("TIMESTAMP_FROM_PART", Seq(args(6)))))
       }
     } else if (args.size == 8) {
       // Here the situation is simpler, we just ignore the 7th argument (nanoseconds)
-      ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(args(7)))
+      ok(ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(args(7))))
     } else {
-      throw TranspileException(ir.WrongNumberOfArguments("TIMESTAMP_FROM_PART", args.size, "either 2, 6, 7 or 8"))
+      lift(
+        PartialResult(functionCall, ir.WrongNumberOfArguments("TIMESTAMP_FROM_PART", args.size, "either 2, 6, 7 or 8")))
     }
   }
 
-  private def toTime(args: Seq[ir.Expression]): ir.Expression = {
+  private def toTime(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     val timeFormat = ir.Literal("HH:mm:ss")
     args match {
       case Seq(a) =>
-        ir.DateFormatClass(
-          inferTemporalFormat(a, unsupportedAutoTimestampFormats ++ unsupportedAutoTimeFormats),
-          timeFormat)
-      case Seq(a, b) => ir.DateFormatClass(ir.ParseToTimestamp(a, Some(b)), timeFormat)
-      case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
+        ok(
+          ir.DateFormatClass(
+            inferTemporalFormat(a, unsupportedAutoTimestampFormats ++ unsupportedAutoTimeFormats),
+            timeFormat))
+      case Seq(a, b) => ok(ir.DateFormatClass(ir.ParseToTimestamp(a, Some(b)), timeFormat))
+      case _ => lift(PartialResult(functionCall, ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2")))
     }
   }
 
-  private def toTimestamp(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(a) => inferTemporalFormat(a, unsupportedAutoTimestampFormats)
-    case Seq(a, lit: ir.Literal) => toTimestampWithLiteralFormat(a, lit)
-    case Seq(a, b) => toTimestampWithVariableFormat(a, b)
-    case _ => throw TranspileException(ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2"))
-  }
+  private def toTimestamp(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] =
+    args match {
+      case Seq(a) => ok(inferTemporalFormat(a, unsupportedAutoTimestampFormats))
+      case Seq(a, lit: ir.Literal) => ok(toTimestampWithLiteralFormat(a, lit))
+      case Seq(a, b) => ok(toTimestampWithVariableFormat(a, b))
+      case _ => lift(PartialResult(functionCall, ir.WrongNumberOfArguments("TO_TIMESTAMP", args.size, "1 or 2")))
+    }
 
   private def toTimestampWithLiteralFormat(expression: ir.Expression, fmt: ir.Literal): ir.Expression = fmt match {
     case num @ ir.IntLiteral(_) =>
@@ -495,13 +503,13 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     ir.DateFormatClass(args.head, ir.Literal("E"))
   }
 
-  private def toDate(args: Seq[ir.Expression]): ir.Expression = {
+  private def toDate(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     if (args.size == 1) {
-      ir.Cast(args.head, ir.DateType)
+      ok(ir.Cast(args.head, ir.DateType))
     } else if (args.size == 2) {
-      ir.ParseToDate(args.head, Some(args(1)))
+      ok(ir.ParseToDate(args.head, Some(args(1))))
     } else {
-      throw TranspileException(ir.WrongNumberOfArguments("TO_DATE", args.size, "1 or 2"))
+      lift(PartialResult(functionCall, ir.WrongNumberOfArguments("TO_DATE", args.size, "1 or 2")))
     }
   }
 
@@ -577,16 +585,17 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       Some(otherwise))
   }
 
-  private def decode(args: Seq[ir.Expression]): ir.Expression = {
+  private def decode(functionCall: ir.Expression, args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     if (args.size >= 3) {
       val expr = args.head
       val groupedArgs = args.tail.sliding(2, 2).toList
-      ir.Case(
-        None,
-        groupedArgs.takeWhile(_.size == 2).map(l => makeWhenBranch(expr, l.head, l.last)),
-        groupedArgs.find(_.size == 1).map(_.head))
+      ok(
+        ir.Case(
+          None,
+          groupedArgs.takeWhile(_.size == 2).map(l => makeWhenBranch(expr, l.head, l.last)),
+          groupedArgs.find(_.size == 1).map(_.head)))
     } else {
-      throw TranspileException(ir.WrongNumberOfArguments("DECODE", args.size, "at least 3"))
+      lift(PartialResult(functionCall, ir.WrongNumberOfArguments("DECODE", args.size, "at least 3")))
     }
   }
 
@@ -597,78 +606,80 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def arraySort(args: Seq[ir.Expression]): ir.Expression = {
+  private def arraySort(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
     makeArraySort(args.head, args.lift(1), args.lift(2))
   }
 
   private def makeArraySort(
       arr: ir.Expression,
       sortAscending: Option[ir.Expression],
-      nullsFirst: Option[ir.Expression]): ir.Expression = {
+      nullsFirst: Option[ir.Expression]): Transformation[ir.Expression] = {
     // Currently, only TRUE/FALSE Boolean literals are supported for Boolean parameters.
     val paramSortAsc = sortAscending.getOrElse(ir.Literal.True)
-    val paramNullsFirst = nullsFirst.getOrElse {
+    val paramNullsFirst = nullsFirst.map(ok).getOrElse {
       paramSortAsc match {
-        case ir.Literal.True => ir.Literal.False
-        case ir.Literal.False => ir.Literal.True
-        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(paramSortAsc)))
+        case ir.Literal.True => ok(ir.Literal.False)
+        case ir.Literal.False => ok(ir.Literal.True)
+        case x => lift(PartialResult(x, ir.UnsupportedArguments("ARRAY_SORT", Seq(paramSortAsc))))
       }
     }
 
-    def handleComparison(isNullOrSmallFirst: ir.Expression, nullOrSmallAtLeft: Boolean): ir.Expression = {
+    def handleComparison(
+        isNullOrSmallFirst: ir.Expression,
+        nullOrSmallAtLeft: Boolean): Transformation[ir.Expression] = {
       isNullOrSmallFirst match {
-        case ir.Literal.True => if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral
-        case ir.Literal.False => if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1)
-        case _ => throw TranspileException(ir.UnsupportedArguments("ARRAY_SORT", Seq(isNullOrSmallFirst)))
+        case ir.Literal.True => ok(if (nullOrSmallAtLeft) ir.Literal(-1) else oneLiteral)
+        case ir.Literal.False => ok(if (nullOrSmallAtLeft) oneLiteral else ir.Literal(-1))
+        case x => lift(PartialResult(x, ir.UnsupportedArguments("ARRAY_SORT", Seq(isNullOrSmallFirst))))
       }
     }
 
-    val comparator = ir.LambdaFunction(
-      ir.Case(
-        None,
-        Seq(
-          ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), zeroLiteral),
-          ir.WhenBranch(ir.IsNull(ir.Id("left")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = true)),
-          ir.WhenBranch(ir.IsNull(ir.Id("right")), handleComparison(paramNullsFirst, nullOrSmallAtLeft = false)),
-          ir.WhenBranch(
-            ir.LessThan(ir.Id("left"), ir.Id("right")),
-            handleComparison(paramSortAsc, nullOrSmallAtLeft = true)),
-          ir.WhenBranch(
-            ir.GreaterThan(ir.Id("left"), ir.Id("right")),
-            handleComparison(paramSortAsc, nullOrSmallAtLeft = false))),
-        Some(zeroLiteral)),
-      Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
-
-    val irSortArray = (paramSortAsc, paramNullsFirst) match {
-      // We can make the IR much simpler for some cases
-      // by using DBSQL SORT_ARRAY function without needing a custom comparator
-      case (ir.Literal.True, ir.Literal.True) => ir.SortArray(arr, None)
-      case (ir.Literal.False, ir.Literal.False) => ir.SortArray(arr, Some(ir.Literal.False))
-      case _ => ir.ArraySort(arr, comparator)
+    val comparator = {
+      for {
+        leftCond <- paramNullsFirst.flatMap(handleComparison(_, nullOrSmallAtLeft = true))
+        rightCond <- paramNullsFirst.flatMap(handleComparison(_, nullOrSmallAtLeft = false))
+        leftSort <- handleComparison(paramSortAsc, nullOrSmallAtLeft = true)
+        rightSort <- handleComparison(paramSortAsc, nullOrSmallAtLeft = false)
+      } yield ir.LambdaFunction(
+        ir.Case(
+          None,
+          Seq(
+            ir.WhenBranch(ir.And(ir.IsNull(ir.Id("left")), ir.IsNull(ir.Id("right"))), zeroLiteral),
+            ir.WhenBranch(ir.IsNull(ir.Id("left")), leftCond),
+            ir.WhenBranch(ir.IsNull(ir.Id("right")), rightCond),
+            ir.WhenBranch(ir.LessThan(ir.Id("left"), ir.Id("right")), leftSort),
+            ir.WhenBranch(ir.GreaterThan(ir.Id("left"), ir.Id("right")), rightSort)),
+          Some(zeroLiteral)),
+        Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right"))))
     }
 
-    irSortArray
+    paramNullsFirst.flatMap { pnf =>
+      (paramSortAsc, pnf) match {
+        // We can make the IR much simpler for some cases
+        // by using DBSQL SORT_ARRAY function without needing a custom comparator
+        case (ir.Literal.True, ir.Literal.True) => ok(ir.SortArray(arr, None))
+        case (ir.Literal.False, ir.Literal.False) => ok(ir.SortArray(arr, Some(ir.Literal.False)))
+        case _ => comparator.map(ir.ArraySort(arr, _))
+      }
+    }
   }
 
-  private def parseLastDay(args: Seq[ir.Expression]): ir.Expression = {
+  private def parseLastDay(args: Seq[ir.Expression]): Transformation[ir.Expression] = {
+
+    def lastDay(datePart: String): ir.Expression =
+      ir.DateAdd(ir.TimestampAdd(datePart, oneLiteral, ir.TruncDate(args.head, args(1))), ir.Literal(-1))
+
     if (args.length == 1) {
-      return ir.LastDay(args.head)
+      ok(ir.LastDay(args.head))
+    } else {
+      val validDateParts = Set("YEAR", "QUARTER", "MONTH", "WEEK")
+      args(1) match {
+        case ir.StringLiteral(part) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case ir.Column(_, ir.Id(part, _)) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case ir.Name(part) if validDateParts(part.toUpperCase()) => ok(lastDay(part.toUpperCase()))
+        case x => lift(PartialResult(x, ir.UnsupportedDateTimePart(x)))
+      }
     }
-
-    val datePart = args(1) match {
-      case ir.StringLiteral(part) => part.toUpperCase()
-      case ir.Column(_, part) => part.toString.toUpperCase()
-      case _ => throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
-    }
-
-    if (!Set("YEAR", "QUARTER", "MONTH", "WEEK").contains(datePart)) {
-      throw TranspileException(ir.UnsupportedDateTimePart(args(1)))
-    }
-
-    val dateTruncExpr = ir.TruncDate(args.head, args(1))
-    val dateAddExpr = ir.TimestampAdd(datePart, oneLiteral, dateTruncExpr)
-    val dateSubExpr = ir.DateAdd(dateAddExpr, ir.Literal(-1))
-    dateSubExpr
   }
 
 }
