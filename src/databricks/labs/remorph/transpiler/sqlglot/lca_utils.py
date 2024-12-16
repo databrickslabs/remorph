@@ -2,7 +2,7 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
-from sqlglot import expressions as exp
+from sqlglot import expressions as exp, Dialect
 from sqlglot import parse
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_for_unsupported_lca(
-    from_dialect: str,
+    from_dialect: Dialect,
     source_sql: str,
     file_path: Path,
 ) -> ValidationError | None:
@@ -23,14 +23,10 @@ def check_for_unsupported_lca(
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
     """
-    # avoid cyclic import
-    # pylint: disable=import-outside-toplevel
-    from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 
     try:
-        dialect = get_dialect(from_dialect)
         all_parsed_expressions: Iterable[Expression | None] = parse(
-            source_sql, read=dialect, error_level=ErrorLevel.RAISE
+            source_sql, read=from_dialect, error_level=ErrorLevel.RAISE
         )
         root_expressions: Iterable[Expression] = [pe for pe in all_parsed_expressions if pe is not None]
     except (ParseError, TokenError, UnsupportedError) as e:
