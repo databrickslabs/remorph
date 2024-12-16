@@ -1,18 +1,20 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, TransformationConstructors, TranspilerState, intermediate => ir}
 import org.scalactic.source.Position
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class FlattenNestedConcatSpec extends AnyWordSpec with Matchers {
+class FlattenNestedConcatSpec extends AnyWordSpec with Matchers with TransformationConstructors {
 
   val optimizer = new FlattenNestedConcat
 
   implicit class Ops(e: ir.Expression) {
     def becomes(expected: ir.Expression)(implicit pos: Position): Assertion = {
-      optimizer.flattenConcat.applyOrElse(e, (x: ir.Expression) => x) shouldBe expected
+      optimizer.flattenConcat
+        .applyOrElse(e, ok[ir.Expression])
+        .runAndDiscardState(TranspilerState()) shouldBe OkResult(expected)
     }
   }
 

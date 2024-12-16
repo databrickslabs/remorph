@@ -50,14 +50,11 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case None =>
       // TODO: The FOR clause of TSQL is not supported in Databricks SQL as XML and JSON are not supported
       //       we need to create an UnresolvedRelation for it
-
+      val query = ctx.queryExpression.accept(this)
+      val orderedQuery = Option(ctx.selectOrderByClause()).foldRight(query)(buildOrderBy)
       // We visit the OptionClause because in the future, we may be able to glean information from it
       // as an aid to migration, however the clause is not used in the AST or translation.
-      val query = ctx.queryExpression.accept(this)
-      Option(ctx.optionClause) match {
-        case Some(optionClause) => ir.WithOptions(query, optionClause.accept(vc.expressionBuilder))
-        case None => query
-      }
+      Option(ctx.optionClause).map(_.accept(vc.expressionBuilder)).foldLeft(orderedQuery)(ir.WithOptions)
   }
 
   override def visitQueryInParenthesis(ctx: TSqlParser.QueryInParenthesisContext): ir.LogicalPlan = {
@@ -116,9 +113,7 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
     case Some(errorResult) => errorResult
     case None =>
       val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable)
-      buildOrderBy(
-        ctx.selectOrderByClause(),
-        buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))
+      buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from)))
   }
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
@@ -144,30 +139,29 @@ class TSqlRelationBuilder(override val vc: TSqlVisitorCoordinator)
   }
 
   private def buildOrderBy(ctx: SelectOrderByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
-    Option(ctx).fold(input) { c =>
-      val sortOrders = c.orderByClause().orderByExpression().asScala.map { orderItem =>
-        val expression = orderItem.expression(0).accept(vc.expressionBuilder)
-        // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
-        // translated source or raise some kind of linting alert.
-        if (orderItem.DESC() == null) {
-          ir.SortOrder(expression, ir.Ascending, ir.SortNullsUnspecified)
-        } else {
-          ir.SortOrder(expression, ir.Descending, ir.SortNullsUnspecified)
-        }
-      }
-      val sorted = ir.Sort(input, sortOrders, is_global = false)
+    val sortOrders = ctx.orderByClause().orderByExpression().asScala.map { orderItem =>
+      val expression = orderItem.expression(0).accept(vc.expressionBuilder)
 
-      // Having created the IR for ORDER BY, we now need to apply any OFFSET, and then any FETCH
-      if (ctx.OFFSET() != null) {
-        val offset = ir.Offset(sorted, ctx.expression(0).accept(vc.expressionBuilder))
-        if (ctx.FETCH() != null) {
-          ir.Limit(offset, ctx.expression(1).accept(vc.expressionBuilder))
-        } else {
-          offset
-        }
+      // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
+      // translated source or raise some kind of linting alert.
+
+      // Default ordering is ascending unless DESC is explicitly specified.
+      val direction = if (orderItem.DESC() == null) ir.Ascending else ir.Descending
+      // TSQL doesn't allow nulls first or last: they are "low" which matches Spark's semantics when unspecified.
+      ir.SortOrder(expression, direction, ir.SortNullsUnspecified)
+    }
+    val sorted = ir.Sort(input, sortOrders, is_global = false)
+
+    // Having created the IR for ORDER BY, we now need to apply any OFFSET, and then any FETCH
+    if (ctx.OFFSET() != null) {
+      val offset = ir.Offset(sorted, ctx.expression(0).accept(vc.expressionBuilder))
+      if (ctx.FETCH() != null) {
+        ir.Limit(offset, ctx.expression(1).accept(vc.expressionBuilder))
       } else {
-        sorted
+        offset
       }
+    } else {
+      sorted
     }
   }
 
