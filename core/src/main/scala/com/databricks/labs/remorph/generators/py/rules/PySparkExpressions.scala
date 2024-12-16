@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.py.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors, intermediate => ir}
 import com.databricks.labs.remorph.generators.py
 
 import java.time.format.DateTimeFormatter
@@ -12,66 +12,70 @@ case class RawExpr(expr: ir.Expression) extends ir.LeafExpression {
   override def dataType: ir.DataType = ir.UnresolvedType
 }
 
-class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
+class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon with TransformationConstructors {
   private[this] val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private[this] val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
-  override def apply(expr: ir.Expression): ir.Expression = expr transformUp {
-    case _: ir.Bitwise => bitwise(expr)
-    case ir.Like(col, pattern, escape) => methodOf(col, "like", Seq(pattern) ++ escape)
-    case ir.RLike(col, pattern) => methodOf(col, "rlike", Seq(pattern))
-    case ir.Between(exp, lower, upper) => methodOf(exp, "between", Seq(lower, upper))
-    case ir.Literal(epochDay: Long, ir.DateType) => dateLiteral(epochDay)
-    case ir.Literal(epochSecond: Long, ir.TimestampType) => timestampLiteral(epochSecond)
-    case ir.ArrayExpr(children, _) => F("array", children)
-    case ir.IsNull(col) => methodOf(col, "isNull", Seq())
-    case ir.IsNotNull(col) => methodOf(col, "isNotNull", Seq())
-    case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => F("col", ir.StringLiteral(name) :: Nil)
-    case ir.Id(name, _) => F("col", ir.StringLiteral(name) :: Nil)
-    case ir.Alias(child, ir.Id(name, _)) => methodOf(child, "alias", Seq(ir.StringLiteral(name)))
+  override def apply(expr: ir.Expression): Transformation[ir.Expression] = expr transformUp {
+    case _: ir.Bitwise => ok(bitwise(expr))
+    case ir.Like(col, pattern, escape) => ok(methodOf(col, "like", Seq(pattern) ++ escape))
+    case ir.RLike(col, pattern) => ok(methodOf(col, "rlike", Seq(pattern)))
+    case ir.Between(exp, lower, upper) => ok(methodOf(exp, "between", Seq(lower, upper)))
+    case ir.Literal(epochDay: Long, ir.DateType) => ok(dateLiteral(epochDay))
+    case ir.Literal(epochSecond: Long, ir.TimestampType) => ok(timestampLiteral(epochSecond))
+    case ir.ArrayExpr(children, _) => ok(F("array", children))
+    case ir.IsNull(col) => ok(methodOf(col, "isNull", Seq()))
+    case ir.IsNotNull(col) => ok(methodOf(col, "isNotNull", Seq()))
+    case ir.UnresolvedAttribute(name, _, _, _, _, _, _) => ok(F("col", ir.StringLiteral(name) :: Nil))
+    case ir.Id(name, _) => ok(F("col", ir.StringLiteral(name) :: Nil))
+    case ir.Alias(child, ir.Id(name, _)) => ok(methodOf(child, "alias", Seq(ir.StringLiteral(name))))
     case o: ir.SortOrder => sortOrder(o)
-    case _: ir.Star => F("col", ir.StringLiteral("*") :: Nil)
-    case i: ir.KnownInterval => RawExpr(i)
+    case _: ir.Star => ok(F("col", ir.StringLiteral("*") :: Nil))
+    case i: ir.KnownInterval => ok(RawExpr(i))
     case ir.Case(None, branches, otherwise) => caseWhenBranches(branches, otherwise)
     case w: ir.Window => window(w)
     // case ir.Exists(subquery) => F("exists", Seq(py.Lambda(py.Arguments(args = Seq(ir.Name("col"))), subquery)))
     // case l: ir.LambdaFunction => py.Lambda(py.Arguments(args = Seq(ir.Name("col"))), apply(l.body))
-    case ir.ArrayAccess(array, index) => py.Subscript(apply(array), apply(index))
-    case ir.Variable(name) => ir.Name(name)
-    case ir.Extract(field, child) => F("extract", Seq(apply(field), apply(child)))
-    case ir.Concat(children) => F("concat", children)
-    case ir.ConcatWs(children) => F("concat_ws", children)
-    case ir.In(value, list) => methodOf(value, "isin", list)
-    case fn: ir.Fn => F(fn.prettyName.toLowerCase(Locale.getDefault), fn.children.map(apply))
+    case ir.ArrayAccess(array, index) => apply(array).flatMap { a => apply(index).map(i => py.Subscript(a, i)) }
+    case ir.Variable(name) => ok(ir.Name(name))
+    case ir.Extract(field, child) => Seq(field, child).map(apply).sequence.map(F("extract", _))
+    case ir.Concat(children) => ok(F("concat", children))
+    case ir.ConcatWs(children) => ok(F("concat_ws", children))
+    case ir.In(value, list) => ok(methodOf(value, "isin", list))
+    case fn: ir.Fn => fn.children.map(apply).sequence.map(F(fn.prettyName.toLowerCase(Locale.getDefault), _))
   }
 
-  private def sortOrder(order: ir.SortOrder): ir.Expression = order match {
-    case ir.SortOrder(col, ir.Ascending, ir.NullsFirst) => methodOf(apply(col), "asc_nulls_first", Seq())
-    case ir.SortOrder(col, ir.Ascending, ir.NullsLast) => methodOf(apply(col), "asc_nulls_last", Seq())
-    case ir.SortOrder(col, ir.Ascending, _) => methodOf(apply(col), "asc", Seq())
-    case ir.SortOrder(col, ir.Descending, ir.NullsFirst) => methodOf(apply(col), "desc_nulls_first", Seq())
-    case ir.SortOrder(col, ir.Descending, ir.NullsLast) => methodOf(apply(col), "desc_nulls_last", Seq())
-    case ir.SortOrder(col, ir.Descending, _) => methodOf(apply(col), "desc", Seq())
+  private def sortOrder(order: ir.SortOrder): Transformation[ir.Expression] = order match {
+    case ir.SortOrder(col, ir.Ascending, ir.NullsFirst) => apply(col).map(methodOf(_, "asc_nulls_first", Seq()))
+    case ir.SortOrder(col, ir.Ascending, ir.NullsLast) => apply(col).map(methodOf(_, "asc_nulls_last", Seq()))
+    case ir.SortOrder(col, ir.Ascending, _) => apply(col).map(methodOf(_, "asc", Seq()))
+    case ir.SortOrder(col, ir.Descending, ir.NullsFirst) => apply(col).map(methodOf(_, "desc_nulls_first", Seq()))
+    case ir.SortOrder(col, ir.Descending, ir.NullsLast) => apply(col).map(methodOf(_, "desc_nulls_last", Seq()))
+    case ir.SortOrder(col, ir.Descending, _) => apply(col).map(methodOf(_, "desc", Seq()))
     case ir.SortOrder(col, _, _) => apply(col)
   }
 
-  private def window(w: ir.Window): ir.Expression = {
-    var windowSpec: ir.Expression = ir.Name("Window")
-    windowSpec = w.partition_spec match {
-      case Nil => windowSpec
-      case _ => methodOf(windowSpec, "partitionBy", w.partition_spec.map(apply))
+  private def window(w: ir.Window): Transformation[ir.Expression] = {
+    (w.partition_spec match {
+      case Nil => ok(ir.Name("Window"))
+      case _ => w.partition_spec.map(apply).sequence.map(methodOf(ir.Name("Window"), "partitionBy", _))
+    }).flatMap { windowSpec =>
+      w.sort_order match {
+        case Nil => ok(windowSpec)
+        case _ => w.sort_order.map(apply).sequence.map(methodOf(windowSpec, "orderBy", _))
+      }
+    }.map { withOrder =>
+      w.frame_spec match {
+        case None => withOrder
+        case Some(value) => windowFrame(withOrder, value)
+      }
+    }.flatMap { window =>
+      apply(w.window_function).map { fn =>
+        val importClassSideEffect = ImportClassSideEffect(window, module = "pyspark.sql.window", klass = "Window")
+        methodOf(fn, "over", Seq(importClassSideEffect))
+      }
     }
-    windowSpec = w.sort_order match {
-      case Nil => windowSpec
-      case _ => methodOf(windowSpec, "orderBy", w.sort_order.map(apply))
-    }
-    windowSpec = w.frame_spec match {
-      case None => windowSpec
-      case Some(value) => windowFrame(windowSpec, value)
-    }
-    windowSpec = ImportClassSideEffect(windowSpec, module = "pyspark.sql.window", klass = "Window")
-    val fn = apply(w.window_function)
-    methodOf(fn, "over", Seq(windowSpec))
+
   }
 
   private def windowFrame(windowSpec: ir.Expression, frame: ir.WindowFrame): ir.Expression = frame match {
@@ -91,13 +95,17 @@ class PySparkExpressions extends ir.Rule[ir.Expression] with PyCommon {
     case ir.NoBoundary => ir.Name("noBoundary")
   }
 
-  private def caseWhenBranches(branches: Seq[ir.WhenBranch], otherwise: Option[ir.Expression]) = {
-    val when = F("when", Seq(apply(branches.head.condition), apply(branches.head.expression)))
+  private def caseWhenBranches(
+      branches: Seq[ir.WhenBranch],
+      otherwise: Option[ir.Expression]): Transformation[ir.Expression] = {
+    val when = Seq(apply(branches.head.condition), apply(branches.head.expression)).sequence.map(F("when", _))
     val body = branches.foldLeft(when) { case (acc, branch) =>
-      methodOf(acc, "when", Seq(apply(branch.condition), apply(branch.expression)))
+      acc.flatMap { a =>
+        Seq(apply(branch.condition), apply(branch.expression)).sequence.map(methodOf(a, "when", _))
+      }
     }
     otherwise match {
-      case Some(value) => methodOf(body, "otherwise", Seq(apply(value)))
+      case Some(value) => body.flatMap(b => apply(value).map(v => methodOf(b, "otherwise", Seq(v))))
       case None => body
     }
   }

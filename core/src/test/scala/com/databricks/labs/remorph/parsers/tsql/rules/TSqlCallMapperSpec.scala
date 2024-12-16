@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, TranspilerState, intermediate => ir}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -11,7 +11,7 @@ class TSqlCallMapperSpec extends AnyWordSpec with Matchers with ir.IRHelpers {
 
   implicit class CallMapperOps(fn: ir.Fn) {
     def becomes(expected: ir.Expression): Assertion = {
-      tsqlCallMapper.convert(fn) shouldBe expected
+      tsqlCallMapper.convert(fn).runAndDiscardState(TranspilerState()) shouldBe OkResult(expected)
     }
   }
 
