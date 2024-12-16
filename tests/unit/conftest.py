@@ -68,7 +68,7 @@ def mock_workspace_client():
 
 
 @pytest.fixture()
-def morph_config():
+def transpile_config():
     yield TranspileConfig(
         sdk_config={"cluster_id": "test_cluster"},
         source_dialect="snowflake",
