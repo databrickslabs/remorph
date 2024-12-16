@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from time import sleep
 
@@ -6,6 +7,7 @@ import pytest
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 from tests.unit.conftest import path_to_resource
+
 
 @pytest.fixture
 def lsp_engine():
@@ -48,3 +50,12 @@ async def test_receives_config(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "dialect=snowflake" in log
+
+async def test_server_has_transpile_capability(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    # need to give time to child process and client listener
+    for i in range(1, 10):
+        await asyncio.sleep(0.1)
+        if lsp_engine.server_has_transpile_capability:
+            break
+    assert lsp_engine.server_has_transpile_capability
