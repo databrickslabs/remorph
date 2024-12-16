@@ -85,17 +85,18 @@ class SqlglotEngine(TranspileEngine):
 
         return expression, error
 
-    def parse_sql_content(self, source_dialect: str, source_code: str, file_path: Path):
+    def analyse_table_lineage(self, source_dialect: str, source_code: str, file_path: Path):
         parsed_expression, _ = self.parse(source_dialect, source_code, file_path)
         if parsed_expression is not None:
             for expr in parsed_expression:
                 child: str | None = str(file_path)
                 if expr is not None:
+                    # TODO: fix possible issue where the file reference is lost (if we have a 'create')
                     for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        child = self._find_root_tables(create)
+                        child = self._find_root_table(create)
 
                     for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                        yield self._find_root_tables(select), child
+                        yield self._find_root_table(select), child
 
     @staticmethod
     def safe_parse(statements: str, read_dialect: Dialect) -> tuple[list[ParsedExpression], list[str]]:
@@ -146,10 +147,9 @@ class SqlglotEngine(TranspileEngine):
         return parsed_expressions, errors
 
     @staticmethod
-    def _find_root_tables(expression) -> str | None:
-        for table in expression.find_all(exp.Table, bfs=False):
-            return table.name
-        return None
+    def _find_root_table(expression) -> str | None:
+        table = expression.find(exp.Table, bfs=False)
+        return table.name if table else None
 
     @staticmethod
     def _handle_errors(
