@@ -23,7 +23,6 @@ def check_for_unsupported_lca(
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
     """
-
     try:
         all_parsed_expressions: Iterable[Expression | None] = parse(
             source_sql, read=from_dialect, error_level=ErrorLevel.RAISE
