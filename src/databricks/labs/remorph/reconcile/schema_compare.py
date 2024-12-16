@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
     SchemaMatchResult,
