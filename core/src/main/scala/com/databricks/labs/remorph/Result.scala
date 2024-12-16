@@ -2,6 +2,7 @@ package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.intermediate.RemorphError
 import com.databricks.labs.remorph.preprocessors.jinja.TemplateManager
+import com.fasterxml.jackson.annotation.JsonIgnore
 
 sealed trait WorkflowStage
 object WorkflowStage {
@@ -49,6 +50,15 @@ final class Transformation[+Output](val run: TranspilerState => Result[(Transpil
    * discarding the final state.
    */
   def runAndDiscardState(initialState: TranspilerState): Result[Output] = run(initialState).map(_._2)
+
+  def recoverWith[B](rec: Result[Output] => Transformation[B]): Transformation[B] =
+    new Transformation[B](s =>
+      run(s) match {
+        case ko: KoResult => rec(ko).run(s)
+        case PartialResult((s2, out), err) => rec(PartialResult(out, err)).run(s2)
+        case OkResult((s2, out)) => rec(OkResult(out)).run(s2)
+      })
+
 }
 
 trait TransformationConstructors {
@@ -70,8 +80,9 @@ trait TransformationConstructors {
   def lift[X](res: Result[X]): Transformation[X] = new Transformation(s => res.map(x => (s, x)))
 
   /**
-   * A tranformation whose output is the current state.
+   * A transformation whose output is the current state.
    */
+  @JsonIgnore
   def getCurrentPhase: Transformation[Phase] = new Transformation(s => OkResult((s, s.currentPhase)))
 
   /**
@@ -89,6 +100,7 @@ trait TransformationConstructors {
     OkResult((newState, ()))
   })
 
+  @JsonIgnore
   def getTemplateManager: Transformation[TemplateManager] = new Transformation(s => OkResult((s, s.templateManager)))
 
   def updateTemplateManager(updateFunc: TemplateManager => TemplateManager): Transformation[Unit] =
@@ -100,6 +112,7 @@ sealed trait Result[+A] {
   def flatMap[B](f: A => Result[B]): Result[B]
   def isSuccess: Boolean
   def withNonBlockingError(error: RemorphError): Result[A]
+  def getOrElse[B >: A](default: => B): B
 }
 
 case class OkResult[A](output: A) extends Result[A] {
@@ -110,6 +123,8 @@ case class OkResult[A](output: A) extends Result[A] {
   override def isSuccess: Boolean = true
 
   override def withNonBlockingError(error: RemorphError): Result[A] = PartialResult(output, error)
+
+  override def getOrElse[B >: A](default: => B): B = output
 }
 
 case class PartialResult[A](output: A, error: RemorphError) extends Result[A] {
@@ -126,6 +141,8 @@ case class PartialResult[A](output: A, error: RemorphError) extends Result[A] {
 
   override def withNonBlockingError(newError: RemorphError): Result[A] =
     PartialResult(output, RemorphError.merge(error, newError))
+
+  override def getOrElse[B >: A](default: => B): B = output
 }
 
 case class KoResult(stage: WorkflowStage, error: RemorphError) extends Result[Nothing] {
@@ -137,4 +154,6 @@ case class KoResult(stage: WorkflowStage, error: RemorphError) extends Result[No
 
   override def withNonBlockingError(newError: RemorphError): Result[Nothing] =
     KoResult(stage, RemorphError.merge(error, newError))
+
+  override def getOrElse[B >: Nothing](default: => B): B = default
 }

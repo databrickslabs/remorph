@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors}
 import com.databricks.labs.remorph.utils.Strings.truncatedString
 import com.fasterxml.jackson.annotation.JsonIgnore
 
@@ -57,7 +58,7 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
 }
 
 // scalastyle:off
-abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
+abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product with TransformationConstructors {
   // scalastyle:on
   self: BaseType =>
 
@@ -356,7 +357,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    * @param rule
    *   the function use to transform this nodes children
    */
-  def transform(rule: PartialFunction[BaseType, BaseType]): BaseType = {
+  def transform(rule: PartialFunction[BaseType, Transformation[BaseType]]): Transformation[BaseType] = {
     transformDown(rule)
   }
 
@@ -367,17 +368,19 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    * @param rule
    *   the function used to transform this nodes children
    */
-  def transformDown(rule: PartialFunction[BaseType, BaseType]): BaseType = {
+  def transformDown(rule: PartialFunction[BaseType, Transformation[BaseType]]): Transformation[BaseType] = {
     val afterRule = CurrentOrigin.withOrigin(origin) {
-      rule.applyOrElse(this, identity[BaseType])
+      rule.applyOrElse(this, ok[BaseType])
     }
 
-    // Check if unchanged and then possibly return old copy to avoid gc churn.
-    if (this fastEquals afterRule) {
-      mapChildren(_.transformDown(rule))
-    } else {
-      // If the transform function replaces this node with a new one, carry over the tags.
-      afterRule.mapChildren(_.transformDown(rule))
+    afterRule.flatMap { after =>
+      // Check if unchanged and then possibly return old copy to avoid gc churn.
+      if (this fastEquals after) {
+        mapChildren(_.transformDown(rule))
+      } else {
+        // If the transform function replaces this node with a new one, carry over the tags.
+        after.mapChildren(_.transformDown(rule))
+      }
     }
   }
 
@@ -388,34 +391,29 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    * @param rule
    *   the function use to transform this nodes children
    */
-  def transformUp(rule: PartialFunction[BaseType, BaseType]): BaseType = {
-    val afterRuleOnChildren = mapChildren(_.transformUp(rule))
-    val newNode = if (this fastEquals afterRuleOnChildren) {
-      CurrentOrigin.withOrigin(origin) {
-        rule.applyOrElse(this, identity[BaseType])
-      }
-    } else {
-      CurrentOrigin.withOrigin(origin) {
-        rule.applyOrElse(afterRuleOnChildren, identity[BaseType])
+  def transformUp(rule: PartialFunction[BaseType, Transformation[BaseType]]): Transformation[BaseType] = {
+    mapChildren(_.transformUp(rule)).flatMap { afterRuleOnChildren =>
+      if (this fastEquals afterRuleOnChildren) {
+        CurrentOrigin.withOrigin(origin) {
+          rule.applyOrElse(this, ok[BaseType])
+        }
+      } else {
+        CurrentOrigin.withOrigin(origin) {
+          rule.applyOrElse(afterRuleOnChildren, ok[BaseType])
+        }
       }
     }
-    // If the transform function replaces this node with a new one, carry over the tags.
-    newNode
   }
 
   /**
    * Returns a copy of this node where `f` has been applied to all the nodes in `children`.
    */
-  def mapChildren(f: BaseType => BaseType): BaseType = {
+  def mapChildren(f: BaseType => Transformation[BaseType]): Transformation[BaseType] = {
     if (containsChild.nonEmpty) {
       mapChildren(f, forceCopy = false)
     } else {
-      this
+      ok(this)
     }
-  }
-
-  override def clone(): BaseType = {
-    mapChildren(_.clone(), forceCopy = true)
   }
 
   /** Returns a string representing the arguments to this node, minus any children */
@@ -539,80 +537,92 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    * @param forceCopy
    *   Whether to force making a copy of the nodes even if no child has been changed.
    */
-  private def mapChildren(f: BaseType => BaseType, forceCopy: Boolean): BaseType = {
-    var changed = false
+  private def mapChildren(f: BaseType => Transformation[BaseType], forceCopy: Boolean): Transformation[BaseType] = {
 
-    def mapChild(child: Any): Any = child match {
+    def mapChild(child: Any): Transformation[(Boolean, Any)] = child match {
       case arg: TreeNode[_] if containsChild(arg) =>
-        val newChild = f(arg.asInstanceOf[BaseType])
-        if (forceCopy || !(newChild fastEquals arg)) {
-          changed = true
-          newChild
-        } else {
-          arg
+        f(arg.asInstanceOf[BaseType]).map { newChild =>
+          if (forceCopy || !(newChild fastEquals arg)) {
+            (true, newChild)
+          } else {
+            (false, arg)
+          }
         }
       case tuple @ (arg1: TreeNode[_], arg2: TreeNode[_]) =>
         val newChild1 = if (containsChild(arg1)) {
           f(arg1.asInstanceOf[BaseType])
         } else {
-          arg1.asInstanceOf[BaseType]
+          ok(arg1.asInstanceOf[BaseType])
         }
 
         val newChild2 = if (containsChild(arg2)) {
           f(arg2.asInstanceOf[BaseType])
         } else {
-          arg2.asInstanceOf[BaseType]
+          ok(arg2.asInstanceOf[BaseType])
         }
 
-        if (forceCopy || !(newChild1 fastEquals arg1) || !(newChild2 fastEquals arg2)) {
-          changed = true
-          (newChild1, newChild2)
-        } else {
-          tuple
+        newChild1.flatMap { nc1 =>
+          newChild2.map { nc2 =>
+            if (forceCopy || !(nc1 fastEquals arg1) || !(nc2 fastEquals arg2)) {
+
+              (true, (newChild1, newChild2))
+            } else {
+              (false, tuple)
+            }
+          }
         }
-      case other => other
+      case other => ok((false, other))
     }
 
-    val newArgs = mapProductIterator {
+    val newArgs: Array[Transformation[(Boolean, AnyRef)]] = mapProductIterator {
       case arg: TreeNode[_] if containsChild(arg) =>
-        val newChild = f(arg.asInstanceOf[BaseType])
-        if (forceCopy || !(newChild fastEquals arg)) {
-          changed = true
-          newChild
-        } else {
-          arg
+        f(arg.asInstanceOf[BaseType]).map { newChild =>
+          if (forceCopy || !(newChild fastEquals arg)) {
+
+            (true, newChild)
+          } else {
+            (false, arg)
+          }
         }
       case Some(arg: TreeNode[_]) if containsChild(arg) =>
-        val newChild = f(arg.asInstanceOf[BaseType])
-        if (forceCopy || !(newChild fastEquals arg)) {
-          changed = true
-          Some(newChild)
-        } else {
-          Some(arg)
+        f(arg.asInstanceOf[BaseType]).map { newChild =>
+          if (forceCopy || !(newChild fastEquals arg)) {
+            (true, Some(newChild))
+          } else {
+            (false, Some(arg))
+          }
         }
       // `map.mapValues().view.force` return `Map` in Scala 2.12 but return `IndexedSeq` in Scala
       // 2.13, call `toMap` method manually to compatible with Scala 2.12 and Scala 2.13
-      case m: Map[_, _] =>
-        m.mapValues {
-          case arg: TreeNode[_] if containsChild(arg) =>
-            val newChild = f(arg.asInstanceOf[BaseType])
-            if (forceCopy || !(newChild fastEquals arg)) {
-              changed = true
-              newChild
-            } else {
-              arg
-            }
-          case other => other
-        }.view
-          .force
-          .toMap // `mapValues` is lazy and we need to force it to materialize
-      case d: DataType => d // Avoid unpacking Structs
-      case args: Stream[_] => args.map(mapChild).force // Force materialization on stream
-      case args: Iterable[_] => args.map(mapChild)
-      case nonChild: AnyRef => nonChild
-      case null => null
+//      case m: Map[_, _] =>
+//        m.mapValues {
+//          case arg: TreeNode[_] if containsChild(arg) =>
+//            f(arg.asInstanceOf[BaseType]).map { newChild =>
+//              if (forceCopy || !(newChild fastEquals arg)) {
+//                (true, newChild)
+//              } else {
+//                (false, arg)
+//              }
+//            }
+//          case other => ok((false, other))
+//        }.view
+//          .force
+//          .toMap // `mapValues` is lazy and we need to force it to materialize
+      case d: DataType => ok((false, d)) // Avoid unpacking Structs
+      case args: Seq[_] =>
+        args.map(mapChild).sequence.map { s =>
+          val (changes, seq) = s.unzip
+          (changes.exists(identity), seq)
+        }
+      case nonChild: AnyRef => ok((false, nonChild))
+      case null => ok((false, null))
     }
-    if (forceCopy || changed) makeCopy(newArgs, forceCopy) else this
+    newArgs.toSeq.sequence.map { seq =>
+      val (changes, args) = seq.unzip
+      if (changes.exists(identity)) makeCopy(args.toArray, forceCopy)
+      else this
+    }
+
   }
 
   private def redactMapString[K, V](map: Map[K, V], maxFields: Int): List[String] = {
