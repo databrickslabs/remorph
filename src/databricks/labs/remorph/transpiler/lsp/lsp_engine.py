@@ -10,10 +10,13 @@ from typing import Any
 
 import yaml
 
-from lsprotocol.types import InitializeParams, ClientCapabilities, InitializeResult
+from lsprotocol.types import InitializeParams, ClientCapabilities, InitializeResult, CLIENT_REGISTER_CAPABILITY, \
+    RegistrationParams, Registration
 from pygls.lsp.client import BaseLanguageClient
 
 from databricks.labs.blueprint.wheels import ProductInfo
+from pygls.protocol import LanguageServerProtocol, lsp_method
+
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
@@ -44,13 +47,33 @@ class _LSPRemorphConfigV1:
             raise ValueError("Missing command_line entry")
         return _LSPRemorphConfigV1(dialects, env_vars, command_line)
 
-
 # subclassing BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
+
+    def __init__(self):
+        version = ProductInfo.from_class(type(self)).version()
+        super().__init__("Remorph", version)
+        self._transpile_to_databricks_capability: Registration | None = None
 
     @property
     def is_alive(self):
         return self._server and self._server.returncode is None
+
+    def register_capabilities(self, params: RegistrationParams) -> None:
+        for registration in params.registrations:
+            if registration.id == "document/transpileToDatabricks":
+                logger.debug(f"Registered capability: {registration.id}")
+                self._transpile_to_databricks_capability = registration
+                continue
+            logger.debug(f"Unknown capability: {registration.id}")
+
+
+# poor design from pygls, we need an instance to register features
+client = _LanguageClient()
+
+@client.feature(CLIENT_REGISTER_CAPABILITY)
+def register_capabilities(params: RegistrationParams) -> None:
+    client.register_capabilities(params)
 
 
 class LSPEngine(TranspileEngine):
@@ -76,8 +99,6 @@ class LSPEngine(TranspileEngine):
         self._workdir = workdir
         self._config = config
         self._custom = custom
-        version = ProductInfo.from_class(type(self)).version()
-        self._client = _LanguageClient("Remorph", version)
         self._init_response: InitializeResult | None = None
 
     @property
@@ -101,7 +122,7 @@ class LSPEngine(TranspileEngine):
         for name, value in self._config.env_vars.items():
             env[name] = value
         args = self._config.command_line[1:]
-        await self._client.start_io(executable, env=env, *args)
+        await client.start_io(executable, env=env, *args)
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
@@ -109,7 +130,7 @@ class LSPEngine(TranspileEngine):
             root_path=str(root_path),
             initialization_options=self._initialization_options(config),
         )
-        self._init_response = await self._client.initialize_async(params)
+        self._init_response = await client.initialize_async(params)
 
     def _client_capabilities(self):
         return ClientCapabilities()  # TODO do we need to refine this ?
@@ -123,13 +144,13 @@ class LSPEngine(TranspileEngine):
         }
 
     async def shutdown(self):
-        await self._client.shutdown_async(None)
-        self._client.exit(None)
-        await self._client.stop()
+        await client.shutdown_async(None)
+        client.exit(None)
+        await client.stop()
 
     @property
     def is_alive(self):
-        return self._client.is_alive
+        return client.is_alive
 
     def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
         raise NotImplementedError

@@ -1,4 +1,5 @@
 from pathlib import Path
+from time import sleep
 
 import pytest
 
@@ -15,6 +16,7 @@ def lsp_engine():
 async def test_initializes_lsp_server(lsp_engine, transpile_config):
     assert not lsp_engine.is_alive
     await lsp_engine.initialize(transpile_config)
+    sleep(3)
     assert lsp_engine.is_alive
 
 
