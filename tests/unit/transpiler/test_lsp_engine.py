@@ -6,11 +6,6 @@ from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 from tests.unit.conftest import path_to_resource
 
-# IMPORTANT: these tests will be automatically skipped because they are async, and pytest-asyncio is disabled to avoid a crash
-# See https://github.com/pytest-dev/pytest-asyncio/issues/1015
-# To run these tests locally, simply pip install pytest-asyncio
-
-
 @pytest.fixture
 def lsp_engine():
     config_path = path_to_resource("lsp_transpiler", "config.yml")
