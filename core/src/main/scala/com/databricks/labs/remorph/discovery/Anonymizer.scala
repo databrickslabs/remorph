@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.intermediate._
-import com.databricks.labs.remorph.{KoResult, OkResult, Parsing, PartialResult, TranspilerState, WorkflowStage}
+import com.databricks.labs.remorph.{KoResult, OkResult, Optimizing, Parsing, PartialResult, Result, Transformation, TransformationConstructors, TranspilerState, WorkflowStage}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.security.MessageDigest
@@ -45,57 +45,58 @@ case class Fingerprints(fingerprints: Seq[Fingerprint]) {
   def uniqueQueries: Int = fingerprints.map(_.fingerprint).distinct.size
 }
 
-class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
+class Anonymizer(parser: PlanParser[_]) extends LazyLogging with TransformationConstructors {
   private[this] val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
-  def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
+
+  def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
+    val result = fingerprint(query, plan).runAndDiscardState(TranspilerState(Optimizing(plan)))
+    recover(query, result)
+  }
   def apply(query: ExecutedQuery): Fingerprint = fingerprint(query)
-  def apply(plan: LogicalPlan): String = fingerprint(plan)
+  def apply(plan: LogicalPlan): Transformation[String] = fingerprint(plan)
   def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    parser.parse.flatMap(parser.visit).run(TranspilerState(Parsing(query.source))) match {
-      case KoResult(WorkflowStage.PARSE, error) =>
+    val result = parser.parse
+      .flatMap(parser.visit)
+      .flatMap { plan =>
+        fingerprint(plan).map { fp =>
+          Fingerprint(
+            query.id,
+            query.timestamp,
+            fp,
+            query.duration,
+            query.user.getOrElse("unknown"),
+            workloadType(plan),
+            queryType(plan))
+        }
+      }
+      .runAndDiscardState(TranspilerState(Parsing(query.source)))
+    recover(query, result)
+  }
+
+  private def recover(query: ExecutedQuery, result: Result[Fingerprint]): Fingerprint = result match {
+    case KoResult(stage, error) =>
+      if (stage == WorkflowStage.PARSE) {
         logger.warn(s"Failed to parse query: ${query.source} ${error.msg}")
-        Fingerprint(
-          query.id,
-          query.timestamp,
-          fingerprint(query.source),
-          query.duration,
-          query.user.getOrElse("unknown"),
-          WorkloadType.OTHER,
-          QueryType.OTHER)
-      case KoResult(_, error) =>
+      } else {
         logger.warn(s"Failed to produce plan from query: ${query.source} ${error.msg}")
-        Fingerprint(
-          query.id,
-          query.timestamp,
-          fingerprint(query.source),
-          query.duration,
-          query.user.getOrElse("unknown"),
-          WorkloadType.OTHER,
-          QueryType.OTHER)
-      case PartialResult((_, plan), error) =>
-        logger.warn(s"Errors occurred while producing plan from query: ${query.source} ${error.msg}")
-        Fingerprint(
-          query.id,
-          query.timestamp,
-          fingerprint(plan),
-          query.duration,
-          query.user.getOrElse("unknown"),
-          workloadType(plan),
-          queryType(plan))
-      case OkResult((_, plan)) =>
-        Fingerprint(
-          query.id,
-          query.timestamp,
-          fingerprint(plan),
-          query.duration,
-          query.user.getOrElse("unknown"),
-          workloadType(plan),
-          queryType(plan))
-    }
+      }
+      Fingerprint(
+        query.id,
+        query.timestamp,
+        fingerprint(query.source),
+        query.duration,
+        query.user.getOrElse("unknown"),
+        WorkloadType.OTHER,
+        QueryType.OTHER)
+    case PartialResult(fp, error) =>
+      logger.warn(s"Errors occurred while producing plan from query: ${query.source} ${error.msg}")
+      fp
+    case OkResult(fp) =>
+      fp
   }
 
   /**
@@ -104,44 +105,49 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
    * @param plan The logical plan
    * @return A fingerprint representing the query plan
    */
-  private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
-    Fingerprint(
-      query.id,
-      query.timestamp,
-      fingerprint(plan),
-      query.duration,
-      query.user.getOrElse("unknown"),
-      workloadType(plan),
-      queryType(plan))
+  private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Transformation[Fingerprint] = {
+    fingerprint(plan).map { fp =>
+      Fingerprint(
+        query.id,
+        query.timestamp,
+        fp,
+        query.duration,
+        query.user.getOrElse("unknown"),
+        workloadType(plan),
+        queryType(plan))
+    }
   }
 
   /**
    * <p>
-   *   Provide a generic hash for the given plan
+   * Provide a generic hash for the given plan
    * </p>
    * <p>
-   *   Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
-   *   without worrying about the actual values and will generate the same hash code for queries that only
-   *   differ by literal values.
+   * Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
+   * without worrying about the actual values and will generate the same hash code for queries that only
+   * differ by literal values.
    * </p>
    * <p>
-   *   This is a very simple anonymization technique, but it's good enough for our purposes.
-   *   e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
-   *   the same fingerprint.
+   * This is a very simple anonymization technique, but it's good enough for our purposes.
+   * e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
+   * the same fingerprint.
    * </p>
    *
    * @param plan The plan we want a hash code for
    * @return The hash string for the query with literals replaced by placeholders
    */
-  private def fingerprint(plan: LogicalPlan): String = {
+  private def fingerprint(plan: LogicalPlan): Transformation[String] = {
 
-    val erasedLiterals = plan transformAllExpressions { case _: Literal =>
-      placeholder
-    }
-    val code = erasedLiterals.asCode
-    val digest = MessageDigest.getInstance("SHA-1")
-    digest.update(code.getBytes)
-    digest.digest().map("%02x".format(_)).mkString
+    plan
+      .transformAllExpressions { case _: Literal =>
+        ok(placeholder)
+      }
+      .map { erasedLiterals =>
+        val code = erasedLiterals.asCode
+        val digest = MessageDigest.getInstance("SHA-1")
+        digest.update(code.getBytes)
+        digest.digest().map("%02x".format(_)).mkString
+      }
   }
 
   private def workloadType(plan: LogicalPlan): WorkloadType.WorkloadType = {
