@@ -40,3 +40,9 @@ async def test_passes_extra_args(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "--stuff=12" in log  # see command_line in lsp_transpiler/config.yml
+
+
+async def test_receives_config(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    assert "dialect=snowflake" in log

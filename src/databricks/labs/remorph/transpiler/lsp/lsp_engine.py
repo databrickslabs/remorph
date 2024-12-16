@@ -119,7 +119,7 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
-            "custome": self._custom,
+            "custom": self._custom,
         }
 
     async def shutdown(self):
