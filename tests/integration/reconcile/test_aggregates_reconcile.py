@@ -9,7 +9,8 @@ import pytest
 from pyspark.testing import assertDataFrameEqual
 from pyspark.sql import Row
 
-from databricks.labs.remorph.config import DatabaseConfig, ReconcileMetadataConfig, get_dialect
+from databricks.labs.remorph.config import DatabaseConfig, ReconcileMetadataConfig
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.execute import Reconciliation, main
 from databricks.labs.remorph.reconcile.recon_config import (

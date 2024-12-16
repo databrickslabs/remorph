@@ -21,7 +21,7 @@ class PySparkGenerator extends TransformationConstructors {
     try {
       val withShims = PySparkStatements(optimizedLogicalPlan)
       val statements = statementRules(withShims)
-      stmtGenerator.generate(statements)
+      statements.flatMap(stmtGenerator.generate)
     } catch {
       case NonFatal(e) =>
         lift(KoResult(WorkflowStage.GENERATE, ir.UncaughtException(e)))

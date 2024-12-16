@@ -1,14 +1,18 @@
 import logging
 import typing as t
-from sqlglot import expressions as exp, parse, transpile
-from sqlglot.dialects.dialect import Dialect
+from pathlib import Path
+
+from sqlglot import expressions as exp, parse, transpile, Dialect
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.string_utils import format_error_message, refactor_hexadecimal_chars
-from databricks.labs.remorph.transpiler.transpile_status import ParserError
+from databricks.labs.remorph.transpiler.sqlglot import lca_utils
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +23,18 @@ class ParsedExpression:
         self.original_sql = original_sql
 
 
-class SqlglotEngine:
-    def __init__(self, read_dialect: Dialect):
-        self.read_dialect = read_dialect
+class SqlglotEngine(TranspileEngine):
 
     def __partial_transpile(
-        self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
+        self,
+        read_dialect: Dialect,
+        write_dialect: Dialect,
+        source_code: str,
+        file_path: Path,
+        error_list: list[ParserError],
     ) -> tuple[list[str], list[ParserError]]:
         transpiled_sql_statements = []
-        parsed_expressions, errors = self.safe_parse(statements=sql, read=self.read_dialect)
+        parsed_expressions, errors = self.safe_parse(statements=source_code, read_dialect=read_dialect)
         for parsed_expression in parsed_expressions:
             if parsed_expression.parsed_expression is not None:
                 try:
@@ -46,49 +53,56 @@ class SqlglotEngine:
                 except TokenError as e:
                     error_statement = format_error_message("Token Error", e, parsed_expression.original_sql)
                     errors.append(error_statement)
-        updated_error_list = self._handle_errors(errors, error_list, file_name, transpiled_sql_statements)
+        updated_error_list = self._handle_errors(errors, error_list, file_path, transpiled_sql_statements)
         return transpiled_sql_statements, updated_error_list
 
     def transpile(
-        self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
+        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
     ) -> TranspilationResult:
+        read_dialect = get_dialect(source_dialect)
+        write_dialect = get_dialect(target_dialect)
         try:
             transpiled_sql = transpile(
-                sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=ErrorLevel.RAISE
+                source_code, read=read_dialect, write=write_dialect, pretty=True, error_level=None
             )
-        except (ParseError, TokenError, UnsupportedError):
-            transpiled_sql, error = self.__partial_transpile(write_dialect, sql, file_name, error_list)
-            logger.error(f"Exception caught for file {file_name}: {error}")
-        return TranspilationResult(transpiled_sql, error_list)
+            return TranspilationResult(transpiled_sql, error_list)
+        except (ParseError, TokenError, UnsupportedError) as e:
+            logger.error(f"Exception caught for file {file_path!s}: {e}")
+            transpiled_sql, _ = self.__partial_transpile(
+                read_dialect, write_dialect, source_code, file_path, error_list
+            )
+            return TranspilationResult(transpiled_sql, error_list)
 
-    def parse(self, sql: str, file_name: str) -> tuple[list[Expression | None] | None, ParserError | None]:
+    def parse(
+        self, source_dialect: str, source_sql: str, file_path: Path
+    ) -> tuple[list[Expression | None] | None, ParserError | None]:
         expression = None
         error = None
         try:
-            expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
+            expression = parse(source_sql, read=source_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
-            error = ParserError(file_name, str(e))
+            error = ParserError(file_path, str(e))
 
         return expression, error
 
-    def parse_sql_content(self, sql, file_name):
-        parsed_expression, _ = self.parse(sql, file_name)
+    def analyse_table_lineage(self, source_dialect: str, source_code: str, file_path: Path):
+        parsed_expression, _ = self.parse(source_dialect, source_code, file_path)
         if parsed_expression is not None:
             for expr in parsed_expression:
-                child = str(file_name)
+                child: str | None = str(file_path)
                 if expr is not None:
+                    # TODO: fix possible issue where the file reference is lost (if we have a 'create')
                     for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                        child = self._find_root_tables(create)
+                        child = self._find_root_table(create)
 
                     for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                        yield self._find_root_tables(select), child
+                        yield self._find_root_table(select), child
 
     @staticmethod
-    def safe_parse(statements: str, read: Dialect) -> tuple[list[ParsedExpression], list[str]]:
-        dialect = read
+    def safe_parse(statements: str, read_dialect: Dialect) -> tuple[list[ParsedExpression], list[str]]:
         errors = []
         try:
-            tokens = dialect.tokenize(sql=statements)
+            tokens = read_dialect.tokenize(sql=statements)
         except TokenError as e:
             error_statement = format_error_message("TOKEN ERROR", e, statements)
             errors.append(error_statement)
@@ -115,7 +129,7 @@ class SqlglotEngine:
 
         parsed_expressions: list[ParsedExpression] = []
         parser_opts = {"error_level": ErrorLevel.RAISE}
-        parser = dialect.parser(**parser_opts)
+        parser = read_dialect.parser(**parser_opts)
         for i, tokens in enumerate(chunks, start=1):
             original_sql = original_sql_chunks[i - 1]
             try:
@@ -133,16 +147,18 @@ class SqlglotEngine:
         return parsed_expressions, errors
 
     @staticmethod
-    def _find_root_tables(expression) -> str | None:
-        for table in expression.find_all(exp.Table, bfs=False):
-            return table.name
-        return None
+    def _find_root_table(expression) -> str | None:
+        table = expression.find(exp.Table, bfs=False)
+        return table.name if table else None
 
     @staticmethod
     def _handle_errors(
-        errors: list[str], error_list: list[ParserError], file_name: str, sql_statements: list[str]
+        errors: list[str], error_list: list[ParserError], file_path: Path, sql_statements: list[str]
     ) -> list[ParserError]:
         for error in errors:
             sql_statements.append(error)
-            error_list.append(ParserError(file_name, refactor_hexadecimal_chars(str(error))))
+            error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(error))))
         return error_list
+
+    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
+        return lca_utils.check_for_unsupported_lca(get_dialect(source_dialect), source_code, file_path)

@@ -1,12 +1,13 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors}
 import com.databricks.labs.remorph.intermediate.{Assign, Expression, Join, LogicalPlan, MergeAction, MergeIntoTable, Noop, NoopNode, Rule, UpdateAction, UpdateTable}
 
-class UpdateToMerge extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
-    case update @ UpdateTable(_, None, _, _, _, _) => update
+class UpdateToMerge extends Rule[LogicalPlan] with TransformationConstructors {
+  override def apply(plan: LogicalPlan): Transformation[LogicalPlan] = plan transform {
+    case update @ UpdateTable(_, None, _, _, _, _) => ok(update)
     case update: UpdateTable =>
-      MergeIntoTable(update.target, source(update), condition(update), matchedActions = matchedActions(update))
+      ok(MergeIntoTable(update.target, source(update), condition(update), matchedActions = matchedActions(update)))
   }
 
   private def matchedActions(update: UpdateTable): Seq[MergeAction] = {

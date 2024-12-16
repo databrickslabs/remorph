@@ -467,64 +467,53 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     example(
       query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
       expectedAst = Batch(
-        Seq(Project(
+        Seq(
           Offset(
             Sort(
-              namedTable("Employees"),
-              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
-              is_global = false),
-            Literal(10)),
-          Seq(Star(None))))))
+              Project(namedTable("Employees"), Seq(Star(None))),
+              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified))),
+            Literal(10)))))
 
     example(
       query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
       expectedAst = Batch(
-        Seq(Project(
-          Limit(
-            Offset(
-              Sort(
-                namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
-                is_global = false),
-              Literal(10)),
-            Literal(5)),
-          Seq(Star(None))))))
+        Seq(Limit(
+          Offset(
+            Sort(
+              Project(namedTable("Employees"), Seq(Star(None))),
+              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified))),
+            Literal(10)),
+          Literal(5)))))
   }
 
   "translate SELECT with a combination of DISTINCT, ORDER BY, and OFFSET" in {
     example(
       query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
       expectedAst = Batch(
-        Seq(Project(
-          Deduplicate(
-            Offset(
-              Sort(
+        Seq(Offset(
+          Sort(
+            Project(
+              Deduplicate(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
-                is_global = false),
-              Literal(10)),
-            List(),
-            all_columns_as_keys = true,
-            within_watermark = false),
-          Seq(Star(None))))))
+                column_names = Seq.empty,
+                all_columns_as_keys = true,
+                within_watermark = false),
+              Seq(Star(None))),
+            Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified))),
+          Literal(10)))))
 
     example(
       query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
       expectedAst = Batch(
-        List(Project(
-          Deduplicate(
-            Limit(
-              Offset(
-                Sort(
-                  namedTable("Employees"),
-                  List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
-                  is_global = false),
-                Literal(10)),
-              Literal(5)),
-            List(),
-            all_columns_as_keys = true,
-            within_watermark = false),
-          List(Star(None))))))
+        Seq(Limit(
+          Offset(
+            Sort(
+              Project(
+                Deduplicate(namedTable("Employees"), List(), all_columns_as_keys = true, within_watermark = false),
+                Seq(Star(None))),
+              List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified))),
+            Literal(10)),
+          Literal(5)))))
   }
 
   "translate a query with PIVOT" in {
