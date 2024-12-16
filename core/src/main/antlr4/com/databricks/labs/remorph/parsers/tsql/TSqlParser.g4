@@ -1511,7 +1511,8 @@ receiveStatement
 selectStatementStandalone: withExpression? selectStatement
     ;
 
-selectStatement: queryExpression forClause? optionClause? SEMI?
+// Reference: https://learn.microsoft.com/en-us/sql/t-sql/queries/select-transact-sql?view=sql-server-ver16#syntax
+selectStatement: queryExpression selectOrderByClause? forClause? optionClause? SEMI?
     ;
 
 update
@@ -2805,9 +2806,7 @@ querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptiona
     ;
 
 selectOptionalClauses
-    // TODO: Fix ORDER BY; it needs to be outside the set operations instead of between.
-    : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
-    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver16#c-using-union-of-two-select-statements-with-order-by
+    : intoClause? fromClause? whereClause? groupByClause? havingClause?
     ;
 
 groupByClause

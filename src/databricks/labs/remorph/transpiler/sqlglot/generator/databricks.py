@@ -10,6 +10,7 @@ from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.transpiler.sqlglot import local_expression
+from databricks.labs.remorph.transpiler.sqlglot.lca_utils import unalias_lca_in_select
 
 # pylint: disable=too-many-public-methods
 
@@ -467,10 +468,6 @@ class Databricks(SqlglotDatabricks):  #
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
-            # avoid cyclic import
-            # pylint: disable=import-outside-toplevel, cyclic-import
-            from databricks.labs.remorph.transpiler.sqlglot.lca_utils import unalias_lca_in_select
-
             fixed_ast = expression.transform(unalias_lca_in_select, copy=False)
             return super().preprocess(fixed_ast)
 
