@@ -20,7 +20,7 @@ def no_cheat(diff_text: str) -> str:
             continue
         codes = {_strip_code(code) for code in line[idx + len(DISABLE_TAG) :].split(',')}
         allowed_local_cyclic_imports = {'cyclic-import', 'import-outside-toplevel'}
-        if len(codes.intersection(allowed_local_cyclic_imports)) == 2:
+        if len(codes.intersection(allowed_local_cyclic_imports)) == len(allowed_local_cyclic_imports):
             codes = codes.difference(allowed_local_cyclic_imports)
         for code in codes:
             if line.startswith("-"):
