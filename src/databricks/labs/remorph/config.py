@@ -6,7 +6,7 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 from databricks.labs.remorph.transpiler.transpile_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.labs.remorph.transpiler.sqlglot.generator import databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake, teradata
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "redshift": Dialects.REDSHIFT,
     "snowflake": snowflake.Snowflake,
     "sqlite": Dialects.SQLITE,
-    "teradata": Dialects.TERADATA,
+    "teradata": teradata.Teradata,
     "trino": Dialects.TRINO,
     "tsql": Dialects.TSQL,
     "vertica": Dialects.POSTGRES,
