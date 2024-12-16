@@ -3,7 +3,7 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TranspileConfig
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
@@ -13,6 +13,8 @@ from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, 
 from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
+
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 remorph = App(__file__)
 logger = get_logger(__file__)

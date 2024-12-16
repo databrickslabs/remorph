@@ -16,7 +16,6 @@ from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
     ReconcileConfig,
-    SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
     ReconcileMetadataConfig,
@@ -25,6 +24,7 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
