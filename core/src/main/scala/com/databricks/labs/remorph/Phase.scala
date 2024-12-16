@@ -56,7 +56,8 @@ case class BuildingAst(
 case class Optimizing(
     unoptimizedPlan: LogicalPlan,
     previousPhase: Option[BuildingAst] = None,
-    encounteredErrors: Seq[RemorphError] = Seq.empty)
+    encounteredErrors: Seq[RemorphError] = Seq.empty,
+    freshNameCounter: Int = 0)
     extends Phase {
   override def recordError(error: RemorphError): Optimizing =
     this.copy(encounteredErrors = this.encounteredErrors :+ error)

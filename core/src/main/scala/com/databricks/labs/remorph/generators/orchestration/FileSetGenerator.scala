@@ -26,12 +26,15 @@ class FileSetGenerator(
     new GenerateBundleFile())
 
   override def generate(tree: JobNode): Transformation[FileSet] = {
-    val fileSet = new FileSet()
-    rules(tree) foreachUp {
-      case CreatedFile(name, code) =>
-        fileSet.withFile(name, code)
-      case _ => // noop
+    rules(tree).map { plan =>
+      val fileSet = new FileSet()
+
+      plan foreachUp {
+        case CreatedFile(name, code) =>
+          fileSet.withFile(name, code)
+        case _ => // noop
+      }
+      fileSet
     }
-    ok(fileSet)
   }
 }
