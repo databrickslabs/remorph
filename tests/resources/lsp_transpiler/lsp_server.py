@@ -2,42 +2,55 @@ import os
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Type
 from uuid import uuid4
 
+import attrs
+from cattrs import Converter
+from cattrs.converters import T
+from cattrs.dispatch import UnstructuredValue
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
     RegistrationParams,
     Registration, TextEdit, Diagnostic, InitializeResponse, TEXT_DOCUMENT_DID_OPEN, DidOpenTextDocumentParams,
-    TEXT_DOCUMENT_DID_CLOSE, DidCloseTextDocumentParams,
+    TEXT_DOCUMENT_DID_CLOSE, DidCloseTextDocumentParams, Range, Position, METHOD_TO_TYPES,
 )
 from pygls.lsp.server import LanguageServer
 
 import logging
 
+from pygls.protocol import LanguageServerProtocol, JsonRPCRequestMessage, default_converter, JsonRPCProtocol
+
 logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
-TRANSPILE_TO_DATABRICKS_CMD = "transpileToDatabricks"
-TRANSPILE_TO_DATABRICKS_FEATURE = f"document/{TRANSPILE_TO_DATABRICKS_CMD}"
+TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 TRANSPILE_TO_DATABRICKS_CAPABILITY = {
     "id": str(uuid4()),
-    "method": TRANSPILE_TO_DATABRICKS_FEATURE
+    "method": TRANSPILE_TO_DATABRICKS_METHOD
 }
 
 
-@dataclass
-class TranspileParams:
-    document_uri: str
+@attrs.define
+class TranspileDocumentParams:
+    uri: str
+    language_id: str
 
+@attrs.define
+class TranspileDocumentRequest(JsonRPCRequestMessage):
+    id: str
+    params: TranspileDocumentParams
+    method: str = TRANSPILE_TO_DATABRICKS_METHOD
+    jsonrpc: str = JsonRPCProtocol.VERSION
 
-@dataclass
-class TranspileResponse:
-    document_uri: str
+@attrs.define
+class TranspileDocumentResponse:
+    uri: str
     changes: Sequence[TextEdit]
     diagnostics: Sequence[Diagnostic]
+
 
 class TestLspServer(LanguageServer):
 
@@ -60,11 +73,19 @@ class TestLspServer(LanguageServer):
         # TODO check whether the client supports dynamic registration
         registrations = [Registration(id=TRANSPILE_TO_DATABRICKS_CAPABILITY["id"], method=TRANSPILE_TO_DATABRICKS_CAPABILITY["method"])]
         register_params = RegistrationParams(registrations)
-        await server.client_register_capability_async(register_params)
+        await self.client_register_capability_async(register_params)
 
-    def transpile_to_databricks(self, params: TranspileParams) -> TranspileResponse:
-        return TranspileResponse(document_uri=params.document_uri, changes=[], diagnostics=[])
-
+    def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResponse:
+        source_sql = self.workspace.get_text_document(params.uri).source
+        source_lines = source_sql.split("\n")
+        transpiled_sql = source_sql.upper()
+        changes = [
+            TextEdit(
+                range=Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1]))),
+                new_text=transpiled_sql
+            )
+        ]
+        return TranspileDocumentResponse(uri=params.uri, changes=changes, diagnostics=[])
 
 server = TestLspServer("test-lsp-server", "v0.1")
 
@@ -84,8 +105,8 @@ async def lsp_text_document_did_close(params: DidCloseTextDocumentParams) -> Non
     logger.debug(f"close-document-uri={params.text_document.uri}")
 
 
-@server.feature(TRANSPILE_TO_DATABRICKS_FEATURE)
-def transpile_to_databricks(params: TranspileParams) -> TranspileResponse:
+@server.feature(TRANSPILE_TO_DATABRICKS_METHOD)
+def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumentResponse:
     return server.transpile_to_databricks(params)
 
 

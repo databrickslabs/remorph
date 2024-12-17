@@ -76,7 +76,7 @@ async def test_server_loads_document(lsp_engine, transpile_config):
 
 
 async def test_server_closes_document(lsp_engine, transpile_config):
-    sample_path = Path(path_to_resource("lsp_transpiler", "stuff.sql"))
+    sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
     await lsp_engine.initialize(transpile_config)
     lsp_engine.open_document(sample_path)
     lsp_engine.close_document(sample_path)
@@ -89,3 +89,13 @@ async def test_server_closes_document(lsp_engine, transpile_config):
             break
     log = log_path.read_text("utf-8")
     assert f"close-document-uri={sample_path.as_uri()}" in log
+
+
+async def test_server_transpiles_document(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
+    await lsp_engine.initialize(transpile_config)
+    lsp_engine.open_document(sample_path)
+    response = await lsp_engine.transpile_document(sample_path)
+    lsp_engine.close_document(sample_path)
+    transpiled_path = Path(path_to_resource("lsp_transpiler", "transpiled_stuff.sql"))
+    assert response.changes[0].newText == transpiled_path.read_text()

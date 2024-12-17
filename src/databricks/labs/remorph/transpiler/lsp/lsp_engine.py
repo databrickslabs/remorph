@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from collections.abc import Iterable, Callable, Sequence
@@ -8,7 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import attrs
 import yaml
+from cattrs import Converter
+from cattrs.converters import T
+from cattrs.dispatch import UnstructuredValue
 
 from lsprotocol.types import (
     InitializeParams,
@@ -17,11 +22,13 @@ from lsprotocol.types import (
     CLIENT_REGISTER_CAPABILITY,
     RegistrationParams,
     Registration, TextEdit, Diagnostic, DidOpenTextDocumentParams, TextDocumentItem, DidCloseTextDocumentParams,
-    TextDocumentIdentifier,
+    TextDocumentIdentifier, METHOD_TO_TYPES,
 )
 from pygls.lsp.client import BaseLanguageClient
+from pygls.exceptions import FeatureRequestError
 
 from databricks.labs.blueprint.wheels import ProductInfo
+from pygls.protocol import LanguageServerProtocol, default_converter, JsonRPCRequestMessage, JsonRPCProtocol
 
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
@@ -67,15 +74,22 @@ def lsp_feature(
 
 _LSP_FEATURES: list[tuple[str, Any | None, Callable]] = []
 
-TRANSPILE_TO_DATABRICKS_FEATURE = "document/transpileToDatabricks"
+TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 
-@dataclass
-class TranspileParams:
-    document_uri: str
+@attrs.define
+class TranspileDocumentParams:
+    uri: str
+    language_id: str = "sql"
 
+@attrs.define
+class TranspileDocumentRequest(JsonRPCRequestMessage):
+    id: str
+    params: TranspileDocumentParams
+    method: str = TRANSPILE_TO_DATABRICKS_METHOD
+    jsonrpc: str = JsonRPCProtocol.VERSION
 
-@dataclass
-class TranspileResponse:
+@attrs.define
+class TranspileDocumentResponse:
     document_uri: str
     changes: Sequence[TextEdit]
     diagnostics: Sequence[Diagnostic]
@@ -101,11 +115,25 @@ class _LanguageClient(BaseLanguageClient):
     @lsp_feature(CLIENT_REGISTER_CAPABILITY)
     def register_capabilities(self, params: RegistrationParams) -> None:
         for registration in params.registrations:
-            if registration.method == TRANSPILE_TO_DATABRICKS_FEATURE:
+            if registration.method == TRANSPILE_TO_DATABRICKS_METHOD:
                 logger.debug(f"Registered capability: {registration.method}")
                 self._transpile_to_databricks_capability = registration
                 continue
             logger.debug(f"Unknown capability: {registration.method}")
+
+    async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResponse:
+        if self.stopped:
+            raise RuntimeError("Client has been stopped.")
+        await self._await_for_transpile_capability()
+        return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
+
+    async def _await_for_transpile_capability(self):
+        for i in range(1, 10):
+            if self.transpile_to_databricks_capability:
+                return
+            await asyncio.sleep(0.1)
+        if not self.transpile_to_databricks_capability:
+            raise FeatureRequestError(f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability")
 
     # can't use @client.feature because it requires a global instance
     def _register_lsp_features(self):
@@ -218,3 +246,7 @@ class LSPEngine(TranspileEngine):
         text_document = TextDocumentIdentifier(uri=file_path.as_uri())
         params = DidCloseTextDocumentParams(text_document)
         self._client.text_document_did_close(params)
+
+    async def transpile_document(self, file_path: Path) -> TranspileDocumentResponse:
+        params = TranspileDocumentParams(uri=file_path.as_uri())
+        return await self._client.transpile_document_async(params)
