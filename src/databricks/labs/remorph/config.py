@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
-    __version__ = 1
+    __version__ = 2
 
     transpiler: str
     source_dialect: str | None = None

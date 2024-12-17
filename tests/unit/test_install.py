@@ -153,7 +153,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -212,7 +212,7 @@ def test_configure_transpile_no_existing_installation(ws):
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -241,7 +241,7 @@ def test_configure_transpile_installation_no_override(ws):
                     "sdk_config": {
                         "warehouse_id": "abc",
                     },
-                    "version": 1,
+                    "version": 2,
                 }
             }
         ),
@@ -285,7 +285,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
-                "version": 1,
+                "version": 2,
             }
         }
     )
@@ -329,7 +329,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -389,7 +389,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -456,7 +456,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -524,7 +524,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -590,7 +590,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
             "schema_name": "transpiler_test",
             "sdk_config": {"warehouse_id": "w_id"},
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
@@ -850,7 +850,7 @@ def test_configure_all_override_installation(ws):
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
-                "version": 1,
+                "version": 2,
             },
             "reconcile.yml": {
                 "data_source": "snowflake",
@@ -935,7 +935,7 @@ def test_configure_all_override_installation(ws):
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 1,
+            "version": 2,
         },
     )
 
