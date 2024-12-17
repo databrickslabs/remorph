@@ -1,12 +1,15 @@
 import os
 import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
+from uuid import uuid4
 
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
     RegistrationParams,
-    Registration,
+    Registration, TextEdit, Diagnostic, InitializeResponse,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -16,10 +19,26 @@ logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.
 
 logger = logging.getLogger(__name__)
 
+TRANSPILE_TO_DATABRICKS_CMD = "transpileToDatabricks"
+TRANSPILE_TO_DATABRICKS_FEATURE = f"document/{TRANSPILE_TO_DATABRICKS_CMD}"
+TRANSPILE_TO_DATABRICKS_CAPABILITY = {
+    "id": str(uuid4()),
+    "method": TRANSPILE_TO_DATABRICKS_FEATURE
+}
+
+
+@dataclass
+class TranspileParams:
+    document_uri: str
+
+
+@dataclass
+class TranspileResponse:
+    document_uri: str
+    changes: Sequence[TextEdit]
+    diagnostics: Sequence[Diagnostic]
 
 class TestLspServer(LanguageServer):
-
-    CMD_TRANSPILE = "transpile"
 
     def __init__(self, name, version):
         super().__init__(name, version)
@@ -33,28 +52,30 @@ class TestLspServer(LanguageServer):
     def whatever(self) -> str:
         return self.initialization_options["custom"]["whatever"]
 
-    async def initialize(self, init_params: InitializeParams) -> None:
+    async def did_initialize(self, init_params: InitializeParams) -> None:
         self.initialization_options = init_params.initialization_options
         logger.debug(f"dialect={server.dialect}")
         logger.debug(f"whatever={server.whatever}")
-        registrations = [Registration(id="document/transpileToDatabricks", method="transpile_to_databricks")]
+        # TODO check whether the client supports dynamic registration
+        registrations = [Registration(id=TRANSPILE_TO_DATABRICKS_CAPABILITY["id"], method=TRANSPILE_TO_DATABRICKS_CAPABILITY["method"])]
         register_params = RegistrationParams(registrations)
         await server.client_register_capability_async(register_params)
 
-    def transpile_to_databricks(self, params: Any) -> Any:
-        return ""
+    def transpile_to_databricks(self, params: TranspileParams) -> TranspileResponse:
+        return TranspileResponse(document_uri=params.document_uri, changes=[], diagnostics=[])
 
 
 server = TestLspServer("test-lsp-server", "v0.1")
 
 
 @server.feature(INITIALIZE)
-async def lsp_initialize(params: InitializeParams) -> None:
-    await server.initialize(params)
+async def lsp_did_initialize(params: InitializeParams) -> None:
+    await server.did_initialize(params)
 
 
-async def transpile_to_databricks(params: Any) -> Any:
-    await server.transpile_to_databricks(params)
+@server.feature(TRANSPILE_TO_DATABRICKS_FEATURE)
+def transpile_to_databricks(params: TranspileParams) -> TranspileResponse:
+    return server.transpile_to_databricks(params)
 
 
 if __name__ == "__main__":

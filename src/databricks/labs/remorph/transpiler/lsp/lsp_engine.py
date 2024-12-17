@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Iterable, Callable
+from collections.abc import Iterable, Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,7 +16,7 @@ from lsprotocol.types import (
     InitializeResult,
     CLIENT_REGISTER_CAPABILITY,
     RegistrationParams,
-    Registration,
+    Registration, TextEdit, Diagnostic,
 )
 from pygls.lsp.client import BaseLanguageClient
 
@@ -66,6 +66,19 @@ def lsp_feature(
 
 _LSP_FEATURES: list[tuple[str, Any | None, Callable]] = []
 
+TRANSPILE_TO_DATABRICKS_FEATURE = "document/transpileToDatabricks"
+
+@dataclass
+class TranspileParams:
+    document_uri: str
+
+
+@dataclass
+class TranspileResponse:
+    document_uri: str
+    changes: Sequence[TextEdit]
+    diagnostics: Sequence[Diagnostic]
+
 
 # subclassing BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
@@ -87,11 +100,11 @@ class _LanguageClient(BaseLanguageClient):
     @lsp_feature(CLIENT_REGISTER_CAPABILITY)
     def register_capabilities(self, params: RegistrationParams) -> None:
         for registration in params.registrations:
-            if registration.id == "document/transpileToDatabricks":
-                logger.debug(f"Registered capability: {registration.id}")
+            if registration.method == TRANSPILE_TO_DATABRICKS_FEATURE:
+                logger.debug(f"Registered capability: {registration.method}")
                 self._transpile_to_databricks_capability = registration
                 continue
-            logger.debug(f"Unknown capability: {registration.id}")
+            logger.debug(f"Unknown capability: {registration.method}")
 
     # can't use @client.feature because it requires a global instance
     def _register_lsp_features(self):
