@@ -437,7 +437,7 @@ def mock_workspace_client_cli():
     state = {
         "/Users/foo/.remorph/config.yml": yaml.dump(
             {
-                'version': 1,
+                'version': 2,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
                 'transpiler': 'sqlglot',

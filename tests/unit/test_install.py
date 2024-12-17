@@ -981,7 +981,7 @@ def test_runs_upgrades_on_more_recent_version(ws):
                 "sdk_config": {
                     "warehouse_id": "dummy",
                 },
-                "version": 1,
+                "version": 2,
             },
         }
     )
