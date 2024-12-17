@@ -9,7 +9,8 @@ from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
     RegistrationParams,
-    Registration, TextEdit, Diagnostic, InitializeResponse,
+    Registration, TextEdit, Diagnostic, InitializeResponse, TEXT_DOCUMENT_DID_OPEN, DidOpenTextDocumentParams,
+    TEXT_DOCUMENT_DID_CLOSE, DidCloseTextDocumentParams,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -71,6 +72,16 @@ server = TestLspServer("test-lsp-server", "v0.1")
 @server.feature(INITIALIZE)
 async def lsp_did_initialize(params: InitializeParams) -> None:
     await server.did_initialize(params)
+
+
+@server.feature(TEXT_DOCUMENT_DID_OPEN)
+async def lsp_text_document_did_open(params: DidOpenTextDocumentParams) -> None:
+    logger.debug(f"open-document-uri={params.text_document.uri}")
+
+
+@server.feature(TEXT_DOCUMENT_DID_CLOSE)
+async def lsp_text_document_did_close(params: DidCloseTextDocumentParams) -> None:
+    logger.debug(f"close-document-uri={params.text_document.uri}")
 
 
 @server.feature(TRANSPILE_TO_DATABRICKS_FEATURE)

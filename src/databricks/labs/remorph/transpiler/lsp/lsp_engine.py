@@ -16,7 +16,8 @@ from lsprotocol.types import (
     InitializeResult,
     CLIENT_REGISTER_CAPABILITY,
     RegistrationParams,
-    Registration, TextEdit, Diagnostic,
+    Registration, TextEdit, Diagnostic, DidOpenTextDocumentParams, TextDocumentItem, DidCloseTextDocumentParams,
+    TextDocumentIdentifier,
 )
 from pygls.lsp.client import BaseLanguageClient
 
@@ -202,3 +203,18 @@ class LSPEngine(TranspileEngine):
         self, source_dialect: str, source_code: str, file_path: Path
     ) -> Iterable[tuple[str, str]]:
         raise NotImplementedError
+
+    def open_document(self, file_path: Path, encoding = "utf-8") -> None:
+        text_document = TextDocumentItem(
+            uri=file_path.as_uri(),
+            language_id="sql",
+            version=1,
+            text=file_path.read_text(encoding)
+        )
+        params = DidOpenTextDocumentParams(text_document)
+        self._client.text_document_did_open(params)
+
+    def close_document(self, file_path: Path) -> None:
+        text_document = TextDocumentIdentifier(uri=file_path.as_uri())
+        params = DidCloseTextDocumentParams(text_document)
+        self._client.text_document_did_close(params)

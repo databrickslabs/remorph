@@ -59,3 +59,33 @@ async def test_server_has_transpile_capability(lsp_engine, transpile_config):
         if lsp_engine.server_has_transpile_capability:
             break
     assert lsp_engine.server_has_transpile_capability
+
+async def test_server_loads_document(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "stuff.sql"))
+    await lsp_engine.initialize(transpile_config)
+    lsp_engine.open_document(sample_path)
+    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
+    # need to give time to child process
+    for i in range(1, 10):
+        await asyncio.sleep(0.1)
+        log = log_path.read_text("utf-8")
+        if "open-document-uri" in log:
+            break
+    log = log_path.read_text("utf-8")
+    assert f"open-document-uri={sample_path.as_uri()}" in log
+
+
+async def test_server_closes_document(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "stuff.sql"))
+    await lsp_engine.initialize(transpile_config)
+    lsp_engine.open_document(sample_path)
+    lsp_engine.close_document(sample_path)
+    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
+    # need to give time to child process
+    for i in range(1, 10):
+        await asyncio.sleep(0.1)
+        log = log_path.read_text("utf-8")
+        if "close-document-uri" in log:
+            break
+    log = log_path.read_text("utf-8")
+    assert f"close-document-uri={sample_path.as_uri()}" in log
