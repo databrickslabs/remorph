@@ -2,7 +2,7 @@ import os
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Literal, Union
 from uuid import uuid4
 
 import attrs
@@ -35,22 +35,34 @@ TRANSPILE_TO_DATABRICKS_CAPABILITY = {
 
 @attrs.define
 class TranspileDocumentParams:
-    uri: str
-    language_id: str
+    uri: str = attrs.field()
+    language_id: str = attrs.field()
 
 @attrs.define
-class TranspileDocumentRequest(JsonRPCRequestMessage):
-    id: str
-    params: TranspileDocumentParams
-    method: str = TRANSPILE_TO_DATABRICKS_METHOD
-    jsonrpc: str = JsonRPCProtocol.VERSION
+class TranspileDocumentRequest:
+    id: Union[int, str] = attrs.field()
+    params: TranspileDocumentParams = attrs.field()
+    method: Literal["document/transpileToDatabricks"] = TRANSPILE_TO_DATABRICKS_METHOD
+    jsonrpc: str = attrs.field(default="2.0")
+
+@attrs.define
+class TranspileDocumentResult:
+    uri: str = attrs.field()
+    changes: Sequence[TextEdit] = attrs.field()
+    diagnostics: Sequence[Diagnostic] = attrs.field()
 
 @attrs.define
 class TranspileDocumentResponse:
-    uri: str
-    changes: Sequence[TextEdit]
-    diagnostics: Sequence[Diagnostic]
+    id: Union[int, str] = attrs.field()
+    result: TranspileDocumentResult = attrs.field()
+    jsonrpc: str = attrs.field(default="2.0")
 
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
+    TranspileDocumentRequest,
+    TranspileDocumentResponse,
+    TranspileDocumentParams,
+    None
+    )
 
 class TestLspServer(LanguageServer):
 
@@ -75,7 +87,7 @@ class TestLspServer(LanguageServer):
         register_params = RegistrationParams(registrations)
         await self.client_register_capability_async(register_params)
 
-    def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResponse:
+    def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         source_sql = self.workspace.get_text_document(params.uri).source
         source_lines = source_sql.split("\n")
         transpiled_sql = source_sql.upper()
@@ -85,7 +97,8 @@ class TestLspServer(LanguageServer):
                 new_text=transpiled_sql
             )
         ]
-        return TranspileDocumentResponse(uri=params.uri, changes=changes, diagnostics=[])
+        return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=[])
+
 
 server = TestLspServer("test-lsp-server", "v0.1")
 
@@ -106,7 +119,7 @@ async def lsp_text_document_did_close(params: DidCloseTextDocumentParams) -> Non
 
 
 @server.feature(TRANSPILE_TO_DATABRICKS_METHOD)
-def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumentResponse:
+def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumentResult:
     return server.transpile_to_databricks(params)
 
 

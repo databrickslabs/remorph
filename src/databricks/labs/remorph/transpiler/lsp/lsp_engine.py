@@ -7,13 +7,10 @@ from collections.abc import Iterable, Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, Union
 
 import attrs
 import yaml
-from cattrs import Converter
-from cattrs.converters import T
-from cattrs.dispatch import UnstructuredValue
 
 from lsprotocol.types import (
     InitializeParams,
@@ -22,13 +19,12 @@ from lsprotocol.types import (
     CLIENT_REGISTER_CAPABILITY,
     RegistrationParams,
     Registration, TextEdit, Diagnostic, DidOpenTextDocumentParams, TextDocumentItem, DidCloseTextDocumentParams,
-    TextDocumentIdentifier, METHOD_TO_TYPES,
+    TextDocumentIdentifier, METHOD_TO_TYPES, LanguageKind,
 )
 from pygls.lsp.client import BaseLanguageClient
 from pygls.exceptions import FeatureRequestError
 
 from databricks.labs.blueprint.wheels import ProductInfo
-from pygls.protocol import LanguageServerProtocol, default_converter, JsonRPCRequestMessage, JsonRPCProtocol
 
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
@@ -78,24 +74,36 @@ TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 
 @attrs.define
 class TranspileDocumentParams:
-    uri: str
-    language_id: str = "sql"
+    uri: str = attrs.field()
+    language_id: Union[LanguageKind, str] = attrs.field()
 
 @attrs.define
-class TranspileDocumentRequest(JsonRPCRequestMessage):
-    id: str
-    params: TranspileDocumentParams
-    method: str = TRANSPILE_TO_DATABRICKS_METHOD
-    jsonrpc: str = JsonRPCProtocol.VERSION
+class TranspileDocumentRequest:
+    id: Union[int, str] = attrs.field()
+    params: TranspileDocumentParams = attrs.field()
+    method: Literal["document/transpileToDatabricks"] = TRANSPILE_TO_DATABRICKS_METHOD
+    jsonrpc: str = attrs.field(default="2.0")
+
+@attrs.define
+class TranspileDocumentResult:
+    uri: str = attrs.field()
+    changes: Sequence[TextEdit] = attrs.Factory(list)
+    diagnostics: Sequence[Diagnostic] = attrs.Factory(list)
 
 @attrs.define
 class TranspileDocumentResponse:
-    document_uri: str
-    changes: Sequence[TextEdit]
-    diagnostics: Sequence[Diagnostic]
+    id: Union[int, str] = attrs.field()
+    result: TranspileDocumentResult = attrs.field()
+    jsonrpc: str = attrs.field(default="2.0")
 
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
+    TranspileDocumentRequest,
+    TranspileDocumentResponse,
+    TranspileDocumentParams,
+    None
+)
 
-# subclassing BaseLanguageClient so we can override stuff when required
+# subclass BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
 
     def __init__(self):
@@ -121,7 +129,7 @@ class _LanguageClient(BaseLanguageClient):
                 continue
             logger.debug(f"Unknown capability: {registration.method}")
 
-    async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResponse:
+    async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         if self.stopped:
             raise RuntimeError("Client has been stopped.")
         await self._await_for_transpile_capability()
@@ -235,7 +243,7 @@ class LSPEngine(TranspileEngine):
     def open_document(self, file_path: Path, encoding = "utf-8") -> None:
         text_document = TextDocumentItem(
             uri=file_path.as_uri(),
-            language_id="sql",
+            language_id=LanguageKind.Sql,
             version=1,
             text=file_path.read_text(encoding)
         )
@@ -247,6 +255,7 @@ class LSPEngine(TranspileEngine):
         params = DidCloseTextDocumentParams(text_document)
         self._client.text_document_did_close(params)
 
-    async def transpile_document(self, file_path: Path) -> TranspileDocumentResponse:
-        params = TranspileDocumentParams(uri=file_path.as_uri())
-        return await self._client.transpile_document_async(params)
+    async def transpile_document(self, file_path: Path) -> TranspileDocumentResult:
+        params = TranspileDocumentParams(uri=file_path.as_uri(), language_id=LanguageKind.Sql)
+        result = await self._client.transpile_document_async(params)
+        return result
