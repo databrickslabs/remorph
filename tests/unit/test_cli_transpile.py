@@ -354,7 +354,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
 
 
 def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
-    transpiler = path_to_resource("lsp_transpiler", "config.yml")
+    transpiler = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
     output_folder = path_to_resource("lsp_transpiler")

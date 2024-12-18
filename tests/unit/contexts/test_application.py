@@ -51,7 +51,7 @@ def test_workspace_context_attributes_not_none(ws):
                     "sdk_config": {
                         "warehouse_id": "abc",
                     },
-                    "version": 1,
+                    "version": 2,
                 },
                 "reconcile.yml": {
                     "data_source": "snowflake",
