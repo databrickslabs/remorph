@@ -12,6 +12,7 @@ from typing import Any, Literal
 import attrs
 import yaml
 
+# see https://github.com/databrickslabs/remorph/issues/1378
 # pylint: disable=import-private-name
 from lsprotocol.types import (
     InitializeParams,
@@ -90,6 +91,7 @@ class TranspileDocumentParams:
 
 @attrs.define
 class TranspileDocumentRequest:
+    # 'id' is mandated by LSP
     # pylint: disable=invalid-name
     id: int | str = attrs.field()
     params: TranspileDocumentParams = attrs.field()
@@ -106,6 +108,7 @@ class TranspileDocumentResult:
 
 @attrs.define
 class TranspileDocumentResponse:
+    # 'id' is mandated by LSP
     # pylint: disable=invalid-name
     id: int | str = attrs.field()
     result: TranspileDocumentResult = attrs.field()
@@ -167,12 +170,14 @@ class _LanguageClient(BaseLanguageClient):
     def _register_lsp_features(self):
         for name, options, func in _LSP_FEATURES:
             decorator = self.protocol.fm.feature(name, options)
-
-            def wrapper(params):
-                # pylint: disable=cell-var-from-loop
-                return func(self, params)
-
+            wrapper = self._wrapper_for_lsp_feature(func)
             decorator(wrapper)
+
+    def _wrapper_for_lsp_feature(self, func):
+        def wrapper(params):
+            return func(self, params)
+
+        return wrapper
 
 
 class LSPEngine(TranspileEngine):
