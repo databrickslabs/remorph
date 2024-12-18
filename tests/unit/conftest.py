@@ -1,14 +1,18 @@
+import io
 import re
 from pathlib import Path
 from collections.abc import Sequence
 from unittest.mock import create_autospec
 
 import pytest
-from sqlglot import ErrorLevel, UnsupportedError, Dialect
-from sqlglot.errors import SqlglotError, ParseError
-from sqlglot import parse_one as sqlglot_parse_one
-from sqlglot import transpile
+import yaml
 
+from sqlglot import ErrorLevel, UnsupportedError, Dialect, transpile
+from sqlglot import parse_one as sqlglot_parse_one
+from sqlglot.errors import SqlglotError, ParseError
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
@@ -211,3 +215,58 @@ def path_to_resource(*args: str) -> str:
     for arg in args:
         resource_path = resource_path / arg
     return str(resource_path)
+
+
+@pytest.fixture
+def mock_workspace_client_cli():
+    state = {
+        "/Users/foo/.remorph/config.yml": yaml.dump(
+            {
+                'version': 2,
+                'catalog_name': 'transpiler',
+                'schema_name': 'remorph',
+                'transpiler': 'sqlglot',
+                'source_dialect': 'snowflake',
+                'sdk_config': {'cluster_id': 'test_cluster'},
+            }
+        ),
+        "/Users/foo/.remorph/recon_config.yml": yaml.dump(
+            {
+                'version': 1,
+                'source_schema': "src_schema",
+                'target_catalog': "src_catalog",
+                'target_schema': "tgt_schema",
+                'tables': [
+                    {
+                        "source_name": 'src_table',
+                        "target_name": 'tgt_table',
+                        "join_columns": ['id'],
+                        "jdbc_reader_options": None,
+                        "select_columns": None,
+                        "drop_columns": None,
+                        "column_mapping": None,
+                        "transformations": None,
+                        "thresholds": None,
+                        "filters": None,
+                    }
+                ],
+                'source_catalog': "src_catalog",
+            }
+        ),
+    }
+
+    def download(path: str) -> io.StringIO | io.BytesIO:
+        if path not in state:
+            raise NotFound(path)
+        if ".csv" in path:
+            return io.BytesIO(state[path].encode('utf-8'))
+        return io.StringIO(state[path])
+
+    workspace_client = create_autospec(WorkspaceClient)
+    workspace_client.current_user.me().user_name = "foo"
+    workspace_client.workspace.download = download
+    config = create_autospec(Config)
+    config.warehouse_id = None
+    config.cluster_id = None
+    workspace_client.config = config
+    return workspace_client
