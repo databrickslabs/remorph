@@ -1,36 +1,36 @@
 import os
 import sys
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any, Optional, Type, Literal, Union
+from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
-from cattrs import Converter
-from cattrs.converters import T
-from cattrs.dispatch import UnstructuredValue
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
     RegistrationParams,
-    Registration, TextEdit, Diagnostic, InitializeResponse, TEXT_DOCUMENT_DID_OPEN, DidOpenTextDocumentParams,
-    TEXT_DOCUMENT_DID_CLOSE, DidCloseTextDocumentParams, Range, Position, METHOD_TO_TYPES,
+    Registration,
+    TextEdit,
+    Diagnostic,
+    TEXT_DOCUMENT_DID_OPEN,
+    DidOpenTextDocumentParams,
+    TEXT_DOCUMENT_DID_CLOSE,
+    DidCloseTextDocumentParams,
+    Range,
+    Position,
+    METHOD_TO_TYPES,
 )
 from pygls.lsp.server import LanguageServer
 
 import logging
 
-from pygls.protocol import LanguageServerProtocol, JsonRPCRequestMessage, default_converter, JsonRPCProtocol
 
 logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
 TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
-TRANSPILE_TO_DATABRICKS_CAPABILITY = {
-    "id": str(uuid4()),
-    "method": TRANSPILE_TO_DATABRICKS_METHOD
-}
+TRANSPILE_TO_DATABRICKS_CAPABILITY = {"id": str(uuid4()), "method": TRANSPILE_TO_DATABRICKS_METHOD}
 
 
 @attrs.define
@@ -38,12 +38,14 @@ class TranspileDocumentParams:
     uri: str = attrs.field()
     language_id: str = attrs.field()
 
+
 @attrs.define
 class TranspileDocumentRequest:
-    id: Union[int, str] = attrs.field()
+    id: int | str = attrs.field()
     params: TranspileDocumentParams = attrs.field()
-    method: Literal["document/transpileToDatabricks"] = TRANSPILE_TO_DATABRICKS_METHOD
+    method: Literal["document/transpileToDatabricks"] = "document/transpileToDatabricks"
     jsonrpc: str = attrs.field(default="2.0")
+
 
 @attrs.define
 class TranspileDocumentResult:
@@ -51,18 +53,9 @@ class TranspileDocumentResult:
     changes: Sequence[TextEdit] = attrs.field()
     diagnostics: Sequence[Diagnostic] = attrs.field()
 
-@attrs.define
-class TranspileDocumentResponse:
-    id: Union[int, str] = attrs.field()
-    result: TranspileDocumentResult = attrs.field()
-    jsonrpc: str = attrs.field(default="2.0")
 
-METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
-    TranspileDocumentRequest,
-    TranspileDocumentResponse,
-    TranspileDocumentParams,
-    None
-    )
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (TranspileDocumentRequest, None, TranspileDocumentParams, None)
+
 
 class TestLspServer(LanguageServer):
 
@@ -83,7 +76,11 @@ class TestLspServer(LanguageServer):
         logger.debug(f"dialect={server.dialect}")
         logger.debug(f"whatever={server.whatever}")
         # TODO check whether the client supports dynamic registration
-        registrations = [Registration(id=TRANSPILE_TO_DATABRICKS_CAPABILITY["id"], method=TRANSPILE_TO_DATABRICKS_CAPABILITY["method"])]
+        registrations = [
+            Registration(
+                id=TRANSPILE_TO_DATABRICKS_CAPABILITY["id"], method=TRANSPILE_TO_DATABRICKS_CAPABILITY["method"]
+            )
+        ]
         register_params = RegistrationParams(registrations)
         await self.client_register_capability_async(register_params)
 
@@ -94,7 +91,7 @@ class TestLspServer(LanguageServer):
         changes = [
             TextEdit(
                 range=Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1]))),
-                new_text=transpiled_sql
+                new_text=transpiled_sql,
             )
         ]
         return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=[])

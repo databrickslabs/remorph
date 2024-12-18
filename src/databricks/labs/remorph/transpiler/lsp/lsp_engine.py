@@ -7,7 +7,7 @@ from collections.abc import Iterable, Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 import attrs
 import yaml
@@ -18,8 +18,15 @@ from lsprotocol.types import (
     InitializeResult,
     CLIENT_REGISTER_CAPABILITY,
     RegistrationParams,
-    Registration, TextEdit, Diagnostic, DidOpenTextDocumentParams, TextDocumentItem, DidCloseTextDocumentParams,
-    TextDocumentIdentifier, METHOD_TO_TYPES, LanguageKind,
+    Registration,
+    TextEdit,
+    Diagnostic,
+    DidOpenTextDocumentParams,
+    TextDocumentItem,
+    DidCloseTextDocumentParams,
+    TextDocumentIdentifier,
+    METHOD_TO_TYPES,
+    LanguageKind,
 )
 from pygls.lsp.client import BaseLanguageClient
 from pygls.exceptions import FeatureRequestError
@@ -72,36 +79,39 @@ _LSP_FEATURES: list[tuple[str, Any | None, Callable]] = []
 
 TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 
+
 @attrs.define
 class TranspileDocumentParams:
     uri: str = attrs.field()
-    language_id: Union[LanguageKind, str] = attrs.field()
+    language_id: LanguageKind | str = attrs.field()
+
 
 @attrs.define
 class TranspileDocumentRequest:
-    id: Union[int, str] = attrs.field()
+    # pylint: disable=invalid-name
+    id: int | str = attrs.field()
     params: TranspileDocumentParams = attrs.field()
-    method: Literal["document/transpileToDatabricks"] = TRANSPILE_TO_DATABRICKS_METHOD
+    method: Literal["document/transpileToDatabricks"] = "document/transpileToDatabricks"
     jsonrpc: str = attrs.field(default="2.0")
+
 
 @attrs.define
 class TranspileDocumentResult:
     uri: str = attrs.field()
-    changes: Sequence[TextEdit] = attrs.Factory(list)
-    diagnostics: Sequence[Diagnostic] = attrs.Factory(list)
+    changes: Sequence[TextEdit] = attrs.field()
+    diagnostics: Sequence[Diagnostic] = attrs.field()
+
 
 @attrs.define
 class TranspileDocumentResponse:
-    id: Union[int, str] = attrs.field()
+    # pylint: disable=invalid-name
+    id: int | str = attrs.field()
     result: TranspileDocumentResult = attrs.field()
     jsonrpc: str = attrs.field(default="2.0")
 
-METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
-    TranspileDocumentRequest,
-    TranspileDocumentResponse,
-    TranspileDocumentParams,
-    None
-)
+
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (None, TranspileDocumentResponse, TranspileDocumentParams, None)  # type: ignore
+
 
 # subclass BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
@@ -136,7 +146,7 @@ class _LanguageClient(BaseLanguageClient):
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
     async def _await_for_transpile_capability(self):
-        for i in range(1, 10):
+        for _ in range(1, 10):
             if self.transpile_to_databricks_capability:
                 return
             await asyncio.sleep(0.1)
@@ -147,7 +157,11 @@ class _LanguageClient(BaseLanguageClient):
     def _register_lsp_features(self):
         for name, options, func in _LSP_FEATURES:
             decorator = self.protocol.fm.feature(name, options)
-            wrapper = lambda params: func(self, params)
+
+            def wrapper(params):
+                # pylint: disable=cell-var-from-loop
+                return func(self, params)
+
             decorator(wrapper)
 
 
@@ -240,12 +254,9 @@ class LSPEngine(TranspileEngine):
     ) -> Iterable[tuple[str, str]]:
         raise NotImplementedError
 
-    def open_document(self, file_path: Path, encoding = "utf-8") -> None:
+    def open_document(self, file_path: Path, encoding="utf-8") -> None:
         text_document = TextDocumentItem(
-            uri=file_path.as_uri(),
-            language_id=LanguageKind.Sql,
-            version=1,
-            text=file_path.read_text(encoding)
+            uri=file_path.as_uri(), language_id=LanguageKind.Sql, version=1, text=file_path.read_text(encoding)
         )
         params = DidOpenTextDocumentParams(text_document)
         self._client.text_document_did_open(params)

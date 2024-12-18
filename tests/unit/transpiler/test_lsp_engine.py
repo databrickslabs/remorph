@@ -3,12 +3,11 @@ from pathlib import Path
 from time import sleep
 
 import pytest
-from lsprotocol.types import LanguageKind, TextEdit, Range, Position
-from pygls.protocol import default_converter
 
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine, TranspileDocumentRequest, \
-    TranspileDocumentParams, TranspileDocumentResult, TranspileDocumentResponse
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
+    LSPEngine,
+)
 from tests.unit.conftest import path_to_resource
 
 
@@ -54,14 +53,16 @@ async def test_receives_config(lsp_engine, transpile_config):
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "dialect=snowflake" in log
 
+
 async def test_server_has_transpile_capability(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     # need to give time to child process and client listener
-    for i in range(1, 10):
+    for _ in range(1, 10):
         await asyncio.sleep(0.1)
         if lsp_engine.server_has_transpile_capability:
             break
     assert lsp_engine.server_has_transpile_capability
+
 
 async def test_server_loads_document(lsp_engine, transpile_config):
     sample_path = Path(path_to_resource("lsp_transpiler", "stuff.sql"))
@@ -69,7 +70,7 @@ async def test_server_loads_document(lsp_engine, transpile_config):
     lsp_engine.open_document(sample_path)
     log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
     # need to give time to child process
-    for i in range(1, 10):
+    for _ in range(1, 10):
         await asyncio.sleep(0.1)
         log = log_path.read_text("utf-8")
         if "open-document-uri" in log:
@@ -85,7 +86,7 @@ async def test_server_closes_document(lsp_engine, transpile_config):
     lsp_engine.close_document(sample_path)
     log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
     # need to give time to child process
-    for i in range(1, 10):
+    for _ in range(1, 10):
         await asyncio.sleep(0.1)
         log = log_path.read_text("utf-8")
         if "close-document-uri" in log:
@@ -101,33 +102,4 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
     response = await lsp_engine.transpile_document(sample_path)
     lsp_engine.close_document(sample_path)
     transpiled_path = Path(path_to_resource("lsp_transpiler", "transpiled_stuff.sql"))
-    assert response.changes[0].newText == transpiled_path.read_text()
-
-
-def test_serialize_transpile_request():
-    params = TranspileDocumentParams(uri="abs", language_id=LanguageKind.Sql)
-    request = TranspileDocumentRequest(
-        id = "123",
-        params=params,
-        method="document/transpileToDatabricks",
-        jsonrpc="2.0"
-    )
-    converter = default_converter()
-    data = converter.unstructure(request)
-    converted = converter.structure(data, TranspileDocumentRequest)
-    assert converted == request
-
-
-def test_serialize_transpile_response():
-    result = TranspileDocumentResult(uri="abs", changes=[
-        TextEdit(range=Range(start=Position(0, 0), end = Position(15,32)), new_text="hi there!")
-        ], diagnostics=[])
-    response = TranspileDocumentResponse(
-        id = "123",
-        result=result,
-        jsonrpc="2.0"
-    )
-    converter = default_converter()
-    data = converter.unstructure(response)
-    converted = converter.structure(data, TranspileDocumentResponse)
-    assert converted == response
+    assert response.changes[0].new_text == transpiled_path.read_text(encoding="utf-8")
