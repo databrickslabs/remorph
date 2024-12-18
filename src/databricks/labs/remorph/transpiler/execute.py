@@ -46,10 +46,6 @@ def _process_file(
     with input_file.open("r") as f:
         source_sql = remove_bom(f.read())
 
-    lca_error = transpiler.check_for_unsupported_lca(config.source_dialect, source_sql, input_file)
-    if lca_error:
-        error_list.append(lca_error)
-
     transpile_result = _transpile(
         transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file
     )
