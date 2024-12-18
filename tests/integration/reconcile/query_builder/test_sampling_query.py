@@ -12,7 +12,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema):
+def test_build_query_for_snowflake_src(mock_spark, table_conf, table_schema):
     spark = mock_spark
     sch, sch_with_alias = table_schema
     df_schema = StructType(
@@ -34,7 +34,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
         schema=df_schema,
     )
 
-    conf = table_conf_mock(
+    conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         column_mapping=[
             ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
@@ -80,7 +80,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, column_mapping):
+def test_build_query_for_oracle_src(mock_spark, table_conf, table_schema, column_mapping):
     spark = mock_spark
     _, sch_with_alias = table_schema
     df_schema = StructType(
@@ -103,7 +103,7 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
         schema=df_schema,
     )
 
-    conf = table_conf_mock(
+    conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         column_mapping=column_mapping,
         filters=Filters(source="s_nationkey=1"),
@@ -154,7 +154,7 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
+def test_build_query_for_databricks_src(mock_spark, table_conf):
     spark = mock_spark
     df_schema = StructType(
         [
@@ -179,7 +179,7 @@ def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
         Schema("s_comment", "string"),
     ]
 
-    conf = table_conf_mock(join_columns=["s_suppkey", "s_nationkey"])
+    conf = table_conf(join_columns=["s_suppkey", "s_nationkey"])
 
     src_actual = SamplingQueryBuilder(conf, schema, "source", get_dialect("databricks")).build_query(df)
     src_expected = (
@@ -197,7 +197,7 @@ def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(mock_spark, table_conf_mock, table_schema):
+def test_build_query_for_snowflake_without_transformations(mock_spark, table_conf, table_schema):
     spark = mock_spark
     sch, sch_with_alias = table_schema
     df_schema = StructType(
@@ -219,7 +219,7 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_con
         schema=df_schema,
     )
 
-    conf = table_conf_mock(
+    conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         column_mapping=[
             ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
@@ -269,7 +269,7 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_con
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_conf_mock):
+def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_conf):
     spark = mock_spark
     sch = [Schema("s_suppkey", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey", "number")]
 
@@ -289,7 +289,7 @@ def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, 
         schema=df_schema,
     )
 
-    conf = table_conf_mock(
+    conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         column_mapping=[
             ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
