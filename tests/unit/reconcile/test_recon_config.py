@@ -1,5 +1,5 @@
-def test_table_without_join_column(table_conf_mock):
-    table_conf = table_conf_mock()
+def test_table_without_join_column(table_conf):
+    table_conf = table_conf()
     assert table_conf.get_join_columns("source") is None
     assert table_conf.get_drop_columns("source") == set()
     assert table_conf.get_partition_column("source") == set()
@@ -27,8 +27,8 @@ def test_table_with_all_options(table_conf_with_opts):
     assert table_conf_with_opts.get_threshold_columns("target") == {"s_acctbal_t"}
 
 
-def test_table_without_column_mapping(table_conf_mock, column_mapping):
-    table_conf = table_conf_mock()
+def test_table_without_column_mapping(table_conf, column_mapping):
+    table_conf = table_conf()
 
     assert table_conf.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}
     assert table_conf.get_layer_tgt_to_src_col_mapping("s_address_t", "target") == "s_address_t"
