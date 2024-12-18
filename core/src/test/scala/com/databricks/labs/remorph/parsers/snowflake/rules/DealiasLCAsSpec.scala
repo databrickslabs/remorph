@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
-
+import com.databricks.labs.remorph.{OkResult, TranspilerState, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -17,10 +16,13 @@ class DealiasLCAsSpec extends AnyWordSpec with Matchers {
           ir.Filter(ir.NoTable, ir.GreaterThan(ir.Id("abs"), ir.Literal(42))),
           Seq(ir.Alias(ir.Abs(ir.Literal(-42)), ir.Id("abs"))))
 
-      dealiaser.transformPlan(plan) shouldBe
-        ir.Project(
-          ir.Filter(ir.NoTable, ir.GreaterThan(ir.Abs(ir.Literal(-42)), ir.Literal(42))),
-          Seq(ir.Alias(ir.Abs(ir.Literal(-42)), ir.Id("abs"))))
+      val result = dealiaser.transformPlan(plan).runAndDiscardState(TranspilerState())
+
+      result shouldBe
+        OkResult(
+          ir.Project(
+            ir.Filter(ir.NoTable, ir.GreaterThan(ir.Abs(ir.Literal(-42)), ir.Literal(42))),
+            Seq(ir.Alias(ir.Abs(ir.Literal(-42)), ir.Id("abs")))))
 
     }
 

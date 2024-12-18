@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,

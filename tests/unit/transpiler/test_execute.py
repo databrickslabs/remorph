@@ -151,7 +151,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
         input_source=str(input_dir),
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -285,9 +285,9 @@ def test_with_file(initial_setup, mock_workspace_client):
         status = transpile(mock_workspace_client, config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -302,7 +302,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation error')
+ValidationError(file_path='{input_dir!s}/query1.sql', exception='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
@@ -364,9 +364,9 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         status = transpile(mock_workspace_client, config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 0, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 0, "total_queries_processed does not match expected value"
@@ -401,7 +401,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
     safe_remove_dir(input_dir)
 
 
-def test_morph_sql(mock_workspace_client):
+def test_transpile_sql(mock_workspace_client):
     config = TranspileConfig(
         source_dialect="snowflake",
         skip_validation=False,
@@ -423,7 +423,7 @@ def test_morph_sql(mock_workspace_client):
         assert validation_result.exception_msg is None
 
 
-def test_morph_column_exp(mock_workspace_client):
+def test_transpile_column_exp(mock_workspace_client):
     config = TranspileConfig(
         source_dialect="snowflake",
         skip_validation=True,

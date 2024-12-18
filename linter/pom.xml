@@ -22,10 +22,10 @@
     <sourceDialect></sourceDialect>
     <extractor></extractor>
     <os-lib.version>0.10.1</os-lib.version>
-    <mainargs.version>0.7.0</mainargs.version>
+    <mainargs.version>0.7.6</mainargs.version>
     <ujson.version>4.0.2</ujson.version>
     <scalatest.version>3.3.0-SNAP4</scalatest.version>
-    <exec-maven-plugin.version>3.4.1</exec-maven-plugin.version>
+    <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
   </properties>
   <dependencies>
     <dependency>

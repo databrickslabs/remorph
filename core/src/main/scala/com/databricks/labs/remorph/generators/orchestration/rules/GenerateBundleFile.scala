@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.generators.orchestration.rules
 
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors}
 import com.databricks.labs.remorph.generators.orchestration.rules.bundles._
 import com.databricks.labs.remorph.generators.orchestration.rules.converted.CreatedFile
 import com.databricks.labs.remorph.generators.orchestration.rules.history.Migration
@@ -12,15 +13,15 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 // see https://docs.databricks.com/en/dev-tools/bundles/settings.html
-class GenerateBundleFile extends Rule[JobNode] {
+class GenerateBundleFile extends Rule[JobNode] with TransformationConstructors {
   private[this] val mapper =
     new ObjectMapper(new YAMLFactory())
       .setSerializationInclusion(Include.NON_DEFAULT)
       .registerModule(DefaultScalaModule)
 
-  override def apply(tree: JobNode): JobNode = tree transform { case Migration(children) =>
+  override def apply(tree: JobNode): Transformation[JobNode] = tree transform { case Migration(children) =>
     val resources = findResources(children)
-    Migration(children ++ Seq(bundleDefinition(resources)))
+    ok(Migration(children ++ Seq(bundleDefinition(resources))))
   }
 
   private def findResources(children: Seq[JobNode]): Resources = {

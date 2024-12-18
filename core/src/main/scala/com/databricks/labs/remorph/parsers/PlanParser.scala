@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure, TranspileFailure}
+import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure}
 import com.databricks.labs.remorph.{BuildingAst, KoResult, OkResult, Optimizing, Parsing, PartialResult, Transformation, TransformationConstructors, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
@@ -79,12 +79,7 @@ trait PlanParser[P <: Parser] extends TransformationConstructors {
       case b: BuildingAst => Optimizing(logicalPlan, Some(b))
       case _ => Optimizing(logicalPlan)
     }.flatMap { _ =>
-      try {
-        ok(createOptimizer.apply(logicalPlan))
-      } catch {
-        case NonFatal(e) =>
-          lift(KoResult(stage = WorkflowStage.OPTIMIZE, TranspileFailure(e)))
-      }
+      createOptimizer.apply(logicalPlan)
     }
   }
 }

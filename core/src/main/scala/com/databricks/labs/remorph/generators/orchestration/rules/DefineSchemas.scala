@@ -1,12 +1,13 @@
 package com.databricks.labs.remorph.generators.orchestration.rules
 
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors}
 import com.databricks.labs.remorph.generators.orchestration.rules.bundles.Schema
 import com.databricks.labs.remorph.generators.orchestration.rules.history.{Migration, QueryPlan}
 import com.databricks.labs.remorph.intermediate.{NamedTable, Rule}
 import com.databricks.labs.remorph.intermediate.workflows.JobNode
 
-class DefineSchemas extends Rule[JobNode] {
-  override def apply(tree: JobNode): JobNode = tree transformUp { case Migration(children) =>
+class DefineSchemas extends Rule[JobNode] with TransformationConstructors {
+  override def apply(tree: JobNode): Transformation[JobNode] = tree transformUp { case Migration(children) =>
     var schemas = Seq[Schema]()
     children foreach {
       case QueryPlan(plan, _) =>
@@ -23,6 +24,6 @@ class DefineSchemas extends Rule[JobNode] {
       case _ => // noop
     }
     schemas = schemas.distinct.sortBy(_.name)
-    Migration(schemas ++ children)
+    ok(Migration(schemas ++ children))
   }
 }

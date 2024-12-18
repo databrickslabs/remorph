@@ -1,10 +1,9 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.intermediate.IRHelpers
-import com.databricks.labs.remorph.{intermediate => ir}
-import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.{PartialResult, Transformation, TransformationConstructors, intermediate => ir}
 
-object SnowflakeTimeUnits extends IRHelpers {
+object SnowflakeTimeUnits extends IRHelpers with TransformationConstructors {
   private[this] val dateOrTimeParts = Map(
     Set("YEAR", "Y", "YY", "YYY", "YYYY", "YR", "YEARS", "YRS") -> "year",
     Set("MONTH", "MM", "MON", "MONS", "MONTHS") -> "month",
@@ -33,12 +32,12 @@ object SnowflakeTimeUnits extends IRHelpers {
   private def findDateOrTimePart(part: String): Option[String] =
     dateOrTimeParts.find(_._1.contains(part.toUpperCase())).map(_._2)
 
-  def translateDateOrTimePart(input: ir.Expression): String = input match {
+  def translateDateOrTimePart(input: ir.Expression): Transformation[String] = input match {
     case ir.Id(part, _) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
-      SnowflakeTimeUnits.findDateOrTimePart(part).get
+      ok(SnowflakeTimeUnits.findDateOrTimePart(part).get)
     case ir.StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
-      SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case x => throw TranspileException(ir.UnsupportedDateTimePart(x))
+      ok(SnowflakeTimeUnits.findDateOrTimePart(part).get)
+    case x => lift(PartialResult("???", ir.UnsupportedDateTimePart(x)))
   }
 
 }
