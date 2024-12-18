@@ -1,4 +1,4 @@
-from sqlglot.dialects.teradata import Teradata as org_Teradata
+from sqlglot.dialects.teradata import Teradata as SqlglotTeradata
 from sqlglot import exp
 from sqlglot.tokens import TokenType
 from sqlglot.errors import ErrorLevel
@@ -6,28 +6,28 @@ from sqlglot.errors import ErrorLevel
 from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 
-class Teradata(org_Teradata):
-    teradata = org_Teradata()
+class Teradata(SqlglotTeradata):
+    teradata = SqlglotTeradata()
 
-    class Parser(org_Teradata.Parser):
+    class Parser(SqlglotTeradata.Parser):
 
         STATEMENT_PARSERS = {
-            **org_Teradata.Parser.STATEMENT_PARSERS,
+            **SqlglotTeradata.Parser.STATEMENT_PARSERS,
             TokenType.CREATE: lambda self: self._parse_create(),
         }
 
         CONSTRAINT_PARSERS = {
-            **org_Teradata.Parser.CONSTRAINT_PARSERS,
+            **SqlglotTeradata.Parser.CONSTRAINT_PARSERS,
             "COMPRESS": lambda self: self._parse_compress(),
         }
 
         PROPERTY_PARSERS = {
-            **org_Teradata.Parser.PROPERTY_PARSERS,
+            **SqlglotTeradata.Parser.PROPERTY_PARSERS,
             "MAP": lambda self: self._parse_map_property(),
         }
 
         FUNCTION_PARSERS = {
-            **org_Teradata.Parser.FUNCTION_PARSERS,
+            **SqlglotTeradata.Parser.FUNCTION_PARSERS,
             "CASE_N": lambda self: self._parse_case_n(),
         }
 
