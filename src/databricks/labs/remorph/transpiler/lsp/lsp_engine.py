@@ -80,6 +80,8 @@ def lsp_feature(
 
 _LSP_FEATURES: list[tuple[str, Any | None, Callable]] = []
 
+# the below code also exists in lsp_server.py
+# it will be factorized as part of https://github.com/databrickslabs/remorph/issues/1304
 TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 
 
@@ -221,6 +223,7 @@ class LSPEngine(TranspileEngine):
         try:
             os.chdir(self._workdir)
             await self._do_initialize(config)
+        # it is good practice to catch broad exceptions raised by launching a child process
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("LSP initialization failed", exc_info=e)
             os.chdir(cwd)

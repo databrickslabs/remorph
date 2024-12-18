@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import attrs
 
+# see https://github.com/databrickslabs/remorph/issues/1378
 # pylint: disable=import-private-name
 from lsprotocol.types import (
     InitializeParams,
@@ -32,6 +33,8 @@ logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.
 
 logger = logging.getLogger(__name__)
 
+# the below code also exists in lsp_engine.py
+# it will be factorized as part of https://github.com/databrickslabs/remorph/issues/1304
 TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
 TRANSPILE_TO_DATABRICKS_CAPABILITY = {"id": str(uuid4()), "method": TRANSPILE_TO_DATABRICKS_METHOD}
 
@@ -44,6 +47,8 @@ class TranspileDocumentParams:
 
 @attrs.define
 class TranspileDocumentRequest:
+    # 'id' is mandated by LSP
+    # pylint: disable=invalid-name
     id: int | str = attrs.field()
     params: TranspileDocumentParams = attrs.field()
     method: Literal["document/transpileToDatabricks"] = "document/transpileToDatabricks"
@@ -59,6 +64,7 @@ class TranspileDocumentResult:
 
 @attrs.define
 class TranspileDocumentResponse:
+    # 'id' is mandated by LSP
     # pylint: disable=invalid-name
     id: int | str = attrs.field()
     result: TranspileDocumentResult = attrs.field()
