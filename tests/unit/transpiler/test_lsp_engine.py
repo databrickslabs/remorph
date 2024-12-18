@@ -65,7 +65,7 @@ async def test_server_has_transpile_capability(lsp_engine, transpile_config):
 
 
 async def test_server_loads_document(lsp_engine, transpile_config):
-    sample_path = Path(path_to_resource("lsp_transpiler", "stuff.sql"))
+    sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
     await lsp_engine.initialize(transpile_config)
     lsp_engine.open_document(sample_path)
     log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
