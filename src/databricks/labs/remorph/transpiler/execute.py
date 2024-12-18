@@ -51,7 +51,7 @@ def _process_file(
         validate_error_list.append(lca_error)
 
     transpiler_result: TranspilationResult = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_file, []
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file, []
     )
 
     with output_file.open("w") as w:
@@ -157,12 +157,13 @@ def _process_input_file(
 
 
 @timeit
-def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
+def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig):
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
-    :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
+    :param engine: The TranspileEngine.
+    :param config: The configuration for the morph operation.
     """
     if not config.input_source:
         logger.error("Input SQL path is not provided.")
@@ -170,7 +171,6 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
 
     status = []
 
-    transpiler: TranspileEngine = SqlglotEngine()
     validator = None
     if not config.skip_validation:
         sql_backend = db_sql.get_sql_backend(workspace_client)
@@ -179,9 +179,9 @@ def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     if config.input_source is None:
         raise InvalidInputException("Missing input source!")
     if config.input_path.is_dir():
-        result = _process_input_dir(config, validator, transpiler)
+        result = _process_input_dir(config, validator, engine)
     elif config.input_path.is_file():
-        result = _process_input_file(config, validator, transpiler)
+        result = _process_input_file(config, validator, engine)
     else:
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
@@ -255,7 +255,7 @@ def transpile_sql(
     transpiler: TranspileEngine = SqlglotEngine()
 
     transpiler_result = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"), []
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, Path("inline_sql"), []
     )
 
     if not config.skip_validation:

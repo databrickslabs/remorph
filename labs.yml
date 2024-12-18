@@ -14,8 +14,12 @@ commands:
   - name: transpile
     description: Transpile SQL script to Databricks SQL
     flags:
+      - name: transpiler
+        description: Path to the transpiler configuration file
+        default: sqlglot
       - name: source-dialect
-        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
+        description: Dialect name (required if transpiler supports more than one dialect)
+        default: None
       - name: input-source
         description: Input SQL Folder or File
       - name: output-folder
@@ -45,8 +49,12 @@ commands:
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
+      - name: transpiler
+        description: Path to the transpiler configuration file
+        default: sqlglot
       - name: source-dialect
-        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
+        description: Dialect name (required if transpiler supports more than one dialect)
+        default: None
       - name: input-source
         description: Input SQL Folder or File
       - name: output-folder
