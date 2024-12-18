@@ -1,8 +1,8 @@
 from databricks.labs.remorph.reconcile.recon_config import Filters
 
 
-def test_table_column_mapping(table_conf_mock):
-    table_conf = table_conf_mock(
+def test_table_column_mapping(table_conf):
+    table_conf = table_conf(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
     )
@@ -11,9 +11,9 @@ def test_table_column_mapping(table_conf_mock):
     assert table_conf.to_src_col_map is None
 
 
-def test_table_select_columns(table_conf_mock, table_schema):
+def test_table_select_columns(table_conf, table_schema):
     schema, _ = table_schema
-    table_conf = table_conf_mock(
+    table_conf = table_conf(
         select_columns=["s_nationkey", "s_suppkey"],
     )
 

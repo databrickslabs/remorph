@@ -11,7 +11,7 @@ from tests.unit.conftest import path_to_resource
 
 
 def test_valid_config():
-    config = path_to_resource("lsp_transpiler", "config.yml")
+    config = path_to_resource("lsp_transpiler", "lsp_config.yml")
     engine = LSPEngine.from_config_path(Path(config))
     assert engine.supported_dialects == ["snowflake"]
 
