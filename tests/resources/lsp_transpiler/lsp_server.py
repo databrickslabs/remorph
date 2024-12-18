@@ -5,6 +5,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
+
 # pylint: disable=import-private-name
 from lsprotocol.types import (
     InitializeParams,
