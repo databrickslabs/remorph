@@ -13,7 +13,7 @@ from tests.unit.conftest import path_to_resource
 
 @pytest.fixture
 def lsp_engine():
-    config_path = path_to_resource("lsp_transpiler", "config.yml")
+    config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     return LSPEngine.from_config_path(Path(config_path))
 
 
