@@ -19,18 +19,20 @@ fmt-python:
 fmt-scala:
 	mvn validate -Pformat
 
+test-all: test-python test-scala integration-test
+
 test: test-python test-scala
 
 setup_spark_remote:
 	.github/scripts/setup_spark_remote.sh
 
-test-python: setup_spark_remote
+test-python:
 	hatch run test
 
 test-scala:
 	mvn test -f pom.xml
 
-integration:
+integration-test: setup_spark_remote
 	hatch run integration
 
 coverage:
