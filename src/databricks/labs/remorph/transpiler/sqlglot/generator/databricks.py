@@ -173,10 +173,8 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
 def _datatype_map(self, expression) -> str:
     if expression.this in [exp.DataType.Type.VARCHAR, exp.DataType.Type.NVARCHAR, exp.DataType.Type.CHAR]:
         return "STRING"
-    if expression.this in [exp.DataType.Type.TIMESTAMP]:
-        return "TIMESTAMP_NTZ"
-    if expression.this in [exp.DataType.Type.TIMESTAMPLTZ]:
-        return "TIMESTAMP_LTZ"
+    if expression.this in [exp.DataType.Type.TIMESTAMP, exp.DataType.Type.TIMESTAMPLTZ]:
+        return "TIMESTAMP"
     if expression.this == exp.DataType.Type.BINARY:
         return "BINARY"
     if expression.this == exp.DataType.Type.NCHAR:
