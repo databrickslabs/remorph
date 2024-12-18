@@ -308,7 +308,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_path='{input_dir!s}/query1.sql', exception='Mock validation error')
+ValidationError(file_path='{input_dir!s}/query1.sql', error_msg='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
@@ -429,7 +429,7 @@ def test_transpile_sql(mock_workspace_client):
         ),
     ):
         transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
-        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        assert transpiler_result.transpiled_code == 'SELECT\n  col\nFROM table'
         assert validation_result.exception_msg is None
 
 
@@ -453,12 +453,12 @@ def test_transpile_column_exp(mock_workspace_client):
     ):
         result = transpile_column_exp(mock_workspace_client, config, query)
         assert len(result) == 3
-        assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
-        assert result[1][0].transpiled_sql[0] == 'col2 * 2'
-        assert result[2][0].transpiled_sql[0] == 'CURRENT_TIMESTAMP()'
-        assert result[0][0].parse_error_list == []
-        assert result[1][0].parse_error_list == []
-        assert result[2][0].parse_error_list == []
+        assert result[0][0].transpiled_code == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
+        assert result[1][0].transpiled_code == 'col2 * 2'
+        assert result[2][0].transpiled_code == 'CURRENT_TIMESTAMP()'
+        assert result[0][0].error_list == []
+        assert result[1][0].error_list == []
+        assert result[2][0].error_list == []
         assert result[0][1] is None
         assert result[1][1] is None
         assert result[2][1] is None
