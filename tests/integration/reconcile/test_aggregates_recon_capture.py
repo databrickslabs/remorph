@@ -13,8 +13,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     AggregateQueryOutput,
 )
 from databricks.labs.remorph.reconcile.recon_capture import generate_final_reconcile_aggregate_output
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
-from .test_aggregates_reconcile import expected_reconcile_output_dict, expected_rule_output
+from tests.integration.reconcile.test_aggregates_reconcile import expected_reconcile_output_dict, expected_rule_output
+from tests.unit.conftest import get_dialect
 
 
 def remove_directory_recursively(directory_path):

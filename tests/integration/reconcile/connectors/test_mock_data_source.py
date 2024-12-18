@@ -6,9 +6,9 @@ from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSou
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import Schema
 
-catalog = "org"
-schema = "data"
-table = "employee"
+CATALOG = "org"
+SCHEMA = "data"
+TABLE = "employee"
 
 
 def test_mock_data_source_happy(mock_spark):
@@ -26,7 +26,7 @@ def test_mock_data_source_happy(mock_spark):
         )
     }
     schema_repository = {
-        (catalog, schema, table): [
+        (CATALOG, SCHEMA, TABLE): [
             Schema(column_name="emp_id", data_type="int"),
             Schema(column_name="emp_name", data_type="str"),
             Schema(column_name="sal", data_type="int"),
@@ -35,7 +35,7 @@ def test_mock_data_source_happy(mock_spark):
 
     data_source = MockDataSource(dataframe_repository, schema_repository)
 
-    actual_data = data_source.read_data(catalog, schema, table, "select * from employee", None)
+    actual_data = data_source.read_data(CATALOG, SCHEMA, TABLE, "select * from employee", None)
     expected_data = mock_spark.createDataFrame(
         [
             Row(emp_id="1", emp_name="name-1", sal=100),
@@ -44,7 +44,7 @@ def test_mock_data_source_happy(mock_spark):
         ]
     )
 
-    actual_schema = data_source.get_schema(catalog, schema, table)
+    actual_schema = data_source.get_schema(CATALOG, SCHEMA, TABLE)
     assertDataFrameEqual(actual_data, expected_data)
     assert actual_schema == [
         Schema(column_name="emp_id", data_type="int"),
@@ -60,13 +60,13 @@ def test_mock_data_source_fail(mock_spark):
         match="Runtime exception occurred while fetching data using \\(org, data, select \\* from test\\) : TABLE"
         " NOT FOUND",
     ):
-        data_source.read_data(catalog, schema, table, "select * from test", None)
+        data_source.read_data(CATALOG, SCHEMA, TABLE, "select * from test", None)
 
     with pytest.raises(
         DataSourceRuntimeException,
         match="Runtime exception occurred while fetching schema using \\(org, data, unknown\\) : TABLE NOT FOUND",
     ):
-        data_source.get_schema(catalog, schema, "unknown")
+        data_source.get_schema(CATALOG, SCHEMA, "unknown")
 
 
 def test_mock_data_source_no_catalog(mock_spark):
@@ -84,7 +84,7 @@ def test_mock_data_source_no_catalog(mock_spark):
         )
     }
     schema_repository = {
-        (catalog, schema, table): [
+        (CATALOG, SCHEMA, TABLE): [
             Schema(column_name="emp_id", data_type="int"),
             Schema(column_name="emp_name", data_type="str"),
             Schema(column_name="sal", data_type="int"),
@@ -93,7 +93,7 @@ def test_mock_data_source_no_catalog(mock_spark):
 
     data_source = MockDataSource(dataframe_repository, schema_repository)
 
-    actual_data = data_source.read_data(None, schema, table, "select * from employee", None)
+    actual_data = data_source.read_data(None, SCHEMA, TABLE, "select * from employee", None)
     expected_data = mock_spark.createDataFrame(
         [
             Row(emp_id="1", emp_name="name-1", sal=100),
