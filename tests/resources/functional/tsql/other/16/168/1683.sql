@@ -1,0 +1,5 @@
+-- tsql sql:
+DECLARE @g GEOGRAPHY;
+SET @g = GEOGRAPHY::Point(43.6532, -79.3832, 4326);
+SELECT @g AS Location;
+-- REMORPH CLEANUP: DROP VARIABLE @g;

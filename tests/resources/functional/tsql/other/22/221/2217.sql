@@ -1,0 +1,9 @@
+-- tsql sql:
+DECLARE @SessionID UNIQUEIDENTIFIER = '12345678-1234-1234-1234-123456789012';
+DECLARE @SQLSessionID INT = 123;
+DECLARE @sql NVARCHAR(MAX) = 'KILL ' + CONVERT(NVARCHAR(10), @SQLSessionID);
+EXECUTE sp_executesql @sql;
+SELECT @SQLSessionID AS SessionID
+FROM (
+    VALUES (@SessionID, @SQLSessionID)
+) AS SessionTable (SessionID, SQLSessionID);

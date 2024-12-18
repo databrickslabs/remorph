@@ -1,0 +1,6 @@
+-- tsql sql:
+ALTER DATABASE SCOPED CONFIGURATION
+SET QUERY_OPTIMIZER_HOTFIXES = ON;
+
+SELECT *
+FROM sys.database_scoped_configurations;

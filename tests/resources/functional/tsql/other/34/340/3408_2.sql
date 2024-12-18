@@ -1,0 +1,3 @@
+-- tsql sql:
+BEGIN TRANSACTION;
+SAVE TRANSACTION MySavePoint;

@@ -1,0 +1,2 @@
+-- tsql sql:
+ALTER DATABASE DemoDB MODIFY (SERVICE_OBJECTIVE = 'GP_Gen5_8');

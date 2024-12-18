@@ -1,0 +1,2 @@
+-- tsql sql:
+WITH temp_result AS ( SELECT 10 AS Quantity UNION ALL SELECT 20 UNION ALL SELECT 30 ) SELECT CHECKSUM_AGG(CAST(Quantity AS INT)) FROM temp_result
