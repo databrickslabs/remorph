@@ -5,6 +5,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
+# pylint: disable=import-private-name
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
@@ -19,6 +20,7 @@ from lsprotocol.types import (
     Range,
     Position,
     METHOD_TO_TYPES,
+    _SPECIAL_PROPERTIES,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -54,7 +56,23 @@ class TranspileDocumentResult:
     diagnostics: Sequence[Diagnostic] = attrs.field()
 
 
-METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (TranspileDocumentRequest, None, TranspileDocumentParams, None)
+@attrs.define
+class TranspileDocumentResponse:
+    # pylint: disable=invalid-name
+    id: int | str = attrs.field()
+    result: TranspileDocumentResult = attrs.field()
+    jsonrpc: str = attrs.field(default="2.0")
+
+
+_SPECIAL_PROPERTIES.extend(
+    [f"{TranspileDocumentRequest.__name__}.method", f"{TranspileDocumentRequest.__name__}.jsonrpc"]
+)
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
+    TranspileDocumentRequest,
+    TranspileDocumentResponse,
+    TranspileDocumentParams,
+    None,
+)
 
 
 class TestLspServer(LanguageServer):

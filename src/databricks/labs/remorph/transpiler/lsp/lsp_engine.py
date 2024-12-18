@@ -12,6 +12,7 @@ from typing import Any, Literal
 import attrs
 import yaml
 
+# pylint: disable=import-private-name
 from lsprotocol.types import (
     InitializeParams,
     ClientCapabilities,
@@ -27,6 +28,7 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     METHOD_TO_TYPES,
     LanguageKind,
+    _SPECIAL_PROPERTIES,
 )
 from pygls.lsp.client import BaseLanguageClient
 from pygls.exceptions import FeatureRequestError
@@ -110,7 +112,15 @@ class TranspileDocumentResponse:
     jsonrpc: str = attrs.field(default="2.0")
 
 
-METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (None, TranspileDocumentResponse, TranspileDocumentParams, None)  # type: ignore
+_SPECIAL_PROPERTIES.extend(
+    [f"{TranspileDocumentRequest.__name__}.method", f"{TranspileDocumentRequest.__name__}.jsonrpc"]
+)
+METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
+    TranspileDocumentRequest,
+    TranspileDocumentResponse,
+    TranspileDocumentParams,
+    None,
+)
 
 
 # subclass BaseLanguageClient so we can override stuff when required
