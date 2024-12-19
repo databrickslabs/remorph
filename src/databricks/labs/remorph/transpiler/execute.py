@@ -233,9 +233,7 @@ def transpile_sql(
     engine: TranspileEngine = SqlglotEngine()
 
     dialect = config.source_dialect or ""
-    transpiler_result = asyncio.run(
-        _transpile(transpiler, dialect, config.target_dialect, source_sql, Path("inline_sql"))
-    )
+    transpiler_result = asyncio.run(_transpile(engine, dialect, config.target_dialect, source_sql, Path("inline_sql")))
 
     if config.skip_validation:
         return transpiler_result, None

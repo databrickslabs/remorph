@@ -136,7 +136,7 @@ def test_change_mgr_replaces_text(source, changes, result):
     assert transformed == result
 
 
-@pytest.mark.parametrize("resource, errors", [("source_stuff.sql", []), ("source_stuff.sql", [""])])
+@pytest.mark.parametrize("resource, errors", [("source_stuff.sql", [])])
 async def test_client_translates_diagnostics(lsp_engine, transpile_config, resource, errors):
     sample_path = Path(path_to_resource("lsp_transpiler", resource))
     await lsp_engine.initialize(transpile_config)

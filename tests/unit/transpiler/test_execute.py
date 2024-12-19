@@ -172,10 +172,14 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
         assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
         assert (
+            stat["no_of_sql_failed_while_analysing"] == 1
+        ), "no_of_sql_failed_while_analysing does not match expected value"
+
+        assert (
             stat["no_of_sql_failed_while_parsing"] == 2
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_validating"] == 1
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
@@ -227,10 +231,13 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
         assert (
+            stat["no_of_sql_failed_while_analysing"] == 1
+        ), "no_of_sql_failed_while_analysing does not match expected value"
+        assert (
             stat["no_of_sql_failed_while_parsing"] == 2
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_validating"] == 1
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
@@ -298,6 +305,9 @@ def test_with_file(initial_setup, mock_workspace_client):
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
         assert (
+            stat["no_of_sql_failed_while_analysing"] == 0
+        ), "no_of_sql_failed_while_analysing does not match expected value"
+        assert (
             stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
@@ -308,7 +318,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_path='{input_dir!s}/query1.sql', error_msg='Mock validation error')
+TranspileError(code=VALIDATION_ERROR, kind=ErrorKind.VALIDATION, severity=ErrorSeverity.WARNING, path='{input_dir!s}/query1.sql', message='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
