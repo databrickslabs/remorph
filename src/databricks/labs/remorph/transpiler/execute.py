@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -46,9 +47,8 @@ def _process_file(
     with input_path.open("r") as f:
         source_sql = remove_bom(f.read())
 
-    transpile_result = _transpile(
-        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_path
-    )
+    dialect = config.source_dialect or ""
+    transpile_result = asyncio.run(_transpile(transpiler, dialect, config.target_dialect, source_sql, input_path))
     error_list.extend(transpile_result.error_list)
 
     with output_path.open("w") as w:
@@ -211,10 +211,10 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
     return workspace_client
 
 
-def _transpile(
+async def _transpile(
     transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_path: Path
 ) -> TranspileResult:
-    return transpiler.transpile(from_dialect, to_dialect, source_code, input_path)
+    return await transpiler.transpile(from_dialect, to_dialect, source_code, input_path)
 
 
 def _validation(
@@ -236,8 +236,9 @@ def transpile_sql(
 
     transpiler: TranspileEngine = SqlglotEngine()
 
-    transpiler_result = _transpile(
-        transpiler, config.source_dialect or "", config.target_dialect, source_sql, Path("inline_sql")
+    dialect = config.source_dialect or ""
+    transpiler_result = asyncio.run(
+        _transpile(transpiler, dialect, config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:
