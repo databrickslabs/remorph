@@ -63,7 +63,7 @@ reconcile = "databricks.labs.remorph.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
-coverage    = "pytest --cov src tests/unit --cov-report=html"
+coverage    = "pytest --cov src tests --cov-report=html"
 integration = "pytest --cov src tests/integration --durations 20"
 fmt         = ["black .",
                "ruff  check . --fix",
