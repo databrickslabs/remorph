@@ -33,8 +33,8 @@ def test_transpile_exception(transpiler, transpile_config):
         )
     )
     assert transpiler_result.transpiled_code == ""
-    assert transpiler_result.error_list[0].file_path == Path("file.sql")
-    assert "Error Parsing args" in transpiler_result.error_list[0].error_msg
+    assert transpiler_result.error_list[0].path == Path("file.sql")
+    assert "Error Parsing args" in transpiler_result.error_list[0].message
 
 
 def test_parse_query(transpiler, transpile_config):
@@ -67,8 +67,8 @@ def test_parse_query(transpiler, transpile_config):
 def test_parse_invalid_query(transpiler):
     result, error = transpiler.parse("snowflake", "invalid sql query", Path("file.sql"))
     assert result is None
-    assert error.file_path == Path("file.sql")
-    assert "Invalid expression / Unexpected token." in error.error_msg
+    assert error.path == Path("file.sql")
+    assert "Invalid expression / Unexpected token." in error.message
 
 
 def test_tokenizer_exception(transpiler, transpile_config):
@@ -77,8 +77,8 @@ def test_tokenizer_exception(transpiler, transpile_config):
     )
 
     assert transpiler_result.transpiled_code == ""
-    assert transpiler_result.error_list[0].file_path == Path("file.sql")
-    assert "Error tokenizing" in transpiler_result.error_list[0].error_msg
+    assert transpiler_result.error_list[0].path == Path("file.sql")
+    assert "Error tokenizing" in transpiler_result.error_list[0].message
 
 
 def test_procedure_conversion(transpiler, transpile_config):
@@ -117,7 +117,7 @@ def test_safe_parse(transpiler, transpile_config):
             print("yes")
             assert repr(exp.parsed_expression.args["expressions"]) == repr(expected_result)
             assert repr(exp.parsed_expression.args["from"]) == repr(expected_from_result)
-    assert "PARSING ERROR" in error[0].parser_error.error_msg
+    assert error[0].transpile_error.code == "PARSE_ERROR"
 
 
 def test_safe_parse_with_semicolon(transpiler, transpile_config):
