@@ -65,7 +65,9 @@ class SqlglotEngine(TranspileEngine):
                 problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
         return transpiled_sqls, problem_list
 
-    def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
+    async def transpile(
+        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
+    ) -> TranspileResult:
         read_dialect = get_dialect(source_dialect)
         error: TranspileError | None = self._check_supported(read_dialect, source_code, file_path)
         if error:

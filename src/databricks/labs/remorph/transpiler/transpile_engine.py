@@ -28,7 +28,7 @@ class TranspileEngine(abc.ABC):
     ) -> Iterable[tuple[str, str]]: ...
 
     @abc.abstractmethod
-    def transpile(
+    async def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
     ) -> TranspileResult: ...
 

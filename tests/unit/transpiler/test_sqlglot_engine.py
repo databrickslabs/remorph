@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -14,18 +15,22 @@ def transpiler():
 
 
 def test_transpile_snowflake(transpiler, transpile_config):
-    transpiler_result = transpiler.transpile(
-        "snowflake", transpile_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", Path("file.sql")
+    transpiler_result = asyncio.run(
+        transpiler.transpile(
+            "snowflake", transpile_config.target_dialect, "SELECT CURRENT_TIMESTAMP(0)", Path("file.sql")
+        )
     )
     assert transpiler_result.transpiled_code == "SELECT\n  CURRENT_TIMESTAMP()"
 
 
 def test_transpile_exception(transpiler, transpile_config):
-    transpiler_result = transpiler.transpile(
-        "snowflake",
-        transpile_config.target_dialect,
-        "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table",
-        Path("file.sql"),
+    transpiler_result = asyncio.run(
+        transpiler.transpile(
+            "snowflake",
+            transpile_config.target_dialect,
+            "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table",
+            Path("file.sql"),
+        )
     )
     assert transpiler_result.transpiled_code == ""
     assert transpiler_result.error_list[0].file_path == Path("file.sql")
@@ -67,8 +72,8 @@ def test_parse_invalid_query(transpiler):
 
 
 def test_tokenizer_exception(transpiler, transpile_config):
-    transpiler_result = transpiler.transpile(
-        "snowflake", transpile_config.target_dialect, "1SELECT ~v\ud83d' ", Path("file.sql")
+    transpiler_result = asyncio.run(
+        transpiler.transpile("snowflake", transpile_config.target_dialect, "1SELECT ~v\ud83d' ", Path("file.sql"))
     )
 
     assert transpiler_result.transpiled_code == ""
@@ -78,8 +83,8 @@ def test_tokenizer_exception(transpiler, transpile_config):
 
 def test_procedure_conversion(transpiler, transpile_config):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
-    transpiler_result = transpiler.transpile(
-        "databricks", transpile_config.target_dialect, procedure_sql, Path("file.sql")
+    transpiler_result = asyncio.run(
+        transpiler.transpile("databricks", transpile_config.target_dialect, procedure_sql, Path("file.sql"))
     )
     assert (
         transpiler_result.transpiled_code
