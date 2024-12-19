@@ -193,16 +193,20 @@ class ChangeManager(abc.ABC):
         return "\n".join(lines)
 
     @classmethod
-    def _apply(self, lines: list[str], change: TextEdit) -> list[str]:
+    def _apply(cls, lines: list[str], change: TextEdit) -> list[str]:
         new_lines = change.new_text.split("\n")
         # special case where change covers the entire source code
-        if change.range.start.line <= 0 and change.range.start.character <= 0 \
-                and change.range.end.line >= len(lines) - 1 and change.range.end.character >= len(lines[-1]):
+        if (
+            change.range.start.line <= 0
+            and change.range.start.character <= 0
+            and change.range.end.line >= len(lines) - 1
+            and change.range.end.character >= len(lines[-1])
+        ):
             return new_lines
         result: list[str] = []
         # keep lines before
         if change.range.start.line > 0:
-            result.extend(lines[0:change.range.start.line])
+            result.extend(lines[0 : change.range.start.line])
         # special case where change covers full lines
         if change.range.start.character <= 0 and change.range.end.character >= len(lines[change.range.end.line]):
             pass
@@ -210,20 +214,20 @@ class ChangeManager(abc.ABC):
         elif change.range.start.line == change.range.end.line:
             old_line = lines[change.range.start.line]
             if change.range.start.character > 0:
-                new_lines[0] = old_line[0:change.range.start.character] + new_lines[0]
+                new_lines[0] = old_line[0 : change.range.start.character] + new_lines[0]
             if change.range.end.character < len(old_line):
-                new_lines[-1] += old_line[change.range.end.character:]
+                new_lines[-1] += old_line[change.range.end.character :]
         else:
             if change.range.start.character > 0:
                 old_line = lines[change.range.start.line]
-                new_lines[0] = old_line[0:change.range.start.character] + new_lines[0]
+                new_lines[0] = old_line[0 : change.range.start.character] + new_lines[0]
             if change.range.end.character < len(lines[change.range.end.line]):
                 old_line = lines[change.range.end.line]
-                new_lines[-1] += old_line[change.range.end.character:]
+                new_lines[-1] += old_line[change.range.end.character :]
         result.extend(new_lines)
         # keep lines after
         if change.range.end.line < len(lines) - 1:
-            result.extend(lines[change.range.end.line + 1:])
+            result.extend(lines[change.range.end.line + 1 :])
         return result
 
 
@@ -309,7 +313,9 @@ class LSPEngine(TranspileEngine):
     def is_alive(self):
         return self._client.is_alive
 
-    async def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
+    async def transpile(
+        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
+    ) -> TranspileResult:
         self.open_document(file_path, source_code=source_code)
         response = await self.transpile_document(file_path)
         self.close_document(file_path)

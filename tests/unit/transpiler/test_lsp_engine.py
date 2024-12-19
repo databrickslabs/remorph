@@ -7,7 +7,8 @@ from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
-    LSPEngine, ChangeManager,
+    LSPEngine,
+    ChangeManager,
 )
 from tests.unit.conftest import path_to_resource
 
@@ -123,14 +124,24 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
         ("\n", [], "\n"),
         ("a", [], "a"),
         ("a\n", [], "a\n"),
-        ("a\n", [ TextEdit(Range(Position(0,0), Position(1,1)), "b\n") ], "b\n"),
+        ("a\n", [TextEdit(Range(Position(0, 0), Position(1, 1)), "b\n")], "b\n"),
         ("a\n", [TextEdit(Range(Position(0, 0), Position(0, 1)), "b")], "b\n"),
         ("a\nb\nc\n", [TextEdit(Range(Position(0, 0), Position(1, 1)), "x")], "x\nc\n"),
         ("abc", [TextEdit(Range(Position(0, 1), Position(0, 2)), "x")], "axc"),
         ("abc\ndef\nghi", [TextEdit(Range(Position(0, 2), Position(2, 1)), "x\ny")], "abx\nyhi"),
-
-    ]
+    ],
 )
 def test_change_mgr_replaces_text(source, changes, result):
     transformed = ChangeManager.apply(source, changes)
     assert transformed == result
+
+
+@pytest.mark.parametrize("resource, errors", [("source_stuff.sql", []), ("source_stuff.sql", [""])])
+async def test_client_translates_diagnostics(lsp_engine, transpile_config, resource, errors):
+    sample_path = Path(path_to_resource("lsp_transpiler", resource))
+    await lsp_engine.initialize(transpile_config)
+    result = await lsp_engine.transpile(
+        transpile_config.source_dialect, "databricks", sample_path.read_text(encoding="utf-8"), sample_path
+    )
+    await lsp_engine.shutdown()
+    assert result.error_list == errors
