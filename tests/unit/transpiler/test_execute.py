@@ -318,7 +318,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-TranspileError(code=VALIDATION_ERROR, kind=ErrorKind.VALIDATION, severity=ErrorSeverity.WARNING, path='{input_dir!s}/query1.sql', message='Mock validation error')
+TranspileError(code=VALIDATION_ERROR, kind=VALIDATION, severity=WARNING, path='{input_dir!s}/query1.sql', message='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
