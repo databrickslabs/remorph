@@ -37,26 +37,26 @@ def _process_file(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
-    input_file: Path,
-    output_file: Path,
+    input_path: Path,
+    output_path: Path,
 ) -> tuple[int, list[TranspileError]]:
-    logger.info(f"started processing for the file ${input_file}")
+    logger.info(f"started processing for the file ${input_path}")
     error_list: list[TranspileError] = []
 
-    with input_file.open("r") as f:
+    with input_path.open("r") as f:
         source_sql = remove_bom(f.read())
 
     transpile_result = _transpile(
-        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_path
     )
     error_list.extend(transpile_result.error_list)
 
-    with output_file.open("w") as w:
+    with output_path.open("w") as w:
         if validator:
             validation_result = _validation(validator, config, transpile_result.transpiled_code)
             w.write(validation_result.validated_sql)
             if validation_result.exception_msg is not None:
-                error_list.append(ValidationError(input_file, validation_result.exception_msg))
+                error_list.append(ValidationError(input_path, validation_result.exception_msg))
         else:
             w.write(transpile_result.transpiled_code)
             w.write("\n;\n")
@@ -212,9 +212,9 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
 
 
 def _transpile(
-    transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_file: Path
+    transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_path: Path
 ) -> TranspileResult:
-    return transpiler.transpile(from_dialect, to_dialect, source_code, input_file)
+    return transpiler.transpile(from_dialect, to_dialect, source_code, input_path)
 
 
 def _validation(
