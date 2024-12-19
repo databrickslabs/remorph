@@ -1,3 +1,5 @@
+from functools import partial
+
 from sqlglot.dialects.teradata import Teradata as SqlglotTeradata
 from sqlglot import exp
 from sqlglot.tokens import TokenType
@@ -6,6 +8,7 @@ from sqlglot.errors import ErrorLevel
 from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 
+# pylint: disable=protected-access
 class Teradata(SqlglotTeradata):
     teradata = SqlglotTeradata()
 
@@ -53,76 +56,82 @@ class Teradata(SqlglotTeradata):
             clone = None
             return exists, this, expression, indexes, no_schema_binding, begin, end, clone
 
+        def _parse_function_body(self, extend_props):
+            begin = self._match(TokenType.BEGIN)
+            return_ = self._match_text_seq("RETURN")
+
+            if self._match(TokenType.STRING, advance=False):
+                expression = self._parse_string()
+                extend_props(self._parse_properties())
+            else:
+                expression = self._parse_statement()
+
+            end = self._match_text_seq("END")
+
+            if return_:
+                expression = self.expression(exp.Return, this=expression)
+
+            return begin, expression, end
+
+        def _parse_table_schema(self, extend_props):
+            table_parts = self._parse_table_parts(schema=True)
+
+            self._match(TokenType.COMMA)
+            extend_props(self._parse_properties(before=True))
+            this = self._parse_schema(this=table_parts)
+            extend_props(self._parse_properties())
+            self._match(TokenType.ALIAS)
+            return this
+
+        def extend_props(self, properties, temp_props: exp.Properties | None) -> None:
+            if properties and temp_props:
+                properties.expressions.extend(temp_props.expressions)
+            elif temp_props:
+                properties = temp_props
+
+
 
         def _parse_create(self) -> exp.Create | exp.Command:
-
-            # Note: this can't be None because we've matched a statement parser
             unique, replace, start, comments, properties, create_token = self.match_pair_and_advance()
 
             if not create_token:
-                # exp.Properties.Location.POST_CREATE
                 properties = self._parse_properties()
                 create_token = self._match_set(self.CREATABLES) and self._prev
 
                 if not properties or not create_token:
                     return self._parse_as_command(start)
 
-            exists, this, expression, indexes, no_schema_binding, begin, end, clone = self._initialize_create_variables()
+            exists, this, expression, indexes, no_schema_binding, begin, end, clone = (
+                self._initialize_create_variables()
+            )
 
-            def extend_props(temp_props: exp.Properties | None) -> None:
-                nonlocal properties
-                if properties and temp_props:
-                    properties.expressions.extend(temp_props.expressions)
-                elif temp_props:
-                    properties = temp_props
+            extend_props_partial = partial(self.extend_props, properties)
 
             if create_token.token_type in (TokenType.FUNCTION, TokenType.PROCEDURE):
                 this = self._parse_user_defined_function(kind=create_token.token_type)
-                extend_props(self._parse_properties())
+                extend_props_partial(self._parse_properties())
                 self._match(TokenType.ALIAS)
 
                 if self._match(TokenType.COMMAND):
                     expression = self._parse_as_command(self._prev)
                 else:
-                    begin = self._match(TokenType.BEGIN)
-                    return_ = self._match_text_seq("RETURN")
-
-                    if self._match(TokenType.STRING, advance=False):
-                        expression = self._parse_string()
-                        extend_props(self._parse_properties())
-                    else:
-                        expression = self._parse_statement()
-
-                    end = self._match_text_seq("END")
-
-                    if return_:
-                        expression = self.expression(exp.Return, this=expression)
+                    begin, expression, end = self._parse_function_body(extend_props_partial)
             elif create_token.token_type == TokenType.INDEX:
                 this = self._parse_index(index=self._parse_id_var())
             elif create_token.token_type in self.DB_CREATABLES:
-                table_parts = self._parse_table_parts(schema=True)
-
-                self._match(TokenType.COMMA)
-                extend_props(self._parse_properties(before=True))
-                this = self._parse_schema(this=table_parts)
-                extend_props(self._parse_properties())
-                self._match(TokenType.ALIAS)
+                this = self._parse_table_schema(extend_props_partial)
                 if not self._match_set(self.DDL_SELECT_TOKENS, advance=False):
-                    # exp.Properties.Location.POST_ALIAS
-                    extend_props(self._parse_properties())
+                    extend_props_partial(self._parse_properties())
 
                 expression = self._parse_ddl_select()
 
                 if create_token.token_type == TokenType.TABLE:
-                    # exp.Properties.Location.POST_EXPRESSION
-                    extend_props(self._parse_properties())
+                    extend_props_partial(self._parse_properties())
 
                     indexes = []
                     while True:
                         index = self._parse_index()
-
-                        # exp.Properties.Location.POST_INDEX
-                        extend_props(self._parse_properties())
+                        extend_props_partial(self._parse_properties())
 
                         if not index:
                             break
