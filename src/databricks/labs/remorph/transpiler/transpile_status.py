@@ -5,6 +5,7 @@ from enum import Enum
 from pathlib import Path
 
 
+
 # not using StrEnum because they only appear with Python 3.11
 class ErrorSeverity(Enum):
     INFO = "INFO"
@@ -21,15 +22,28 @@ class ErrorKind(Enum):
 
 
 @dataclass
+class CodePosition:
+    line: int  # 0-based line number
+    character: int  # 0-based character number
+
+
+@dataclass
+class CodeRange:
+    start: CodePosition
+    end: CodePosition
+
+
+@dataclass
 class TranspileError:
     code: str
     kind: ErrorKind
     severity: ErrorSeverity
     path: Path
     message: str
+    range: CodeRange | None = None
 
     def __str__(self):
-        return f"{type(self).__name__}(code={self.code}, kind={self.kind!s}, severity={self.severity!s}, path='{self.path!s}', message='{self.message}')"
+        return f"{type(self).__name__}(code={self.code}, kind={self.kind.name}, severity={self.severity.name}, path='{self.path!s}', message='{self.message}')"
 
 
 @dataclass
