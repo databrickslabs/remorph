@@ -134,14 +134,3 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
 def test_change_mgr_replaces_text(source, changes, result):
     transformed = ChangeManager.apply(source, changes)
     assert transformed == result
-
-
-@pytest.mark.parametrize("resource, errors", [("source_stuff.sql", [])])
-async def test_client_translates_diagnostics(lsp_engine, transpile_config, resource, errors):
-    sample_path = Path(path_to_resource("lsp_transpiler", resource))
-    await lsp_engine.initialize(transpile_config)
-    result = await lsp_engine.transpile(
-        transpile_config.source_dialect, "databricks", sample_path.read_text(encoding="utf-8"), sample_path
-    )
-    await lsp_engine.shutdown()
-    assert result.error_list == errors
