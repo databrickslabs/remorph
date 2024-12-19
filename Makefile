@@ -32,10 +32,10 @@ test-python:
 test-scala:
 	mvn test -f pom.xml
 
-integration-test: setup_spark_remote
+test-integration: setup_spark_remote
 	hatch run integration
 
-coverage:
+coverage: setup_spark_remote
 	hatch run coverage && open htmlcov/index.html
 
 build_core_jar: dev-cli
