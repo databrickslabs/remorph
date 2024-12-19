@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import asyncio
 import logging
 import os
@@ -182,6 +183,50 @@ class _LanguageClient(BaseLanguageClient):
         return wrapper
 
 
+class ChangeManager(abc.ABC):
+
+    @classmethod
+    def apply(cls, source_code: str, changes: Sequence[TextEdit]) -> str:
+        lines = source_code.split("\n")
+        for change in changes:
+            lines = cls._apply(lines, change)
+        return "\n".join(lines)
+
+    @classmethod
+    def _apply(self, lines: list[str], change: TextEdit) -> list[str]:
+        new_lines = change.new_text.split("\n")
+        # special case where change covers the entire source code
+        if change.range.start.line <= 0 and change.range.start.character <= 0 \
+                and change.range.end.line >= len(lines) - 1 and change.range.end.character >= len(lines[-1]):
+            return new_lines
+        result: list[str] = []
+        # keep lines before
+        if change.range.start.line > 0:
+            result.extend(lines[0:change.range.start.line])
+        # special case where change covers full lines
+        if change.range.start.character <= 0 and change.range.end.character >= len(lines[change.range.end.line]):
+            pass
+        # special case where change is within 1 line
+        elif change.range.start.line == change.range.end.line:
+            old_line = lines[change.range.start.line]
+            if change.range.start.character > 0:
+                new_lines[0] = old_line[0:change.range.start.character] + new_lines[0]
+            if change.range.end.character < len(old_line):
+                new_lines[-1] += old_line[change.range.end.character:]
+        else:
+            if change.range.start.character > 0:
+                old_line = lines[change.range.start.line]
+                new_lines[0] = old_line[0:change.range.start.character] + new_lines[0]
+            if change.range.end.character < len(lines[change.range.end.line]):
+                old_line = lines[change.range.end.line]
+                new_lines[-1] += old_line[change.range.end.character:]
+        result.extend(new_lines)
+        # keep lines after
+        if change.range.end.line < len(lines) - 1:
+            result.extend(lines[change.range.end.line + 1:])
+        return result
+
+
 class LSPEngine(TranspileEngine):
 
     @classmethod
@@ -264,17 +309,23 @@ class LSPEngine(TranspileEngine):
     def is_alive(self):
         return self._client.is_alive
 
-    def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
-        raise NotImplementedError
+    async def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
+        self.open_document(file_path, source_code=source_code)
+        response = await self.transpile_document(file_path)
+        self.close_document(file_path)
+        transpiled_code = ChangeManager.apply(source_code, response.changes)
+        return TranspileResult(transpiled_code, 1, [])
 
     def analyse_table_lineage(
         self, source_dialect: str, source_code: str, file_path: Path
     ) -> Iterable[tuple[str, str]]:
         raise NotImplementedError
 
-    def open_document(self, file_path: Path, encoding="utf-8") -> None:
+    def open_document(self, file_path: Path, encoding="utf-8", source_code: str | None = None) -> None:
+        if source_code is None:
+            source_code = file_path.read_text(encoding)
         text_document = TextDocumentItem(
-            uri=file_path.as_uri(), language_id=LanguageKind.Sql, version=1, text=file_path.read_text(encoding)
+            uri=file_path.as_uri(), language_id=LanguageKind.Sql, version=1, text=source_code
         )
         params = DidOpenTextDocumentParams(text_document)
         self._client.text_document_did_open(params)
