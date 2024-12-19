@@ -42,6 +42,18 @@ class Teradata(SqlglotTeradata):
             properties, create_token = None, self._match_set(self.CREATABLES) and self._prev
             return unique, replace, start, comments, properties, create_token
 
+        def _initialize_create_variables(self):
+            exists = self._parse_exists(not_=True)
+            this = None
+            expression: exp.Expression | None = None
+            indexes = None
+            no_schema_binding = None
+            begin = None
+            end = None
+            clone = None
+            return exists, this, expression, indexes, no_schema_binding, begin, end, clone
+
+
         def _parse_create(self) -> exp.Create | exp.Command:
 
             # Note: this can't be None because we've matched a statement parser
@@ -55,14 +67,7 @@ class Teradata(SqlglotTeradata):
                 if not properties or not create_token:
                     return self._parse_as_command(start)
 
-            exists = self._parse_exists(not_=True)
-            this = None
-            expression: exp.Expression | None = None
-            indexes = None
-            no_schema_binding = None
-            begin = None
-            end = None
-            clone = None
+            exists, this, expression, indexes, no_schema_binding, begin, end, clone = self._initialize_create_variables()
 
             def extend_props(temp_props: exp.Properties | None) -> None:
                 nonlocal properties
@@ -131,8 +136,7 @@ class Teradata(SqlglotTeradata):
                 shallow = self._match_text_seq("SHALLOW")
 
                 if self._match_texts(self.CLONE_KEYWORDS):
-                    copy = self._prev.text.lower() == "copy"
-                    clone = self.expression(exp.Clone, this=self._parse_table(schema=True), shallow=shallow, copy=copy)
+                    clone = self._create_copy_clone(shallow)
                 if self._match(TokenType.WITH):
                     pass
 
@@ -152,6 +156,11 @@ class Teradata(SqlglotTeradata):
                 end=end,
                 clone=clone,
             )
+
+        def _create_copy_clone(self, shallow: bool):
+            copy = self._prev.text.lower() == "copy"
+            clone = self.expression(exp.Clone, this=self._parse_table(schema=True), shallow=shallow, copy=copy)
+            return clone
 
         def _parse_compress(self) -> exp.CompressColumnConstraint:
             if self._match(TokenType.L_PAREN, advance=False):
