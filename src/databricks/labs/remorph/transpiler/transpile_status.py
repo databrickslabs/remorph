@@ -5,7 +5,6 @@ from enum import Enum
 from pathlib import Path
 
 
-
 # not using StrEnum because they only appear with Python 3.11
 class ErrorSeverity(Enum):
     INFO = "INFO"
