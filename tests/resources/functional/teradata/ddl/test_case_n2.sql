@@ -1,3 +1,4 @@
+-- Teradata sql
 CREATE SET TABLE db_ods_plus.SPH_CNTRY_CRDNTR ,FALLBACK ,
      NO BEFORE JOURNAL,
      NO AFTER JOURNAL,
@@ -12,7 +13,7 @@ PARTITION BY (
     CASE_N(a =  'FRA',b =  'ZRH',c =  'MUC',UNKNOWN)
 
     );
---,NO CASE OR UNKNOWN
+--Databricks sql
 CREATE TABLE db_ods_plus.SPH_CNTRY_CRDNTR (
                                               SPH_CNTRY_CRDNTR_ID DECIMAL(14, 0) NOT NULL
 );

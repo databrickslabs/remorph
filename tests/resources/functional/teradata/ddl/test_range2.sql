@@ -1,4 +1,4 @@
---snow sql
+-- Teradata sql
 CREATE SET TABLE db_ods.COUP_LHSALES ,FALLBACK ,
 NO BEFORE JOURNAL,
 NO AFTER JOURNAL,

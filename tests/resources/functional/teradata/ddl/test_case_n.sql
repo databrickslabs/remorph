@@ -1,4 +1,4 @@
--- Snowflake sql:
+-- Teradata sql:
 CREATE SET TABLE db_ods_plus.SPH_CNTRY_CRDNTR ,FALLBACK ,
      NO BEFORE JOURNAL,
      NO AFTER JOURNAL,
