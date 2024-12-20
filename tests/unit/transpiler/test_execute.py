@@ -163,7 +163,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 
     # call transpile
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -222,7 +222,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -295,7 +295,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -344,7 +344,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -379,7 +379,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -497,7 +497,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
         assert status is not None, "Status returned by transpile function is None"
         assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -540,7 +540,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -597,7 +597,7 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"

@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -141,7 +142,9 @@ def _process_input_file(
 
 
 @timeit
-def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig):
+def transpile(
+    workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
+) -> tuple[list[dict[str, Any]], list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -191,7 +194,7 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
             "error_log_file": str(error_log_file),
         }
     )
-    return status
+    return status, result.error_list
 
 
 def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:

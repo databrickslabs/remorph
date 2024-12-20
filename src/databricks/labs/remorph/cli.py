@@ -82,7 +82,10 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = do_transpile(ctx.workspace_client, engine, config)
+    status, errors = do_transpile(ctx.workspace_client, engine, config)
+
+    for error in errors:
+        print(str(error))
 
     print(json.dumps(status))
 

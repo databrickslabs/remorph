@@ -23,7 +23,8 @@ from lsprotocol.types import (
     Range,
     Position,
     METHOD_TO_TYPES,
-    _SPECIAL_PROPERTIES, DiagnosticSeverity,
+    _SPECIAL_PROPERTIES,
+    DiagnosticSeverity,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -115,37 +116,35 @@ class TestLspServer(LanguageServer):
         source_lines = source_sql.split("\n")
         range = Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1])))
         transpiled_sql, diagnostics = self._transpile(Path(params.uri).name, range, source_sql)
-        changes = [ TextEdit( range=range, new_text=transpiled_sql) ]
+        changes = [TextEdit(range=range, new_text=transpiled_sql)]
         return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=diagnostics)
 
-    def _transpile(self, file_name: str, range: Range, source_sql: str) -> tuple[str, list[Diagnostic]] :
+    def _transpile(self, file_name: str, lsp_range: Range, source_sql: str) -> tuple[str, list[Diagnostic]]:
         if file_name == "no_transpile.sql":
             diagnostic = Diagnostic(
-                range=range,
+                range=lsp_range,
                 message="No transpilation required",
                 severity=DiagnosticSeverity.Information,
-                code="GENERATION-NOT_REQUIRED"
+                code="GENERATION-NOT_REQUIRED",
             )
             return source_sql, [diagnostic]
         elif file_name == "unsupported_lca.sql":
             diagnostic = Diagnostic(
-                range=range,
+                range=lsp_range,
                 message="LCA conversion not supported",
                 severity=DiagnosticSeverity.Error,
-                code="ANALYSIS-UNSUPPORTED_LCA"
+                code="ANALYSIS-UNSUPPORTED_LCA",
             )
             return source_sql, [diagnostic]
         elif file_name == "internal.sql":
             diagnostic = Diagnostic(
-                range=range,
-                message="Something went wrong",
-                severity=DiagnosticSeverity.Warning,
-                code="SOME_ERROR_CODE"
+                range=lsp_range, message="Something went wrong", severity=DiagnosticSeverity.Warning, code="SOME_ERROR_CODE"
             )
             return source_sql, [diagnostic]
         else:
             # general test case
             return source_sql.upper(), []
+
 
 server = TestLspServer("test-lsp-server", "v0.1")
 

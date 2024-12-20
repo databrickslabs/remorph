@@ -32,7 +32,8 @@ from lsprotocol.types import (
     LanguageKind,
     Range as LSPRange,
     Position as LSPPosition,
-    _SPECIAL_PROPERTIES, DiagnosticSeverity,
+    _SPECIAL_PROPERTIES,
+    DiagnosticSeverity,
 )
 from pygls.lsp.client import BaseLanguageClient
 from pygls.exceptions import FeatureRequestError
@@ -42,8 +43,13 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorKind, ErrorSeverity, CodeRange, \
-    CodePosition
+from databricks.labs.remorph.transpiler.transpile_status import (
+    TranspileError,
+    ErrorKind,
+    ErrorSeverity,
+    CodeRange,
+    CodePosition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +247,7 @@ class DiagnosticConverter(abc.ABC):
 
     @classmethod
     def apply(cls, file_path: Path, diagnostic: Diagnostic) -> TranspileError:
-        code = diagnostic.code
+        code = str(diagnostic.code)
         kind = ErrorKind.INTERNAL
         parts = code.split("-")
         if len(parts) >= 2 and parts[0] in cls._KIND_NAMES:
@@ -249,31 +255,30 @@ class DiagnosticConverter(abc.ABC):
             parts.pop(0)
             code = "-".join(parts)
         severity = cls._convert_severity(diagnostic.severity)
-        range = cls._convert_range(diagnostic.range)
-        return TranspileError(code=code, kind=kind, severity=severity, path=file_path, message=diagnostic.message,
-                              range=range)
+        lsp_range = cls._convert_range(diagnostic.range)
+        return TranspileError(
+            code=code, kind=kind, severity=severity, path=file_path, message=diagnostic.message, range=lsp_range
+        )
 
     @classmethod
     def _convert_range(cls, lsp_range: LSPRange | None) -> CodeRange | None:
-            if not lsp_range:
-                return None
-            return CodeRange(cls._convert_position(lsp_range.start), cls._convert_position(lsp_range.end))
+        if not lsp_range:
+            return None
+        return CodeRange(cls._convert_position(lsp_range.start), cls._convert_position(lsp_range.end))
 
     @classmethod
     def _convert_position(cls, lsp_position: LSPPosition) -> CodePosition:
-            return CodePosition(lsp_position.line, lsp_position.character)
-
+        return CodePosition(lsp_position.line, lsp_position.character)
 
     @classmethod
-    def _convert_severity(cls, severity: DiagnosticSeverity) -> ErrorSeverity:
+    def _convert_severity(cls, severity: DiagnosticSeverity | None) -> ErrorSeverity:
         if severity == DiagnosticSeverity.Information:
             return ErrorSeverity.INFO
-        elif severity == DiagnosticSeverity.Warning:
+        if severity == DiagnosticSeverity.Warning:
             return ErrorSeverity.WARNING
-        elif severity == DiagnosticSeverity.Error:
+        if severity == DiagnosticSeverity.Error:
             return ErrorSeverity.ERROR
-        else:
-            return ErrorSeverity.INFO
+        return ErrorSeverity.INFO
 
 
 class LSPEngine(TranspileEngine):
