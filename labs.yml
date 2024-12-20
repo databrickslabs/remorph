@@ -14,11 +14,11 @@ commands:
   - name: transpile
     description: Transpile SQL script to Databricks SQL
     flags:
-      - name: transpiler
+      - name: transpiler-config-path
         description: Path to the transpiler configuration file
         default: sqlglot
       - name: source-dialect
-        description: Dialect name (required if transpiler supports more than one dialect)
+        description: Dialect name
         default: None
       - name: input-source
         description: Input SQL Folder or File
@@ -49,11 +49,11 @@ commands:
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
-      - name: transpiler
+      - name: transpiler-config-path
         description: Path to the transpiler configuration file
         default: sqlglot
       - name: source-dialect
-        description: Dialect name (required if transpiler supports more than one dialect)
+        description: Dialect name
         default: None
       - name: input-source
         description: Input SQL Folder or File

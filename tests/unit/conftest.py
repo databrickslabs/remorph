@@ -35,7 +35,7 @@ def mock_databricks_config():
 @pytest.fixture()
 def transpile_config():
     yield TranspileConfig(
-        transpiler="sqlglot",
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         input_source="input_sql",
         output_folder="output_folder",
@@ -225,7 +225,7 @@ def mock_workspace_client_cli():
                 'version': 2,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
-                'transpiler': 'sqlglot',
+                'transpiler_config_path': 'sqlglot',
                 'source_dialect': 'snowflake',
                 'sdk_config': {'cluster_id': 'test_cluster'},
             }

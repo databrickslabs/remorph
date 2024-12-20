@@ -110,6 +110,7 @@ class SqlglotEngine(TranspileEngine):
                     # TODO: fix possible issue where the file reference is lost (if we have a 'create')
                     for change in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
                         child = self._find_root_table(change)
+
                     for query in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
                         table = self._find_root_table(query)
                         if table:
