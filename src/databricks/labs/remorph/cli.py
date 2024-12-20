@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
@@ -14,12 +15,10 @@ from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
 logger = get_logger(__file__)
-
-DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
 
 
 def raise_validation_exception(msg: str) -> Exception:
@@ -36,6 +35,7 @@ proxy_command(remorph, "debug-bundle")
 @remorph.command
 def transpile(
     w: WorkspaceClient,
+    transpiler_config_path: str,
     source_dialect: str,
     input_source: str,
     output_folder: str | None,
@@ -52,29 +52,25 @@ def transpile(
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-    # TODO get rid of the sqlglot dependency
-    if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
-        )
+    engine = TranspileEngine.load_engine(Path(transpiler_config_path))
+    engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
+            f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'."
-        )
+        raise_validation_exception(f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'.")
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
     schema_name = schema_name if schema_name else default_config.schema_name
 
     config = TranspileConfig(
+        transpiler_config_path=transpiler_config_path,
         source_dialect=source_dialect.lower(),
         input_source=input_source,
         output_folder=output_folder,
@@ -85,7 +81,7 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = do_transpile(ctx.workspace_client, config)
+    status = do_transpile(ctx.workspace_client, engine, config)
 
     print(json.dumps(status))
 
@@ -138,22 +134,18 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
-    if source_dialect.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source-dialect': '{source_dialect}' is not one of {DIALECTS}."
-        )
+    engine = TranspileEngine.load_engine(Path(transpiler))
+    engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Error: Invalid value for '--input-source': Path '{input_source}' does not exist.")
+        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
-        )
+        raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
 
-    lineage_generator(source_dialect, input_source, output_folder)
+    lineage_generator(engine, source_dialect, input_source, output_folder)
 
 
 @remorph.command
