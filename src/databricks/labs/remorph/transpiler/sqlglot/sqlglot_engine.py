@@ -14,7 +14,8 @@ from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorKind, ErrorSeverity
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError
+from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
