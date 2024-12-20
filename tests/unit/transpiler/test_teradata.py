@@ -10,6 +10,6 @@ test_names = [f.test_name for f in functional_tests]
 
 
 @pytest.mark.parametrize("sample", functional_tests, ids=test_names)
-def test_databricks(dialect_context, sample: FunctionalTestFile):
+def test_teradata(dialect_context, sample: FunctionalTestFile):
     validate_source_transpile, _ = dialect_context
     validate_source_transpile(databricks_sql=sample.databricks_sql, source={"teradata": sample.source}, pretty=True)

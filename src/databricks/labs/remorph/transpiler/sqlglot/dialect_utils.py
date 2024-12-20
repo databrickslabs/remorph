@@ -1,6 +1,6 @@
 from sqlglot import Dialects, Dialect
 
-from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake
+from databricks.labs.remorph.transpiler.sqlglot.parsers import oracle, presto, snowflake,teradata
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
 SQLGLOT_DIALECTS: dict[str, type[Dialect] | str] = {
@@ -15,7 +15,7 @@ SQLGLOT_DIALECTS: dict[str, type[Dialect] | str] = {
     "redshift": Dialects.REDSHIFT,
     "snowflake": snowflake.Snowflake,
     "sqlite": Dialects.SQLITE,
-    "teradata": Dialects.TERADATA,
+    "teradata": teradata.Teradata,
     "trino": Dialects.TRINO,
     "tsql": Dialects.TSQL,
     "vertica": Dialects.POSTGRES,
