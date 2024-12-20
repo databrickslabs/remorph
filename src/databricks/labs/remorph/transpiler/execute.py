@@ -47,8 +47,9 @@ def _process_file(
     with input_path.open("r") as f:
         source_sql = remove_bom(f.read())
 
-    dialect = config.source_dialect or ""
-    transpile_result = asyncio.run(_transpile(transpiler, dialect, config.target_dialect, source_sql, input_path))
+    transpile_result = asyncio.run(
+        _transpile(transpiler, config.source_dialect, config.target_dialect, source_sql, input_path)
+    )
     error_list.extend(transpile_result.error_list)
 
     with output_path.open("w") as w:
@@ -236,9 +237,8 @@ def transpile_sql(
 
     transpiler: TranspileEngine = SqlglotEngine()
 
-    dialect = config.source_dialect or ""
     transpiler_result = asyncio.run(
-        _transpile(transpiler, dialect, config.target_dialect, source_sql, Path("inline_sql"))
+        _transpile(transpiler, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:
