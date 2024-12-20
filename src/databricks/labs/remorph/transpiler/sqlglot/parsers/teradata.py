@@ -89,8 +89,6 @@ class Teradata(SqlglotTeradata):
             elif temp_props:
                 properties = temp_props
 
-
-
         def _parse_create(self) -> exp.Create | exp.Command:
             unique, replace, start, comments, properties, create_token = self.match_pair_and_advance()
 
