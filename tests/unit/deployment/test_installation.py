@@ -42,7 +42,7 @@ def test_install_all(ws):
     upgrades = create_autospec(Upgrades)
 
     transpile_config = TranspileConfig(
-        transpiler="sqlglot",
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         input_source="/tmp/queries/snow6",
         output_folder="/tmp/queries/databricks6",
@@ -79,7 +79,7 @@ def test_no_recon_component_installation(ws):
     upgrades = create_autospec(Upgrades)
 
     transpile_config = TranspileConfig(
-        transpiler="sqlglot",
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         input_source="/tmp/queries/snow7",
         output_folder="/tmp/queries/databricks7",
@@ -166,7 +166,7 @@ def test_uninstall_configs_exist(ws):
     )
 
     transpile_config = TranspileConfig(
-        transpiler="sqlglot",
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         input_source="sf_queries1",
         output_folder="out_dir1",

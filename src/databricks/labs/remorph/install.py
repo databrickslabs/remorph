@@ -144,7 +144,7 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            transpiler=transpiler,
+            transpiler_config_path=transpiler,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
