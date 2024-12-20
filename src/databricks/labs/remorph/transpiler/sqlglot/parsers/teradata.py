@@ -111,11 +111,11 @@ class Teradata(SqlglotTeradata):
                 this = self._parse_user_defined_function(kind=create_token.token_type)
                 extend_props_partial(self._parse_properties())
                 self._match(TokenType.ALIAS)
-
-                if self._match(TokenType.COMMAND):
-                    expression = self._parse_as_command(self._prev)
-                else:
+                if not self._match(TokenType.COMMAND):
                     begin, expression, end = self._parse_function_body(extend_props_partial)
+
+                expression = self._parse_as_command(self._prev)
+
             elif create_token.token_type == TokenType.INDEX:
                 this = self._parse_index(index=self._parse_id_var())
             elif create_token.token_type in self.DB_CREATABLES:
@@ -126,28 +126,14 @@ class Teradata(SqlglotTeradata):
                 expression = self._parse_ddl_select()
 
                 if create_token.token_type == TokenType.TABLE:
-                    extend_props_partial(self._parse_properties())
-
-                    indexes = []
-                    while True:
-                        index = self._parse_index()
-                        extend_props_partial(self._parse_properties())
-
-                        if not index:
-                            break
-
-                        self._match(TokenType.COMMA)
-                        indexes.append(index)
+                    self._parse_table_properties(extend_props_partial)
+                    indexes = self._parse_indexes(extend_props_partial)
                 elif create_token.token_type == TokenType.VIEW:
-                    if self._match_text_seq("WITH", "NO", "SCHEMA", "BINDING"):
-                        no_schema_binding = True
+                    no_schema_binding = self._match_text_seq("WITH", "NO", "SCHEMA", "BINDING")
 
                 shallow = self._match_text_seq("SHALLOW")
-
-                if self._match_texts(self.CLONE_KEYWORDS):
-                    clone = self._create_copy_clone(shallow)
-                if self._match(TokenType.WITH):
-                    pass
+                clone = self._create_clone_if_needed(shallow)
+                self._match(TokenType.WITH)
 
             return self.expression(
                 exp.Create,
@@ -165,6 +151,25 @@ class Teradata(SqlglotTeradata):
                 end=end,
                 clone=clone,
             )
+
+        def _parse_table_properties(self, extend_props_partial):
+            extend_props_partial(self._parse_properties())
+
+        def _parse_indexes(self, extend_props_partial):
+            indexes = []
+            while True:
+                index = self._parse_index()
+                extend_props_partial(self._parse_properties())
+                if not index:
+                    break
+                self._match(TokenType.COMMA)
+                indexes.append(index)
+            return indexes
+
+        def _create_clone_if_needed(self, shallow):
+            if self._match_texts(self.CLONE_KEYWORDS):
+                return self._create_copy_clone(shallow)
+            return None
 
         def _create_copy_clone(self, shallow: bool):
             copy = self._prev.text.lower() == "copy"
