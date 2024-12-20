@@ -138,7 +138,10 @@ class TestLspServer(LanguageServer):
             return source_sql, [diagnostic]
         elif file_name == "internal.sql":
             diagnostic = Diagnostic(
-                range=lsp_range, message="Something went wrong", severity=DiagnosticSeverity.Warning, code="SOME_ERROR_CODE"
+                range=lsp_range,
+                message="Something went wrong",
+                severity=DiagnosticSeverity.Warning,
+                code="SOME_ERROR_CODE",
             )
             return source_sql, [diagnostic]
         else:
