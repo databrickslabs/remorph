@@ -40,7 +40,7 @@ def test_transpile_with_no_sdk_config():
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -67,7 +67,7 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -89,7 +89,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -116,7 +116,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -138,7 +138,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -165,7 +165,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -179,7 +179,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
 
 
 def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Invalid value for '--transpiler'"):
+    with pytest.raises(Exception, match="Invalid value for '--transpiler-config-path'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot2",
@@ -318,7 +318,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
@@ -358,7 +358,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler=transpiler,
+                transpiler_config_path=transpiler,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
@@ -402,7 +402,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler=transpiler,
+                transpiler_config_path=transpiler,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder="",

@@ -117,7 +117,7 @@ Verify the successful installation by executing the provided command; confirmati
 2. The SQL file should encompass scripts intended for migration to Databricks SQL.
 
 Below is the detailed explanation on the arguments required for Transpile.
-- `transpiler [Required]` - Path to the transpiler configuration file.
+- `transpiler-config-path [Required]` - Path to the transpiler configuration file.
 - `source-dialect [Required]` - Dialect name.
 - `input-source [Required]` - The path to the SQL file or directory containing SQL files to be transpiled.
 - `output-folder [Optional]` - The path to the output folder where the transpiled SQL files will be stored. If not specified, the transpiled SQL files will be stored in the same directory as the input SQL file.
@@ -128,7 +128,7 @@ Below is the detailed explanation on the arguments required for Transpile.
 ### Execution
 Execute the below command to intialize the transpile process.
 ```bash
- databricks labs remorph transpile --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
+ databricks labs remorph transpile --transpiler-config-path <absolute-path> --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
 
 ![transpile run](docs/img/transpile-run.gif)

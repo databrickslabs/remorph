@@ -14,7 +14,7 @@ class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 2
 
-    transpiler: str
+    transpiler_config_path: str
     source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
@@ -26,7 +26,7 @@ class TranspileConfig:
 
     @property
     def transpiler_path(self):
-        return Path(self.transpiler)
+        return Path(self.transpiler_config_path)
 
     @property
     def input_path(self):

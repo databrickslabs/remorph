@@ -10,18 +10,20 @@ from databricks.labs.remorph.transpiler.transpile_status import ParserError, Val
 class TranspileEngine(abc.ABC):
 
     @classmethod
-    def load_engine(cls, transpiler: Path) -> TranspileEngine:
-        if str(transpiler) == "sqlglot":
+    def load_engine(cls, transpiler_config_path: Path) -> TranspileEngine:
+        if str(transpiler_config_path) == "sqlglot":
             # pylint: disable=import-outside-toplevel, cyclic-import
             from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
             return SqlglotEngine()
-        if not transpiler.exists():
-            raise ValueError(f"Error: Invalid value for '--transpiler': '{str(transpiler)}', file does not exist.")
+        if not transpiler_config_path.exists():
+            raise ValueError(
+                f"Error: Invalid value for '--transpiler-config-path': '{str(transpiler_config_path)}', file does not exist."
+            )
         # pylint: disable=import-outside-toplevel, cyclic-import
         from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
-        return LSPEngine.from_config_path(transpiler)
+        return LSPEngine.from_config_path(transpiler_config_path)
 
     @abc.abstractmethod
     def analyse_table_lineage(
