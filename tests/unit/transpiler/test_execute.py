@@ -264,7 +264,7 @@ def test_with_file(initial_setup, mock_workspace_client):
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         input_source=str(input_dir / "query1.sql"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=sdk_config,
         source_dialect="snowflake",
         skip_validation=False,
@@ -351,7 +351,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
     input_dir = initial_setup
     config = TranspileConfig(
         input_source=str(input_dir / "file.txt"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -385,7 +385,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
     input_dir = initial_setup
     config = TranspileConfig(
         input_source=str(input_dir / "file_not_exist.txt"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -459,7 +459,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         input_source=str(input_dir / "query1.sql"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=sdk_config,
         source_dialect="snowflake",
         skip_validation=False,
@@ -495,7 +495,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
 def test_with_input_sql_none(initial_setup, mock_workspace_client):
     config = TranspileConfig(
         input_source=None,
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -509,7 +509,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
         input_source=str(input_dir / "query4.sql"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -565,7 +565,7 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
         input_source=str(input_dir / "query5.sql"),
-        output_folder="None",
+        output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
