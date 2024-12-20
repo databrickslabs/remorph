@@ -1,19 +1,19 @@
--- Teradata sql
-CREATE SET TABLE db_ods_plus.SPH_CNTRY_CRDNTR ,FALLBACK ,
+-- teradata sql:
+CREATE SET TABLE TBL1 ,FALLBACK ,
      NO BEFORE JOURNAL,
      NO AFTER JOURNAL,
      CHECKSUM = DEFAULT,
      DEFAULT MERGEBLOCKRATIO,
      MAP = TD_MAP1
      (
-      SPH_CNTRY_CRDNTR_ID DECIMAL(14,0) NOT NULL
+      COL1 DECIMAL(14,0) NOT NULL
      )
-PRIMARY INDEX XUPI_SPH_CNTRY_CRDNTR ( SPH_CNTRY_CRDNTR_ID )
+PRIMARY INDEX COL2 ( COL3 )
 PARTITION BY (
     CASE_N(a =  'FRA',b =  'ZRH',c =  'MUC')
     );
 
---dbsql
-CREATE TABLE db_ods_plus.SPH_CNTRY_CRDNTR (
-                                              SPH_CNTRY_CRDNTR_ID DECIMAL(14, 0) NOT NULL
+--databricks sql:
+CREATE TABLE TBL1 (
+                                              COL1 DECIMAL(14, 0) NOT NULL
 )
