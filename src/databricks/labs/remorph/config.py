@@ -70,9 +70,10 @@ class DatabaseConfig:
 
 
 @dataclass
-class TranspilationResult:
-    transpiled_sql: list[str]
-    parse_error_list: list[ParserError]
+class TranspileResult:
+    transpiled_code: str
+    success_count: int
+    error_list: list[ParserError]
 
 
 @dataclass
