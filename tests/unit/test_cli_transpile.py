@@ -8,7 +8,6 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from tests.unit.conftest import path_to_resource
 
 
 def test_transpile_with_missing_installation():
@@ -40,7 +39,7 @@ def test_transpile_with_no_sdk_config():
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -67,7 +66,7 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -89,7 +88,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -116,7 +115,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -138,7 +137,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
-            transpiler="sqlglot",
+            transpiler_config_path="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -165,7 +164,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -179,7 +178,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
 
 
 def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Invalid value for '--transpiler'"):
+    with pytest.raises(Exception, match="Invalid value for '--transpiler-config-path'"):
         cli.transpile(
             mock_workspace_client_cli,
             "sqlglot2",
@@ -221,50 +220,6 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
             mock_workspace_client_cli,
             "some_transpiler",
             "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
-
-
-def test_transpile_with_single_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["snowflake"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "some_transpiler",
-            "",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
-
-
-def test_transpile_with_missing_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["snowflake", "oracle"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        pytest.raises(Exception, match="Missing value for '--source-dialect'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "some_transpiler",
-            "",
             "/path/to/sql/file.sql",
             "/path/to/output",
             "true",
@@ -340,7 +295,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler="sqlglot",
+                transpiler_config_path="sqlglot",
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
@@ -424,7 +379,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler=transpiler,
+                transpiler_config_path=transpiler,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder="",
