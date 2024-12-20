@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.generators.py.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors, intermediate => ir}
 import com.databricks.labs.remorph.generators.py
 
 object PySparkStatements {
@@ -13,13 +13,16 @@ object PySparkStatements {
 
 case class Action(plan: ir.LogicalPlan) extends py.LeafStatement
 
-class PySparkStatements(val expr: ir.Rule[ir.Expression]) extends ir.Rule[py.Statement] with PyCommon {
-  override def apply(in: py.Statement): py.Statement = in match {
-    case py.Module(statements) => py.Module(statements.map(apply))
-    case Action(logical) => py.ExprStatement(plan(pythonize(logical)))
+class PySparkStatements(val expr: ir.Rule[ir.Expression])
+    extends ir.Rule[py.Statement]
+    with PyCommon
+    with TransformationConstructors {
+  override def apply(in: py.Statement): Transformation[py.Statement] = in match {
+    case py.Module(statements) => statements.map(apply).sequence.map(py.Module)
+    case Action(logical) => pythonize(logical).map(p => py.ExprStatement(plan(p)))
   }
 
-  private def pythonize(logical: ir.LogicalPlan): ir.LogicalPlan = {
+  private def pythonize(logical: ir.LogicalPlan): Transformation[ir.LogicalPlan] = {
     logical transformExpressionsDown { case e: ir.Expression =>
       expr(e)
     }

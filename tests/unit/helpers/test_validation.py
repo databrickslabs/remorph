@@ -3,7 +3,7 @@ from databricks.labs.lsql.core import Row
 from databricks.labs.remorph.helpers.validation import Validator
 
 
-def test_valid_query(morph_config):
+def test_valid_query(transpile_config):
     query = "SELECT * FROM a_table"
     sql_backend = MockBackend(
         rows={
@@ -11,12 +11,12 @@ def test_valid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    validation_result = validator.validate_format_result(morph_config, query)
+    validation_result = validator.validate_format_result(transpile_config, query)
     assert query in validation_result.validated_sql
     assert validation_result.exception_msg is None
 
 
-def test_query_with_syntax_error(morph_config):
+def test_query_with_syntax_error(transpile_config):
     query = "SELECT * a_table"
     sql_backend = MockBackend(
         fails_on_first={
@@ -24,12 +24,12 @@ def test_query_with_syntax_error(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    validation_result = validator.validate_format_result(morph_config, query)
+    validation_result = validator.validate_format_result(transpile_config, query)
     assert "Exception Start" in validation_result.validated_sql
     assert "Syntax error" in validation_result.exception_msg
 
 
-def test_query_with_analysis_error(morph_config):
+def test_query_with_analysis_error(transpile_config):
     error_types = [
         ("[TABLE_OR_VIEW_NOT_FOUND]", True),
         ("[TABLE_OR_VIEW_ALREADY_EXISTS]", True),
@@ -46,7 +46,7 @@ def test_query_with_analysis_error(morph_config):
             }
         )
         validator = Validator(sql_backend)
-        validation_result = validator.validate_format_result(morph_config, query)
+        validation_result = validator.validate_format_result(transpile_config, query)
         if should_succeed:
             assert query in validation_result.validated_sql
             assert "[WARNING]:" in validation_result.exception_msg
@@ -54,7 +54,7 @@ def test_query_with_analysis_error(morph_config):
             assert err in validation_result.exception_msg
 
 
-def test_validate_format_result_with_valid_query(morph_config):
+def test_validate_format_result_with_valid_query(transpile_config):
     query = "SELECT current_timestamp()"
     sql_backend = MockBackend(
         rows={
@@ -62,12 +62,12 @@ def test_validate_format_result_with_valid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    validation_result = validator.validate_format_result(morph_config, query)
+    validation_result = validator.validate_format_result(transpile_config, query)
     assert query in validation_result.validated_sql
     assert validation_result.exception_msg is None
 
 
-def test_validate_format_result_with_invalid_query(morph_config):
+def test_validate_format_result_with_invalid_query(transpile_config):
     query = "SELECT fn() FROM tab"
     sql_backend = MockBackend(
         rows={
@@ -78,12 +78,12 @@ def test_validate_format_result_with_invalid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    validation_result = validator.validate_format_result(morph_config, query)
+    validation_result = validator.validate_format_result(transpile_config, query)
     assert "Exception Start" in validation_result.validated_sql
     assert "[UNRESOLVED_ROUTINE]" in validation_result.exception_msg
 
 
-def test_validate_with_no_rows_returned(morph_config):
+def test_validate_with_no_rows_returned(transpile_config):
     query = "SELECT * FROM a_table"
     sql_backend = MockBackend(
         rows={
@@ -91,6 +91,6 @@ def test_validate_with_no_rows_returned(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    validation_result = validator.validate_format_result(morph_config, query)
+    validation_result = validator.validate_format_result(transpile_config, query)
     assert "Exception Start" in validation_result.validated_sql
     assert "No results returned" in validation_result.exception_msg

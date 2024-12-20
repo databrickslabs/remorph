@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql.rules
 
+import com.databricks.labs.remorph.{PartialResult, TranspilerState}
 import com.databricks.labs.remorph.parsers.PlanComparison
 import com.databricks.labs.remorph.intermediate._
 import org.scalatest.matchers.should.Matchers
@@ -15,9 +16,11 @@ class TrapInsertDefaultActionTest extends AnyWordSpec with PlanComparison with M
         Seq.empty,
         Seq(InsertDefaultsAction(None)),
         Seq.empty)
-      assertThrows[IllegalArgumentException] {
-        TrapInsertDefaultsAction(merge)
-      }
+
+      TrapInsertDefaultsAction(merge).runAndDiscardState(TranspilerState()) shouldBe PartialResult(
+        merge,
+        UnexpectedNode("The MERGE action 'INSERT DEFAULT VALUES' is not supported in Databricks SQL"))
+
     }
   }
 
