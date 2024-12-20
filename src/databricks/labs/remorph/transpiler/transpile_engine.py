@@ -11,6 +11,7 @@ class TranspileEngine(abc.ABC):
 
     @classmethod
     def load_engine(cls, transpiler_config_path: Path) -> TranspileEngine:
+        # TODO remove this once sqlglot transpiler is pluggable
         if str(transpiler_config_path) == "sqlglot":
             # pylint: disable=import-outside-toplevel, cyclic-import
             from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine

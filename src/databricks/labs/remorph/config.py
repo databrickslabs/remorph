@@ -15,7 +15,7 @@ class TranspileConfig:
     __version__ = 2
 
     transpiler_config_path: str
-    source_dialect: str | None = None
+    source_dialect: str
     input_source: str | None = None
     output_folder: str | None = None
     sdk_config: dict[str, str] | None = None
