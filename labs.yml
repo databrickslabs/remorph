@@ -18,7 +18,7 @@ commands:
         description: Path to the transpiler configuration file
         default: sqlglot
       - name: source-dialect
-        description: Dialect name (required if transpiler supports more than one dialect)
+        description: Dialect name
         default: None
       - name: input-source
         description: Input SQL Folder or File
@@ -53,7 +53,7 @@ commands:
         description: Path to the transpiler configuration file
         default: sqlglot
       - name: source-dialect
-        description: Dialect name (required if transpiler supports more than one dialect)
+        description: Dialect name
         default: None
       - name: input-source
         description: Input SQL Folder or File

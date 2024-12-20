@@ -36,7 +36,7 @@ proxy_command(remorph, "debug-bundle")
 def transpile(
     w: WorkspaceClient,
     transpiler: str,
-    source_dialect: str | None,
+    source_dialect: str,
     input_source: str,
     output_folder: str | None,
     skip_validation: str,
@@ -53,7 +53,7 @@ def transpile(
     _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler))
-    source_dialect = engine.check_source_dialect(source_dialect or "")
+    engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
@@ -139,7 +139,7 @@ def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, i
     ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
     engine = TranspileEngine.load_engine(Path(transpiler))
-    source_dialect = engine.check_source_dialect(source_dialect)
+    engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
