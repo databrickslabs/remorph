@@ -8,6 +8,7 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from tests.unit.conftest import path_to_resource
 
 
 def test_transpile_with_missing_installation():
@@ -309,7 +310,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
 
 
 def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
-    transpiler = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
     output_folder = path_to_resource("lsp_transpiler")
@@ -322,7 +323,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     with (patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,):
         cli.transpile(
             mock_workspace_client_cli,
-            transpiler,
+            transpiler_config_path,
             source_dialect,
             input_source,
             output_folder,
@@ -335,7 +336,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler=transpiler,
+                transpiler_config_path=transpiler_config_path,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
