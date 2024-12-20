@@ -135,18 +135,20 @@ class WorkspaceInstaller:
 
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        source = self._prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
-        input_sql = self._prompts.question("Enter input SQL path (directory/file)")
+        transpiler = self._prompts.question("Enter path to the transpiler configuration file", default="sqlglot")
+        source_dialect = self._prompts.choice("Select the source dialect:", list(SQLGLOT_DIALECTS.keys()))
+        input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         run_validation = self._prompts.confirm(
             "Would you like to validate the syntax and semantics of the transpiled queries?"
         )
 
         return TranspileConfig(
-            source_dialect=source,
+            transpiler_config_path=transpiler,
+            source_dialect=source_dialect,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
-            input_source=input_sql,
+            input_source=input_source,
             output_folder=output_folder,
         )
 

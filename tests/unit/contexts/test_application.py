@@ -41,6 +41,7 @@ def test_workspace_context_attributes_not_none(ws):
         installation=MockInstallation(
             {
                 "config.yml": {
+                    "transpiler_config_path": "sqlglot",
                     "source_dialect": "snowflake",
                     "catalog_name": "transpiler_test",
                     "input_sql": "sf_queries",
@@ -50,7 +51,7 @@ def test_workspace_context_attributes_not_none(ws):
                     "sdk_config": {
                         "warehouse_id": "abc",
                     },
-                    "version": 1,
+                    "version": 2,
                 },
                 "reconcile.yml": {
                     "data_source": "snowflake",
