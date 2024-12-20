@@ -1,6 +1,7 @@
 import os
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -22,7 +23,7 @@ from lsprotocol.types import (
     Range,
     Position,
     METHOD_TO_TYPES,
-    _SPECIAL_PROPERTIES,
+    _SPECIAL_PROPERTIES, DiagnosticSeverity,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -112,15 +113,39 @@ class TestLspServer(LanguageServer):
     def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         source_sql = self.workspace.get_text_document(params.uri).source
         source_lines = source_sql.split("\n")
-        transpiled_sql = source_sql.upper()
-        changes = [
-            TextEdit(
-                range=Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1]))),
-                new_text=transpiled_sql,
-            )
-        ]
-        return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=[])
+        range = Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1])))
+        transpiled_sql, diagnostics = self._transpile(Path(params.uri).name, range, source_sql)
+        changes = [ TextEdit( range=range, new_text=transpiled_sql) ]
+        return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=diagnostics)
 
+    def _transpile(self, file_name: str, range: Range, source_sql: str) -> tuple[str, list[Diagnostic]] :
+        if file_name == "no_transpile.sql":
+            diagnostic = Diagnostic(
+                range=range,
+                message="No transpilation required",
+                severity=DiagnosticSeverity.Information,
+                code="GENERATION-NOT_REQUIRED"
+            )
+            return source_sql, [diagnostic]
+        elif file_name == "unsupported_lca.sql":
+            diagnostic = Diagnostic(
+                range=range,
+                message="LCA conversion not supported",
+                severity=DiagnosticSeverity.Error,
+                code="ANALYSIS-UNSUPPORTED_LCA"
+            )
+            return source_sql, [diagnostic]
+        elif file_name == "internal.sql":
+            diagnostic = Diagnostic(
+                range=range,
+                message="Something went wrong",
+                severity=DiagnosticSeverity.Warning,
+                code="SOME_ERROR_CODE"
+            )
+            return source_sql, [diagnostic]
+        else:
+            # general test case
+            return source_sql.upper(), []
 
 server = TestLspServer("test-lsp-server", "v0.1")
 
