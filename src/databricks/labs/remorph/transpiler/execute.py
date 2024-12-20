@@ -5,7 +5,7 @@ from pathlib import Path
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
-    TranspilationResult,
+    TranspileResult,
     ValidationResult,
 )
 from databricks.labs.remorph.helpers import db_sql
@@ -19,8 +19,9 @@ from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
-    ParserError,
     ValidationError,
+    TranspileError,
+    ParserError,
 )
 from databricks.labs.remorph.helpers.string_utils import remove_bom
 from databricks.labs.remorph.helpers.validation import Validator
@@ -38,42 +39,33 @@ def _process_file(
     transpiler: TranspileEngine,
     input_file: Path,
     output_file: Path,
-):
+) -> tuple[int, list[TranspileError]]:
     logger.info(f"started processing for the file ${input_file}")
-    validate_error_list = []
-    no_of_sqls = 0
+    error_list: list[TranspileError] = []
 
     with input_file.open("r") as f:
         source_sql = remove_bom(f.read())
 
     lca_error = transpiler.check_for_unsupported_lca(config.source_dialect, source_sql, input_file)
     if lca_error:
-        validate_error_list.append(lca_error)
+        error_list.append(lca_error)
 
-    transpiler_result: TranspilationResult = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_file, []
+    transpile_result = _transpile(
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file
     )
+    error_list.extend(transpile_result.error_list)
 
     with output_file.open("w") as w:
-        for output in transpiler_result.transpiled_sql:
-            if output:
-                no_of_sqls = no_of_sqls + 1
-                if config.skip_validation:
-                    w.write(output)
-                    w.write("\n;\n")
-                elif validator:
-                    validation_result: ValidationResult = _validation(validator, config, output)
-                    w.write(validation_result.validated_sql)
-                    if validation_result.exception_msg is not None:
-                        validate_error_list.append(ValidationError(input_file, validation_result.exception_msg))
-            else:
-                warning_message = (
-                    f"Skipped a query from file {input_file!s}. "
-                    f"Check for unsupported operations related to STREAM, TASK, SESSION etc."
-                )
-                logger.warning(warning_message)
+        if validator:
+            validation_result = _validation(validator, config, transpile_result.transpiled_code)
+            w.write(validation_result.validated_sql)
+            if validation_result.exception_msg is not None:
+                error_list.append(ValidationError(input_file, validation_result.exception_msg))
+        else:
+            w.write(transpile_result.transpiled_code)
+            w.write("\n;\n")
 
-    return no_of_sqls, transpiler_result.parse_error_list, validate_error_list
+    return transpile_result.success_count, error_list
 
 
 def _process_directory(
@@ -88,8 +80,8 @@ def _process_directory(
     output_folder_base = root / ("transpiled" if output_folder is None else base_root)
     make_dir(output_folder_base)
 
-    parse_error_list = []
-    validate_error_list = []
+    parse_error_list: list[ParserError] = []
+    validate_error_list: list[ValidationError] = []
     counter = 0
 
     for file in files:
@@ -98,10 +90,10 @@ def _process_directory(
             continue
 
         output_file_name = output_folder_base / file.name
-        no_of_sqls, parse_error, validation_error = _process_file(config, validator, transpiler, file, output_file_name)
-        counter = counter + no_of_sqls
-        parse_error_list.extend(parse_error)
-        validate_error_list.extend(validation_error)
+        success_count, error_list = _process_file(config, validator, transpiler, file, output_file_name)
+        counter = counter + success_count
+        parse_error_list.extend([error for error in error_list if isinstance(error, ParserError)])
+        validate_error_list.extend([error for error in error_list if isinstance(error, ValidationError)])
 
     return counter, parse_error_list, validate_error_list
 
@@ -149,11 +141,10 @@ def _process_input_file(
 
     make_dir(output_path)
     output_file = output_path / config.input_path.name
-    no_of_sqls, parse_error, validation_error = _process_file(
-        config, validator, transpiler, config.input_path, output_file
-    )
-    error_log = parse_error + validation_error
-    return TranspileStatus([config.input_path], no_of_sqls, len(parse_error), len(validation_error), error_log)
+    no_of_sqls, error_list = _process_file(config, validator, transpiler, config.input_path, output_file)
+    parser_errors = [error for error in error_list if isinstance(error, ParserError)]
+    validation_errors = [error for error in error_list if isinstance(error, ValidationError)]
+    return TranspileStatus([config.input_path], no_of_sqls, len(parser_errors), len(validation_errors), error_list)
 
 
 @timeit
@@ -194,14 +185,14 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
     error_log_file = "None"
     if error_list_count > 0:
         error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
-        if result.error_log_list:
+        if result.error_list:
             with Path(error_log_file).open("a") as e:
-                e.writelines(f"{err!s}\n" for err in result.error_log_list)
+                e.writelines(f"{err!s}\n" for err in result.error_list)
 
     status.append(
         {
             "total_files_processed": len(result.file_list),
-            "total_queries_processed": result.no_of_queries,
+            "total_queries_processed": result.no_of_transpiled_queries,
             "no_of_sql_failed_while_parsing": result.parse_error_count,
             "no_of_sql_failed_while_validating": result.validate_error_count,
             "error_log_file": str(error_log_file),
@@ -225,14 +216,9 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
 
 
 def _transpile(
-    transpiler: TranspileEngine,
-    from_dialect: str,
-    to_dialect: str,
-    source_code: str,
-    input_file: Path,
-    error_list: list[ParserError],
-) -> TranspilationResult:
-    return transpiler.transpile(from_dialect, to_dialect, source_code, input_file, error_list)
+    transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_file: Path
+) -> TranspileResult:
+    return transpiler.transpile(from_dialect, to_dialect, source_code, input_file)
 
 
 def _validation(
@@ -248,23 +234,23 @@ def transpile_sql(
     workspace_client: WorkspaceClient,
     config: TranspileConfig,
     source_sql: str,
-) -> tuple[TranspilationResult, ValidationResult | None]:
+) -> tuple[TranspileResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
     ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     transpiler: TranspileEngine = SqlglotEngine()
 
     transpiler_result = _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"), []
+        transpiler, config.source_dialect or "", config.target_dialect, source_sql, Path("inline_sql")
     )
 
-    if not config.skip_validation:
-        sql_backend = db_sql.get_sql_backend(ws_client)
-        logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
-        validator = Validator(sql_backend)
-        return transpiler_result, _validation(validator, config, transpiler_result.transpiled_sql[0])
+    if config.skip_validation:
+        return transpiler_result, None
 
-    return transpiler_result, None
+    sql_backend = db_sql.get_sql_backend(ws_client)
+    logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
+    validator = Validator(sql_backend)
+    return transpiler_result, _validation(validator, config, transpiler_result.transpiled_code)
 
 
 @timeit
@@ -272,7 +258,7 @@ def transpile_column_exp(
     workspace_client: WorkspaceClient,
     config: TranspileConfig,
     expressions: list[str],
-) -> list[tuple[TranspilationResult, ValidationResult | None]]:
+) -> list[tuple[TranspileResult, ValidationResult | None]]:
     """[Experimental] Transpile a list of SQL expressions from one dialect to another."""
     config.skip_validation = True
     result = []

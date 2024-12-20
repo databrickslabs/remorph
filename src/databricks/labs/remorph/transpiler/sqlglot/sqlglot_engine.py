@@ -1,6 +1,7 @@
 import logging
 import typing as t
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlglot import expressions as exp, parse, transpile, Dialect
@@ -8,8 +9,8 @@ from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
-from databricks.labs.remorph.config import TranspilationResult
-from databricks.labs.remorph.helpers.string_utils import format_error_message, refactor_hexadecimal_chars
+from databricks.labs.remorph.config import TranspileResult
+from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
@@ -19,10 +20,16 @@ from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class ParsedExpression:
-    def __init__(self, expression: exp.Expression, original_sql: str):
-        self.parsed_expression = expression
-        self.original_sql = original_sql
+    original_sql: str
+    parsed_expression: Expression
+
+
+@dataclass
+class ParserProblem:
+    original_sql: str
+    parser_error: ParserError
 
 
 class SqlglotEngine(TranspileEngine):
@@ -31,53 +38,49 @@ class SqlglotEngine(TranspileEngine):
     def supported_dialects(self) -> list[str]:
         return sorted(SQLGLOT_DIALECTS.keys())
 
-    def __partial_transpile(
+    def _partial_transpile(
         self,
         read_dialect: Dialect,
         write_dialect: Dialect,
         source_code: str,
         file_path: Path,
-        error_list: list[ParserError],
-    ) -> tuple[list[str], list[ParserError]]:
-        transpiled_sql_statements = []
-        parsed_expressions, errors = self.safe_parse(statements=source_code, read_dialect=read_dialect)
+    ) -> tuple[list[str], list[ParserProblem]]:
+        transpiled_sqls: list[str] = []
+        parsed_expressions, problem_list = self.safe_parse(read_dialect, source_code, file_path)
         for parsed_expression in parsed_expressions:
-            if parsed_expression.parsed_expression is not None:
-                try:
-                    transpiled_sql = write_dialect.generate(parsed_expression.parsed_expression, pretty=True)
+            try:
+                transpiled_sql = write_dialect.generate(parsed_expression.parsed_expression, pretty=True)
+                # Checking if the transpiled SQL is a comment and raise an error
+                if transpiled_sql.startswith("--"):
+                    raise UnsupportedError("Unsupported SQL")
+                transpiled_sqls.append(transpiled_sql)
+            except ParseError as e:
+                error_msg = format_error_message("Parsing Error", e, parsed_expression.original_sql)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
+            except UnsupportedError as e:
+                error_msg = format_error_message("Unsupported SQL Error", e, parsed_expression.original_sql)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
+            except TokenError as e:
+                error_msg = format_error_message("Token Error", e, parsed_expression.original_sql)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
+        return transpiled_sqls, problem_list
 
-                    # Checking if the transpiled SQL is a comment and raise an error
-                    if transpiled_sql.startswith("--"):
-                        raise UnsupportedError("Unsupported SQL")
-                    transpiled_sql_statements.append(transpiled_sql)
-                except ParseError as e:
-                    error_statement = format_error_message("Parsing Error", e, parsed_expression.original_sql)
-                    errors.append(error_statement)
-                except UnsupportedError as e:
-                    error_statement = format_error_message("Unsupported SQL Error", e, parsed_expression.original_sql)
-                    errors.append(error_statement)
-                except TokenError as e:
-                    error_statement = format_error_message("Token Error", e, parsed_expression.original_sql)
-                    errors.append(error_statement)
-        updated_error_list = self._handle_errors(errors, error_list, file_path, transpiled_sql_statements)
-        return transpiled_sql_statements, updated_error_list
-
-    def transpile(
-        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path, error_list: list[ParserError]
-    ) -> TranspilationResult:
+    def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
         read_dialect = get_dialect(source_dialect)
         write_dialect = get_dialect(target_dialect)
         try:
-            transpiled_sql = transpile(
-                source_code, read=read_dialect, write=write_dialect, pretty=True, error_level=None
+            transpiled_expressions = transpile(
+                source_code, read=read_dialect, write=write_dialect, pretty=True, error_level=ErrorLevel.RAISE
             )
-            return TranspilationResult(transpiled_sql, error_list)
+            transpiled_code = "\n".join(transpiled_expressions)
+            return TranspileResult(transpiled_code, len(transpiled_expressions), [])
         except (ParseError, TokenError, UnsupportedError) as e:
             logger.error(f"Exception caught for file {file_path!s}: {e}")
-            transpiled_sql, _ = self.__partial_transpile(
-                read_dialect, write_dialect, source_code, file_path, error_list
+            transpiled_expressions, problems = self._partial_transpile(
+                read_dialect, write_dialect, source_code, file_path
             )
-            return TranspilationResult(transpiled_sql, error_list)
+            transpiled_code = "\n".join(transpiled_expressions)
+            return TranspileResult(transpiled_code, 1, [problem.parser_error for problem in problems])
 
     def parse(
         self, source_dialect: str, source_sql: str, file_path: Path
@@ -108,67 +111,59 @@ class SqlglotEngine(TranspileEngine):
                         if table:
                             yield table, child
 
-    @staticmethod
-    def safe_parse(statements: str, read_dialect: Dialect) -> tuple[list[ParsedExpression], list[str]]:
-        errors = []
+    def safe_parse(
+        self, read_dialect: Dialect, source_code: str, file_path: Path
+    ) -> tuple[list[ParsedExpression], list[ParserProblem]]:
         try:
-            tokens = read_dialect.tokenize(sql=statements)
+            tokens = read_dialect.tokenize(sql=source_code)
+            return self._safe_parse(read_dialect, tokens, file_path)
         except TokenError as e:
-            error_statement = format_error_message("TOKEN ERROR", e, statements)
-            errors.append(error_statement)
-            return [], errors
+            error_msg = format_error_message("TOKEN ERROR", e, source_code)
+            return [], [ParserProblem(source_code, ParserError(file_path=file_path, error_msg=error_msg))]
 
-        total = len(tokens)
-        chunks: list[list[Token]] = [[]]
-        original_sql_chunks: list[str] = []
-        current_sql_chunk = []
-        # Split tokens into chunks based on semicolons(or other separators)
-        # Need to define the separator in Class Tokenizer
-        for i, token in enumerate(tokens):
-            current_sql_chunk.append(token.text)
-            if token.token_type in {TokenType.SEMICOLON}:
-                original_sql_chunks.append(" ".join(current_sql_chunk).strip())
-                current_sql_chunk = []
-                if i < total - 1:
-                    chunks.append([])
-            else:
-                chunks[-1].append(token)
-
-        if current_sql_chunk:
-            original_sql_chunks.append("".join(current_sql_chunk).strip())
-
+    def _safe_parse(
+        self, read_dialect: Dialect, all_tokens: list[Token], file_path: Path
+    ) -> tuple[list[ParsedExpression], list[ParserProblem]]:
+        chunks = self._make_chunks(all_tokens)
         parsed_expressions: list[ParsedExpression] = []
+        problems: list[ParserProblem] = []
         parser_opts = {"error_level": ErrorLevel.RAISE}
         parser = read_dialect.parser(**parser_opts)
-        for i, tokens in enumerate(chunks, start=1):
-            original_sql = original_sql_chunks[i - 1]
+        for sql, tokens in chunks:
             try:
-                expression = t.cast(
-                    list[Expression],
-                    parser.parse(tokens),
-                )[0]
-
-                parsed_expressions.append(ParsedExpression(expression, original_sql))
+                expressions = parser.parse(tokens)
+                expression = t.cast(Expression, expressions[0])
+                parsed_expressions.append(ParsedExpression(sql, expression))
             except (ParseError, TokenError, UnsupportedError) as e:
-                error_statement = format_error_message("PARSING ERROR", e, original_sql)
-                errors.append(error_statement)
+                error_msg = format_error_message("PARSING ERROR", e, sql)
+                problems.append(ParserProblem(sql, ParserError(file_path, error_msg)))
             finally:
                 parser.reset()
-        return parsed_expressions, errors
+        return parsed_expressions, problems
+
+    @staticmethod
+    def _make_chunks(tokens: list[Token]) -> list[tuple[str, list[Token]]]:
+        chunks: list[tuple[str, list[Token]]] = []
+        current_chunk: list[Token] = []
+        # Split tokens into chunks based on semicolons(or other separators)
+        # Need to define the separator in Class Tokenizer
+        for token in tokens:
+            current_chunk.append(token)
+            if token.token_type in {TokenType.SEMICOLON}:
+                original_sql = " ".join([token.text for token in current_chunk]).strip()
+                chunks.append((original_sql, current_chunk))
+                # reset
+                current_chunk = []
+        # don't forget the last chunk
+        if current_chunk:
+            original_sql = " ".join([token.text for token in current_chunk]).strip()
+            chunks.append((original_sql, current_chunk))
+        return chunks
 
     @staticmethod
     def _find_root_table(expression) -> str:
         table = expression.find(exp.Table, bfs=False)
         return table.name if table else ""
-
-    @staticmethod
-    def _handle_errors(
-        errors: list[str], error_list: list[ParserError], file_path: Path, sql_statements: list[str]
-    ) -> list[ParserError]:
-        for error in errors:
-            sql_statements.append(error)
-            error_list.append(ParserError(file_path, refactor_hexadecimal_chars(str(error))))
-        return error_list
 
     def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
         return lca_utils.check_for_unsupported_lca(get_dialect(source_dialect), source_code, file_path)
