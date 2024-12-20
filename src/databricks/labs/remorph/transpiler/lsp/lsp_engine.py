@@ -9,7 +9,6 @@ import yaml
 
 from databricks.labs.remorph.config import TranspileResult
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import ValidationError
 
 
 @dataclass
@@ -64,9 +63,6 @@ class LSPEngine(TranspileEngine):
         return self.config.dialects
 
     def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
-        raise NotImplementedError
-
-    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
         raise NotImplementedError
 
     def analyse_table_lineage(

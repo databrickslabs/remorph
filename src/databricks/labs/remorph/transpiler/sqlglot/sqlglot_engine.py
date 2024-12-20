@@ -14,7 +14,7 @@ from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError
+from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError, TranspileError
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,9 @@ class SqlglotEngine(TranspileEngine):
 
     def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
         read_dialect = get_dialect(source_dialect)
+        error: TranspileError | None = self._check_supported(read_dialect, source_code, file_path)
+        if error:
+            return TranspileResult(str(file_path), 1, [error])
         write_dialect = get_dialect(target_dialect)
         try:
             transpiled_expressions = transpile(
@@ -165,5 +168,5 @@ class SqlglotEngine(TranspileEngine):
         table = expression.find(exp.Table, bfs=False)
         return table.name if table else ""
 
-    def check_for_unsupported_lca(self, source_dialect, source_code, file_path) -> ValidationError | None:
-        return lca_utils.check_for_unsupported_lca(get_dialect(source_dialect), source_code, file_path)
+    def _check_supported(self, source_dialect: Dialect, source_code: str, file_path: Path) -> ValidationError | None:
+        return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
