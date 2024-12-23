@@ -408,6 +408,8 @@ class Databricks(SqlglotDatabricks):  #
             "%-d": "dd",
         }
 
+        WITH_PROPERTIES_PREFIX = "TBLPROPERTIES"
+
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
         TYPE_MAPPING = {
@@ -476,7 +478,11 @@ class Databricks(SqlglotDatabricks):  #
 
         def create_sql(self, expression: exp.Create) -> str:
             expression.args["indexes"] = None  # Removing indexes from create statement
-            return super().create_sql(expression)
+            create_sql = super().create_sql(expression)
+            for from_ in expression.find_all(exp.DefaultColumnConstraint): # Generate table properties if DDL contain default values
+                create_sql = create_sql + " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
+                break
+            return create_sql
 
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`
