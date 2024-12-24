@@ -208,23 +208,35 @@ class LogicalPlanGenerator(
   }
 
   private def createTable(createTable: ir.CreateTableCommand): SQL = {
+    var tableProperties:String = ""
     val columns = createTable.columns
       .map { col =>
         val dataType = DataTypeGenerator.generateDataType(col.dataType)
         val constraints = col.constraints.map(constraint(_)).mkCode(" ")
+        for(constrain <- col.constraints) {
+          if (constrain.isInstanceOf[ir.DefaultValueConstraint]){
+            tableProperties = " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
+          }
+        }
         code"${col.name} $dataType $constraints"
       }
-    code"CREATE TABLE ${createTable.name} (${columns.mkCode(", ")})"
+    code"CREATE TABLE ${createTable.name} (${columns.mkCode(", ")})$tableProperties"
   }
 
   private def replaceTable(createTable: ir.ReplaceTableCommand): SQL = {
+    var tableProperties:String = ""
     val columns = createTable.columns
       .map { col =>
         val dataType = DataTypeGenerator.generateDataType(col.dataType)
         val constraints = col.constraints.map(constraint).mkCode(" ")
+        for(constrain <- col.constraints) {
+          if (constrain.isInstanceOf[ir.DefaultValueConstraint]){
+            tableProperties = " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
+          }
+        }
         code"${col.name} $dataType $constraints"
       }
-    code"CREATE OR REPLACE TABLE ${createTable.name} (${columns.mkCode(", ")})"
+    code"CREATE OR REPLACE TABLE ${createTable.name} (${columns.mkCode(", ")}) $tableProperties"
   }
 
   private def constraint(c: ir.Constraint): SQL = c match {
