@@ -477,11 +477,8 @@ class Databricks(SqlglotDatabricks):  #
         def create_sql(self, expression: exp.Create) -> str:
             expression.args["indexes"] = None  # Removing indexes from create statement
             create_sql = super().create_sql(expression)
-            for from_ in expression.find_all(
-                exp.DefaultColumnConstraint
-            ):  # Generate table properties if DDL contain default values
-                create_sql = create_sql + " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
-                break
+            if expression.find(exp.DefaultColumnConstraint):
+                create_sql += " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
             return create_sql
 
         def join_sql(self, expression: exp.Join) -> str:
