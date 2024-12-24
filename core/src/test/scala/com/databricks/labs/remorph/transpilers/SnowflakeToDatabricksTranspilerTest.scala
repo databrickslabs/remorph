@@ -6,10 +6,10 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
-  "transpile ddl with default value" should{
+  "transpile ddl with default value" should {
     "transpile ddl" in {
       "CREATE TABLE tbl3 (  employee_id DECIMAL(38, 0) DEFAULT 3000,  first_name STRING NOT NULL,  last_name STRING NOT NULL);" transpilesTo
-      "CREATE TABLE tbl3 (  employee_id DECIMAL(38, 0) DEFAULT 3000,  first_name STRING NOT NULL,  last_name STRING NOT NULL) TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported');"
+        "CREATE TABLE tbl3 (  employee_id DECIMAL(38, 0) DEFAULT 3000,  first_name STRING NOT NULL,  last_name STRING NOT NULL) TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported');"
     }
   }
 

@@ -208,13 +208,13 @@ class LogicalPlanGenerator(
   }
 
   private def createTable(createTable: ir.CreateTableCommand): SQL = {
-    var tableProperties:String = ""
+    var tableProperties: String = ""
     val columns = createTable.columns
       .map { col =>
         val dataType = DataTypeGenerator.generateDataType(col.dataType)
         val constraints = col.constraints.map(constraint(_)).mkCode(" ")
-        for(constrain <- col.constraints) {
-          if (constrain.isInstanceOf[ir.DefaultValueConstraint]){
+        for (constrain <- col.constraints) {
+          if (constrain.isInstanceOf[ir.DefaultValueConstraint]) {
             tableProperties = " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
           }
         }
@@ -224,13 +224,13 @@ class LogicalPlanGenerator(
   }
 
   private def replaceTable(createTable: ir.ReplaceTableCommand): SQL = {
-    var tableProperties:String = ""
+    var tableProperties: String = ""
     val columns = createTable.columns
       .map { col =>
         val dataType = DataTypeGenerator.generateDataType(col.dataType)
         val constraints = col.constraints.map(constraint).mkCode(" ")
-        for(constrain <- col.constraints) {
-          if (constrain.isInstanceOf[ir.DefaultValueConstraint]){
+        for (constrain <- col.constraints) {
+          if (constrain.isInstanceOf[ir.DefaultValueConstraint]) {
             tableProperties = " TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'supported')"
           }
         }
