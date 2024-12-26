@@ -49,8 +49,7 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "pytest-cov>=5.0.0,<6.0.0",
-# disabling asyncio, see https://github.com/pytest-dev/pytest-asyncio/issues/1015
-# "pytest-asyncio>=0.24.0",
+  "pytest-asyncio>=0.24.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
@@ -65,7 +64,10 @@ dependencies = [
 reconcile = "databricks.labs.remorph.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
-test        = "pytest --cov src --cov-report=xml tests/unit"
+# temporarily disabling coverage in unit testing because collection of coverage results crashes the CI
+# see https://github.com/pytest-dev/pytest-asyncio/issues/1015
+# test        = "pytest --cov src --cov-report=xml tests/unit"
+test        = "pytest src tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"
 integration = "pytest --cov src tests/integration --durations 20"
 fmt         = ["black .",
