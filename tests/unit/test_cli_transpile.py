@@ -1,4 +1,5 @@
-from unittest.mock import create_autospec, patch, PropertyMock, ANY
+import asyncio
+from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
 
 import pytest
 
@@ -32,11 +33,22 @@ def test_transpile_with_missing_installation():
         )
 
 
+def patch_do_transpile():
+    mock_transpile = MagicMock(return_value=({}, []))
+
+    @asyncio.coroutine
+    def patched_do_transpile(*args, **kwargs):
+        return mock_transpile(*args, **kwargs)
+
+    return mock_transpile, patched_do_transpile
+
+
 def test_transpile_with_no_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
@@ -82,10 +94,11 @@ def test_transpile_with_no_sdk_config():
 
 def test_transpile_with_warehouse_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
@@ -131,10 +144,11 @@ def test_transpile_with_warehouse_id_in_sdk_config():
 
 def test_transpile_with_cluster_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
@@ -277,9 +291,10 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -320,7 +335,8 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
-    with (patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,):
+    mock_transpile, patched_do_transpile = patch_do_transpile()
+    with (patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),):
         cli.transpile(
             mock_workspace_client_cli,
             transpiler_config_path,
@@ -361,9 +377,10 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
             mock_workspace_client_cli,
