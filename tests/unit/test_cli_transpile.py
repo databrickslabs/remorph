@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import create_autospec, patch, PropertyMock, ANY
 
 import pytest
@@ -462,3 +463,29 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
             schema_name,
             mode,
         )
+
+
+def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
+    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    source_dialect = "snowflake"
+    input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
+    output_folder = str(tmp_path)
+    skip_validation = "true"
+    catalog_name = "my_catalog"
+    schema_name = "my_schema"
+    mode = "current"
+    cli.transpile(
+        mock_workspace_client_cli,
+        transpiler_config_path,
+        source_dialect,
+        input_source,
+        output_folder,
+        skip_validation,
+        catalog_name,
+        schema_name,
+        mode,
+    )
+    captured = capsys.readouterr()
+    assert "TranspileError" in captured.out
+    assert "UNSUPPORTED_LCA" in captured.out
+
