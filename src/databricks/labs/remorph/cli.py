@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -80,8 +81,7 @@ def transpile(
         mode=mode,
         sdk_config=sdk_config,
     )
-
-    status, errors = do_transpile(ctx.workspace_client, engine, config)
+    status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
         print(str(error))

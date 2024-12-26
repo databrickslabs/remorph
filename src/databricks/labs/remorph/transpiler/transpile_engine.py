@@ -3,7 +3,7 @@ import abc
 from collections.abc import Iterable
 from pathlib import Path
 
-from databricks.labs.remorph.config import TranspileResult
+from databricks.labs.remorph.config import TranspileResult, TranspileConfig
 
 
 class TranspileEngine(abc.ABC):
@@ -29,6 +29,12 @@ class TranspileEngine(abc.ABC):
     def analyse_table_lineage(
         self, source_dialect: str, source_code: str, file_path: Path
     ) -> Iterable[tuple[str, str]]: ...
+
+    @abc.abstractmethod
+    async def initialize(self, config: TranspileConfig) -> None: ...
+
+    @abc.abstractmethod
+    async def shutdown(self) -> None: ...
 
     @abc.abstractmethod
     async def transpile(
