@@ -1,3 +1,4 @@
+import asyncio
 import re
 import shutil
 from pathlib import Path
@@ -8,11 +9,13 @@ import pytest
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.lsql.core import Row
+from databricks.sdk import WorkspaceClient
+
 from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
-    transpile,
+    transpile as do_transpile,
     transpile_column_exp,
     transpile_sql,
 )
@@ -22,6 +25,10 @@ from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEng
 
 
 # pylint: disable=unspecified-encoding
+
+
+def transpile(workspace_client: WorkspaceClient, engine: SqlglotEngine, config: TranspileConfig):
+    return asyncio.run(do_transpile(workspace_client, engine, config))
 
 
 def safe_remove_dir(dir_path: Path):
