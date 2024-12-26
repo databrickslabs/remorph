@@ -48,7 +48,9 @@ async def _process_file(
     with input_path.open("r") as f:
         source_sql = remove_bom(f.read())
 
-    transpile_result = await _transpile(transpiler, config.source_dialect, config.target_dialect, source_sql, input_path)
+    transpile_result = await _transpile(
+        transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
+    )
     error_list.extend(transpile_result.error_list)
 
     with output_path.open("w") as w:
@@ -93,7 +95,7 @@ async def _process_directory(
             continue
 
         output_file_name = output_folder_base / file.name
-        success_count, error_list = _process_file(config, validator, transpiler, file, output_file_name)
+        success_count, error_list = await _process_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
 
@@ -152,7 +154,6 @@ async def transpile(
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
 ) -> tuple[list[dict[str, Any]], list[TranspileError]]:
-
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 

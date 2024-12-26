@@ -1,4 +1,3 @@
-import asyncio
 from unittest.mock import create_autospec, patch, PropertyMock, ANY
 
 import pytest
@@ -444,4 +443,3 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
     captured = capsys.readouterr()
     assert "TranspileError" in captured.out
     assert "UNSUPPORTED_LCA" in captured.out
-
