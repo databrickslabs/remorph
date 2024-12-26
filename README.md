@@ -117,8 +117,9 @@ Verify the successful installation by executing the provided command; confirmati
 2. The SQL file should encompass scripts intended for migration to Databricks SQL.
 
 Below is the detailed explanation on the arguments required for Transpile.
+- `transpiler-config-path [Required]` - Path to the transpiler configuration file.
+- `source-dialect [Required]` - Dialect name.
 - `input-source [Required]` - The path to the SQL file or directory containing SQL files to be transpiled.
-- `source-dialect [Required]` - The source platform of the SQL scripts. Currently, only Snowflake is supported.
 - `output-folder [Optional]` - The path to the output folder where the transpiled SQL files will be stored. If not specified, the transpiled SQL files will be stored in the same directory as the input SQL file.
 - `skip-validation [Optional]` - The default value is True. If set to False, the transpiler will validate the transpiled SQL scripts against the Databricks catalog and schema provided by user.
 - `catalog-name [Optional]` - The name of the catalog in Databricks. If not specified, the default catalog `transpiler_test` will be used.
@@ -127,7 +128,7 @@ Below is the detailed explanation on the arguments required for Transpile.
 ### Execution
 Execute the below command to intialize the transpile process.
 ```bash
- databricks labs remorph transpile --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
+ databricks labs remorph transpile --transpiler-config-path <absolute-path> --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
 
 ![transpile run](docs/img/transpile-run.gif)

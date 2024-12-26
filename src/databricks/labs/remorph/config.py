@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from databricks.labs.remorph.transpiler.transpile_status import ParserError
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
 
@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
-    __version__ = 1
+    __version__ = 2
 
+    transpiler_config_path: str
     source_dialect: str
     input_source: str | None = None
     output_folder: str | None = None
@@ -22,6 +23,10 @@ class TranspileConfig:
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     mode: str = "current"
+
+    @property
+    def transpiler_path(self):
+        return Path(self.transpiler_config_path)
 
     @property
     def input_path(self):
@@ -65,9 +70,10 @@ class DatabaseConfig:
 
 
 @dataclass
-class TranspilationResult:
-    transpiled_sql: list[str]
-    parse_error_list: list[ParserError]
+class TranspileResult:
+    transpiled_code: str
+    success_count: int
+    error_list: list[TranspileError]
 
 
 @dataclass
