@@ -199,10 +199,10 @@ async def _do_transpile(
         {
             "total_files_processed": len(result.file_list),
             "total_queries_processed": result.no_of_transpiled_queries,
-            "no_of_sql_failed_while_analysing": result.analysis_error_count,
-            "no_of_sql_failed_while_parsing": result.parsing_error_count,
-            "no_of_sql_failed_while_generating": result.generation_error_count,
-            "no_of_sql_failed_while_validating": result.validation_error_count,
+            "failures_while_analysing": result.analysis_error_count,
+            "failures_while_parsing": result.parsing_error_count,
+            "failures_while_validating": result.validation_error_count,
+            "failures_while_generating": result.generation_error_count,
             "error_log_file": str(error_log_path),
         }
     )
