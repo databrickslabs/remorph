@@ -461,11 +461,12 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
         )
 
 
-def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
+def test_transpile_prints_errors(capsys, output_folder, error_file, mock_workspace_client_cli):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
-    output_folder = str(tmp_path)
+    output_folder = str(output_folder)
+    error_file = str(error_file)
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -476,7 +477,7 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
         source_dialect,
         input_source,
         output_folder,
-        None,
+        error_file,
         skip_validation,
         catalog_name,
         schema_name,

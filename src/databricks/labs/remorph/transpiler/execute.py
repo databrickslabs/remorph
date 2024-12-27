@@ -143,7 +143,7 @@ async def _process_input_file(
 @timeit
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -152,7 +152,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -163,8 +163,6 @@ async def _do_transpile(
     if not config.input_source:
         logger.error("Input SQL path is not provided.")
         raise ValueError("Input SQL path is not provided.")
-
-    status = []
 
     validator = None
     if not config.skip_validation:
@@ -195,17 +193,16 @@ async def _do_transpile(
         with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
 
-    status.append(
-        {
-            "total_files_processed": len(result.file_list),
-            "total_queries_processed": result.no_of_transpiled_queries,
-            "failures_while_analysing": result.analysis_error_count,
-            "failures_while_parsing": result.parsing_error_count,
-            "failures_while_validating": result.validation_error_count,
-            "failures_while_generating": result.generation_error_count,
-            "error_log_file": str(error_log_path),
-        }
-    )
+    status = {
+        "total_files_processed": len(result.file_list),
+        "total_queries_processed": result.no_of_transpiled_queries,
+        "analysis_error_count": result.analysis_error_count,
+        "parsing_error_count": result.parsing_error_count,
+        "validation_error_count": result.validation_error_count,
+        "generation_error_count": result.generation_error_count,
+        "error_log_file": str(error_log_path),
+    }
+
     return status, result.error_list
 
 

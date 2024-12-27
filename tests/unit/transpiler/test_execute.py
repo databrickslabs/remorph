@@ -1,6 +1,5 @@
 import asyncio
 import re
-import shutil
 from pathlib import Path
 from typing import Any
 from unittest.mock import create_autospec, patch
@@ -13,7 +12,6 @@ from databricks.labs.lsql.core import Row
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import TranspileConfig, ValidationResult
-from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
     transpile as do_transpile,
@@ -32,177 +30,32 @@ def transpile(workspace_client: WorkspaceClient, engine: SqlglotEngine, config: 
     return asyncio.run(do_transpile(workspace_client, engine, config))
 
 
-def safe_remove_dir(dir_path: Path):
-    if dir_path.exists():
-        shutil.rmtree(dir_path)
-
-
-def safe_remove_file(file_path: Path):
-    if file_path.exists():
-        file_path.unlink()
-
-
-def write_data_to_file(path: Path, content: str):
-    with path.open("w") as writable:
-        # added encoding to avoid UnicodeEncodeError while writing to file for token error test
-        writable.write(content.encode("utf-8", "ignore").decode("utf-8"))
-
-
-@pytest.fixture
-def input_source(tmp_path: Path):
-    input_dir = tmp_path / "remorph_source"
-    query_1_sql_file = input_dir / "query1.sql"
-    query_2_sql_file = input_dir / "query2.sql"
-    query_3_sql_file = input_dir / "query3.sql"
-    query_4_sql_file = input_dir / "query4.sql"
-    query_5_sql_file = input_dir / "query5.sql"
-    stream_1_sql_file = input_dir / "stream1.sql"
-    call_center_ddl_file = input_dir / "call_center.ddl"
-    file_text = input_dir / "file.txt"
-    safe_remove_dir(input_dir)
-    make_dir(input_dir)
-
-    query_1_sql = """select  i_manufact, sum(ss_ext_sales_price) ext_price from date_dim, store_sales where
-    d_date_sk = ss_sold_date_sk and substr(ca_zip,1,5) <> substr(s_zip,1,5) group by i_manufact order by i_manufact
-    limit 100 ;"""
-
-    call_center_ddl = """create table call_center
-        (
-            cc_call_center_sk         int                           ,
-            cc_call_center_id         varchar(16)
-        )
-
-         CLUSTER BY(cc_call_center_sk)
-         """
-
-    query_2_sql = """select wswscs.d_week_seq d_week_seq1,sun_sales sun_sales1,mon_sales mon_sales1 from wswscs,
-    date_dim where date_dim.d_week_seq = wswscs.d_week_seq and d_year = 2001"""
-
-    query_3_sql = """with wscs as
-     (select sold_date_sk
-            ,sales_price
-      from (select ws_sold_date_sk sold_date_sk
-                  ,ws_ext_sales_price sales_price
-            from web_sales
-            union all
-            select cs_sold_date_sk sold_date_sk
-                  ,cs_ext_sales_price sales_price
-            from catalog_sales)),
-     wswscs as
-     (select d_week_seq,
-            sum(case when (d_day_name='Sunday') then sales_price else null end) sun_sales,
-            sum(case when (d_day_name='Monday') then sales_price else null end) mon_sales,
-            sum(case when (d_day_name='Tuesday') then sales_price else  null end) tue_sales,
-            sum(case when (d_day_name='Wednesday') then sales_price else null end) wed_sales,
-            sum(case when (d_day_name='Thursday') then sales_price else null end) thu_sales,
-            sum(case when (d_day_name='Friday') then sales_price else null end) fri_sales,
-            sum(case when (d_day_name='Saturday') then sales_price else null end) sat_sales
-     from wscs
-         ,date_dim
-     where d_date_sk = sold_date_sk
-     group by d_week_seq)
-     select d_week_seq1
-           ,round(sun_sales1/sun_sales2,2)
-           ,round(mon_sales1/mon_sales2,2)
-           ,round(tue_sales1/tue_sales2,2)
-           ,round(wed_sales1/wed_sales2,2)
-           ,round(thu_sales1/thu_sales2,2)
-           ,round(fri_sales1/fri_sales2,2)
-           ,round(sat_sales1/sat_sales2,2)
-     from
-     (select wswscs.d_week_seq d_week_seq1
-            ,sun_sales sun_sales1
-            ,mon_sales mon_sales1
-            ,tue_sales tue_sales1
-            ,wed_sales wed_sales1
-            ,thu_sales thu_sales1
-            ,fri_sales fri_sales1
-            ,sat_sales sat_sales1
-      from wswscs,date_dim
-      where date_dim.d_week_seq = wswscs.d_week_seq and
-            d_year = 2001) y,
-     (select wswscs.d_week_seq d_week_seq2
-            ,sun_sales sun_sales2
-            ,mon_sales mon_sales2
-            ,tue_sales tue_sales2
-            ,wed_sales wed_sales2
-            ,thu_sales thu_sales2
-            ,fri_sales fri_sales2
-            ,sat_sales sat_sales2
-      from wswscs
-          ,date_dim
-      where date_dim.d_week_seq = wswscs.d_week_seq2 and
-            d_year = 2001+1) z
-     where d_week_seq1=d_week_seq2-53
-     order by d_week_seq1;
-     """
-
-    stream_1_sql = """CREATE STREAM unsupported_stream AS SELECT * FROM some_table;"""
-
-    query_4_sql = """create table(
-    col1 int
-    col2 string
-    );"""
-
-    query_5_sql = """1SELECT * from ~v\ud83d' table;"""
-
-    write_data_to_file(query_1_sql_file, query_1_sql)
-    write_data_to_file(call_center_ddl_file, call_center_ddl)
-    write_data_to_file(query_2_sql_file, query_2_sql)
-    write_data_to_file(query_3_sql_file, query_3_sql)
-    write_data_to_file(query_4_sql_file, query_4_sql)
-    write_data_to_file(query_5_sql_file, query_5_sql)
-    write_data_to_file(stream_1_sql_file, stream_1_sql)
-    write_data_to_file(file_text, "This is a test file")
-    yield input_dir
-    safe_remove_dir(input_dir)
-
-
-@pytest.fixture
-def output_folder(tmp_path: Path):
-    output_dir = tmp_path / "remorph_transpiled"
-    yield output_dir
-    safe_remove_dir(output_dir)
-
-
-@pytest.fixture
-def error_file(tmp_path: Path):
-    file_path = tmp_path / "transpile_errors.lst"
-    yield file_path
-    safe_remove_file(file_path)
-
-
 def check_status(
-    status: list[dict[str, Any]],
+    status: dict[str, Any],
     total_files_processed: int,
     total_queries_processed: int,
-    failures_while_analysing: int,
-    failures_while_parsing: int,
-    failures_while_validating: int,
+    analysis_error_count: int,
+    parsing_error_count: int,
+    validation_error_count: int,
     error_file_name: str,
 ):
     assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert (
-            stat["total_files_processed"] == total_files_processed
-        ), "total_files_processed does not match expected value"
-        assert (
-            stat["total_queries_processed"] == total_queries_processed
-        ), "total_queries_processed does not match expected value"
-        assert (
-            stat["failures_while_analysing"] == failures_while_analysing
-        ), "failures_while_analysing does not match expected value"
+    assert isinstance(status, dict), "Status returned by transpile function is not a dict"
+    assert len(status) > 0, "Status returned by transpile function is an empty dict"
+    assert (
+        status["total_files_processed"] == total_files_processed
+    ), "total_files_processed does not match expected value"
+    assert (
+        status["total_queries_processed"] == total_queries_processed
+    ), "total_queries_processed does not match expected value"
+    assert status["analysis_error_count"] == analysis_error_count, "analysis_error_count does not match expected value"
 
-        assert (
-            stat["failures_while_parsing"] == failures_while_parsing
-        ), "failures_while_parsing does not match expected value"
-        assert (
-            stat["failures_while_validating"] == failures_while_validating
-        ), "failures_while_validating does not match expected value"
-        assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name == error_file_name, f"error_log_file does not match {error_file_name}'"
+    assert status["parsing_error_count"] == parsing_error_count, "parsing_error_count does not match expected value"
+    assert (
+        status["validation_error_count"] == validation_error_count
+    ), "validation_error_count does not match expected value"
+    assert status["error_log_file"], "error_log_file is None or empty"
+    assert Path(status["error_log_file"]).name == error_file_name, f"error_log_file does not match {error_file_name}'"
 
 
 def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]]):
@@ -255,7 +108,7 @@ def test_with_dir_skipping_validation(input_source, output_folder, error_file, m
         {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
         {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
     ]
-    check_error_lines(status[0]["error_log_file"], expected_errors)
+    check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_with_dir_with_output_folder_skipping_validation(
@@ -283,7 +136,7 @@ def test_with_dir_with_output_folder_skipping_validation(
         {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
         {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
     ]
-    check_error_lines(status[0]["error_log_file"], expected_errors)
+    check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_with_file(input_source, error_file, mock_workspace_client):
@@ -317,7 +170,7 @@ def test_with_file(input_source, error_file, mock_workspace_client):
     check_status(status, 1, 1, 0, 0, 1, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source!s}/query1.sql", "message": "Mock validation error"}]
-    check_error_lines(status[0]["error_log_file"], expected_errors)
+    check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_with_file_with_output_folder_skip_validation(input_source, output_folder, mock_workspace_client):
@@ -490,7 +343,7 @@ def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     check_status(status, 1, 1, 0, 1, 0, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source}/query4.sql", "message": "Parsing error Start:"}]
-    check_error_lines(status[0]["error_log_file"], expected_errors)
+    check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_token_error_handling(input_source, error_file, mock_workspace_client):
@@ -510,4 +363,4 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     check_status(status, 1, 1, 0, 1, 0, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source}/query5.sql", "message": "Token error Start:"}]
-    check_error_lines(status[0]["error_log_file"], expected_errors)
+    check_error_lines(status["error_log_file"], expected_errors)
