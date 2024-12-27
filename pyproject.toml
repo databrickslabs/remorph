@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "databricks-sdk~=0.29.0",
-  "sqlglot==26.0.0",
+  "sqlglot==26.0.1",
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.7.5,<0.14.0",  # TODO: Limit the LSQL version until dependencies are correct.
   "cryptography>=41.0.3",
@@ -49,8 +49,7 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "pytest-cov>=5.0.0,<6.0.0",
-# disabling asyncio, see https://github.com/pytest-dev/pytest-asyncio/issues/1015
-# "pytest-asyncio>=0.24.0",
+  "pytest-asyncio>=0.24.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
@@ -135,21 +134,6 @@ ban-relative-imports = "all"
 "tests/**/*" = [
   "PLR2004", "S101", "TID252", # tests can use magic values, assertions, and relative imports
   "ARG001" # tests may not use the provided fixtures
-]
-
-[tool.coverage.run]
-branch = true
-parallel = true
-
-[tool.coverage.report]
-omit = ["src/databricks/labs/remorph/coverage/*",
-  "src/databricks/labs/remorph/helpers/execution_time.py",
-  "__about__.py"]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "def main()",
 ]
 
 [tool.pylint.main]
