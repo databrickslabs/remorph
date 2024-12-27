@@ -156,7 +156,7 @@ def test_with_dir_skip_validation(initial_setup, tmp_path, mock_workspace_client
         transpiler_config_path="sqlglot",
         input_source=str(input_dir),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors_.lst"),
+        error_file=str(tmp_path / "transpile_errors.lst"),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -179,8 +179,8 @@ def test_with_dir_skip_validation(initial_setup, tmp_path, mock_workspace_client
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
-            ".lst"
+        assert (
+            Path(stat["error_log_file"]).name == "transpile_errors.lst"
         ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query3.sql"
@@ -214,7 +214,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, tmp_path, mo
         transpiler_config_path="sqlglot",
         input_source=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
-        error_file=str(tmp_path / "transpile_errors_.lst"),
+        error_file=str(tmp_path / "transpile_errors.lst"),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -235,8 +235,8 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, tmp_path, mo
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
-            ".lst"
+        assert (
+            Path(stat["error_log_file"]).name == "transpile_errors.lst"
         ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query3.sql"
@@ -273,7 +273,7 @@ def test_with_file(initial_setup, tmp_path, mock_workspace_client):
         transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query1.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors_.lst"),
+        error_file=str(tmp_path / "transpile_errors.lst"),
         sdk_config=sdk_config,
         source_dialect="snowflake",
         skip_validation=False,
@@ -306,8 +306,8 @@ def test_with_file(initial_setup, tmp_path, mock_workspace_client):
         assert (
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
-        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
-            ".lst"
+        assert (
+            Path(stat["error_log_file"]).name == "transpile_errors.lst"
         ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_content = f"""
@@ -527,7 +527,7 @@ def test_parse_error_handling(initial_setup, tmp_path, mock_workspace_client):
         transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query4.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors_.lst"),
+        error_file=str(tmp_path / "transpile_errors.lst"),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -550,8 +550,8 @@ def test_parse_error_handling(initial_setup, tmp_path, mock_workspace_client):
             stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
-            ".lst"
+        assert (
+            Path(stat["error_log_file"]).name == "transpile_errors.lst"
         ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query4.sql"
@@ -585,7 +585,7 @@ def test_token_error_handling(initial_setup, tmp_path, mock_workspace_client):
         transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query5.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors_.lst"),
+        error_file=str(tmp_path / "transpile_errors.lst"),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -607,8 +607,8 @@ def test_token_error_handling(initial_setup, tmp_path, mock_workspace_client):
             stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
-            ".lst"
+        assert (
+            Path(stat["error_log_file"]).name == "transpile_errors.lst"
         ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query5.sql"

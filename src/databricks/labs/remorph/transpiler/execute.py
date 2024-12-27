@@ -1,7 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
-from time import strftime
+from typing import cast
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -178,9 +178,12 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
 
     error_log_path: Path | None = None
     if result.error_list:
-        timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-        error_log_path = config.error_path or Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
-        with error_log_path.open("a") as e:
+        if config.error_path:
+            error_log_path = config.error_path
+        else:
+            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
+        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
 
     status.append(
