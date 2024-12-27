@@ -9,7 +9,7 @@ from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
-from databricks.labs.remorph.config import TranspileResult
+from databricks.labs.remorph.config import TranspileResult, TranspileConfig
 from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
@@ -68,6 +68,12 @@ class SqlglotEngine(TranspileEngine):
                 error = TranspileError("UNSUPPORTED_SQL", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
                 problem_list.append(ParserProblem(parsed_expression.original_sql, error))
         return transpiled_sqls, problem_list
+
+    async def initialize(self, config: TranspileConfig) -> None:
+        pass
+
+    async def shutdown(self) -> None:
+        pass
 
     async def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
