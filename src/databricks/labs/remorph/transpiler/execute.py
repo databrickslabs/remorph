@@ -100,7 +100,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     file_list = []
     counter = 0
     input_source = Path(str(config.input_source))
-    output_folder = config.output_folder
+    output_folder = config.output_path
     if output_folder is None:
         output_folder = input_source.parent / "transpiled"
     make_dir(output_folder)

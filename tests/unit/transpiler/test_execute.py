@@ -38,6 +38,7 @@ def check_status(
     analysis_error_count: int,
     parsing_error_count: int,
     validation_error_count: int,
+    generation_error_count: int,
     error_file_name: str,
 ):
     assert status is not None, "Status returned by transpile function is None"
@@ -55,6 +56,9 @@ def check_status(
     assert (
         status["validation_error_count"] == validation_error_count
     ), "validation_error_count does not match expected value"
+    assert (
+        status["generation_error_count"] == generation_error_count
+    ), "generation_error_count does not match expected value"
     assert status["error_log_file"], "error_log_file is None or empty"
     assert Path(status["error_log_file"]).name == error_file_name, f"error_log_file does not match {error_file_name}'"
 
@@ -85,7 +89,7 @@ def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]
 
 
 def check_generated(input_source: Path, output_folder: Path):
-    for subdir, _, files in dir_walk(input_source):
+    for _, _, files in dir_walk(input_source):
         for input_file in files:
             if not is_sql_file(input_file):
                 continue
@@ -109,7 +113,7 @@ def test_with_dir_with_output_folder_skipping_validation(
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # check the status
-    check_status(status, 8, 7, 1, 2, 0, error_file.name)
+    check_status(status, 8, 7, 1, 2, 0, 0, error_file.name)
     # check errors
     expected_errors = [
         {
@@ -122,6 +126,7 @@ def test_with_dir_with_output_folder_skipping_validation(
     check_error_lines(status["error_log_file"], expected_errors)
     # check generation
     check_generated(input_source, output_folder)
+
 
 def test_with_file(input_source, error_file, mock_workspace_client):
     sdk_config = create_autospec(Config)
@@ -151,7 +156,7 @@ def test_with_file(input_source, error_file, mock_workspace_client):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # check the status
-    check_status(status, 1, 1, 0, 0, 1, error_file.name)
+    check_status(status, 1, 1, 0, 0, 1, 0, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source!s}/query1.sql", "message": "Mock validation error"}]
     check_error_lines(status["error_log_file"], expected_errors)
@@ -174,7 +179,7 @@ def test_with_file_with_output_folder_skip_validation(input_source, output_folde
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # check the status
-    check_status(status, 1, 1, 0, 0, 0, "None")
+    check_status(status, 1, 1, 0, 0, 0, 0, "None")
 
 
 def test_with_not_a_sql_file_skip_validation(input_source, mock_workspace_client):
@@ -194,7 +199,7 @@ def test_with_not_a_sql_file_skip_validation(input_source, mock_workspace_client
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # check the status
-    check_status(status, 0, 0, 0, 0, 0, "None")
+    check_status(status, 0, 0, 0, 0, 0, 0, "None")
 
 
 def test_with_not_existing_file_skip_validation(input_source, mock_workspace_client):
@@ -292,7 +297,7 @@ def test_with_file_with_success(input_source, mock_workspace_client):
     ):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
-        check_status(status, 1, 1, 0, 0, 0, "None")
+        check_status(status, 1, 1, 0, 0, 0, 0, "None")
 
 
 def test_with_input_source_none(mock_workspace_client):
@@ -324,7 +329,7 @@ def test_parse_error_handling(input_source, error_file, mock_workspace_client):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    check_status(status, 1, 1, 0, 1, 0, error_file.name)
+    check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source}/query4.sql", "message": "Parsing error Start:"}]
     check_error_lines(status["error_log_file"], expected_errors)
@@ -344,7 +349,7 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    check_status(status, 1, 1, 0, 1, 0, error_file.name)
+    check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
     # check errors
     expected_errors = [{"path": f"{input_source}/query5.sql", "message": "Token error Start:"}]
     check_error_lines(status["error_log_file"], expected_errors)
