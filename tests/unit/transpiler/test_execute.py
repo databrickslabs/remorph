@@ -18,6 +18,9 @@ from databricks.labs.remorph.transpiler.execute import (
 )
 from databricks.sdk.core import Config
 
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+
+
 # pylint: disable=unspecified-encoding
 
 
@@ -150,6 +153,7 @@ def initial_setup(tmp_path: Path):
 def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir),
         output_folder=None,
         sdk_config=None,
@@ -159,7 +163,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 
     # call transpile
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -206,6 +210,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
@@ -213,7 +218,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -263,6 +268,7 @@ def test_with_file(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query1.sql"),
         output_folder=None,
         sdk_config=sdk_config,
@@ -282,7 +288,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -302,7 +308,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_path='{input_dir!s}/query1.sql', exception='Mock validation error')
+ValidationError(file_path='{input_dir!s}/query1.sql', error_msg='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
@@ -316,6 +322,7 @@ ValidationError(file_path='{input_dir!s}/query1.sql', exception='Mock validation
 def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
@@ -327,7 +334,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -350,6 +357,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
 def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "file.txt"),
         output_folder=None,
         sdk_config=None,
@@ -361,7 +369,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -384,6 +392,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
 def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "file_not_exist.txt"),
         output_folder=None,
         sdk_config=None,
@@ -395,7 +404,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
             'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
             return_value=MockBackend(),
         ):
-            transpile(mock_workspace_client, config)
+            transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # cleanup
     safe_remove_dir(input_dir)
@@ -403,6 +412,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
 
 def test_transpile_sql(mock_workspace_client):
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         skip_validation=False,
         catalog_name="catalog",
@@ -419,12 +429,13 @@ def test_transpile_sql(mock_workspace_client):
         ),
     ):
         transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
-        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        assert transpiler_result.transpiled_code == 'SELECT\n  col\nFROM table'
         assert validation_result.exception_msg is None
 
 
 def test_transpile_column_exp(mock_workspace_client):
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         source_dialect="snowflake",
         skip_validation=True,
         catalog_name="catalog",
@@ -442,12 +453,12 @@ def test_transpile_column_exp(mock_workspace_client):
     ):
         result = transpile_column_exp(mock_workspace_client, config, query)
         assert len(result) == 3
-        assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
-        assert result[1][0].transpiled_sql[0] == 'col2 * 2'
-        assert result[2][0].transpiled_sql[0] == 'CURRENT_TIMESTAMP()'
-        assert result[0][0].parse_error_list == []
-        assert result[1][0].parse_error_list == []
-        assert result[2][0].parse_error_list == []
+        assert result[0][0].transpiled_code == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
+        assert result[1][0].transpiled_code == 'col2 * 2'
+        assert result[2][0].transpiled_code == 'CURRENT_TIMESTAMP()'
+        assert result[0][0].error_list == []
+        assert result[1][0].error_list == []
+        assert result[2][0].error_list == []
         assert result[0][1] is None
         assert result[1][1] is None
         assert result[2][1] is None
@@ -458,6 +469,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query1.sql"),
         output_folder=None,
         sdk_config=sdk_config,
@@ -475,7 +487,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
         assert status is not None, "Status returned by transpile function is None"
         assert isinstance(status, list), "Status returned by transpile function is not a list"
@@ -492,8 +504,9 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
             assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
 
 
-def test_with_input_sql_none(initial_setup, mock_workspace_client):
+def test_with_input_source_none(initial_setup, mock_workspace_client):
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=None,
         output_folder=None,
         sdk_config=None,
@@ -502,12 +515,13 @@ def test_with_input_sql_none(initial_setup, mock_workspace_client):
     )
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        transpile(mock_workspace_client, config)
+        transpile(mock_workspace_client, SqlglotEngine(), config)
 
 
 def test_parse_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query4.sql"),
         output_folder=None,
         sdk_config=None,
@@ -516,7 +530,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
@@ -564,6 +578,7 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
 def test_token_error_handling(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = TranspileConfig(
+        transpiler_config_path="sqlglot",
         input_source=str(input_dir / "query5.sql"),
         output_folder=None,
         sdk_config=None,
@@ -572,7 +587,7 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = transpile(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
