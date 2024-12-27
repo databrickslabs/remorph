@@ -157,6 +157,7 @@ def input_source(tmp_path: Path):
     yield input_dir
     safe_remove_dir(input_dir)
 
+
 @pytest.fixture
 def output_folder(tmp_path: Path):
     output_dir = tmp_path / "remorph_transpiled"
@@ -171,49 +172,63 @@ def error_file(tmp_path: Path):
     safe_remove_file(file_path)
 
 
-def check_status(status: list[dict[str, Any]],
-                 total_files_processed: int,
-                 total_queries_processed: int,
-                 no_of_sql_failed_while_analysing: int,
-                 no_of_sql_failed_while_parsing: int,
-                 no_of_sql_failed_while_validating: int,
-                 error_file_name: str):
+def check_status(
+    status: list[dict[str, Any]],
+    total_files_processed: int,
+    total_queries_processed: int,
+    failures_while_analysing: int,
+    failures_while_parsing: int,
+    failures_while_validating: int,
+    error_file_name: str,
+):
     assert status is not None, "Status returned by transpile function is None"
     assert isinstance(status, list), "Status returned by transpile function is not a list"
     assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
-        assert stat["total_files_processed"] == total_files_processed, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == total_queries_processed, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_analysing"] == no_of_sql_failed_while_analysing
-        ), "no_of_sql_failed_while_analysing does not match expected value"
+            stat["total_files_processed"] == total_files_processed
+        ), "total_files_processed does not match expected value"
+        assert (
+            stat["total_queries_processed"] == total_queries_processed
+        ), "total_queries_processed does not match expected value"
+        assert (
+            stat["failures_while_analysing"] == failures_while_analysing
+        ), "failures_while_analysing does not match expected value"
 
         assert (
-            stat["no_of_sql_failed_while_parsing"] == no_of_sql_failed_while_parsing
-        ), "no_of_sql_failed_while_parsing does not match expected value"
+            stat["failures_while_parsing"] == failures_while_parsing
+        ), "failures_while_parsing does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_validating"] == no_of_sql_failed_while_validating
-        ), "no_of_sql_failed_while_validating does not match expected value"
+            stat["failures_while_validating"] == failures_while_validating
+        ), "failures_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert (
-            Path(stat["error_log_file"]).name == error_file_name
-        ), f"error_log_file does not match {error_file_name}'"
+        assert Path(stat["error_log_file"]).name == error_file_name, f"error_log_file does not match {error_file_name}'"
 
-def check_error_lines(error_file: str, expected_path: str, expected_message: str):
-    pattern = r"TranspileError\(code=(?P<code>[^,]+), kind=(?P<kind>[^,]+), severity=(?P<severity>[^,]+), path='(?P<path>[^']+)', message='(?P<message>[^']+)'\)"
-    with open(Path(error_file)) as file:
-        line_count = 0
+
+def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]]):
+    pattern = r"TranspileError\(code=(?P<code>[^,]+), kind=(?P<kind>[^,]+), severity=(?P<severity>[^,]+), path='(?P<path>[^']+)', message='(?P<message>[^']+)('\))?"
+    with open(Path(error_file_path)) as file:
+        error_count = 0
+        match_count = 0
         for line in file:
             match = re.match(pattern, line)
             if not match:
                 continue
-            line_count += 1
+            error_count += 1
             # Extract information using group names from the pattern
             error_info = match.groupdict()
             # Perform assertions
-            assert error_info["path"] == expected_path, "Path does not match the expected value"
-            assert expected_message in error_info["message"], "Message does not match the expected value"
-        assert line_count > 0, "Expected errors were not found"
+            for expected_error in expected_errors:
+                if expected_error["path"] == error_info["path"]:
+                    match_count += 1
+                    expected_message = expected_error["message"]
+                    actual_message = error_info["message"]
+                    assert (
+                        expected_message in actual_message
+                    ), f"Message {actual_message} does not match the expected value {expected_message}"
+        assert match_count == len(expected_errors), "Not all expected errors were found"
+        assert error_count == match_count, "Not all actual errors were matched"
+
 
 def test_with_dir_skipping_validation(input_source, output_folder, error_file, mock_workspace_client):
     config = TranspileConfig(
@@ -232,13 +247,20 @@ def test_with_dir_skipping_validation(input_source, output_folder, error_file, m
     # check the status
     check_status(status, 8, 7, 1, 2, 0, error_file.name)
     # check the errors
-    expected_path = f"{input_source!s}/query3.sql"
-    expected_message = f"Unsupported operation found in file {input_source!s}/query3.sql."
-    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
+    expected_errors = [
+        {
+            "path": f"{input_source!s}/query3.sql",
+            "message": f"Unsupported operation found in file {input_source!s}/query3.sql.",
+        },
+        {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
+        {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
+    ]
+    check_error_lines(status[0]["error_log_file"], expected_errors)
 
 
-
-def test_with_dir_with_output_folder_skipping_validation(input_source, output_folder, error_file, mock_workspace_client):
+def test_with_dir_with_output_folder_skipping_validation(
+    input_source, output_folder, error_file, mock_workspace_client
+):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
         input_source=str(input_source),
@@ -253,9 +275,15 @@ def test_with_dir_with_output_folder_skipping_validation(input_source, output_fo
     # check the status
     check_status(status, 8, 7, 1, 2, 0, error_file.name)
     # check errors
-    expected_path = f"{input_source!s}/query3.sql"
-    expected_message = f"Unsupported operation found in file {input_source!s}/query3.sql."
-    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
+    expected_errors = [
+        {
+            "path": f"{input_source!s}/query3.sql",
+            "message": f"Unsupported operation found in file {input_source!s}/query3.sql.",
+        },
+        {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
+        {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
+    ]
+    check_error_lines(status[0]["error_log_file"], expected_errors)
 
 
 def test_with_file(input_source, error_file, mock_workspace_client):
@@ -288,9 +316,8 @@ def test_with_file(input_source, error_file, mock_workspace_client):
     # check the status
     check_status(status, 1, 1, 0, 0, 1, error_file.name)
     # check errors
-    expected_path = f"{input_source!s}/query1.sql"
-    expected_message = f"Mock validation error"
-    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
+    expected_errors = [{"path": f"{input_source!s}/query1.sql", "message": "Mock validation error"}]
+    check_error_lines(status[0]["error_log_file"], expected_errors)
 
 
 def test_with_file_with_output_folder_skip_validation(input_source, output_folder, mock_workspace_client):
@@ -462,9 +489,8 @@ def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, error_file.name)
     # check errors
-    expected_path = f"{input_source}/query4.sql"
-    expected_message = "PARSING ERROR Start:"
-    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
+    expected_errors = [{"path": f"{input_source}/query4.sql", "message": "Parsing error Start:"}]
+    check_error_lines(status[0]["error_log_file"], expected_errors)
 
 
 def test_token_error_handling(input_source, error_file, mock_workspace_client):
@@ -483,6 +509,5 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, error_file.name)
     # check errors
-    expected_path = f"{input_source}/query5.sql"
-    expected_message = "TOKEN ERROR Start:"
-    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
+    expected_errors = [{"path": f"{input_source}/query5.sql", "message": "Token error Start:"}]
+    check_error_lines(status[0]["error_log_file"], expected_errors)
