@@ -178,9 +178,9 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
-        ), "error_log_file does not match expected pattern 'err_*.lst'"
+        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query3.sql"
     expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
@@ -233,9 +233,9 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
-        ), "error_log_file does not match expected pattern 'err_*.lst'"
+        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query3.sql"
     expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
@@ -303,9 +303,9 @@ def test_with_file(initial_setup, mock_workspace_client):
         assert (
             stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
-        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
-        ), "error_log_file does not match expected pattern 'err_*.lst'"
+        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_content = f"""
 ValidationError(file_path='{input_dir!s}/query1.sql', error_msg='Mock validation error')
@@ -546,9 +546,9 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
             stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
-        ), "error_log_file does not match expected pattern 'err_*.lst'"
+        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query4.sql"
     expected_exception = "PARSING ERROR Start:"
@@ -602,9 +602,9 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
             stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
-        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+        assert Path(stat["error_log_file"]).name.startswith("transpile_errors_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
-        ), "error_log_file does not match expected pattern 'err_*.lst'"
+        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
 
     expected_file_name = f"{input_dir}/query5.sql"
     expected_exception = "TOKEN ERROR Start:"
