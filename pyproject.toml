@@ -137,21 +137,6 @@ ban-relative-imports = "all"
   "ARG001" # tests may not use the provided fixtures
 ]
 
-[tool.coverage.run]
-branch = true
-parallel = true
-
-[tool.coverage.report]
-omit = ["src/databricks/labs/remorph/coverage/*",
-  "src/databricks/labs/remorph/helpers/execution_time.py",
-  "__about__.py"]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "def main()",
-]
-
 [tool.pylint.main]
 # PyLint configuration is adapted from Google Python Style Guide with modifications.
 # Sources https://google.github.io/styleguide/pylintrc
