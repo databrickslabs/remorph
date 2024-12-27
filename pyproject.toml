@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "databricks-sdk~=0.29.0",
-  "sqlglot==26.0.0",
+  "sqlglot==26.0.1",
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.7.5,<0.14.0",  # TODO: Limit the LSQL version until dependencies are correct.
   "cryptography>=41.0.3",
@@ -137,21 +137,6 @@ ban-relative-imports = "all"
 "tests/**/*" = [
   "PLR2004", "S101", "TID252", # tests can use magic values, assertions, and relative imports
   "ARG001" # tests may not use the provided fixtures
-]
-
-[tool.coverage.run]
-branch = true
-parallel = true
-
-[tool.coverage.report]
-omit = ["src/databricks/labs/remorph/coverage/*",
-  "src/databricks/labs/remorph/helpers/execution_time.py",
-  "__about__.py"]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "def main()",
 ]
 
 [tool.pylint.main]

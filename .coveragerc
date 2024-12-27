@@ -1,0 +1,15 @@
+[run]
+branch = true
+parallel = true
+omit =
+    src/databricks/labs/remorph/coverage/*
+    src/databricks/labs/remorph/helpers/execution_time.py
+    tests/resources/lsp_transpiler/lsp_server.py
+    __about__.py
+
+[report]
+exclude_lines =
+    no cov
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    def main()
