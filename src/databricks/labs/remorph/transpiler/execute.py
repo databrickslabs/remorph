@@ -34,7 +34,7 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-async def _process_file(
+async def _process_one_file(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
@@ -72,18 +72,13 @@ async def _process_file(
     return transpile_result.success_count, error_list
 
 
-async def _process_directory(
+async def _process_many_files(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
-    root: Path,
-    base_root: Path,
+    output_folder: Path,
     files: list[Path],
 ) -> tuple[int, list[TranspileError]]:
-
-    output_folder = config.output_folder
-    output_folder_base = root / ("transpiled" if output_folder is None else base_root)
-    make_dir(output_folder_base)
 
     counter = 0
     all_errors: list[TranspileError] = []
@@ -92,9 +87,8 @@ async def _process_directory(
         logger.info(f"Processing file :{file}")
         if not is_sql_file(file):
             continue
-
-        output_file_name = output_folder_base / file.name
-        success_count, error_list = await _process_file(config, validator, transpiler, file, output_file_name)
+        output_file_name = output_folder / file.name
+        success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
 
@@ -105,15 +99,17 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     error_list = []
     file_list = []
     counter = 0
-    input_source = str(config.input_source)
-    input_path = Path(input_source)
-    for root, _, files in dir_walk(input_path):
-        base_root = Path(str(root).replace(input_source, ""))
-        folder = str(input_path.resolve().joinpath(base_root))
-        msg = f"Processing for sqls under this folder: {folder}"
-        logger.info(msg)
+    input_source = Path(str(config.input_source))
+    output_folder = config.output_folder
+    if output_folder is None:
+        output_folder = input_source.parent / "transpiled"
+    make_dir(output_folder)
+    for source_dir, _, files in dir_walk(input_source):
+        relative_path = cast(Path, source_dir).relative_to(input_source)
+        transpiled_dir = output_folder / relative_path
+        logger.info(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
         file_list.extend(files)
-        no_of_sqls, errors = await _process_directory(config, validator, transpiler, root, base_root, files)
+        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
         error_list.extend(errors)
     return TranspileStatus(file_list, counter, error_list)
@@ -127,16 +123,14 @@ async def _process_input_file(
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
-    msg = f"Processing sql from this file: {config.input_source}"
+    msg = f"Transpiling sql file: {config.input_source}"
     logger.info(msg)
-    if config.output_path is None:
+    output_path = config.output_path
+    if output_path is None:
         output_path = config.input_path.parent / "transpiled"
-    else:
-        output_path = config.output_path
-
     make_dir(output_path)
     output_file = output_path / config.input_path.name
-    no_of_sqls, error_list = await _process_file(config, validator, transpiler, config.input_path, output_file)
+    no_of_sqls, error_list = await _process_one_file(config, validator, transpiler, config.input_path, output_file)
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
 
 
