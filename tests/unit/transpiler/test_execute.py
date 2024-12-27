@@ -83,34 +83,6 @@ def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]
         assert error_count == match_count, "Not all actual errors were matched"
 
 
-def test_with_dir_skipping_validation(input_source, output_folder, error_file, mock_workspace_client):
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        input_source=str(input_source),
-        output_folder=str(output_folder),
-        error_file=str(error_file),
-        sdk_config=None,
-        source_dialect="snowflake",
-        skip_validation=True,
-    )
-
-    # call transpile
-    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
-    # check the status
-    check_status(status, 8, 7, 1, 2, 0, error_file.name)
-    # check the errors
-    expected_errors = [
-        {
-            "path": f"{input_source!s}/query3.sql",
-            "message": f"Unsupported operation found in file {input_source!s}/query3.sql.",
-        },
-        {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
-        {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
-    ]
-    check_error_lines(status["error_log_file"], expected_errors)
-
-
 def test_with_dir_with_output_folder_skipping_validation(
     input_source, output_folder, error_file, mock_workspace_client
 ):
