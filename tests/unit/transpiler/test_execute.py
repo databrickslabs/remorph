@@ -1,7 +1,7 @@
 import asyncio
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -12,6 +12,7 @@ from databricks.labs.lsql.core import Row
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import TranspileConfig, ValidationResult
+from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
     transpile as do_transpile,
@@ -83,6 +84,16 @@ def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]
         assert error_count == match_count, "Not all actual errors were matched"
 
 
+def check_generated(input_source: Path, output_folder: Path):
+    for subdir, _, files in dir_walk(input_source):
+        for input_file in files:
+            if not is_sql_file(input_file):
+                continue
+            relative = cast(Path, input_file).relative_to(input_source)
+            transpiled = output_folder / relative
+            assert transpiled.exists(), f"Could not find transpiled file {transpiled!s} for {input_file!s}"
+
+
 def test_with_dir_with_output_folder_skipping_validation(
     input_source, output_folder, error_file, mock_workspace_client
 ):
@@ -109,7 +120,8 @@ def test_with_dir_with_output_folder_skipping_validation(
         {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
     ]
     check_error_lines(status["error_log_file"], expected_errors)
-
+    # check generation
+    check_generated(input_source, output_folder)
 
 def test_with_file(input_source, error_file, mock_workspace_client):
     sdk_config = create_autospec(Config)
