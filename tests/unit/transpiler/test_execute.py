@@ -2,6 +2,7 @@ import asyncio
 import re
 import shutil
 from pathlib import Path
+from typing import Any
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -48,8 +49,8 @@ def write_data_to_file(path: Path, content: str):
 
 
 @pytest.fixture
-def initial_setup(tmp_path: Path):
-    input_dir = tmp_path / "remorph_transpile"
+def input_source(tmp_path: Path):
+    input_dir = tmp_path / "remorph_source"
     query_1_sql_file = input_dir / "query1.sql"
     query_2_sql_file = input_dir / "query2.sql"
     query_3_sql_file = input_dir / "query3.sql"
@@ -153,17 +154,73 @@ def initial_setup(tmp_path: Path):
     write_data_to_file(query_5_sql_file, query_5_sql)
     write_data_to_file(stream_1_sql_file, stream_1_sql)
     write_data_to_file(file_text, "This is a test file")
+    yield input_dir
+    safe_remove_dir(input_dir)
 
-    return input_dir
+@pytest.fixture
+def output_folder(tmp_path: Path):
+    output_dir = tmp_path / "remorph_transpiled"
+    yield output_dir
+    safe_remove_dir(output_dir)
 
 
-def test_with_dir_skip_validation(initial_setup, tmp_path, mock_workspace_client):
-    input_dir = initial_setup
+@pytest.fixture
+def error_file(tmp_path: Path):
+    file_path = tmp_path / "transpile_errors.lst"
+    yield file_path
+    safe_remove_file(file_path)
+
+
+def check_status(status: list[dict[str, Any]],
+                 total_files_processed: int,
+                 total_queries_processed: int,
+                 no_of_sql_failed_while_analysing: int,
+                 no_of_sql_failed_while_parsing: int,
+                 no_of_sql_failed_while_validating: int,
+                 error_file_name: str):
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
+    for stat in status:
+        assert stat["total_files_processed"] == total_files_processed, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == total_queries_processed, "total_queries_processed does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_analysing"] == no_of_sql_failed_while_analysing
+        ), "no_of_sql_failed_while_analysing does not match expected value"
+
+        assert (
+            stat["no_of_sql_failed_while_parsing"] == no_of_sql_failed_while_parsing
+        ), "no_of_sql_failed_while_parsing does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_validating"] == no_of_sql_failed_while_validating
+        ), "no_of_sql_failed_while_validating does not match expected value"
+        assert stat["error_log_file"], "error_log_file is None or empty"
+        assert (
+            Path(stat["error_log_file"]).name == error_file_name
+        ), f"error_log_file does not match {error_file_name}'"
+
+def check_error_lines(error_file: str, expected_path: str, expected_message: str):
+    pattern = r"TranspileError\(code=(?P<code>[^,]+), kind=(?P<kind>[^,]+), severity=(?P<severity>[^,]+), path='(?P<path>[^']+)', message='(?P<message>[^']+)'\)"
+    with open(Path(error_file)) as file:
+        line_count = 0
+        for line in file:
+            match = re.match(pattern, line)
+            if not match:
+                continue
+            line_count += 1
+            # Extract information using group names from the pattern
+            error_info = match.groupdict()
+            # Perform assertions
+            assert error_info["path"] == expected_path, "Path does not match the expected value"
+            assert expected_message in error_info["message"], "Message does not match the expected value"
+        assert line_count > 0, "Expected errors were not found"
+
+def test_with_dir_skipping_validation(input_source, output_folder, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir),
-        output_folder=None,
-        error_file=str(tmp_path / "transpile_errors.lst"),
+        input_source=str(input_source),
+        output_folder=str(output_folder),
+        error_file=str(error_file),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -172,122 +229,43 @@ def test_with_dir_skip_validation(initial_setup, tmp_path, mock_workspace_client
     # call transpile
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
-    # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_analysing"] == 1
-        ), "no_of_sql_failed_while_analysing does not match expected value"
-
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 2
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"], "error_log_file is None or empty"
-        assert (
-            Path(stat["error_log_file"]).name == "transpile_errors.lst"
-        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
-
-    expected_file_name = f"{input_dir}/query3.sql"
-    expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
-    pattern = r"ValidationError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
-
-    with open(Path(status[0]["error_log_file"])) as file:
-        for line in file:
-            # Skip empty lines
-            if line.strip() == "":
-                continue
-
-            match = re.match(pattern, line)
-
-            if match:
-                # Extract information using group names from the pattern
-                error_info = match.groupdict()
-                # Perform assertions
-                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
-            else:
-                print("No match found.")
-    # cleanup
-    safe_remove_dir(input_dir)
-    safe_remove_file(Path(status[0]["error_log_file"]))
+    # check the status
+    check_status(status, 8, 7, 1, 2, 0, error_file.name)
+    # check the errors
+    expected_path = f"{input_source!s}/query3.sql"
+    expected_message = f"Unsupported operation found in file {input_source!s}/query3.sql."
+    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
 
 
-def test_with_dir_with_output_folder_skip_validation(initial_setup, tmp_path, mock_workspace_client):
-    input_dir = initial_setup
+
+def test_with_dir_with_output_folder_skipping_validation(input_source, output_folder, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir),
-        output_folder=str(input_dir / "output_transpiled"),
-        error_file=str(tmp_path / "transpile_errors.lst"),
+        input_source=str(input_source),
+        output_folder=str(output_folder),
+        error_file=str(error_file),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
-    # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_analysing"] == 1
-        ), "no_of_sql_failed_while_analysing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 2
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"], "error_log_file is None or empty"
-        assert (
-            Path(stat["error_log_file"]).name == "transpile_errors.lst"
-        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
-
-    expected_file_name = f"{input_dir}/query3.sql"
-    expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
-    pattern = r"ValidationError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
-
-    with open(Path(status[0]["error_log_file"])) as file:
-        for line in file:
-            # Skip empty lines
-            if line.strip() == "":
-                continue
-
-            match = re.match(pattern, line)
-
-            if match:
-                # Extract information using group names from the pattern
-                error_info = match.groupdict()
-                # Perform assertions
-                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
-            else:
-                print("No match found.")
-
-    # cleanup
-    safe_remove_dir(input_dir)
-    safe_remove_file(Path(status[0]["error_log_file"]))
+    # check the status
+    check_status(status, 8, 7, 1, 2, 0, error_file.name)
+    # check errors
+    expected_path = f"{input_source!s}/query3.sql"
+    expected_message = f"Unsupported operation found in file {input_source!s}/query3.sql."
+    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
 
 
-def test_with_file(initial_setup, tmp_path, mock_workspace_client):
-    input_dir = initial_setup
+def test_with_file(input_source, error_file, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "query1.sql"),
+        input_source=str(input_source / "query1.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors.lst"),
+        error_file=str(error_file),
         sdk_config=sdk_config,
         source_dialect="snowflake",
         skip_validation=False,
@@ -307,44 +285,19 @@ def test_with_file(initial_setup, tmp_path, mock_workspace_client):
     ):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
-    # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_analysing"] == 0
-        ), "no_of_sql_failed_while_analysing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 0
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 1
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert (
-            Path(stat["error_log_file"]).name == "transpile_errors.lst"
-        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
-
-    expected_content = f"""
-TranspileError(code=VALIDATION_ERROR, kind=VALIDATION, severity=WARNING, path='{input_dir!s}/query1.sql', message='Mock validation error')
-    """.strip()
-
-    with open(Path(status[0]["error_log_file"])) as file:
-        content = file.read().strip()
-        assert content == expected_content, "File content does not match the expected content"
-    # cleanup
-    safe_remove_dir(input_dir)
-    safe_remove_file(Path(status[0]["error_log_file"]))
+    # check the status
+    check_status(status, 1, 1, 0, 0, 1, error_file.name)
+    # check errors
+    expected_path = f"{input_source!s}/query1.sql"
+    expected_message = f"Mock validation error"
+    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
 
 
-def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
-    input_dir = initial_setup
+def test_with_file_with_output_folder_skip_validation(input_source, output_folder, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "query1.sql"),
-        output_folder=str(input_dir / "output_transpiled"),
+        input_source=str(input_source / "query1.sql"),
+        output_folder=str(output_folder),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -356,29 +309,14 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
     ):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
-    # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 0
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
-    # cleanup
-    safe_remove_dir(input_dir)
+    # check the status
+    check_status(status, 1, 1, 0, 0, 0, "None")
 
 
-def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
-    input_dir = initial_setup
+def test_with_not_a_sql_file_skip_validation(input_source, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "file.txt"),
+        input_source=str(input_source / "file.txt"),
         output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
@@ -391,29 +329,14 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
     ):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
-    # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 0, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 0, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 0
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
-    # cleanup
-    safe_remove_dir(input_dir)
+    # check the status
+    check_status(status, 0, 0, 0, 0, 0, "None")
 
 
-def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
-    input_dir = initial_setup
+def test_with_not_existing_file_skip_validation(input_source, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "file_not_exist.txt"),
+        input_source=str(input_source / "file_not_exist.txt"),
         output_folder=None,
         sdk_config=None,
         source_dialect="snowflake",
@@ -425,9 +348,6 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
             return_value=MockBackend(),
         ):
             transpile(mock_workspace_client, SqlglotEngine(), config)
-
-    # cleanup
-    safe_remove_dir(input_dir)
 
 
 def test_transpile_sql(mock_workspace_client):
@@ -484,13 +404,12 @@ def test_transpile_column_exp(mock_workspace_client):
         assert result[2][1] is None
 
 
-def test_with_file_with_success(initial_setup, mock_workspace_client):
-    input_dir = initial_setup
+def test_with_file_with_success(input_source, mock_workspace_client):
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "query1.sql"),
+        input_source=str(input_source / "query1.sql"),
         output_folder=None,
         sdk_config=sdk_config,
         source_dialect="snowflake",
@@ -509,22 +428,10 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     ):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
-        assert status is not None, "Status returned by transpile function is None"
-        assert isinstance(status, list), "Status returned by transpile function is not a list"
-        assert len(status) > 0, "Status returned by transpile function is an empty list"
-        for stat in status:
-            assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-            assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-            assert (
-                stat["no_of_sql_failed_while_parsing"] == 0
-            ), "no_of_sql_failed_while_parsing does not match expected value"
-            assert (
-                stat["no_of_sql_failed_while_validating"] == 0
-            ), "no_of_sql_failed_while_validating does not match expected value"
-            assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
+        check_status(status, 1, 1, 0, 0, 0, "None")
 
 
-def test_with_input_source_none(initial_setup, mock_workspace_client):
+def test_with_input_source_none(mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
         input_source=None,
@@ -538,13 +445,12 @@ def test_with_input_source_none(initial_setup, mock_workspace_client):
         transpile(mock_workspace_client, SqlglotEngine(), config)
 
 
-def test_parse_error_handling(initial_setup, tmp_path, mock_workspace_client):
-    input_dir = initial_setup
+def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "query4.sql"),
+        input_source=str(input_source / "query4.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors.lst"),
+        error_file=str(error_file),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -554,55 +460,19 @@ def test_parse_error_handling(initial_setup, tmp_path, mock_workspace_client):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 1
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"], "error_log_file is None or empty"
-        assert (
-            Path(stat["error_log_file"]).name == "transpile_errors.lst"
-        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
-
-    expected_file_name = f"{input_dir}/query4.sql"
-    expected_exception = "PARSING ERROR Start:"
-    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
-
-    with open(Path(status[0]["error_log_file"])) as file:
-        for line in file:
-            # Skip empty lines
-            if line.strip() == "":
-                continue
-
-            match = re.match(pattern, line)
-
-            if match:
-                # Extract information using group names from the pattern
-                error_info = match.groupdict()
-                # Perform assertions
-                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
-            else:
-                print("No match found.")
-    # cleanup
-    safe_remove_dir(input_dir)
-    safe_remove_file(Path(status[0]["error_log_file"]))
+    check_status(status, 1, 1, 0, 1, 0, error_file.name)
+    # check errors
+    expected_path = f"{input_source}/query4.sql"
+    expected_message = "PARSING ERROR Start:"
+    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
 
 
-def test_token_error_handling(initial_setup, tmp_path, mock_workspace_client):
-    input_dir = initial_setup
+def test_token_error_handling(input_source, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_dir / "query5.sql"),
+        input_source=str(input_source / "query5.sql"),
         output_folder=None,
-        error_file=str(tmp_path / "transpile_errors.lst"),
+        error_file=str(error_file),
         sdk_config=None,
         source_dialect="snowflake",
         skip_validation=True,
@@ -611,43 +481,8 @@ def test_token_error_handling(initial_setup, tmp_path, mock_workspace_client):
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by transpile function is None"
-    assert isinstance(status, list), "Status returned by transpile function is not a list"
-    assert len(status) > 0, "Status returned by transpile function is an empty list"
-    for stat in status:
-        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_parsing"] == 1
-        ), "no_of_sql_failed_while_parsing does not match expected value"
-        assert (
-            stat["no_of_sql_failed_while_validating"] == 0
-        ), "no_of_sql_failed_while_validating does not match expected value"
-        assert stat["error_log_file"], "error_log_file is None or empty"
-        assert (
-            Path(stat["error_log_file"]).name == "transpile_errors.lst"
-        ), "error_log_file does not match expected pattern 'transpile_errors_*.lst'"
-
-    expected_file_name = f"{input_dir}/query5.sql"
-    expected_exception = "TOKEN ERROR Start:"
-    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
-
-    with open(Path(status[0]["error_log_file"])) as file:
-        for line in file:
-            # Skip empty lines
-            if line.strip() == "":
-                continue
-
-            match = re.match(pattern, line)
-
-            if match:
-                # Extract information using group names from the pattern
-                error_info = match.groupdict()
-                # Perform assertions
-                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
-            else:
-                print("No match found.")
-    # cleanup
-    safe_remove_dir(input_dir)
-    safe_remove_file(Path(status[0]["error_log_file"]))
+    check_status(status, 1, 1, 0, 1, 0, error_file.name)
+    # check errors
+    expected_path = f"{input_source}/query5.sql"
+    expected_message = "TOKEN ERROR Start:"
+    check_error_lines(status[0]["error_log_file"], expected_path, expected_message)
