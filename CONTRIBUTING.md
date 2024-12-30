@@ -127,9 +127,10 @@ brew install maven
 `jdk11` is the jdk used by remorph
 download it from [OpenJDK11](https://www.openlogic.com/openjdk-downloads?field_java_parent_version_target_id=406&field_operating_system_target_id=431&field_architecture_target_id=391&field_java_package_target_id=396) and install it
 
-`python` is the dependency manager for JVM based languages
+
+`python` is the runtime lamguage for remorph
 ```shell
-brew install maven
+brew install python
 ```
 
 `hatch` is a Python project manager
