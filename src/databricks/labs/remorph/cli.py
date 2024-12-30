@@ -46,7 +46,7 @@ def transpile(
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
-    logger.info(f"User: {ctx.current_user}")
+    logger.debug(f"User: {ctx.current_user}")
     default_config = ctx.transpile_config
     if not default_config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
@@ -108,7 +108,7 @@ def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[s
 def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
     ctx = ApplicationContext(w)
-    logger.info(f"User: {ctx.current_user}")
+    logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -122,7 +122,7 @@ def reconcile(w: WorkspaceClient):
 def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
     ctx = ApplicationContext(w)
-    logger.info(f"User: {ctx.current_user}")
+    logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -137,7 +137,7 @@ def aggregates_reconcile(w: WorkspaceClient):
 def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
-    logger.info(f"User: {ctx.current_user}")
+    logger.debug(f"User: {ctx.current_user}")
     engine = TranspileEngine.load_engine(Path(transpiler))
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
