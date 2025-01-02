@@ -18,6 +18,7 @@ dependencies = [
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.7.5,<0.14.0",  # TODO: Limit the LSQL version until dependencies are correct.
   "cryptography>=41.0.3",
+  "pygls>=2.0.0a2",
 ]
 
 [project.urls]
@@ -47,7 +48,8 @@ dependencies = [
   "pylint-pytest==2.0.0a0",
   "coverage[toml]>=6.5",
   "pytest",
-  "pytest-cov>=4.0.0,<5.0.0",
+  "pytest-cov>=5.0.0,<6.0.0",
+  "pytest-asyncio>=0.24.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
@@ -85,6 +87,9 @@ dependencies = [
 [tool.pytest.ini_options]
 addopts = "-s -p no:warnings -vv --cache-clear"
 cache_dir = ".venv/pytest-cache"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope="function"
+
 
 [tool.black]
 target-version = ["py310"]
