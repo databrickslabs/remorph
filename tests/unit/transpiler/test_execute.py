@@ -165,9 +165,9 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
@@ -220,9 +220,9 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
@@ -337,9 +337,9 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -489,9 +489,9 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     ):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
-        assert status is not None, "Status returned by morph function is None"
-        assert isinstance(status, list), "Status returned by morph function is not a list"
-        assert len(status) > 0, "Status returned by morph function is an empty list"
+        assert status is not None, "Status returned by transpile function is None"
+        assert isinstance(status, list), "Status returned by transpile function is not a list"
+        assert len(status) > 0, "Status returned by transpile function is an empty list"
         for stat in status:
             assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
             assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -533,9 +533,9 @@ def test_parse_error_handling(initial_setup, mock_workspace_client):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -589,9 +589,9 @@ def test_token_error_handling(initial_setup, mock_workspace_client):
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
