@@ -8,82 +8,26 @@ SQL Glot - https://github.com/tobymao/sqlglot
 Copyright 2023 Toby Mao
 License - https://github.com/tobymao/sqlglot/blob/main/LICENSE
 
-T-SQL (Transact-SQL, MSSQL) grammar - https://github.com/antlr/grammars-v4/tree/master/sql/tsql
-Copyright (c) 2017, Mark Adams (madams51703@gmail.com)
-Copyright (c) 2015-2017, Ivan Kochurkin (kvanttt@gmail.com), Positive Technologies.
-Copyright (c) 2016, Scott Ure (scott@redstormsoftware.com).
-Copyright (c) 2016, Rui Zhang (ruizhang.ccs@gmail.com).
-Copyright (c) 2016, Marcus Henriksson (kuseman80@gmail.com).
-
-Snowflake Database grammar - https://github.com/antlr/grammars-v4/tree/master/sql/snowflake
-Copyright (c) 2022, Michał Lorek.
-
-SLF4J - https://slf4j.org
-Copyright (c) 2004-2023 QOS.ch
-License - https://www.slf4j.org/license.html
-
-Microsoft JDBC Driver for SQL Server - https://github.com/microsoft/mssql-jdbc
-Copyright (c) Microsoft Corporation
-License - https://github.com/microsoft/mssql-jdbc/blob/main/LICENSE
-
-sql-formatter - https://github.com/vertical-blank/sql-formatter
-Copyright (c) 2019 Yohei Yamana
-License - https://github.com/vertical-blank/sql-formatter/blob/master/LICENSE
-
 This software contains code from the following open source projects, licensed under the Apache 2.0 license:
 
-DataComPy - https://github.com/capitalone/datacompy
-Copyright 2018 Capital One Services, LLC
-License - https://github.com/capitalone/datacompy/blob/develop/LICENSE
-
 Apache Spark - https://github.com/apache/spark
-Copyright 2018 The Apache Software Foundation 
+Copyright 2018 The Apache Software Foundation
 License - https://github.com/apache/spark/blob/master/LICENSE
 
 Databricks SDK for Python - https://github.com/databricks/databricks-sdk-py
 Copyright 2023 Databricks, Inc.  All rights reserved.
 License - https://github.com/databricks/databricks-sdk-py/blob/main/LICENSE
 
-Apache Log4j - https://github.com/apache/logging-log4j2
-Copyright 1999-2024 Apache Software Foundation
-License - https://github.com/apache/logging-log4j2/blob/2.x/LICENSE.txt
-
-Scala Logging - https://github.com/lightbend-labs/scala-logging
-Copyright 2014-2021 Lightbend, Inc.
-License - https://github.com/lightbend-labs/scala-logging?tab=Apache-2.0-1-ov-file#readme
-
-Snowflake JDBC Driver - https://github.com/snowflakedb/snowflake-jdbc
-Copyright 2012-2023 Snowflake Computing, Inc.
-License - https://github.com/snowflakedb/snowflake-jdbc/blob/master/LICENSE.txt
-
-scala-csv - https://github.com/tototoshi/scala-csv
-Copyright 2013-2015 Toshiyuki Takahashi
-License - https://github.com/tototoshi/scala-csv/blob/master/LICENSE.txt
-
 cryptography - https://github.com/pyca/cryptography
 Copyright 2013-2023 The Python Cryptographic Authority and individual contributors.
 License - https://github.com/pyca/cryptography/blob/main/LICENSE
 
-circe - https://github.com/circe/circe
-Copyright (c) 2015, Ephox Pty Ltd, Mark Hibberd, Sean Parsons, Travis Brown, and other contributors. All rights reserved.
-https://github.com/circe/circe/blob/series/0.14.x/LICENSE
-
-circe-generic-extras - https://github.com/circe/circe-generic-extras
-https://github.com/circe/circe-generic-extras/blob/main/LICENSE
-
-circe-jackson - https://github.com/circe/circe-jackson
-https://github.com/circe/circe-jackson/blob/main/LICENSE
-
 This software contains code from the following open source projects, licensed under the BSD license:
-
-ANTLR v4 - https://github.com/antlr/antlr4
-Copyright (c) 2012-2022 The ANTLR Project. All rights reserved. 
-https://github.com/antlr/antlr4/blob/dev/LICENSE.txt
 
 This software contains code from the following publicly available projects, licensed under the Databricks license:
 
 Databricks Labs Blueprint - https://github.com/databrickslabs/blueprint
-Copyright (2023) Databricks, Inc. 
+Copyright (2023) Databricks, Inc.
 https://github.com/databrickslabs/blueprint/blob/main/LICENSE
 
 Databricks Connect - https://pypi.org/project/databricks-connect/
