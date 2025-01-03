@@ -294,18 +294,28 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       ruleName = "createUser",
       tokenName = Some("USER"))
 
-  override def visitCreateView(ctx: CreateViewContext): ir.Catalog = {
-    val viewName = ctx.objectName().getText
-    val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
-    val columns = buildViewColumns(ctx)
-    val allowExisting = ctx.ifNotExists() != null
-    val replace = ctx.orReplace() != null
-    val properties = Map.empty[String, String]
-    val schemaMode = None
-    val comment = Option(ctx.commentClause()).map(c => extractString(c.string()))
-    val viewType = inferViewType(ctx)
-
-    ir.CreateView(viewName, selectStatement, columns, allowExisting, replace, viewType, properties, schemaMode, comment)
+  override def visitCreateView(ctx: CreateViewContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val viewName = ctx.dotIdentifier().getText
+      val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
+      val columns = buildViewColumns(ctx)
+      val allowExisting = false
+      val replace = ctx.REPLACE() != null
+      val properties = Map.empty[String, String]
+      val schemaMode = None
+      val comment = None
+      val viewType = inferViewType(ctx)
+      ir.CreateView(
+        viewName,
+        selectStatement,
+        columns,
+        allowExisting,
+        replace,
+        viewType,
+        properties,
+        schemaMode,
+        comment)
   }
 
   private def inferViewType(ctx: CreateViewContext): ir.ViewType = {

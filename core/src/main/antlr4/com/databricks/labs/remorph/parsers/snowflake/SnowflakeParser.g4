@@ -1998,7 +1998,7 @@ createStream
 temporary: TEMP | TEMPORARY
     ;
 
-tableType: (( LOCAL | GLOBAL)? temporary | VOLATILE) | TRANSIENT
+tableType: (( LOCAL | GLOBAL)? (temporary | VOLATILE)) | TRANSIENT
     ;
 
 withTags: WITH? TAG LPAREN tagDecl (COMMA tagDecl)* RPAREN
@@ -2240,7 +2240,7 @@ viewCol: columnName withMaskingPolicy withTags
     ;
 
 createView
-    : CREATE (OR REPLACE)? SECURE? RECURSIVE? VIEW (IF NOT EXISTS)? dotIdentifier (
+    : CREATE (OR REPLACE)? SECURE? tableType? RECURSIVE? VIEW (IF NOT EXISTS)? dotIdentifier (
         LPAREN columnListWithComment RPAREN
     )? viewCol* withRowAccessPolicy? withTags? copyGrants? (COMMENT EQ string)? AS queryStatement
     ;
