@@ -18,7 +18,7 @@ def proxy_command(app: App, command: str):
 
 
 class JvmProxy:
-    #TODO Refactor this class to use morpheus instead
+    # TODO Refactor this class to use morpheus instead
     def __init__(self):
         self._root = find_project_root(__file__)
         databricks_logger = logging.getLogger("databricks")
