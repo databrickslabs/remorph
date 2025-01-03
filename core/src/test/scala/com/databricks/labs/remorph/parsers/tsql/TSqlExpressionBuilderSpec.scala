@@ -173,15 +173,30 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr("a.b.c", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"), ir.Id("b"))), ir.Id("c")))
     }
 
-    "correctly resolve quoted identifiers" in {
+    "correctly resolve RAW identifiers" in {
       exampleExpr("RAW", _.expression(), simplyNamedColumn("RAW"))
+    }
+
+    "correctly resolve # identifiers" in {
       exampleExpr("#RAW", _.expression(), simplyNamedColumn("#RAW"))
+    }
+
+    "correctly resolve \" quoted identifiers" in {
       exampleExpr("\"a\"", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted identifiers" in {
       exampleExpr("[a]", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted dot identifiers" in {
       exampleExpr(
         "[a].[b]",
         _.expression(),
         ir.Column(Some(ir.ObjectReference(ir.Id("a", caseSensitive = true))), ir.Id("b", caseSensitive = true)))
+    }
+
+    "correctly resolve [] quoted triple dot identifiers" in {
       exampleExpr(
         "[a].[b].[c]",
         _.expression(),
@@ -404,7 +419,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate the $ACTION special column reference" in {
-      exampleExpr("$ACTION", _.expression(), ir.DollarAction())
+      exampleExpr("$ACTION", _.expression(), ir.DollarAction)
     }
 
     "translate a timezone reference" in {
@@ -424,10 +439,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.getRuleIndex).thenReturn(SnowflakeParser.RULE_constraintAction)
 
       // Call the method with the mock instance
-      val result = vc.expressionBuilder.visitSelectListElem(mockCtx)
+      val result = vc.expressionBuilder.buildSelectListElem(mockCtx)
 
       // Verify the result
-      result shouldBe a[ir.UnresolvedExpression]
+      result shouldBe a[Seq[_]]
     }
 
     "cover default case in buildLocalAssign via visitSelectListElem" in {
@@ -442,45 +457,99 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val result = vc.expressionBuilder.visitSelectListElem(selectListElemContextMock)
+      val result = vc.expressionBuilder.buildSelectListElem(selectListElemContextMock)
 
-      result shouldBe a[ir.UnresolvedExpression]
+      result shouldBe a[Seq[_]]
     }
 
-    "translate CAST pseudo function calls with simple scalars" in {
+    "translate CAST(a AS tinyint)" in {
       exampleExpr("CAST(a AS tinyint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ByteType(size = Some(1))))
+    }
+    "translate CAST(a AS smallint)" in {
       exampleExpr("CAST(a AS smallint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ShortType))
+    }
+    "translate CAST(a AS INT)" in {
       exampleExpr("CAST(a AS INT)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.IntegerType))
+    }
+    "translate CAST(a AS bigint)" in {
       exampleExpr("CAST(a AS bigint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.LongType))
+    }
+    "translate CAST(a AS bit)" in {
       exampleExpr("CAST(a AS bit)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BooleanType))
+    }
+    "translate CAST(a AS money)" in {
       exampleExpr(
         "CAST(a AS money)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(19), Some(4))))
+    }
+    "translate CAST(a AS smallmoney)" in {
       exampleExpr(
         "CAST(a AS smallmoney)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(4))))
+    }
+    "translate CAST(a AS float)" in {
       exampleExpr("CAST(a AS float)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.FloatType))
+    }
+    "translate CAST(a AS real)" in {
       exampleExpr("CAST(a AS real)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DoubleType))
+    }
+    "translate CAST(a AS date)" in {
       exampleExpr("CAST(a AS date)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DateType))
+    }
+    "translate CAST(a AS time)" in {
       exampleExpr("CAST(a AS time)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimeType))
+    }
+    "translate CAST(a AS datetime)" in {
       exampleExpr("CAST(a AS datetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+    }
+    "translate CAST(a AS datetime2)" in {
       exampleExpr("CAST(a AS datetime2)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+    }
+    "translate CAST(a AS datetimeoffset)" in {
       exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType))
+    }
+    "translate CAST(a AS smalldatetime)" in {
       exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+    }
+    "translate CAST(a AS char)" in {
       exampleExpr("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
+    }
+    "translate CAST(a AS varchar)" in {
       exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
+    }
+    "translate CAST(a AS nchar)" in {
       exampleExpr("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
+    }
+    "translate CAST(a AS nvarchar)" in {
       exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
+    }
+    "translate CAST(a AS text)" in {
       exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
+    }
+    "translate CAST(a AS ntext)" in {
       exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
+    }
+    "translate CAST(a AS image)" in {
       exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+    }
+    "translate CAST(a AS decimal)" in {
       exampleExpr("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
+    }
+    "translate CAST(a AS numeric)" in {
       exampleExpr("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
+    }
+    "translate CAST(a AS binary)" in {
       exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+    }
+    "translate CAST(a AS varbinary)" in {
       exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+    }
+    "translate CAST(a AS json)" in {
       exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
+    }
+    "translate CAST(a AS uniqueidentifier)" in {
       exampleExpr(
         "CAST(a AS uniqueidentifier)",
         _.expression(),

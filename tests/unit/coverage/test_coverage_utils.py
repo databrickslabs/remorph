@@ -17,8 +17,8 @@ from databricks.labs.remorph.coverage.commons import (
     get_supported_sql_files,
     write_json_line,
 )
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 
 def test_get_supported_sql_files(tmp_path):
@@ -47,7 +47,7 @@ def test_write_json_line(tmp_path):
         commit_hash="6b0e403",
         version="",
         timestamp="2022-01-01T00:00:00",
-        source_dialect="Snow",
+        source_dialect="Snowflake",
         target_dialect="Databricks",
         file="test_file.sql",
     )
@@ -91,7 +91,7 @@ def test_stats_collection_with_invalid_input(tmp_path):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -109,7 +109,7 @@ def test_stats_collection_with_invalid_output_dir(tmp_path):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -127,7 +127,7 @@ def test_stats_collection_with_valid_io_dir(tmp_path):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -154,7 +154,7 @@ def test_stats_collection_with_parse_error(io_dir_pair):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -168,10 +168,10 @@ def test_stats_collection_with_parse_error(io_dir_pair):
             commit_hash="6b0e403",
             version="",
             timestamp=fixed_timestamp.isoformat(),
-            source_dialect="Snow",
+            source_dialect="Snowflake",
             target_dialect="Databricks",
             file="input/test.sql",
-            parsing_error="Some parse error",
+            failures=[{'error_code': "Exception", 'error_message': "Exception('Some parse error')"}],
         )
         retrieved_report_entry = ReportEntry(**json.loads(report_files[0].read_text()))
         assert retrieved_report_entry == expected_report_entry
@@ -195,7 +195,7 @@ def test_stats_collection_with_transpile_error(io_dir_pair):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -209,12 +209,12 @@ def test_stats_collection_with_transpile_error(io_dir_pair):
             commit_hash="6b0e403",
             version="",
             timestamp=fixed_timestamp.isoformat(),
-            source_dialect="Snow",
+            source_dialect="Snowflake",
             target_dialect="Databricks",
             file="input/test.sql",
             parsed=1,
             statements=1,
-            transpilation_error="Some transpilation error",
+            failures=[{'error_code': "Exception", 'error_message': "Exception('Some transpilation error')"}],
         )
         retrieved_report_entry = ReportEntry(**json.loads(report_files[0].read_text()))
         assert retrieved_report_entry == expected_report_entry
@@ -234,7 +234,7 @@ def test_stats_collection_no_error(io_dir_pair):
             project="Remorph",
             commit_hash="6b0e403",
             version="",
-            source_dialect=Snow,
+            source_dialect=Snowflake,
             target_dialect=Databricks,
             input_dir=input_dir,
             result_dir=output_dir,
@@ -248,7 +248,7 @@ def test_stats_collection_no_error(io_dir_pair):
             commit_hash="6b0e403",
             version="",
             timestamp=fixed_timestamp.isoformat(),
-            source_dialect="Snow",
+            source_dialect="Snowflake",
             target_dialect="Databricks",
             file="input/test.sql",
             parsed=1,

@@ -12,10 +12,10 @@ ORDER BY col2 DESC;
     col2,
     TRANSFORM(
       ARRAY_SORT(
-        ARRAY_AGG(NAMED_STRUCT('value', col4, 'sort_by', col3)),
+        ARRAY_AGG(NAMED_STRUCT('value', col4, 'sort_by_0', col3)),
         (left, right) -> CASE
-                                WHEN left.sort_by < right.sort_by THEN -1
-                                WHEN left.sort_by > right.sort_by THEN 1
+                                WHEN left.sort_by_0 < right.sort_by_0 THEN -1
+                                WHEN left.sort_by_0 > right.sort_by_0 THEN 1
                                 ELSE 0
                             END
       ),

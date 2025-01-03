@@ -25,7 +25,8 @@ case class TableDefinition(
     tableFormat: Option[String] = None,
     viewText: Option[String] = None,
     columns: Seq[StructField] = Seq.empty,
-    sizeGb: Int = 0)
+    sizeGb: Int = 0,
+    comment: Option[String] = None)
 
 case class Grant(objectType: String, objectKey: String, principal: String, action: String)
 

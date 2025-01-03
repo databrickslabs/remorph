@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
@@ -47,7 +47,7 @@ def test_read_data_with_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = OracleDataSource(engine, spark, ws, scope)
+    ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -55,17 +55,10 @@ def test_read_data_with_options():
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
-        join_columns=None,
-        select_columns=None,
-        drop_columns=None,
-        column_mapping=None,
-        transformations=None,
-        column_thresholds=None,
-        filters=None,
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    ords.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -96,9 +89,9 @@ def test_get_schema():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = OracleDataSource(engine, spark, ws, scope)
+    ords = OracleDataSource(engine, spark, ws, scope)
     # call test method
-    ds.get_schema(None, "data", "employee")
+    ords.get_schema(None, "data", "employee")
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option().option().option.assert_called_with(
@@ -125,7 +118,7 @@ def test_get_schema():
 def test_read_data_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = OracleDataSource(engine, spark, ws, scope)
+    ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
     table_conf = Table(
         source_name="supplier",
@@ -147,13 +140,13 @@ def test_read_data_exception_handling():
         DataSourceRuntimeException,
         match="Runtime exception occurred while fetching data using select 1 from data.employee : Test Exception",
     ):
-        ds.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+        ords.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = OracleDataSource(engine, spark, ws, scope)
+    ords = OracleDataSource(engine, spark, ws, scope)
 
     spark.read.format().option().option().option().load.side_effect = RuntimeError("Test Exception")
 
@@ -174,4 +167,4 @@ def test_get_schema_exception_handling():
                                                   FROM ALL_TAB_COLUMNS
                                 WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' """,
     ):
-        ds.get_schema(None, "data", "employee")
+        ords.get_schema(None, "data", "employee")

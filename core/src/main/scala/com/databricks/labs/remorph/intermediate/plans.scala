@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.Transformation
+
 /**
  * A [[Plan]] is the structure that carries the runtime information for the execution from the client to the server. A
  * [[Plan]] can either be of the type [[Relation]] which is a reference to the underlying logical plan or it can be of
@@ -47,7 +49,7 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
    * @param rule
    *   the rule to be applied to every expression in this operator.
    */
-  def transformExpressions(rule: PartialFunction[Expression, Expression]): this.type = {
+  def transformExpressions(rule: PartialFunction[Expression, Transformation[Expression]]): Transformation[this.type] = {
     transformExpressionsDown(rule)
   }
 
@@ -57,7 +59,8 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
    * @param rule
    *   the rule to be applied to every expression in this operator.
    */
-  def transformExpressionsDown(rule: PartialFunction[Expression, Expression]): this.type = {
+  def transformExpressionsDown(
+      rule: PartialFunction[Expression, Transformation[Expression]]): Transformation[this.type] = {
     mapExpressions(_.transformDown(rule))
   }
 
@@ -68,7 +71,8 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
    *   the rule to be applied to every expression in this operator.
    * @return
    */
-  def transformExpressionsUp(rule: PartialFunction[Expression, Expression]): this.type = {
+  def transformExpressionsUp(
+      rule: PartialFunction[Expression, Transformation[Expression]]): Transformation[this.type] = {
     mapExpressions(_.transformUp(rule))
   }
 
@@ -76,52 +80,58 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
    * Apply a map function to each expression present in this query operator, and return a new query operator based on
    * the mapped expressions.
    */
-  def mapExpressions(f: Expression => Expression): this.type = {
-    var changed = false
+  def mapExpressions(f: Expression => Transformation[Expression]): Transformation[this.type] = {
 
-    @inline def transformExpression(e: Expression): Expression = {
-      val newE = CurrentOrigin.withOrigin(e.origin) {
-        f(e)
-      }
-      if (newE.fastEquals(e)) {
-        e
-      } else {
-        changed = true
-        newE
+    @inline def transformExpression(e: Expression): Transformation[(Boolean, Expression)] = {
+      f(e).map { ee =>
+        val newE = CurrentOrigin.withOrigin(e.origin)(ee)
+
+        if (newE.fastEquals(e)) {
+          (false, e)
+        } else {
+          (true, newE)
+        }
       }
     }
 
-    def recursiveTransform(arg: Any): AnyRef = arg match {
+    def recursiveTransform(arg: Any): Transformation[(Boolean, AnyRef)] = arg match {
       case e: Expression => transformExpression(e)
-      case Some(value) => Some(recursiveTransform(value))
-      case m: Map[_, _] => m
-      case d: DataType => d // Avoid unpacking Structs
-      case stream: Stream[_] => stream.map(recursiveTransform).force
-      case seq: Iterable[_] => seq.map(recursiveTransform)
-      case other: AnyRef => other
-      case null => null
+      case Some(value) => recursiveTransform(value).map { case (changed, e) => (changed, Some(e)) }
+      case m: Map[_, _] => ok((false, m))
+      case d: DataType => ok((false, d)) // Avoid unpacking Structs
+      case seq: Seq[_] =>
+        seq.map(recursiveTransform).sequence.map { s =>
+          val (changes, result) = s.unzip
+          (changes.exists(identity), result)
+        }
+      case other: AnyRef => ok((false, other))
+      case null => ok((false, null))
     }
 
-    val newArgs = mapProductIterator(recursiveTransform)
+    mapProductIterator(recursiveTransform).toSeq.sequence.map { seq =>
+      val (changes, args) = seq.unzip
+      if (changes.exists(identity)) makeCopy(args.toArray).asInstanceOf[this.type]
+      else this
+    }
 
-    if (changed) makeCopy(newArgs).asInstanceOf[this.type] else this
   }
 
   /**
    * Returns the result of running [[transformExpressions]] on this node and all its children. Note that this method
    * skips expressions inside subqueries.
    */
-  def transformAllExpressions(rule: PartialFunction[Expression, Expression]): this.type = {
+  def transformAllExpressions(
+      rule: PartialFunction[Expression, Transformation[Expression]]): Transformation[this.type] = {
     transform { case q: Plan[_] =>
-      q.transformExpressions(rule).asInstanceOf[PlanType]
-    }.asInstanceOf[this.type]
+      q.transformExpressions(rule).map(_.asInstanceOf[PlanType])
+    }.asInstanceOf[Transformation[this.type]]
   }
 
   /**
    * Returns all of the expressions present in this query (that is expression defined in this plan operator and in each
    * its descendants).
    */
-  def expressions: Seq[Expression] = { // TODO: bring back `final` after "expressions" in Project is renamed
+  final def expressions: Seq[Expression] = {
     // Recursively find all expressions from a traversable.
     def seqToExpressions(seq: Iterable[Any]): Iterable[Expression] = seq.flatMap {
       case e: Expression => e :: Nil
@@ -163,6 +173,7 @@ abstract class LogicalPlan extends Plan[LogicalPlan] {
       UnresolvedType
     }
   }
+
 }
 
 abstract class LeafNode extends LogicalPlan {

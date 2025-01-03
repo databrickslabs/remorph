@@ -11,7 +11,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     lower,
     transform_expression,
 )
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 
 logger = logging.getLogger(__name__)
 

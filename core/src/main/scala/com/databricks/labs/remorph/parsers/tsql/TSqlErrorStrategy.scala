@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.SqlErrorStrategy
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{StringContext => _, _}
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.IntervalSet
 
@@ -66,7 +66,7 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
     } else ""
   }
 
-  private val vowels = Set('a', 'e', 'i', 'o', 'u')
+  private[this] val vowels = Set('a', 'e', 'i', 'o', 'u')
 
   def articleFor(word: String): String = {
     if (word.nonEmpty && vowels.contains(word.head.toLower)) "an" else "a"
@@ -122,7 +122,7 @@ object TSqlErrorStrategy {
 
   // A map that will override teh default display name for tokens that represent text with
   // pattern matches like IDENTIFIER, STRING, etc.
-  private val tokenTranslation: Map[Int, String] = Map(
+  private[TSqlErrorStrategy] val tokenTranslation: Map[Int, String] = Map(
     AAPSEUDO -> "@@Reference",
     DOUBLE_QUOTE_ID -> "Identifier",
     FLOAT -> "Float",
@@ -135,6 +135,7 @@ object TSqlErrorStrategy {
     STRING -> "'String'",
     TEMP_ID -> "Identifier",
     -1 -> "End of batch",
+    JINJA_REF -> "Jinja Template Element",
 
     // When the next thing we expect can be every statement, we just say "statement"
     ALTER -> "Statement",
@@ -203,8 +204,10 @@ object TSqlErrorStrategy {
     PLUS -> "Operator",
     SE -> "Operator")
 
-  private val ruleTranslation: Map[String, String] = Map(
+  private[TSqlErrorStrategy] val ruleTranslation: Map[String, String] = Map(
     "tSqlFile" -> "T-SQL batch",
+    "executeBodyBatch" -> "Stored procedure call",
+    "jingjaTemplate" -> "Jinja template element",
     "selectStatement" -> "SELECT statement",
     "selectStatementStandalone" -> "SELECT statement",
     "selectList" -> "SELECT list",
@@ -257,7 +260,7 @@ object TSqlErrorStrategy {
     "tableSource" -> "table source",
     "tableSourceItem" -> "table source")
 
-  private val keywordIDs: IntervalSet = new IntervalSet(
+  private[TSqlErrorStrategy] val keywordIDs: IntervalSet = new IntervalSet(
     ABORT,
     ABORT_AFTER_WAIT,
     ABSENT,
@@ -329,11 +332,9 @@ object TSqlErrorStrategy {
     AVAILABILITY_MODE,
     BACKUP_CLONEDB,
     BACKUP_PRIORITY,
-    BASE64,
     BEFORE,
     BEGIN_DIALOG,
-    BIGINT,
-    BINARY_KEYWORD,
+    BINARY,
     BINDING,
     BLOB_STORAGE,
     BLOCK,
@@ -563,7 +564,6 @@ object TSqlErrorStrategy {
     KEY_STORE_PROVIDER_NAME,
     KEYS,
     KEYSET,
-    KWINT,
     LANGUAGE,
     LAST,
     LEVEL,
@@ -668,7 +668,6 @@ object TSqlErrorStrategy {
     NTILE,
     NTLM,
     NUMANODE,
-    NUMBER,
     NUMERIC_ROUNDABORT,
     OBJECT,
     OFFLINE,
@@ -718,7 +717,6 @@ object TSqlErrorStrategy {
     POOL,
     PORT,
     PRECEDING,
-    PRECISION,
     PREDICATE,
     PRIMARY_ROLE,
     PRIOR,
@@ -734,12 +732,10 @@ object TSqlErrorStrategy {
     PROPERTY,
     PROVIDER,
     PROVIDER_KEY_NAME,
-    PYTHON,
     QUERY,
     QUEUE,
     QUEUE_DELAY,
     QUOTED_IDENTIFIER,
-    R,
     RANDOMIZED,
     RANGE,
     RC2,
@@ -855,8 +851,7 @@ object TSqlErrorStrategy {
     SIGNATURE,
     SINGLE_USER,
     SIZE,
-    SKIP_KEYWORD,
-    SMALLINT,
+    KWSKIP,
     SNAPSHOT,
     SOFTNUMA,
     SORT_IN_TEMPDB,
@@ -866,7 +861,6 @@ object TSqlErrorStrategy {
     SPATIAL_WINDOW_MAX_CELLS,
     SPECIFICATION,
     SPLIT,
-    SQL,
     SQLDUMPERFLAGS,
     SQLDUMPERPATH,
     SQLDUMPERTIMEOUT,
@@ -912,7 +906,6 @@ object TSqlErrorStrategy {
     TIES,
     TIMEOUT,
     TIMER,
-    TINYINT,
     TORN_PAGE_DETECTION,
     TOSTRING,
     TRACE,

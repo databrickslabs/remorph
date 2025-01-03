@@ -1,11 +1,12 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.ParsingError
+import com.databricks.labs.remorph.coverage.ErrorEncoders
+import com.databricks.labs.remorph.intermediate.{ParsingError, RemorphError}
 import org.antlr.v4.runtime._
 import org.apache.logging.log4j.{LogManager, Logger}
-import upickle.default._
 
 import scala.collection.mutable.ListBuffer
+import io.circe.syntax._
 
 sealed trait ErrorCollector extends BaseErrorListener {
   def logErrors(): Unit = {}
@@ -20,7 +21,7 @@ class EmptyErrorCollector extends ErrorCollector
 class DefaultErrorCollector extends ErrorCollector {
 
   var count: Int = 0
-  private val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
+  private[this] val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
 
   override def syntaxError(
       recognizer: Recognizer[_, _],
@@ -37,7 +38,7 @@ class DefaultErrorCollector extends ErrorCollector {
   override def reset(): Unit = count = 0
 }
 
-class ProductionErrorCollector(sourceCode: String, fileName: String) extends ErrorCollector {
+class ProductionErrorCollector(sourceCode: String, fileName: String) extends ErrorCollector with ErrorEncoders {
   val errors: ListBuffer[ParsingError] = ListBuffer()
   val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 
@@ -120,7 +121,7 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
     }
   }
 
-  override def errorsAsJson: String = write(errors.toList)
+  override def errorsAsJson: String = errors.toList.map(_.asInstanceOf[RemorphError]).asJson.noSpaces
 
   override def errorCount: Int = errors.size
 

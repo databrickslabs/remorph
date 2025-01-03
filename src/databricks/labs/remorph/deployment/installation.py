@@ -112,10 +112,10 @@ class WorkspaceInstallation:
             logger.error(f"Check if {self._installation.install_folder()} is present. Aborting uninstallation.")
             return
 
-        if config.morph:
+        if config.transpile:
             logging.info(
-                f"Won't remove transpile validation schema `{config.morph.schema_name}` "
-                f"from catalog `{config.morph.catalog_name}`. Please remove it manually."
+                f"Won't remove transpile validation schema `{config.transpile.schema_name}` "
+                f"from catalog `{config.transpile.catalog_name}`. Please remove it manually."
             )
 
         if config.reconcile:

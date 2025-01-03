@@ -4,6 +4,7 @@ import com.databricks.labs.remorph.parsers.ParserCommon
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.{intermediate => ir}
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     extends SnowflakeParserBaseVisitor[ir.Catalog]
@@ -19,92 +20,102 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
   private def extractString(ctx: StrContext): String =
     ctx.accept(vc.expressionBuilder) match {
       case ir.StringLiteral(s) => s
+      // TODO: Do not throw an error here - we need to generate an UnresolvedCatalog for it
+      //       However, it is likely that we will neveer see this in the wild
       case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
     }
 
-  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog = ctx match {
-    case a if a.alterCommand() != null => a.alterCommand().accept(this)
-    case c if c.createCommand() != null => c.createCommand().accept(this)
-    case d if d.dropCommand() != null => d.dropCommand().accept(this)
-    case u if u.undropCommand() != null => u.undropCommand().accept(this)
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case a if a.alterCommand() != null => a.alterCommand().accept(this)
+        case c if c.createCommand() != null => c.createCommand().accept(this)
+        case d if d.dropCommand() != null => d.dropCommand().accept(this)
+        case u if u.undropCommand() != null => u.undropCommand().accept(this)
+      }
   }
 
-  override def visitCreateCommand(ctx: CreateCommandContext): ir.Catalog = {
-    ctx match {
-      case c if c.createAccount() != null => c.createAccount().accept(this)
-      case c if c.createAlert() != null => c.createAlert().accept(this)
-      case c if c.createApiIntegration() != null => c.createApiIntegration().accept(this)
-      case c if c.createObjectClone() != null => c.createObjectClone().accept(this)
-      case c if c.createConnection() != null => c.createConnection().accept(this)
-      case c if c.createDatabase() != null => c.createDatabase().accept(this)
-      case c if c.createDynamicTable() != null => c.createDynamicTable().accept(this)
-      case c if c.createEventTable() != null => c.createEventTable().accept(this)
-      case c if c.createExternalFunction() != null => c.createExternalFunction().accept(this)
-      case c if c.createExternalTable() != null => c.createExternalTable().accept(this)
-      case c if c.createFailoverGroup() != null => c.createFailoverGroup().accept(this)
-      case c if c.createFileFormat() != null => c.createFileFormat().accept(this)
-      case c if c.createFunction() != null => c.createFunction().accept(this)
-      case c if c.createManagedAccount() != null => c.createManagedAccount().accept(this)
-      case c if c.createMaskingPolicy() != null => c.createMaskingPolicy().accept(this)
-      case c if c.createMaterializedView() != null => c.createMaterializedView().accept(this)
-      case c if c.createNetworkPolicy() != null => c.createNetworkPolicy().accept(this)
-      case c if c.createNotificationIntegration() != null => c.createNotificationIntegration().accept(this)
-      case c if c.createPipe() != null => c.createPipe().accept(this)
-      case c if c.createProcedure() != null => c.createProcedure().accept(this)
-      case c if c.createReplicationGroup() != null => c.createReplicationGroup().accept(this)
-      case c if c.createResourceMonitor() != null => c.createResourceMonitor().accept(this)
-      case c if c.createRole() != null => c.createRole().accept(this)
-      case c if c.createRowAccessPolicy() != null => c.createRowAccessPolicy().accept(this)
-      case c if c.createSchema() != null => c.createSchema().accept(this)
-      case c if c.createSecurityIntegrationExternalOauth() != null =>
-        c.createSecurityIntegrationExternalOauth().accept(this)
-      case c if c.createSecurityIntegrationSnowflakeOauth() != null =>
-        c.createSecurityIntegrationSnowflakeOauth().accept(this)
-      case c if c.createSecurityIntegrationSaml2() != null => c.createSecurityIntegrationSaml2().accept(this)
-      case c if c.createSecurityIntegrationScim() != null => c.createSecurityIntegrationScim().accept(this)
-      case c if c.createSequence() != null => c.createSequence().accept(this)
-      case c if c.createSessionPolicy() != null => c.createSessionPolicy().accept(this)
-      case c if c.createShare() != null => c.createShare().accept(this)
-      case c if c.createStage() != null => c.createStage().accept(this)
-      case c if c.createStorageIntegration() != null => c.createStorageIntegration().accept(this)
-      case c if c.createStream() != null => c.createStream().accept(this)
-      case c if c.createTable() != null => c.createTable().accept(this)
-      case c if c.createTableAsSelect() != null => c.createTableAsSelect().accept(this)
-      case c if c.createTableLike() != null => c.createTableLike().accept(this)
-      case c if c.createTag() != null => c.createTag().accept(this)
-      case c if c.createTask() != null => c.createTask().accept(this)
-      case c if c.createUser() != null => c.createUser().accept(this)
-      case c if c.createView() != null => c.createView().accept(this)
-      case c if c.createWarehouse() != null => c.createWarehouse().accept(this)
-      case _ =>
-        ir.UnresolvedCatalog(ruleText = contextText(ctx), "Unknown CREATE XXX command", ruleName = "createCommand")
-    }
+  override def visitCreateCommand(ctx: CreateCommandContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case c if c.createAccount() != null => c.createAccount().accept(this)
+        case c if c.createAlert() != null => c.createAlert().accept(this)
+        case c if c.createApiIntegration() != null => c.createApiIntegration().accept(this)
+        case c if c.createObjectClone() != null => c.createObjectClone().accept(this)
+        case c if c.createConnection() != null => c.createConnection().accept(this)
+        case c if c.createDatabase() != null => c.createDatabase().accept(this)
+        case c if c.createDynamicTable() != null => c.createDynamicTable().accept(this)
+        case c if c.createEventTable() != null => c.createEventTable().accept(this)
+        case c if c.createExternalFunction() != null => c.createExternalFunction().accept(this)
+        case c if c.createExternalTable() != null => c.createExternalTable().accept(this)
+        case c if c.createFailoverGroup() != null => c.createFailoverGroup().accept(this)
+        case c if c.createFileFormat() != null => c.createFileFormat().accept(this)
+        case c if c.createFunction() != null => c.createFunction().accept(this)
+        case c if c.createManagedAccount() != null => c.createManagedAccount().accept(this)
+        case c if c.createMaskingPolicy() != null => c.createMaskingPolicy().accept(this)
+        case c if c.createMaterializedView() != null => c.createMaterializedView().accept(this)
+        case c if c.createNetworkPolicy() != null => c.createNetworkPolicy().accept(this)
+        case c if c.createNotificationIntegration() != null => c.createNotificationIntegration().accept(this)
+        case c if c.createPipe() != null => c.createPipe().accept(this)
+        case c if c.createProcedure() != null => c.createProcedure().accept(this)
+        case c if c.createReplicationGroup() != null => c.createReplicationGroup().accept(this)
+        case c if c.createResourceMonitor() != null => c.createResourceMonitor().accept(this)
+        case c if c.createRole() != null => c.createRole().accept(this)
+        case c if c.createRowAccessPolicy() != null => c.createRowAccessPolicy().accept(this)
+        case c if c.createSchema() != null => c.createSchema().accept(this)
+        case c if c.createSecurityIntegrationExternalOauth() != null =>
+          c.createSecurityIntegrationExternalOauth().accept(this)
+        case c if c.createSecurityIntegrationSnowflakeOauth() != null =>
+          c.createSecurityIntegrationSnowflakeOauth().accept(this)
+        case c if c.createSecurityIntegrationSaml2() != null => c.createSecurityIntegrationSaml2().accept(this)
+        case c if c.createSecurityIntegrationScim() != null => c.createSecurityIntegrationScim().accept(this)
+        case c if c.createSequence() != null => c.createSequence().accept(this)
+        case c if c.createSessionPolicy() != null => c.createSessionPolicy().accept(this)
+        case c if c.createShare() != null => c.createShare().accept(this)
+        case c if c.createStage() != null => c.createStage().accept(this)
+        case c if c.createStorageIntegration() != null => c.createStorageIntegration().accept(this)
+        case c if c.createStream() != null => c.createStream().accept(this)
+        case c if c.createTable() != null => c.createTable().accept(this)
+        case c if c.createTableAsSelect() != null => c.createTableAsSelect().accept(this)
+        case c if c.createTableLike() != null => c.createTableLike().accept(this)
+        case c if c.createTag() != null => c.createTag().accept(this)
+        case c if c.createTask() != null => c.createTask().accept(this)
+        case c if c.createUser() != null => c.createUser().accept(this)
+        case c if c.createView() != null => c.createView().accept(this)
+        case c if c.createWarehouse() != null => c.createWarehouse().accept(this)
+        case _ =>
+          ir.UnresolvedCatalog(ruleText = contextText(ctx), "Unknown CREATE XXX command", ruleName = "createCommand")
+      }
   }
 
-  override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
-    val runtimeInfo = ctx match {
-      case c if c.JAVA() != null => buildJavaUDF(c)
-      case c if c.PYTHON() != null => buildPythonUDF(c)
-      case c if c.JAVASCRIPT() != null => ir.JavaScriptRuntimeInfo
-      case c if c.SCALA() != null => buildScalaUDF(c)
-      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
-    }
-    val name = ctx.objectName().getText
-    val returnType = vc.typeBuilder.buildDataType(ctx.dataType())
-    val parameters = ctx.argDecl().asScala.map(buildParameter)
-    val acceptsNullParameters = ctx.CALLED() != null
-    val body = buildFunctionBody(ctx.functionDefinition())
-    val comment = Option(ctx.commentClause()).map(c => extractString(c.string()))
-    ir.CreateInlineUDF(name, returnType, parameters, runtimeInfo, acceptsNullParameters, comment, body)
+  override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val runtime = Option(ctx.id()).map(_.getText.toLowerCase(Locale.ROOT)).getOrElse("sql")
+      val runtimeInfo =
+        runtime match {
+          case r if r == "java" => buildJavaUDF(ctx)
+          case r if r == "python" => buildPythonUDF(ctx)
+          case r if r == "javascript" => ir.JavaScriptRuntimeInfo
+          case r if r == "scala" => buildScalaUDF(ctx)
+          case _ => ir.SQLRuntimeInfo(ctx.MEMOIZABLE() != null)
+        }
+      val name = ctx.dotIdentifier().getText
+      val returnType = vc.typeBuilder.buildDataType(ctx.dataType())
+      val parameters = ctx.argDecl().asScala.map(buildParameter)
+      val acceptsNullParameters = ctx.CALLED() != null
+      val body = buildFunctionBody(ctx.functionDefinition())
+      val comment = Option(ctx.com).map(extractString)
+      ir.CreateInlineUDF(name, returnType, parameters, runtimeInfo, acceptsNullParameters, comment, body)
   }
 
-  private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
+  private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter =
     ir.FunctionParameter(
-      name = ctx.argName().getText,
-      dataType = vc.typeBuilder.buildDataType(ctx.argDataType().dataType()),
-      defaultValue = Option(ctx.argDefaultValueClause())
-        .map(_.expr().accept(vc.expressionBuilder)))
-  }
+      name = ctx.id().getText,
+      dataType = vc.typeBuilder.buildDataType(ctx.dataType()),
+      defaultValue = Option(ctx.expr()).map(_.accept(vc.expressionBuilder)))
 
   private def buildFunctionBody(ctx: FunctionDefinitionContext): String = extractString(ctx.string()).trim
 
@@ -140,44 +151,55 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     ir.PythonRuntimeInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
-  override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = {
-    val tableName = ctx.objectName().getText
-    val columns = buildColumnDeclarations(
-      ctx
-        .createTableClause()
-        .columnDeclItemListParen()
-        .columnDeclItemList()
-        .columnDeclItem()
-        .asScala)
+  override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = ctx.dotIdentifier().getText
+      val columns = buildColumnDeclarations(
+        ctx
+          .createTableClause()
+          .columnDeclItemListParen()
+          .columnDeclItemList()
+          .columnDeclItem()
+          .asScala)
+      if (ctx.REPLACE() != null) {
+        ir.ReplaceTableCommand(tableName, columns, true)
+      } else {
+        ir.CreateTableCommand(tableName, columns)
+      }
 
-    ir.CreateTableCommand(tableName, columns)
   }
 
-  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = {
-    val tableName = ctx.objectName().getText
-    val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
-    // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
-    val create = ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
-    // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
-    // TODO Capture other Table Properties
-    val colConstraints = Map.empty[String, Seq[ir.Constraint]]
-    val colOptions = Map.empty[String, Seq[ir.GenericOption]]
-    val constraints = Seq.empty[ir.Constraint]
-    val indices = Seq.empty[ir.Constraint]
-    val partition = None
-    val options = None
-    ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
+  override def visitCreateTableAsSelect(ctx: CreateTableAsSelectContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = ctx.dotIdentifier().getText
+      val selectStatement = ctx.queryStatement().accept(vc.relationBuilder)
+      // Currently TableType is not used in the IR and Databricks doesn't support Temporary Tables
+      val create = if (ctx.REPLACE() != null) {
+        ir.ReplaceTableAsSelect(tableName, selectStatement, Map.empty[String, String], true, false)
+      } else {
+        ir.CreateTableAsSelect(tableName, selectStatement, None, None, None)
+      }
+      // Wrapping the CreateTableAsSelect in a CreateTableParams to maintain implementation consistency
+      // TODO Capture other Table Properties
+      val colConstraints = Map.empty[String, Seq[ir.Constraint]]
+      val colOptions = Map.empty[String, Seq[ir.GenericOption]]
+      val constraints = Seq.empty[ir.Constraint]
+      val indices = Seq.empty[ir.Constraint]
+      val partition = None
+      val options = None
+      ir.CreateTableParams(create, colConstraints, colOptions, constraints, indices, partition, options)
   }
 
-  override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
+  override def visitCreateStream(ctx: CreateStreamContext): ir.Catalog =
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE STREAM UNSUPPORTED",
       ruleName = contextRuleName(ctx),
       tokenName = Some("STREAM"))
-  }
 
-  override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
+  override def visitCreateTask(ctx: CreateTaskContext): ir.Catalog = {
     ir.UnresolvedCommand(
       ruleText = contextText(ctx),
       "CREATE TASK UNSUPPORTED",
@@ -210,13 +232,32 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     val name = ctx.colDecl().columnName().getText
     val dataType = vc.typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
-    val nullability = if (ctx.nullNotNull().isEmpty) {
+    val identityConstraints = if (ctx.defaultValue() != null) {
+      ctx.defaultValue().asScala.map(buildDefaultValue)
+    } else {
+      Seq()
+    }
+    val nullability = if (ctx.NULL().isEmpty) {
       Seq()
     } else {
-      Seq(ir.Nullability(!ctx.nullNotNull().asScala.exists(_.NOT() != null)))
+      Seq(ir.Nullability(ctx.NOT() == null))
     }
-    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
+    ir.ColumnDeclaration(
+      name,
+      dataType,
+      virtualColumnDeclaration = None,
+      nullability ++ constraints ++ identityConstraints)
   }
+
+  private def buildDefaultValue(ctx: DefaultValueContext): ir.Constraint = {
+    ctx match {
+      case c if c.DEFAULT() != null => ir.DefaultValueConstraint(c.expr().accept(vc.expressionBuilder))
+      case c if c.AUTOINCREMENT() != null => ir.IdentityConstraint(None, None, always = true)
+      case c if c.IDENTITY() != null =>
+        ir.IdentityConstraint(Some(ctx.startWith().getText), Some(ctx.incrementBy().getText), false, true)
+    }
+  }
+
   private[snowflake] def buildOutOfLineConstraints(ctx: OutOfLineConstraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.columnListInParentheses(0).columnList().columnName().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)
@@ -224,7 +265,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
       case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique(Seq.empty))
       case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey(Seq.empty))
       case c if c.foreignKey() != null =>
-        val referencedObject = c.objectName().getText
+        val referencedObject = c.dotIdentifier().getText
         val references =
           c.columnListInParentheses(1).columnList().columnName().asScala.map(referencedObject + "." + _.getText)
         references.map(ref => ir.ForeignKey("", ref, "", Seq.empty))
@@ -241,7 +282,7 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     case c if c.UNIQUE() != null => ir.Unique()
     case c if c.primaryKey() != null => ir.PrimaryKey()
     case c if c.foreignKey() != null =>
-      val references = c.objectName().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
+      val references = c.dotIdentifier().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
       ir.ForeignKey("", references, "", Seq.empty)
     case c => ir.UnresolvedConstraint(c.getText)
   }
@@ -284,32 +325,36 @@ class SnowflakeDDLBuilder(override val vc: SnowflakeVisitorCoordinator)
     Seq.empty[(String, Option[String])]
   }
 
-  override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
-    ctx match {
-      case c if c.alterTable() != null => c.alterTable().accept(this)
-      case _ =>
-        ir.UnresolvedCommand(
-          ruleText = contextText(ctx),
-          ruleName = vc.ruleName(ctx),
-          tokenName = Some(tokenName(ctx.getStart)),
-          message = s"Unknown ALTER command variant")
-    }
+  override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case c if c.alterTable() != null => c.alterTable().accept(this)
+        case _ =>
+          ir.UnresolvedCommand(
+            ruleText = contextText(ctx),
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)),
+            message = s"Unknown ALTER command variant")
+      }
   }
 
-  override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
-    val tableName = ctx.objectName(0).getText
-    ctx match {
-      case c if c.tableColumnAction() != null =>
-        ir.AlterTableCommand(tableName, buildColumnActions(c.tableColumnAction()))
-      case c if c.constraintAction() != null =>
-        ir.AlterTableCommand(tableName, buildConstraintActions(c.constraintAction()))
-      case _ =>
-        ir.UnresolvedCatalog(
-          ruleText = contextText(ctx),
-          message = "Unknown ALTER TABLE variant",
-          ruleName = vc.ruleName(ctx),
-          tokenName = Some(tokenName(ctx.getStart)))
-    }
+  override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val tableName = ctx.dotIdentifier(0).getText
+      ctx match {
+        case c if c.tableColumnAction() != null =>
+          ir.AlterTableCommand(tableName, buildColumnActions(c.tableColumnAction()))
+        case c if c.constraintAction() != null =>
+          ir.AlterTableCommand(tableName, buildConstraintActions(c.constraintAction()))
+        case _ =>
+          ir.UnresolvedCommand(
+            ruleText = contextText(ctx),
+            message = "Unknown ALTER TABLE variant",
+            ruleName = vc.ruleName(ctx),
+            tokenName = Some(tokenName(ctx.getStart)))
+      }
   }
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {

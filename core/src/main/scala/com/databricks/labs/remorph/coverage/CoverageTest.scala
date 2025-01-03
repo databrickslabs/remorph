@@ -4,15 +4,18 @@ import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFi
 
 import java.time.Instant
 
+import io.circe.generic.auto._
+import io.circe.syntax._
+
 case class DialectCoverageTest(dialectName: String, queryRunner: QueryRunner)
 
 case class IndividualError(description: String, nbOccurrences: Int, example: String)
 
 case class ErrorsSummary(parseErrors: Seq[IndividualError], transpileErrors: Seq[IndividualError])
 
-class CoverageTest {
+class CoverageTest extends ErrorEncoders {
 
-  private val dialectCoverageTests = Seq(
+  private[this] val dialectCoverageTests = Seq(
     DialectCoverageTest("snowflake", new IsTranspiledFromSnowflakeQueryRunner),
     DialectCoverageTest("tsql", new IsTranspiledFromTSqlQueryRunner))
 
@@ -68,7 +71,7 @@ class CoverageTest {
     }
 
     reportsByDialect.foreach { case (dialect, reports) =>
-      reports.foreach(report => os.write.append(outputFilePath, ujson.write(report.asJson, indent = -1) + "\n"))
+      reports.foreach(report => os.write.append(outputFilePath, report.asJson.noSpaces + "\n"))
       val total = reports.size
       val parsed = reports.map(_.report.parsed).sum
       val transpiled = reports.map(_.report.transpiled).sum

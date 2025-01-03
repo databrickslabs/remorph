@@ -8,7 +8,8 @@ from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_from_dialect, ReconcileMetadataConfig
+from databricks.labs.remorph.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
@@ -98,40 +99,40 @@ def generate_final_reconcile_output(
     _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
     recon_df = spark.sql(
         f"""
-    SELECT 
-    CASE 
-        WHEN COALESCE(MAIN.SOURCE_TABLE.CATALOG, '') <> '' THEN CONCAT(MAIN.SOURCE_TABLE.CATALOG, '.', MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME) 
-        ELSE CONCAT(MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME) 
-    END AS SOURCE_TABLE, 
-    CONCAT(MAIN.TARGET_TABLE.CATALOG, '.', MAIN.TARGET_TABLE.SCHEMA, '.', MAIN.TARGET_TABLE.TABLE_NAME) AS TARGET_TABLE, 
+    SELECT
+    CASE
+        WHEN COALESCE(MAIN.SOURCE_TABLE.CATALOG, '') <> '' THEN CONCAT(MAIN.SOURCE_TABLE.CATALOG, '.', MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME)
+        ELSE CONCAT(MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME)
+    END AS SOURCE_TABLE,
+    CONCAT(MAIN.TARGET_TABLE.CATALOG, '.', MAIN.TARGET_TABLE.SCHEMA, '.', MAIN.TARGET_TABLE.TABLE_NAME) AS TARGET_TABLE,
     CASE WHEN lower(MAIN.report_type) in ('all', 'row', 'data') THEN
-    CASE 
-        WHEN METRICS.recon_metrics.row_comparison.missing_in_source = 0 AND METRICS.recon_metrics.row_comparison.missing_in_target = 0 THEN TRUE 
-        ELSE FALSE 
-    END 
-    ELSE NULL END AS ROW, 
+    CASE
+        WHEN METRICS.recon_metrics.row_comparison.missing_in_source = 0 AND METRICS.recon_metrics.row_comparison.missing_in_target = 0 THEN TRUE
+        ELSE FALSE
+    END
+    ELSE NULL END AS ROW,
     CASE WHEN lower(MAIN.report_type) in ('all', 'data') THEN
-    CASE 
-        WHEN (METRICS.run_metrics.status = true) or 
-         (METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND METRICS.recon_metrics.column_comparison.mismatch_columns = '') THEN TRUE 
-        ELSE FALSE 
-    END 
-    ELSE NULL END AS COLUMN, 
+    CASE
+        WHEN (METRICS.run_metrics.status = true) or
+         (METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND METRICS.recon_metrics.column_comparison.mismatch_columns = '') THEN TRUE
+        ELSE FALSE
+    END
+    ELSE NULL END AS COLUMN,
     CASE WHEN lower(MAIN.report_type) in ('all', 'schema') THEN
-    CASE 
-        WHEN METRICS.recon_metrics.schema_comparison = true THEN TRUE 
-        ELSE FALSE 
+    CASE
+        WHEN METRICS.recon_metrics.schema_comparison = true THEN TRUE
+        ELSE FALSE
     END
     ELSE NULL END AS SCHEMA,
-    METRICS.run_metrics.exception_message AS EXCEPTION_MESSAGE 
-    FROM 
-        {_db_prefix}.{_RECON_TABLE_NAME} MAIN 
-    INNER JOIN 
-        {_db_prefix}.{_RECON_METRICS_TABLE_NAME} METRICS 
-    ON 
-        (MAIN.recon_table_id = METRICS.recon_table_id) 
-    WHERE 
-        MAIN.recon_id = '{recon_id}' 
+    METRICS.run_metrics.exception_message AS EXCEPTION_MESSAGE
+    FROM
+        {_db_prefix}.{_RECON_TABLE_NAME} MAIN
+    INNER JOIN
+        {_db_prefix}.{_RECON_METRICS_TABLE_NAME} METRICS
+    ON
+        (MAIN.recon_table_id = METRICS.recon_table_id)
+    WHERE
+        MAIN.recon_id = '{recon_id}'
     """
     )
     table_output = []
@@ -172,25 +173,25 @@ def generate_final_reconcile_aggregate_output(
          target_table,
           EVERY(status) AS status,
            ARRAY_JOIN(COLLECT_SET(exception_message), '\n') AS exception_message
-        FROM  
-        (SELECT 
+        FROM
+        (SELECT
             IF(ISNULL(main.source_table.catalog)
                 , CONCAT_WS('.', main.source_table.schema, main.source_table.table_name)
-                , CONCAT_WS('.', main.source_table.catalog, main.source_table.schema, main.source_table.table_name)) AS source_table,     
-            CONCAT_WS('.', main.target_table.catalog, main.target_table.schema, main.target_table.table_name) AS target_table, 
-            IF(metrics.run_metrics.status='true', TRUE , FALSE) AS status, 
+                , CONCAT_WS('.', main.source_table.catalog, main.source_table.schema, main.source_table.table_name)) AS source_table,
+            CONCAT_WS('.', main.target_table.catalog, main.target_table.schema, main.target_table.table_name) AS target_table,
+            IF(metrics.run_metrics.status='true', TRUE , FALSE) AS status,
             metrics.run_metrics.exception_message AS exception_message
-            FROM 
-                {_db_prefix}.{_RECON_TABLE_NAME} main 
-            INNER JOIN 
-                {_db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME} metrics 
-            ON 
-                (MAIN.recon_table_id = METRICS.recon_table_id 
-                AND MAIN.operation_name = 'aggregates-reconcile') 
-            WHERE 
-                MAIN.recon_id = '{recon_id}'  
+            FROM
+                {_db_prefix}.{_RECON_TABLE_NAME} main
+            INNER JOIN
+                {_db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME} metrics
+            ON
+                (MAIN.recon_table_id = METRICS.recon_table_id
+                AND MAIN.operation_name = 'aggregates-reconcile')
+            WHERE
+                MAIN.recon_id = '{recon_id}'
         )
-        GROUP BY source_table, target_table; 
+        GROUP BY source_table, target_table;
     """
     )
     table_output = []
@@ -265,20 +266,20 @@ class ReconCapture:
             f"""
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
-                case 
+                case
                     when '{source_dialect_key}' = 'databricks' then 'Databricks'
                     when '{source_dialect_key}' = 'snowflake' then 'Snowflake'
                     when '{source_dialect_key}' = 'oracle' then 'Oracle'
                     else '{source_dialect_key}'
                 end as source_type,
                 named_struct(
-                    'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end, 
-                    'schema', '{self.database_config.source_schema}', 
+                    'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end,
+                    'schema', '{self.database_config.source_schema}',
                     'table_name', '{table_conf.source_name}'
                 ) as source_table,
                 named_struct(
-                    'catalog', '{self.database_config.target_catalog}', 
-                    'schema', '{self.database_config.target_schema}', 
+                    'catalog', '{self.database_config.target_catalog}',
+                    'schema', '{self.database_config.target_schema}',
                     'table_name', '{table_conf.target_name}'
                 ) as target_table,
                 '{self.report_type}' as report_type,
@@ -360,26 +361,26 @@ class ReconCapture:
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
-                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') 
+                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data')
                         and '{exception_msg}' = '' then
                      named_struct(
                         'missing_in_source', cast({data_reconcile_output.missing_in_src_count} as bigint),
                         'missing_in_target', cast({data_reconcile_output.missing_in_tgt_count} as bigint)
                     ) else null end,
-                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') 
+                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data')
                         and '{exception_msg}' = '' then
                     named_struct(
                         'absolute_mismatch', cast({data_reconcile_output.mismatch_count} as bigint),
                         'threshold_mismatch', cast({data_reconcile_output.threshold_output.threshold_mismatch_count} as bigint),
                         'mismatch_columns', '{",".join(mismatch_columns)}'
                     ) else null end,
-                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 
+                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema')
                         and '{exception_msg}' = '' then
                         {schema_reconcile_output.is_valid} else null end
                 ) as recon_metrics,
                 named_struct(
-                    'status', {status}, 
-                    'run_by_user', '{self.ws.current_user.me().user_name}', 
+                    'status', {status},
+                    'run_by_user', '{self.ws.current_user.me().user_name}',
                     'exception_message', "{exception_msg}"
                 ) as run_metrics,
                 cast('{insertion_time}' as timestamp) as inserted_ts
@@ -539,8 +540,8 @@ class ReconCapture:
                             'mismatch', {agg_data.mismatch_count}
                     ), null) as recon_metrics,
                     named_struct(
-                        'status', {status}, 
-                        'run_by_user', '{self.ws.current_user.me().user_name}', 
+                        'status', {status},
+                        'run_by_user', '{self.ws.current_user.me().user_name}',
                         'exception_message', "{exception_msg}"
                     ) as run_metrics,
                     cast('{insertion_time}' as timestamp) as inserted_ts

@@ -31,17 +31,31 @@ THE SOFTWARE.
 // =================================================================================
 parser grammar SnowflakeParser;
 
+import procedure, commonparse, jinja;
+
 options {
     tokenVocab = SnowflakeLexer;
 }
 
-snowflakeFile: batch? EOF
+// ============== Dialect compatibiltiy rules ==============
+// The following rules provide substitutes for grammar rules referenced in the procedure.g4 grammar, that
+// we do not have real equivalents for in this gramamr.
+// Over time, as we homogonize more and more of the dialect grammars, these rules will be removed.
+
+// TODO: We will move genericOption into a parsercommon.g4 and reference it in all dialects for common option processing
+// For now, this rule is not used within the Snowflake rules, but it will be
+genericOption: ID EQ (string | INT | trueFalse | jsonLiteral)
     ;
 
-batch: sqlCommand (SEMI* sqlCommand)* SEMI*
+// ======================================================
+
+snowflakeFile: SEMI* batch? EOF
     ;
 
-sqlCommand
+batch: (sqlClauses SEMI*)+
+    ;
+
+sqlClauses
     : ddlCommand
     | dmlCommand
     | showCommand
@@ -64,7 +78,7 @@ dmlCommand
     ;
 
 insertStatement
-    : INSERT OVERWRITE? INTO objectName (L_PAREN ids += id (COMMA ids += id)* R_PAREN)? (
+    : INSERT OVERWRITE? INTO dotIdentifier (LPAREN ids += id (COMMA ids += id)* RPAREN)? (
         valuesTableBody
         | queryStatement
     )
@@ -75,10 +89,10 @@ insertMultiTableStatement
     | INSERT OVERWRITE? (FIRST | ALL) (WHEN searchCondition THEN intoClause2+)+ (ELSE intoClause2)? subquery
     ;
 
-intoClause2: INTO objectName (L_PAREN columnList R_PAREN)? valuesList?
+intoClause2: INTO dotIdentifier (LPAREN columnList RPAREN)? valuesList?
     ;
 
-valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
+valuesList: VALUES LPAREN valueItem (COMMA valueItem)* RPAREN
     ;
 
 valueItem: columnName | DEFAULT | NULL
@@ -99,7 +113,7 @@ mergeCondNotMatch: WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
 mergeUpdateDelete: UPDATE SET setColumnValue (COMMA setColumnValue)* | DELETE
     ;
 
-mergeInsert: INSERT ((L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN)?
+mergeInsert: INSERT ((LPAREN columnList RPAREN)? VALUES LPAREN exprList RPAREN)?
     ;
 
 updateStatement
@@ -111,10 +125,10 @@ updateStatement
 setColumnValue: columnName EQ expr
     ;
 
-tableRef: objectName asAlias?
+tableRef: dotIdentifier asAlias?
     ;
 
-tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
+tableOrQuery: tableRef | LPAREN subquery RPAREN asAlias?
     ;
 
 tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
@@ -156,44 +170,20 @@ otherCommand
 snowSqlCommand: SQLCOMMAND
     ;
 
-procStatement
-    : call
-    | declareCommand
-    | let
-    | executeImmediate
-    | returnStatement
-    | unresolvedStatement
-    ;
-
-unresolvedStatement: string
-    ;
-
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
     ;
 
 copyIntoTable
-    : COPY INTO objectName FROM (tableStage | userStage | namedStage | externalLocation) files? pattern? fileFormat? copyOptions* (
+    : COPY INTO dotIdentifier FROM (tableStage | userStage | namedStage | externalLocation) files? pattern? fileFormat? copyOptions* (
         VALIDATION_MODE EQ (RETURN_N_ROWS | RETURN_ERRORS | RETURN_ALL_ERRORS)
     )?
     //
     /* Data load with transformation */
-    | COPY INTO objectName (L_PAREN columnList R_PAREN)? FROM L_PAREN SELECT selectList FROM (
+    | COPY INTO dotIdentifier (LPAREN columnList RPAREN)? FROM LPAREN SELECT selectList FROM (
         tableStage
         | userStage
         | namedStage
-    ) R_PAREN files? pattern? fileFormat? copyOptions*
-    ;
-
-// see https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
-declareCommand: DECLARE declareStatement+
-    ;
-
-declareStatement
-    : id dataType SEMI                                   # declareSimple
-    | id dataType DEFAULT expr SEMI                      # declareWithDefault
-    | id CURSOR FOR expr SEMI                            # declareCursor
-    | id RESULTSET ((ASSIGN | DEFAULT) expr)? SEMI       # declareResultSet
-    | id EXCEPTION L_PAREN INT COMMA string R_PAREN SEMI # declareException
+    ) RPAREN files? pattern? fileFormat? copyOptions*
     ;
 
 externalLocation
@@ -201,7 +191,7 @@ externalLocation
     //(for Amazon S3)
     //'s3://<bucket>[/<path>]'
     //        ( ( STORAGE_INTEGRATION EQ id_ )?
-    //        | ( CREDENTIALS EQ L_PAREN ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) R_PAREN )?
+    //        | ( CREDENTIALS EQ LPAREN ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) RPAREN )?
     //        )?
     //        [ ENCRYPTION = ( [ TYPE = 'AWS_CSE' ] [ MASTER_KEY = '<string>' ] |
     //                   [ TYPE = 'AWS_SSE_S3' ] |
@@ -216,15 +206,15 @@ externalLocation
     // (for Microsoft Azure)
     //'azure://<account>.blob.core.windows.net/<container>[/<path>]'
     //        (   ( STORAGE_INTEGRATION EQ id_ )?
-    //            | ( CREDENTIALS EQ L_PAREN ( AZURE_SAS_TOKEN EQ string ) R_PAREN )
+    //            | ( CREDENTIALS EQ LPAREN ( AZURE_SAS_TOKEN EQ string ) RPAREN )
     //        )?
     //[ ENCRYPTION = ( [ TYPE = { 'AZURE_CSE' | 'NONE' } ] [ MASTER_KEY = '<string>' ] ) ]
     ;
 
-files: FILES EQ L_PAREN string (COMMA string)* R_PAREN
+files: FILES EQ LPAREN string (COMMA string)* RPAREN
     ;
 
-fileFormat: FILE_FORMAT EQ L_PAREN (formatName | formatType) R_PAREN
+fileFormat: FILE_FORMAT EQ LPAREN (formatName | formatType) RPAREN
     ;
 
 formatName: FORMAT_NAME EQ string
@@ -235,46 +225,44 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
 
 let
     // variable and resultset are covered under the same visitor since expr is common
-    : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
-    | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
-    ;
-
-returnStatement: RETURN expr SEMI
+    : LET id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
+    | LET id CURSOR FOR (selectStatement | id) SEMI               # letCursor
     ;
 
 stageFileFormat
-    : STAGE_FILE_FORMAT EQ L_PAREN FORMAT_NAME EQ string
-    | TYPE EQ typeFileformat formatTypeOptions+ R_PAREN
+    : STAGE_FILE_FORMAT EQ LPAREN FORMAT_NAME EQ string
+    | TYPE EQ typeFileformat formatTypeOptions+ RPAREN
     ;
 
 copyIntoLocation
     : COPY INTO (tableStage | userStage | namedStage | externalLocation) FROM (
-        objectName
-        | L_PAREN queryStatement R_PAREN
+        dotIdentifier
+        | LPAREN queryStatement RPAREN
     ) partitionBy? fileFormat? copyOptions? (VALIDATION_MODE EQ RETURN_ROWS)? HEADER?
     ;
 
 comment
-    : COMMENT ifExists? ON objectTypeName objectName functionSignature? IS string
-    | COMMENT ifExists? ON COLUMN objectName IS string
+    : COMMENT (IF EXISTS)? ON objectTypeName dotIdentifier functionSignature? IS string
+    | COMMENT (IF EXISTS)? ON COLUMN dotIdentifier IS string
     ;
 
-functionSignature: L_PAREN dataTypeList? R_PAREN
+functionSignature: LPAREN dataTypeList? RPAREN
     ;
 
 commit: COMMIT WORK?
     ;
 
-executeImmediate: EXECUTE IMMEDIATE (string | id | ID2) (USING L_PAREN id (COMMA id)* R_PAREN)?
+executeImmediate
+    : EXECUTE IMMEDIATE (string | id | LOCAL_ID) (USING LPAREN id (COMMA id)* RPAREN)?
     ;
 
-executeTask: EXECUTE TASK objectName
+executeTask: EXECUTE TASK dotIdentifier
     ;
 
-explain: EXPLAIN (USING (TABULAR | JSON | TEXT))? sqlCommand
+explain: EXPLAIN (USING (TABULAR | JSON | id))? sqlClauses
     ;
 
-parallel: PARALLEL EQ num
+parallel: PARALLEL EQ INT
     ;
 
 getDml: GET (namedStage | userStage | tableStage) string parallel? pattern?
@@ -282,7 +270,10 @@ getDml: GET (namedStage | userStage | tableStage) string parallel? pattern?
 
 grantOwnership
     : GRANT OWNERSHIP (
-        ON (objectTypeName objectName | ALL objectTypePlural IN ( DATABASE id | SCHEMA schemaName))
+        ON (
+            objectTypeName dotIdentifier
+            | ALL objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
+        )
         | ON FUTURE objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
     ) TO ROLE id (( REVOKE | COPY) CURRENT GRANTS)?
     ;
@@ -296,11 +287,11 @@ grantToRole
             | WAREHOUSE
             | DATABASE
             | INTEGRATION
-        ) objectName
+        ) dotIdentifier
         | (schemaPrivileges | ALL PRIVILEGES?) ON (SCHEMA schemaName | ALL SCHEMAS IN DATABASE id)
         | ( schemaPrivileges | ALL PRIVILEGES?) ON FUTURE SCHEMAS IN DATABASE id
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON (
-            objectType objectName
+            objectType dotIdentifier
             | ALL objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
         )
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON FUTURE objectTypePlural IN (
@@ -404,7 +395,7 @@ grantToShare
         DATABASE id
         | SCHEMA id
         | FUNCTION id
-        | ( TABLE objectName | ALL TABLES IN SCHEMA schemaName)
+        | ( TABLE dotIdentifier | ALL TABLES IN SCHEMA schemaName)
         | VIEW id
     ) TO SHARE id
     ;
@@ -433,14 +424,14 @@ tableStage: AT schemaName? MODULE id stagePath?
     ;
 
 //  @[<namespace>.]<extStageName>[/<path>]
-namedStage: AT objectName stagePath?
+namedStage: AT dotIdentifier stagePath?
     ;
 
 stagePath: DIVIDE (ID (DIVIDE ID)* DIVIDE?)?
     ;
 
 put
-    : PUT string (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
+    : PUT string (tableStage | userStage | namedStage) (PARALLEL EQ INT)? (
         AUTO_COMPRESS EQ trueFalse
     )? (
         SOURCE_COMPRESSION EQ (
@@ -467,11 +458,11 @@ revokeFromRole
             | WAREHOUSE
             | DATABASE
             | INTEGRATION
-        ) objectName
+        ) dotIdentifier
         | (schemaPrivileges | ALL PRIVILEGES?) ON (SCHEMA schemaName | ALL SCHEMAS IN DATABASE id)
         | (schemaPrivileges | ALL PRIVILEGES?) ON (FUTURE SCHEMAS IN DATABASE <dbName>)
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON (
-            objectType objectName
+            objectType dotIdentifier
             | ALL objectTypePlural IN SCHEMA schemaName
         )
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON FUTURE objectTypePlural IN (
@@ -485,8 +476,8 @@ revokeFromShare
     : REVOKE objectPrivilege ON (
         DATABASE id
         | SCHEMA schemaName
-        | ( TABLE objectName | ALL TABLES IN SCHEMA schemaName)
-        | ( VIEW objectName | ALL VIEWS IN SCHEMA schemaName)
+        | ( TABLE dotIdentifier | ALL TABLES IN SCHEMA schemaName)
+        | ( VIEW dotIdentifier | ALL VIEWS IN SCHEMA schemaName)
     ) FROM SHARE id
     ;
 
@@ -496,16 +487,16 @@ revokeRole: REVOKE ROLE roleName FROM (ROLE roleName | USER id)
 rollback: ROLLBACK WORK?
     ;
 
-set: SET id EQ expr | SET L_PAREN id (COMMA id)* R_PAREN EQ L_PAREN expr (COMMA expr)* R_PAREN
+set: SET id EQ expr | SET LPAREN id (COMMA id)* RPAREN EQ LPAREN expr (COMMA expr)* RPAREN
     ;
 
-truncateMaterializedView: TRUNCATE MATERIALIZED VIEW objectName
+truncateMaterializedView: TRUNCATE MATERIALIZED VIEW dotIdentifier
     ;
 
-truncateTable: TRUNCATE TABLE? ifExists? objectName
+truncateTable: TRUNCATE TABLE? (IF EXISTS)? dotIdentifier
     ;
 
-unset: UNSET id | UNSET L_PAREN id (COMMA id)* R_PAREN
+unset: UNSET id | UNSET LPAREN id (COMMA id)* RPAREN
     ;
 
 // alter commands
@@ -554,10 +545,10 @@ alterCommand
 
 accountParams
     : ALLOW_ID_TOKEN EQ trueFalse
-    | CLIENT_ENCRYPTION_KEY_SIZE EQ num
+    | CLIENT_ENCRYPTION_KEY_SIZE EQ INT
     | ENFORCE_SESSION_POLICY EQ trueFalse
     | EXTERNAL_OAUTH_ADD_PRIVILEGED_ROLES_TO_BLOCKED_LIST EQ trueFalse
-    | INITIAL_REPLICATION_SIZE_LIMIT_IN_TB EQ num
+    | INITIAL_REPLICATION_SIZE_LIMIT_IN_TB EQ INT
     | NETWORK_POLICY EQ string
     | PERIODIC_DATA_REKEYING EQ trueFalse
     | PREVENT_UNLOAD_TO_INLINE_URL EQ trueFalse
@@ -570,15 +561,15 @@ accountParams
     ;
 
 objectParams
-    : DATA_RETENTION_TIME_IN_DAYS EQ num
-    | MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
+    : DATA_RETENTION_TIME_IN_DAYS EQ INT
+    | MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT
     | defaultDdlCollation
-    | MAX_CONCURRENCY_LEVEL EQ num
+    | MAX_CONCURRENCY_LEVEL EQ INT
     | NETWORK_POLICY EQ string
     | PIPE_EXECUTION_PAUSED EQ trueFalse
     | SESSION_POLICY EQ string
-    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ num
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num
+    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ INT
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT
     ;
 
 defaultDdlCollation: DEFAULT_DDL_COLLATION_ EQ string
@@ -594,16 +585,16 @@ objectProperties
     | EMAIL EQ string
     | MUST_CHANGE_PASSWORD EQ trueFalse
     | DISABLED EQ trueFalse
-    | DAYS_TO_EXPIRY EQ num
-    | MINS_TO_UNLOCK EQ num
+    | DAYS_TO_EXPIRY EQ INT
+    | MINS_TO_UNLOCK EQ INT
     | DEFAULT_WAREHOUSE EQ string
     | DEFAULT_NAMESPACE EQ string
     | DEFAULT_ROLE EQ string
-    //| DEFAULT_SECONDARY_ROLES EQ L_PAREN 'ALL' R_PAREN
-    | MINS_TO_BYPASS_MFA EQ num
+    //| DEFAULT_SECONDARY_ROLES EQ LPAREN 'ALL' RPAREN
+    | MINS_TO_BYPASS_MFA EQ INT
     | RSA_PUBLIC_KEY EQ string
     | RSA_PUBLIC_KEY_2 EQ string
-    | commentClause
+    | (COMMENT EQ string)
     ;
 
 sessionParams
@@ -615,12 +606,12 @@ sessionParams
     | DATE_OUTPUT_FORMAT EQ string
     | ERROR_ON_NONDETERMINISTIC_MERGE EQ trueFalse
     | ERROR_ON_NONDETERMINISTIC_UPDATE EQ trueFalse
-    | JSON_INDENT EQ num
-    | LOCK_TIMEOUT EQ num
+    | JSON_INDENT EQ INT
+    | LOCK_TIMEOUT EQ INT
     | QUERY_TAG EQ string
-    | ROWS_PER_RESULTSET EQ num
+    | ROWS_PER_RESULTSET EQ INT
     | SIMULATED_DATA_SHARING_CONSUMER EQ string
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT
     | STRICT_JSON_OUTPUT EQ trueFalse
     | TIMESTAMP_DAY_IS_ALWAYS_24H EQ trueFalse
     | TIMESTAMP_INPUT_FORMAT EQ string
@@ -633,11 +624,11 @@ sessionParams
     | TIME_INPUT_FORMAT EQ string
     | TIME_OUTPUT_FORMAT EQ string
     | TRANSACTION_DEFAULT_ISOLATION_LEVEL EQ string
-    | TWO_DIGIT_CENTURY_START EQ num
+    | TWO_DIGIT_CENTURY_START EQ INT
     | UNSUPPORTED_DDL_ACTION EQ string
     | USE_CACHED_RESULT EQ trueFalse
-    | WEEK_OF_YEAR_POLICY EQ num
-    | WEEK_START EQ num
+    | WEEK_OF_YEAR_POLICY EQ INT
+    | WEEK_START EQ INT
     ;
 
 alterAccount: ALTER ACCOUNT alterAccountOpts
@@ -647,11 +638,11 @@ enabledTrueFalse: ENABLED EQ trueFalse
     ;
 
 alterAlert
-    : ALTER ALERT ifExists? id (
+    : ALTER ALERT (IF EXISTS)? id (
         resumeSuspend
         | SET alertSetClause+
         | UNSET alertUnsetClause+
-        | MODIFY CONDITION EXISTS L_PAREN alertCondition R_PAREN
+        | MODIFY CONDITION EXISTS LPAREN alertCondition RPAREN
         | MODIFY ACTION alertAction
     )
     ;
@@ -659,21 +650,21 @@ alterAlert
 resumeSuspend: RESUME | SUSPEND
     ;
 
-alertSetClause: WAREHOUSE EQ id | SCHEDULE EQ string | commentClause
+alertSetClause: WAREHOUSE EQ id | SCHEDULE EQ string | (COMMENT EQ string)
     ;
 
 alertUnsetClause: WAREHOUSE | SCHEDULE | COMMENT
     ;
 
 alterApiIntegration
-    : ALTER API? INTEGRATION ifExists? id SET (API_AWS_ROLE_ARN EQ string)? (
+    : ALTER API? INTEGRATION (IF EXISTS)? id SET (API_AWS_ROLE_ARN EQ string)? (
         AZURE_AD_APPLICATION_ID EQ string
-    )? (API_KEY EQ string)? enabledTrueFalse? (API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN)? (
-        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
-    )? commentClause?
+    )? (API_KEY EQ string)? enabledTrueFalse? (API_ALLOWED_PREFIXES EQ LPAREN string RPAREN)? (
+        API_BLOCKED_PREFIXES EQ LPAREN string RPAREN
+    )? (COMMENT EQ string)?
     | ALTER API? INTEGRATION id setTags
     | ALTER API? INTEGRATION id unsetTags
-    | ALTER API? INTEGRATION ifExists? id UNSET apiIntegrationProperty (
+    | ALTER API? INTEGRATION (IF EXISTS)? id UNSET apiIntegrationProperty (
         COMMA apiIntegrationProperty
     )*
     ;
@@ -685,14 +676,14 @@ alterConnection: ALTER CONNECTION alterConnectionOpts
     ;
 
 alterDatabase
-    : ALTER DATABASE ifExists? id RENAME TO id
-    | ALTER DATABASE ifExists? id SWAP WITH id
-    | ALTER DATABASE ifExists? id SET (DATA_RETENTION_TIME_IN_DAYS EQ num)? (
-        MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
-    )? defaultDdlCollation? commentClause?
+    : ALTER DATABASE (IF EXISTS)? id RENAME TO id
+    | ALTER DATABASE (IF EXISTS)? id SWAP WITH id
+    | ALTER DATABASE (IF EXISTS)? id SET (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (
+        MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT
+    )? defaultDdlCollation? (COMMENT EQ string)?
     | ALTER DATABASE id setTags
     | ALTER DATABASE id unsetTags
-    | ALTER DATABASE ifExists? id UNSET databaseProperty (COMMA databaseProperty)*
+    | ALTER DATABASE (IF EXISTS)? id UNSET databaseProperty (COMMA databaseProperty)*
     | ALTER DATABASE id ENABLE REPLICATION TO ACCOUNTS accountIdList (IGNORE EDITION CHECK)?
     | ALTER DATABASE id DISABLE REPLICATION ( TO ACCOUNTS accountIdList)?
     | ALTER DATABASE id REFRESH
@@ -709,23 +700,23 @@ databaseProperty
     | COMMENT
     ;
 
-accountIdList: accountIdentifier (COMMA accountIdentifier)*
+accountIdList: id (COMMA id)*
     ;
 
 alterDynamicTable: ALTER DYNAMIC TABLE id (resumeSuspend | REFRESH | SET WAREHOUSE EQ id)
     ;
 
 alterExternalTable
-    : ALTER EXTERNAL TABLE ifExists? objectName REFRESH string?
-    | ALTER EXTERNAL TABLE ifExists? objectName ADD FILES L_PAREN stringList R_PAREN
-    | ALTER EXTERNAL TABLE ifExists? objectName REMOVE FILES L_PAREN stringList R_PAREN
-    | ALTER EXTERNAL TABLE ifExists? objectName SET (AUTO_REFRESH EQ trueFalse)? tagDeclList?
-    | ALTER EXTERNAL TABLE ifExists? objectName unsetTags
+    : ALTER EXTERNAL TABLE (IF EXISTS)? dotIdentifier REFRESH string?
+    | ALTER EXTERNAL TABLE (IF EXISTS)? dotIdentifier ADD FILES LPAREN stringList RPAREN
+    | ALTER EXTERNAL TABLE (IF EXISTS)? dotIdentifier REMOVE FILES LPAREN stringList RPAREN
+    | ALTER EXTERNAL TABLE (IF EXISTS)? dotIdentifier SET (AUTO_REFRESH EQ trueFalse)? tagDeclList?
+    | ALTER EXTERNAL TABLE (IF EXISTS)? dotIdentifier unsetTags
     //Partitions added and removed manually
-    | ALTER EXTERNAL TABLE objectName ifExists? ADD PARTITION L_PAREN columnName EQ string (
+    | ALTER EXTERNAL TABLE dotIdentifier (IF EXISTS)? ADD PARTITION LPAREN columnName EQ string (
         COMMA columnName EQ string
-    )* R_PAREN LOCATION string
-    | ALTER EXTERNAL TABLE objectName ifExists? DROP PARTITION LOCATION string
+    )* RPAREN LOCATION string
+    | ALTER EXTERNAL TABLE dotIdentifier (IF EXISTS)? DROP PARTITION LOCATION string
     ;
 
 ignoreEditionCheck: IGNORE EDITION CHECK
@@ -745,38 +736,38 @@ fullAcctList: fullAcct (COMMA fullAcct)*
 
 alterFailoverGroup
     //Source Account
-    : ALTER FAILOVER GROUP ifExists? id RENAME TO id
-    | ALTER FAILOVER GROUP ifExists? id SET (OBJECT_TYPES EQ objectTypeList)? replicationSchedule?
-    | ALTER FAILOVER GROUP ifExists? id SET OBJECT_TYPES EQ objectTypeList
+    : ALTER FAILOVER GROUP (IF EXISTS)? id RENAME TO id
+    | ALTER FAILOVER GROUP (IF EXISTS)? id SET (OBJECT_TYPES EQ objectTypeList)? replicationSchedule?
+    | ALTER FAILOVER GROUP (IF EXISTS)? id SET OBJECT_TYPES EQ objectTypeList
     //        ALLOWED_INTEGRATION_TYPES EQ <integrationTypeName> [ , <integrationTypeName> ... ] ]
     replicationSchedule?
-    | ALTER FAILOVER GROUP ifExists? id ADD dbNameList TO ALLOWED_DATABASES
-    | ALTER FAILOVER GROUP ifExists? id MOVE DATABASES dbNameList TO FAILOVER GROUP id
-    | ALTER FAILOVER GROUP ifExists? id REMOVE dbNameList FROM ALLOWED_DATABASES
-    | ALTER FAILOVER GROUP ifExists? id ADD shareNameList TO ALLOWED_SHARES
-    | ALTER FAILOVER GROUP ifExists? id MOVE SHARES shareNameList TO FAILOVER GROUP id
-    | ALTER FAILOVER GROUP ifExists? id REMOVE shareNameList FROM ALLOWED_SHARES
-    | ALTER FAILOVER GROUP ifExists? id ADD fullAcctList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
-    | ALTER FAILOVER GROUP ifExists? id REMOVE fullAcctList FROM ALLOWED_ACCOUNTS
+    | ALTER FAILOVER GROUP (IF EXISTS)? id ADD dbNameList TO ALLOWED_DATABASES
+    | ALTER FAILOVER GROUP (IF EXISTS)? id MOVE DATABASES dbNameList TO FAILOVER GROUP id
+    | ALTER FAILOVER GROUP (IF EXISTS)? id REMOVE dbNameList FROM ALLOWED_DATABASES
+    | ALTER FAILOVER GROUP (IF EXISTS)? id ADD shareNameList TO ALLOWED_SHARES
+    | ALTER FAILOVER GROUP (IF EXISTS)? id MOVE SHARES shareNameList TO FAILOVER GROUP id
+    | ALTER FAILOVER GROUP (IF EXISTS)? id REMOVE shareNameList FROM ALLOWED_SHARES
+    | ALTER FAILOVER GROUP (IF EXISTS)? id ADD fullAcctList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
+    | ALTER FAILOVER GROUP (IF EXISTS)? id REMOVE fullAcctList FROM ALLOWED_ACCOUNTS
     //Target Account
-    | ALTER FAILOVER GROUP ifExists? id ( REFRESH | PRIMARY | SUSPEND | RESUME)
+    | ALTER FAILOVER GROUP (IF EXISTS)? id (REFRESH | PRIMARY | SUSPEND | RESUME)
     ;
 
 alterFileFormat
-    : ALTER FILE FORMAT ifExists? id RENAME TO id
-    | ALTER FILE FORMAT ifExists? id SET (formatTypeOptions* commentClause?)
+    : ALTER FILE FORMAT (IF EXISTS)? id RENAME TO id
+    | ALTER FILE FORMAT (IF EXISTS)? id SET (formatTypeOptions* (COMMENT EQ string)?)
     ;
 
 alterFunction
     : alterFunctionSignature RENAME TO id
-    | alterFunctionSignature SET commentClause
+    | alterFunctionSignature SET (COMMENT EQ string)
     | alterFunctionSignature SET SECURE
     | alterFunctionSignature UNSET (SECURE | COMMENT)
     // External Functions
     | alterFunctionSignature SET API_INTEGRATION EQ id
-    | alterFunctionSignature SET HEADERS EQ L_PAREN headerDecl* R_PAREN
-    | alterFunctionSignature SET CONTEXT_HEADERS EQ L_PAREN id* R_PAREN
-    | alterFunctionSignature SET MAX_BATCH_ROWS EQ num
+    | alterFunctionSignature SET HEADERS EQ LPAREN headerDecl* RPAREN
+    | alterFunctionSignature SET CONTEXT_HEADERS EQ LPAREN id* RPAREN
+    | alterFunctionSignature SET MAX_BATCH_ROWS EQ INT
     | alterFunctionSignature SET COMPRESSION EQ compressionType
     | alterFunctionSignature SET (REQUEST_TRANSLATOR | RESPONSE_TRANSLATOR) EQ id
     | alterFunctionSignature UNSET (
@@ -791,25 +782,25 @@ alterFunction
     )
     ;
 
-alterFunctionSignature: ALTER FUNCTION ifExists? id L_PAREN dataTypeList? R_PAREN
+alterFunctionSignature: ALTER FUNCTION (IF EXISTS)? id LPAREN dataTypeList? RPAREN
     ;
 
 dataTypeList: dataType (COMMA dataType)*
     ;
 
 alterMaskingPolicy
-    : ALTER MASKING POLICY ifExists? id SET BODY ARROW expr
-    | ALTER MASKING POLICY ifExists? id RENAME TO id
-    | ALTER MASKING POLICY ifExists? id SET commentClause
+    : ALTER MASKING POLICY (IF EXISTS)? id SET BODY ARROW expr
+    | ALTER MASKING POLICY (IF EXISTS)? id RENAME TO id
+    | ALTER MASKING POLICY (IF EXISTS)? id SET (COMMENT EQ string)
     ;
 
 alterMaterializedView
     : ALTER MATERIALIZED VIEW id (
         RENAME TO id
-        | CLUSTER BY L_PAREN exprList R_PAREN
+        | CLUSTER BY LPAREN exprList RPAREN
         | DROP CLUSTERING KEY
         | resumeSuspend RECLUSTER?
-        | SET ( SECURE? commentClause?)
+        | SET ( SECURE? (COMMENT EQ string)?)
         | UNSET ( SECURE | COMMENT)
     )
     ;
@@ -818,97 +809,96 @@ alterNetworkPolicy: ALTER NETWORK POLICY alterNetworkPolicyOpts
     ;
 
 alterNotificationIntegration
-    : ALTER NOTIFICATION? INTEGRATION ifExists? id SET enabledTrueFalse? cloudProviderParamsAuto commentClause?
+    : ALTER NOTIFICATION? INTEGRATION (IF EXISTS)? id SET enabledTrueFalse? cloudProviderParamsAuto (
+        COMMENT EQ string
+    )?
     // Push notifications
-    | ALTER NOTIFICATION? INTEGRATION ifExists? id SET enabledTrueFalse? cloudProviderParamsPush commentClause?
+    | ALTER NOTIFICATION? INTEGRATION (IF EXISTS)? id SET enabledTrueFalse? cloudProviderParamsPush (
+        COMMENT EQ string
+    )?
     | ALTER NOTIFICATION? INTEGRATION id setTags
     | ALTER NOTIFICATION? INTEGRATION id unsetTags
-    | ALTER NOTIFICATION? INTEGRATION ifExists id UNSET (ENABLED | COMMENT)
+    | ALTER NOTIFICATION? INTEGRATION (IF EXISTS) id UNSET (ENABLED | COMMENT)
     ;
 
 alterPipe
-    : ALTER PIPE ifExists? id SET (objectProperties? commentClause?)
+    : ALTER PIPE (IF EXISTS)? id SET (objectProperties? (COMMENT EQ string)?)
     | ALTER PIPE id setTags
     | ALTER PIPE id unsetTags
-    | ALTER PIPE ifExists? id UNSET PIPE_EXECUTION_PAUSED EQ trueFalse
-    | ALTER PIPE ifExists? id UNSET COMMENT
-    | ALTER PIPE ifExists? id REFRESH (PREFIX EQ string)? (MODIFIED_AFTER EQ string)?
-    ;
-
-alterProcedure
-    : ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN RENAME TO id
-    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN SET commentClause
-    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN UNSET COMMENT
-    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN EXECUTE AS callerOwner
+    | ALTER PIPE (IF EXISTS)? id UNSET PIPE_EXECUTION_PAUSED EQ trueFalse
+    | ALTER PIPE (IF EXISTS)? id UNSET COMMENT
+    | ALTER PIPE (IF EXISTS)? id REFRESH (PREFIX EQ string)? (MODIFIED_AFTER EQ string)?
     ;
 
 alterReplicationGroup
     //Source Account
-    : ALTER REPLICATION GROUP ifExists? id RENAME TO id
-    | ALTER REPLICATION GROUP ifExists? id SET (OBJECT_TYPES EQ objectTypeList)? (
+    : ALTER REPLICATION GROUP (IF EXISTS)? id RENAME TO id
+    | ALTER REPLICATION GROUP (IF EXISTS)? id SET (OBJECT_TYPES EQ objectTypeList)? (
         REPLICATION_SCHEDULE EQ string
     )?
-    | ALTER REPLICATION GROUP ifExists? id SET OBJECT_TYPES EQ objectTypeList ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (
+    | ALTER REPLICATION GROUP (IF EXISTS)? id SET OBJECT_TYPES EQ objectTypeList ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (
         COMMA integrationTypeName
     )* (REPLICATION_SCHEDULE EQ string)?
-    | ALTER REPLICATION GROUP ifExists? id ADD dbNameList TO ALLOWED_DATABASES
-    | ALTER REPLICATION GROUP ifExists? id MOVE DATABASES dbNameList TO REPLICATION GROUP id
-    | ALTER REPLICATION GROUP ifExists? id REMOVE dbNameList FROM ALLOWED_DATABASES
-    | ALTER REPLICATION GROUP ifExists? id ADD shareNameList TO ALLOWED_SHARES
-    | ALTER REPLICATION GROUP ifExists? id MOVE SHARES shareNameList TO REPLICATION GROUP id
-    | ALTER REPLICATION GROUP ifExists? id REMOVE shareNameList FROM ALLOWED_SHARES
-    | ALTER REPLICATION GROUP ifExists? id ADD accountIdList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
-    | ALTER REPLICATION GROUP ifExists? id REMOVE accountIdList FROM ALLOWED_ACCOUNTS
+    | ALTER REPLICATION GROUP (IF EXISTS)? id ADD dbNameList TO ALLOWED_DATABASES
+    | ALTER REPLICATION GROUP (IF EXISTS)? id MOVE DATABASES dbNameList TO REPLICATION GROUP id
+    | ALTER REPLICATION GROUP (IF EXISTS)? id REMOVE dbNameList FROM ALLOWED_DATABASES
+    | ALTER REPLICATION GROUP (IF EXISTS)? id ADD shareNameList TO ALLOWED_SHARES
+    | ALTER REPLICATION GROUP (IF EXISTS)? id MOVE SHARES shareNameList TO REPLICATION GROUP id
+    | ALTER REPLICATION GROUP (IF EXISTS)? id REMOVE shareNameList FROM ALLOWED_SHARES
+    | ALTER REPLICATION GROUP (IF EXISTS)? id ADD accountIdList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
+    | ALTER REPLICATION GROUP (IF EXISTS)? id REMOVE accountIdList FROM ALLOWED_ACCOUNTS
     //Target Account
-    | ALTER REPLICATION GROUP ifExists? id REFRESH
-    | ALTER REPLICATION GROUP ifExists? id SUSPEND
-    | ALTER REPLICATION GROUP ifExists? id RESUME
+    | ALTER REPLICATION GROUP (IF EXISTS)? id REFRESH
+    | ALTER REPLICATION GROUP (IF EXISTS)? id SUSPEND
+    | ALTER REPLICATION GROUP (IF EXISTS)? id RESUME
     ;
 
-creditQuota: CREDIT_QUOTA EQ num
+creditQuota: CREDIT_QUOTA EQ INT
     ;
 
 frequency: FREQUENCY EQ (MONTHLY | DAILY | WEEKLY | YEARLY | NEVER)
     ;
 
-notifyUsers: NOTIFY_USERS EQ L_PAREN id (COMMA id)* R_PAREN
+notifyUsers: NOTIFY_USERS EQ LPAREN id (COMMA id)* RPAREN
     ;
 
-triggerDefinition: ON num PERCENT DO (SUSPEND | SUSPEND_IMMEDIATE | NOTIFY)
+triggerDefinition: ON INT PERCENT DO (SUSPEND | SUSPEND_IMMEDIATE | NOTIFY)
     ;
 
 alterResourceMonitor
-    : ALTER RESOURCE MONITOR ifExists? id (
-        SET creditQuota? frequency? (START_TIMESTAMP EQ L_PAREN string | IMMEDIATELY R_PAREN)? (
+    : ALTER RESOURCE MONITOR (IF EXISTS)? id (
+        SET creditQuota? frequency? (START_TIMESTAMP EQ LPAREN string | IMMEDIATELY RPAREN)? (
             END_TIMESTAMP EQ string
         )?
     )? (notifyUsers ( TRIGGERS triggerDefinition (COMMA triggerDefinition)*)?)?
     ;
 
 alterRole
-    : ALTER ROLE ifExists? id RENAME TO id
-    | ALTER ROLE ifExists? id SET commentClause
-    | ALTER ROLE ifExists? id UNSET COMMENT
-    | ALTER ROLE ifExists? id setTags
-    | ALTER ROLE ifExists? id unsetTags
+    : ALTER ROLE (IF EXISTS)? id RENAME TO id
+    | ALTER ROLE (IF EXISTS)? id SET (COMMENT EQ string)
+    | ALTER ROLE (IF EXISTS)? id UNSET COMMENT
+    | ALTER ROLE (IF EXISTS)? id setTags
+    | ALTER ROLE (IF EXISTS)? id unsetTags
     ;
 
 alterRowAccessPolicy
-    : ALTER ROW ACCESS POLICY ifExists? id SET BODY ARROW expr
-    | ALTER ROW ACCESS POLICY ifExists? id RENAME TO id
-    | ALTER ROW ACCESS POLICY ifExists? id SET commentClause
+    : ALTER ROW ACCESS POLICY (IF EXISTS)? id SET BODY ARROW expr
+    | ALTER ROW ACCESS POLICY (IF EXISTS)? id RENAME TO id
+    | ALTER ROW ACCESS POLICY (IF EXISTS)? id SET (COMMENT EQ string)
     ;
 
 alterSchema
-    : ALTER SCHEMA ifExists? schemaName RENAME TO schemaName
-    | ALTER SCHEMA ifExists? schemaName SWAP WITH schemaName
-    | ALTER SCHEMA ifExists? schemaName SET (
-        (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? commentClause?
+    : ALTER SCHEMA (IF EXISTS)? schemaName RENAME TO schemaName
+    | ALTER SCHEMA (IF EXISTS)? schemaName SWAP WITH schemaName
+    | ALTER SCHEMA (IF EXISTS)? schemaName SET (
+        (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? (
+            COMMENT EQ string
+        )?
     )
-    | ALTER SCHEMA ifExists? schemaName setTags
-    | ALTER SCHEMA ifExists? schemaName unsetTags
-    | ALTER SCHEMA ifExists? schemaName UNSET schemaProperty (COMMA schemaProperty)*
-    | ALTER SCHEMA ifExists? schemaName ( ENABLE | DISABLE) MANAGED ACCESS
+    | ALTER SCHEMA (IF EXISTS)? schemaName setTags
+    | ALTER SCHEMA (IF EXISTS)? schemaName unsetTags
+    | ALTER SCHEMA (IF EXISTS)? schemaName UNSET schemaProperty (COMMA schemaProperty)*
+    | ALTER SCHEMA (IF EXISTS)? schemaName ( ENABLE | DISABLE) MANAGED ACCESS
     ;
 
 schemaProperty
@@ -919,29 +909,32 @@ schemaProperty
     ;
 
 alterSequence
-    : ALTER SEQUENCE ifExists? objectName RENAME TO objectName
-    | ALTER SEQUENCE ifExists? objectName SET? ( INCREMENT BY? EQ? num)?
-    | ALTER SEQUENCE ifExists? objectName SET (orderNoorder? commentClause | orderNoorder)
-    | ALTER SEQUENCE ifExists? objectName UNSET COMMENT
+    : ALTER SEQUENCE (IF EXISTS)? dotIdentifier RENAME TO dotIdentifier
+    | ALTER SEQUENCE (IF EXISTS)? dotIdentifier SET? ( INCREMENT BY? EQ? INT)?
+    | ALTER SEQUENCE (IF EXISTS)? dotIdentifier SET (
+        orderNoorder? (COMMENT EQ string)
+        | orderNoorder
+    )
+    | ALTER SEQUENCE (IF EXISTS)? dotIdentifier UNSET COMMENT
     ;
 
 alterSecurityIntegrationExternalOauth
-    : ALTER SECURITY? INTEGRATION ifExists id SET (TYPE EQ EXTERNAL_OAUTH)? (ENABLED EQ trueFalse)? (
-        EXTERNAL_OAUTH_TYPE EQ ( OKTA | id | PING_FEDERATE | CUSTOM)
-    )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
-        EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
-    )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
-        EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )?                                                                      // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN stringList R_PAREN))? // For Azure
+    : ALTER SECURITY? INTEGRATION (IF EXISTS) id SET (TYPE EQ EXTERNAL_OAUTH)? (
+        ENABLED EQ trueFalse
+    )? (EXTERNAL_OAUTH_TYPE EQ ( OKTA | id | PING_FEDERATE | CUSTOM))? (
+        EXTERNAL_OAUTH_ISSUER EQ string
+    )? (EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | LPAREN stringList RPAREN))? (
+        EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string
+    )? (EXTERNAL_OAUTH_JWS_KEYS_URL EQ string)?                           // For OKTA | PING_FEDERATE | CUSTOM
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | LPAREN stringList RPAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN
-    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
+        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN
+    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ LPAREN stringList RPAREN)? (
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ LPAREN string RPAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ (DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE))? (
         EXTERNAL_OAUTH_ANY_ROLE_MODE EQ string
     )? // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
-    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationExternalOauthProperty (
+    | ALTER SECURITY? INTEGRATION (IF EXISTS)? id UNSET securityIntegrationExternalOauthProperty (
         COMMA securityIntegrationExternalOauthProperty
     )*
     | ALTER SECURITY? INTEGRATION id setTags
@@ -958,22 +951,22 @@ securityIntegrationExternalOauthProperty
     ;
 
 alterSecurityIntegrationSnowflakeOauth
-    : ALTER SECURITY? INTEGRATION ifExists? id SET (TYPE EQ EXTERNAL_OAUTH)? enabledTrueFalse? (
+    : ALTER SECURITY? INTEGRATION (IF EXISTS)? id SET (TYPE EQ EXTERNAL_OAUTH)? enabledTrueFalse? (
         EXTERNAL_OAUTH_TYPE EQ ( OKTA | id | PING_FEDERATE | CUSTOM)
     )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
-        EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
+        EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | LPAREN stringList RPAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )?                                                                       // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ ( string | L_PAREN stringList R_PAREN))? // For Azure
+    )?                                                                     // For OKTA | PING_FEDERATE | CUSTOM
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ ( string | LPAREN stringList RPAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN
-    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
+        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN
+    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ LPAREN stringList RPAREN)? (
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ LPAREN string RPAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE)? (
         EXTERNAL_OAUTH_SCOPE_DELIMITER EQ string
     ) // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
-    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationSnowflakeOauthProperty (
+    | ALTER SECURITY? INTEGRATION (IF EXISTS)? id UNSET securityIntegrationSnowflakeOauthProperty (
         COMMA securityIntegrationSnowflakeOauthProperty
     )*
     | ALTER SECURITY? INTEGRATION id setTags
@@ -984,7 +977,7 @@ securityIntegrationSnowflakeOauthProperty: ENABLED | EXTERNAL_OAUTH_AUDIENCE_LIS
     ;
 
 alterSecurityIntegrationSaml2
-    : ALTER SECURITY? INTEGRATION ifExists? id SET (TYPE EQ SAML2)? enabledTrueFalse? (
+    : ALTER SECURITY? INTEGRATION (IF EXISTS)? id SET (TYPE EQ SAML2)? enabledTrueFalse? (
         SAML2_ISSUER EQ string
     )? (SAML2_SSO_URL EQ string)? (SAML2_PROVIDER EQ string)? (SAML2_X509_CERT EQ string)? (
         SAML2_SP_INITIATED_LOGIN_PAGE_LABEL EQ string
@@ -993,16 +986,16 @@ alterSecurityIntegrationSaml2
     )? (SAML2_REQUESTED_NAMEID_FORMAT EQ string)? (SAML2_POST_LOGOUT_REDIRECT_URL EQ string)? (
         SAML2_FORCE_AUTHN EQ trueFalse
     )? (SAML2_SNOWFLAKE_ISSUER_URL EQ string)? (SAML2_SNOWFLAKE_ACS_URL EQ string)?
-    | ALTER SECURITY? INTEGRATION ifExists? id UNSET ENABLED
+    | ALTER SECURITY? INTEGRATION (IF EXISTS)? id UNSET ENABLED
     | ALTER SECURITY? INTEGRATION id setTags
     | ALTER SECURITY? INTEGRATION id unsetTags
     ;
 
 alterSecurityIntegrationScim
-    : ALTER SECURITY? INTEGRATION ifExists? id SET (NETWORK_POLICY EQ string)? (
+    : ALTER SECURITY? INTEGRATION (IF EXISTS)? id SET (NETWORK_POLICY EQ string)? (
         SYNC_PASSWORD EQ trueFalse
-    )? commentClause?
-    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationScimProperty (
+    )? (COMMENT EQ string)?
+    | ALTER SECURITY? INTEGRATION (IF EXISTS)? id UNSET securityIntegrationScimProperty (
         COMMA securityIntegrationScimProperty
     )*
     | ALTER SECURITY? INTEGRATION id setTags
@@ -1012,58 +1005,66 @@ alterSecurityIntegrationScim
 securityIntegrationScimProperty: NETWORK_POLICY | SYNC_PASSWORD | COMMENT
     ;
 
-alterSession: ALTER SESSION SET sessionParams | ALTER SESSION UNSET paramName (COMMA paramName)*
+alterSession: ALTER SESSION SET sessionParams | ALTER SESSION UNSET id (COMMA id)*
     ;
 
 alterSessionPolicy
-    : ALTER SESSION POLICY ifExists? id (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
-        SESSION_UI_IDLE_TIMEOUT_MINS EQ num
-    )? commentClause?
-    | ALTER SESSION POLICY ifExists? id RENAME TO id
+    : ALTER SESSION POLICY (IF EXISTS)? id (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ INT)? (
+        SESSION_UI_IDLE_TIMEOUT_MINS EQ INT
+    )? (COMMENT EQ string)?
+    | ALTER SESSION POLICY (IF EXISTS)? id RENAME TO id
     ;
 
 alterShare
-    : ALTER SHARE ifExists? id (ADD | REMOVE) ACCOUNTS EQ id (COMMA id)* (
+    : ALTER SHARE (IF EXISTS)? id (ADD | REMOVE) ACCOUNTS EQ id (COMMA id)* (
         SHARE_RESTRICTIONS EQ trueFalse
     )?
-    | ALTER SHARE ifExists? id ADD ACCOUNTS EQ id (COMMA id)* (SHARE_RESTRICTIONS EQ trueFalse)?
-    | ALTER SHARE ifExists? id SET (ACCOUNTS EQ id (COMMA id)*)? commentClause?
-    | ALTER SHARE ifExists? id setTags
+    | ALTER SHARE (IF EXISTS)? id ADD ACCOUNTS EQ id (COMMA id)* (SHARE_RESTRICTIONS EQ trueFalse)?
+    | ALTER SHARE (IF EXISTS)? id SET (ACCOUNTS EQ id (COMMA id)*)? (COMMENT EQ string)?
+    | ALTER SHARE (IF EXISTS)? id setTags
     | ALTER SHARE id unsetTags
-    | ALTER SHARE ifExists? id UNSET COMMENT
+    | ALTER SHARE (IF EXISTS)? id UNSET COMMENT
     ;
 
 alterStorageIntegration
-    : ALTER STORAGE? INTEGRATION ifExists? id SET cloudProviderParams2? enabledTrueFalse? (
-        STORAGE_ALLOWED_LOCATIONS EQ L_PAREN stringList R_PAREN
-    )? (STORAGE_BLOCKED_LOCATIONS EQ L_PAREN stringList R_PAREN)? commentClause?
-    | ALTER STORAGE? INTEGRATION ifExists? id setTags
+    : ALTER STORAGE? INTEGRATION (IF EXISTS)? id SET cloudProviderParams2? enabledTrueFalse? (
+        STORAGE_ALLOWED_LOCATIONS EQ LPAREN stringList RPAREN
+    )? (STORAGE_BLOCKED_LOCATIONS EQ LPAREN stringList RPAREN)? (COMMENT EQ string)?
+    | ALTER STORAGE? INTEGRATION (IF EXISTS)? id setTags
     | ALTER STORAGE? INTEGRATION id unsetTags
-    | ALTER STORAGE? INTEGRATION ifExists? id UNSET (ENABLED | STORAGE_BLOCKED_LOCATIONS | COMMENT)
+    | ALTER STORAGE? INTEGRATION (IF EXISTS)? id UNSET (
+        ENABLED
+        | STORAGE_BLOCKED_LOCATIONS
+        | COMMENT
+    )
     //[ , ... ]
     ;
 
 alterStream
-    : ALTER STREAM ifExists? id SET tagDeclList? commentClause?
-    | ALTER STREAM ifExists? id setTags
+    : ALTER STREAM (IF EXISTS)? id SET tagDeclList? (COMMENT EQ string)?
+    | ALTER STREAM (IF EXISTS)? id setTags
     | ALTER STREAM id unsetTags
-    | ALTER STREAM ifExists? id UNSET COMMENT
+    | ALTER STREAM (IF EXISTS)? id UNSET COMMENT
     ;
 
 alterTable
-    : ALTER TABLE ifExists? objectName RENAME TO objectName
-    | ALTER TABLE ifExists? objectName SWAP WITH objectName
-    | ALTER TABLE ifExists? objectName (clusteringAction | tableColumnAction | constraintAction)
-    | ALTER TABLE ifExists? objectName extTableColumnAction
-    | ALTER TABLE ifExists? objectName searchOptimizationAction
-    | ALTER TABLE ifExists? objectName SET stageFileFormat? (
-        STAGE_COPY_OPTIONS EQ L_PAREN copyOptions R_PAREN
-    )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? (
+    : ALTER TABLE (IF EXISTS)? dotIdentifier RENAME TO dotIdentifier
+    | ALTER TABLE (IF EXISTS)? dotIdentifier SWAP WITH dotIdentifier
+    | ALTER TABLE (IF EXISTS)? dotIdentifier (
+        clusteringAction
+        | tableColumnAction
+        | constraintAction
+    )
+    | ALTER TABLE (IF EXISTS)? dotIdentifier extTableColumnAction
+    | ALTER TABLE (IF EXISTS)? dotIdentifier searchOptimizationAction
+    | ALTER TABLE (IF EXISTS)? dotIdentifier SET stageFileFormat? (
+        STAGE_COPY_OPTIONS EQ LPAREN copyOptions RPAREN
+    )? (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? (
         CHANGE_TRACKING EQ trueFalse
-    )? defaultDdlCollation? commentClause?
-    | ALTER TABLE ifExists? objectName setTags
-    | ALTER TABLE ifExists? objectName unsetTags
-    | ALTER TABLE ifExists? objectName UNSET (
+    )? defaultDdlCollation? (COMMENT EQ string)?
+    | ALTER TABLE (IF EXISTS)? dotIdentifier setTags
+    | ALTER TABLE (IF EXISTS)? dotIdentifier unsetTags
+    | ALTER TABLE (IF EXISTS)? dotIdentifier UNSET (
         DATA_RETENTION_TIME_IN_DAYS
         | MAX_DATA_EXTENSION_TIME_IN_DAYS
         | CHANGE_TRACKING
@@ -1072,40 +1073,40 @@ alterTable
         |
     )
     //[ , ... ]
-    | ALTER TABLE ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses
-    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id
-    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id COMMA ADD ROW ACCESS POLICY id ON columnListInParentheses
-    | ALTER TABLE ifExists? objectName DROP ALL ROW ACCESS POLICIES
+    | ALTER TABLE (IF EXISTS)? dotIdentifier ADD ROW ACCESS POLICY id ON columnListInParentheses
+    | ALTER TABLE (IF EXISTS)? dotIdentifier DROP ROW ACCESS POLICY id
+    | ALTER TABLE (IF EXISTS)? dotIdentifier DROP ROW ACCESS POLICY id COMMA ADD ROW ACCESS POLICY id ON columnListInParentheses
+    | ALTER TABLE (IF EXISTS)? dotIdentifier DROP ALL ROW ACCESS POLICIES
     ;
 
 clusteringAction
-    : CLUSTER BY L_PAREN exprList R_PAREN
-    | RECLUSTER ( MAX_SIZE EQ num)? ( WHERE expr)?
+    : CLUSTER BY LPAREN exprList RPAREN
+    | RECLUSTER ( MAX_SIZE EQ INT)? ( WHERE expr)?
     | resumeSuspend RECLUSTER
     | DROP CLUSTERING KEY
     ;
 
 tableColumnAction
-    : ADD COLUMN? ifNotExists? fullColDecl (COMMA fullColDecl)*
+    : ADD COLUMN? (IF NOT EXISTS)? fullColDecl (COMMA fullColDecl)*
     | RENAME COLUMN columnName TO columnName
     | alterModify (
-        L_PAREN alterColumnClause (COLON alterColumnClause)* R_PAREN
+        LPAREN alterColumnClause (COLON alterColumnClause)* RPAREN
         | alterColumnClause (COLON alterColumnClause)*
     )
     | alterModify COLUMN columnName SET MASKING POLICY id (
-        USING L_PAREN columnName COMMA columnList R_PAREN
+        USING LPAREN columnName COMMA columnList RPAREN
     )? FORCE?
     | alterModify COLUMN columnName UNSET MASKING POLICY
     | alterModify columnSetTags (COMMA columnSetTags)*
     | alterModify columnUnsetTags (COMMA columnUnsetTags)*
-    | DROP COLUMN? ifExists? columnList
+    | DROP COLUMN? (IF EXISTS)? columnList
     //| DROP DEFAULT
     ;
 
 alterColumnClause
     : COLUMN? columnName (
         DROP DEFAULT
-        | SET DEFAULT objectName DOT NEXTVAL
+        | SET DEFAULT dotIdentifier DOT NEXTVAL
         | ( SET? NOT NULL | DROP NOT NULL)
         | ( (SET DATA)? TYPE)? dataType
         | COMMENT string
@@ -1116,7 +1117,7 @@ alterColumnClause
 inlineConstraint
     : (CONSTRAINT id)? (
         (UNIQUE | primaryKey) commonConstraintProperties*
-        | foreignKey REFERENCES objectName (L_PAREN columnName R_PAREN)? constraintProperties
+        | foreignKey REFERENCES dotIdentifier (LPAREN columnName RPAREN)? constraintProperties
     )
     ;
 
@@ -1159,7 +1160,7 @@ constraintProperties
     ;
 
 extTableColumnAction
-    : ADD COLUMN? columnName dataType AS L_PAREN expr R_PAREN
+    : ADD COLUMN? columnName dataType AS LPAREN expr RPAREN
     | RENAME COLUMN columnName TO columnName
     | DROP COLUMN? columnList
     ;
@@ -1180,20 +1181,20 @@ searchOptimizationAction
     | DROP SEARCH OPTIMIZATION (ON searchMethodWithTarget (COMMA searchMethodWithTarget)*)?
     ;
 
-searchMethodWithTarget: (EQUALITY | SUBSTRING | GEO) L_PAREN (STAR | expr) R_PAREN
+searchMethodWithTarget: (EQUALITY | SUBSTRING | GEO) LPAREN (STAR | expr) RPAREN
     ;
 
 alterTableAlterColumn
-    : ALTER TABLE objectName alterModify (
-        L_PAREN alterColumnDeclList R_PAREN
+    : ALTER TABLE dotIdentifier alterModify (
+        LPAREN alterColumnDeclList RPAREN
         | alterColumnDeclList
     )
-    | ALTER TABLE objectName alterModify COLUMN columnName SET MASKING POLICY id (
-        USING L_PAREN columnName COMMA columnList R_PAREN
+    | ALTER TABLE dotIdentifier alterModify COLUMN columnName SET MASKING POLICY id (
+        USING LPAREN columnName COMMA columnList RPAREN
     )? FORCE?
-    | ALTER TABLE objectName alterModify COLUMN columnName UNSET MASKING POLICY
-    | ALTER TABLE objectName alterModify columnSetTags (COMMA columnSetTags)*
-    | ALTER TABLE objectName alterModify columnUnsetTags (COMMA columnUnsetTags)*
+    | ALTER TABLE dotIdentifier alterModify COLUMN columnName UNSET MASKING POLICY
+    | ALTER TABLE dotIdentifier alterModify columnSetTags (COMMA columnSetTags)*
+    | ALTER TABLE dotIdentifier alterModify columnUnsetTags (COMMA columnUnsetTags)*
     ;
 
 alterColumnDeclList: alterColumnDecl (COMMA alterColumnDecl)*
@@ -1204,10 +1205,10 @@ alterColumnDecl: COLUMN? columnName alterColumnOpts
 
 alterColumnOpts
     : DROP DEFAULT
-    | SET DEFAULT objectName DOT NEXTVAL
+    | SET DEFAULT dotIdentifier DOT NEXTVAL
     | ( SET? NOT NULL | DROP NOT NULL)
     | ( (SET DATA)? TYPE)? dataType
-    | commentClause
+    | (COMMENT EQ string)
     | UNSET COMMENT
     ;
 
@@ -1217,60 +1218,62 @@ columnSetTags: COLUMN? columnName setTags
 columnUnsetTags: COLUMN columnName unsetTags
     ;
 
-alterTag: ALTER TAG ifExists? objectName alterTagOpts
+alterTag: ALTER TAG (IF EXISTS)? dotIdentifier alterTagOpts
     ;
 
 alterTask
-    : ALTER TASK ifExists? objectName resumeSuspend
-    | ALTER TASK ifExists? objectName ( REMOVE | ADD) AFTER stringList
-    | ALTER TASK ifExists? objectName SET
+    : ALTER TASK (IF EXISTS)? dotIdentifier resumeSuspend
+    | ALTER TASK (IF EXISTS)? dotIdentifier ( REMOVE | ADD) AFTER stringList
+    | ALTER TASK (IF EXISTS)? dotIdentifier SET
     // TODO : Check and review if element's order binded or not
-    (WAREHOUSE EQ id)? taskSchedule? taskOverlap? taskTimeout? taskSuspendAfterFailureNumber? commentClause? sessionParamsList?
-    | ALTER TASK ifExists? objectName UNSET
+    (WAREHOUSE EQ id)? taskSchedule? taskOverlap? taskTimeout? taskSuspendAfterFailureNumber? (
+        COMMENT EQ string
+    )? sessionParamsList?
+    | ALTER TASK (IF EXISTS)? dotIdentifier UNSET
     // TODO : Check and review if element's order binded or not
     WAREHOUSE? SCHEDULE? ALLOW_OVERLAPPING_EXECUTION? USER_TASK_TIMEOUT_MS? SUSPEND_TASK_AFTER_NUM_FAILURES? COMMENT? sessionParameterList?
     //[ , ... ]
-    | ALTER TASK ifExists? objectName setTags
-    | ALTER TASK ifExists? objectName unsetTags
-    | ALTER TASK ifExists? objectName MODIFY AS sql
-    | ALTER TASK ifExists? objectName MODIFY WHEN expr
+    | ALTER TASK (IF EXISTS)? dotIdentifier setTags
+    | ALTER TASK (IF EXISTS)? dotIdentifier unsetTags
+    | ALTER TASK (IF EXISTS)? dotIdentifier MODIFY AS sql
+    | ALTER TASK (IF EXISTS)? dotIdentifier MODIFY WHEN expr
     ;
 
-alterUser: ALTER USER ifExists? id alterUserOpts
+alterUser: ALTER USER (IF EXISTS)? id alterUserOpts
     ;
 
 alterView
-    : ALTER VIEW ifExists? objectName RENAME TO objectName
-    | ALTER VIEW ifExists? objectName SET commentClause
-    | ALTER VIEW ifExists? objectName UNSET COMMENT
-    | ALTER VIEW objectName SET SECURE
-    | ALTER VIEW objectName UNSET SECURE
-    | ALTER VIEW ifExists? objectName setTags
-    | ALTER VIEW ifExists? objectName unsetTags
-    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses
-    | ALTER VIEW ifExists? objectName DROP ROW ACCESS POLICY id
-    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses COMMA DROP ROW ACCESS POLICY id
-    | ALTER VIEW ifExists? objectName DROP ALL ROW ACCESS POLICIES
-    | ALTER VIEW objectName alterModify COLUMN? id SET MASKING POLICY id (
-        USING L_PAREN columnName COMMA columnList R_PAREN
+    : ALTER VIEW (IF EXISTS)? dotIdentifier RENAME TO dotIdentifier
+    | ALTER VIEW (IF EXISTS)? dotIdentifier SET (COMMENT EQ string)
+    | ALTER VIEW (IF EXISTS)? dotIdentifier UNSET COMMENT
+    | ALTER VIEW dotIdentifier SET SECURE
+    | ALTER VIEW dotIdentifier UNSET SECURE
+    | ALTER VIEW (IF EXISTS)? dotIdentifier setTags
+    | ALTER VIEW (IF EXISTS)? dotIdentifier unsetTags
+    | ALTER VIEW (IF EXISTS)? dotIdentifier ADD ROW ACCESS POLICY id ON columnListInParentheses
+    | ALTER VIEW (IF EXISTS)? dotIdentifier DROP ROW ACCESS POLICY id
+    | ALTER VIEW (IF EXISTS)? dotIdentifier ADD ROW ACCESS POLICY id ON columnListInParentheses COMMA DROP ROW ACCESS POLICY id
+    | ALTER VIEW (IF EXISTS)? dotIdentifier DROP ALL ROW ACCESS POLICIES
+    | ALTER VIEW dotIdentifier alterModify COLUMN? id SET MASKING POLICY id (
+        USING LPAREN columnName COMMA columnList RPAREN
     )? FORCE?
-    | ALTER VIEW objectName alterModify COLUMN? id UNSET MASKING POLICY
-    | ALTER VIEW objectName alterModify COLUMN? id setTags
-    | ALTER VIEW objectName alterModify COLUMN id unsetTags
+    | ALTER VIEW dotIdentifier alterModify COLUMN? id UNSET MASKING POLICY
+    | ALTER VIEW dotIdentifier alterModify COLUMN? id setTags
+    | ALTER VIEW dotIdentifier alterModify COLUMN id unsetTags
     ;
 
 alterModify: ALTER | MODIFY
     ;
 
-alterWarehouse: ALTER WAREHOUSE ifExists? alterWarehouseOpts
+alterWarehouse: ALTER WAREHOUSE (IF EXISTS)? alterWarehouseOpts
     ;
 
 alterConnectionOpts
     : id ENABLE FAILOVER TO ACCOUNTS id DOT id (COMMA id DOT id)* ignoreEditionCheck?
     | id DISABLE FAILOVER ( TO ACCOUNTS id DOT id (COMMA id DOT id))?
     | id PRIMARY
-    | ifExists? id SET commentClause
-    | ifExists? id UNSET COMMENT
+    | (IF EXISTS)? id SET (COMMENT EQ string)
+    | (IF EXISTS)? id UNSET COMMENT
     ;
 
 alterUserOpts
@@ -1282,29 +1285,29 @@ alterUserOpts
     | setTags
     | unsetTags
     //    | SET objectProperties? objectParams? sessionParams?
-    //    | UNSET (objectPropertyName | objectParamName | sessionParamName) //[ , ... ]
+    //    | UNSET (objectPropertyName | objectid | sessionid) //[ , ... ]
     ;
 
 alterTagOpts
-    : RENAME TO objectName
+    : RENAME TO dotIdentifier
     | ( ADD | DROP) tagAllowedValues
     | UNSET ALLOWED_VALUES
     | SET MASKING POLICY id (COMMA MASKING POLICY id)*
     | UNSET MASKING POLICY id (COMMA MASKING POLICY id)*
-    | SET commentClause
+    | SET (COMMENT EQ string)
     | UNSET COMMENT
     ;
 
 alterNetworkPolicyOpts
-    : ifExists? id SET (ALLOWED_IP_LIST EQ L_PAREN stringList R_PAREN)? (
-        BLOCKED_IP_LIST EQ L_PAREN stringList R_PAREN
-    )? commentClause?
-    | ifExists? id UNSET COMMENT
+    : (IF EXISTS)? id SET (ALLOWED_IP_LIST EQ LPAREN stringList RPAREN)? (
+        BLOCKED_IP_LIST EQ LPAREN stringList RPAREN
+    )? (COMMENT EQ string)?
+    | (IF EXISTS)? id UNSET COMMENT
     | id RENAME TO id
     ;
 
 alterWarehouseOpts
-    : idFn? (SUSPEND | RESUME ifSuspended?)
+    : idFn? (SUSPEND | RESUME (IF SUSPENDED)?)
     | idFn? ABORT ALL QUERIES
     | idFn RENAME TO id
     //    | id SET [ objectProperties ]
@@ -1316,7 +1319,7 @@ alterWarehouseOpts
 
 alterAccountOpts
     : SET accountParams? objectParams? sessionParams?
-    | UNSET paramName (COMMA paramName)?
+    | UNSET id (COMMA id)?
     | SET RESOURCE_MONITOR EQ id
     | setTags
     | unsetTags
@@ -1327,10 +1330,10 @@ alterAccountOpts
 setTags: SET tagDeclList
     ;
 
-tagDeclList: TAG objectName EQ tagValue (COMMA objectName EQ tagValue)*
+tagDeclList: TAG dotIdentifier EQ string (COMMA dotIdentifier EQ string)*
     ;
 
-unsetTags: UNSET TAG objectName (COMMA objectName)*
+unsetTags: UNSET TAG dotIdentifier (COMMA dotIdentifier)*
     ;
 
 // create commands
@@ -1389,59 +1392,60 @@ createAccount
         STANDARD
         | ENTERPRISE
         | BUSINESS_CRITICAL
-    ) (REGION_GROUP EQ regionGroupId)? (REGION EQ snowflakeRegionId)? commentClause?
+    ) (REGION_GROUP EQ id)? (REGION EQ id)? (COMMENT EQ string)?
     ;
 
 createAlert
-    : CREATE orReplace? ALERT ifNotExists? id WAREHOUSE EQ id SCHEDULE EQ string IF L_PAREN EXISTS L_PAREN alertCondition R_PAREN R_PAREN THEN
+    : CREATE (OR REPLACE)? ALERT (IF NOT EXISTS)? id WAREHOUSE EQ id SCHEDULE EQ string IF LPAREN EXISTS LPAREN alertCondition RPAREN RPAREN THEN
         alertAction
     ;
 
 alertCondition: selectStatement | showCommand | call
     ;
 
-alertAction: sqlCommand
+alertAction: sqlClauses
     ;
 
 createApiIntegration
-    : CREATE orReplace? API INTEGRATION ifNotExists? id API_PROVIDER EQ (id) API_AWS_ROLE_ARN EQ string (
+    : CREATE (OR REPLACE)? API INTEGRATION (IF NOT EXISTS)? id API_PROVIDER EQ (id) API_AWS_ROLE_ARN EQ string (
         API_KEY EQ string
-    )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
-        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
-    )? ENABLED EQ trueFalse commentClause?
-    | CREATE orReplace? API INTEGRATION ifNotExists? id API_PROVIDER EQ id AZURE_TENANT_ID EQ string AZURE_AD_APPLICATION_ID EQ string (
+    )? API_ALLOWED_PREFIXES EQ LPAREN string RPAREN (API_BLOCKED_PREFIXES EQ LPAREN string RPAREN)? ENABLED EQ trueFalse (
+        COMMENT EQ string
+    )?
+    | CREATE (OR REPLACE)? API INTEGRATION (IF NOT EXISTS)? id API_PROVIDER EQ id AZURE_TENANT_ID EQ string AZURE_AD_APPLICATION_ID EQ string (
         API_KEY EQ string
-    )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
-        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
-    )? ENABLED EQ trueFalse commentClause?
-    | CREATE orReplace API INTEGRATION ifNotExists id API_PROVIDER EQ id GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
-        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
-    )? ENABLED EQ trueFalse commentClause?
+    )? API_ALLOWED_PREFIXES EQ LPAREN string RPAREN (API_BLOCKED_PREFIXES EQ LPAREN string RPAREN)? ENABLED EQ trueFalse (
+        COMMENT EQ string
+    )?
+    | CREATE (OR REPLACE) API INTEGRATION (IF NOT EXISTS) id API_PROVIDER EQ id GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ LPAREN string RPAREN
+        (
+        API_BLOCKED_PREFIXES EQ LPAREN string RPAREN
+    )? ENABLED EQ trueFalse (COMMENT EQ string)?
     ;
 
 createObjectClone
-    : CREATE orReplace? (DATABASE | SCHEMA | TABLE) ifNotExists? id CLONE objectName (
-        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) R_PAREN
+    : CREATE (OR REPLACE)? (DATABASE | SCHEMA | TABLE) (IF NOT EXISTS)? id CLONE dotIdentifier (
+        atBefore1 LPAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) RPAREN
     )?
-    | CREATE orReplace? (STAGE | FILE FORMAT | SEQUENCE | STREAM | TASK) ifNotExists? objectName CLONE objectName
+    | CREATE (OR REPLACE)? (STAGE | FILE FORMAT | SEQUENCE | STREAM | TASK) (IF NOT EXISTS)? dotIdentifier CLONE dotIdentifier
     ;
 
 createConnection
-    : CREATE CONNECTION ifNotExists? id (
-        commentClause?
-        | (AS REPLICA OF id DOT id DOT id commentClause?)
+    : CREATE CONNECTION (IF NOT EXISTS)? id (
+        (COMMENT EQ string)?
+        | (AS REPLICA OF id DOT id DOT id (COMMENT EQ string)?)
     )
     ;
 
 createDatabase
-    : CREATE orReplace? TRANSIENT? DATABASE ifNotExists? id cloneAtBefore? (
-        DATA_RETENTION_TIME_IN_DAYS EQ num
-    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? withTags? commentClause?
+    : CREATE (OR REPLACE)? TRANSIENT? DATABASE (IF NOT EXISTS)? id cloneAtBefore? (
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? withTags? (COMMENT EQ string)?
     ;
 
 cloneAtBefore
     : CLONE id (
-        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) R_PAREN
+        atBefore1 LPAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) RPAREN
     )?
     ;
 
@@ -1458,43 +1462,46 @@ compression: COMPRESSION EQ compressionType
     ;
 
 createDynamicTable
-    : CREATE orReplace? DYNAMIC TABLE id TARGET_LAG EQ (string | DOWNSTREAM) WAREHOUSE EQ wh = id AS queryStatement
+    : CREATE (OR REPLACE)? DYNAMIC TABLE id TARGET_LAG EQ (string | DOWNSTREAM) WAREHOUSE EQ wh = id AS queryStatement
     ;
 
 createEventTable
-    : CREATE orReplace? EVENT TABLE ifNotExists? id clusterBy? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (
-        MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
-    )? changeTracking? (DEFAULT_DDL_COLLATION_ EQ string)? copyGrants? withRowAccessPolicy? withTags? (
-        WITH? commentClause
+    : CREATE (OR REPLACE)? EVENT TABLE (IF NOT EXISTS)? id clusterBy? (
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? changeTracking? (DEFAULT_DDL_COLLATION_ EQ string)? copyGrants? withRowAccessPolicy? withTags? (
+        WITH? (COMMENT EQ string)
     )?
     ;
 
 createExternalFunction
-    : CREATE orReplace? SECURE? EXTERNAL FUNCTION objectName L_PAREN (
-        argName argDataType (COMMA argName argDataType)*
-    )? R_PAREN RETURNS dataType nullNotNull? (
+    : CREATE (OR REPLACE)? SECURE? EXTERNAL FUNCTION dotIdentifier LPAREN (
+        id dataType (COMMA id dataType)*
+    )? RPAREN RETURNS dataType (NOT? NULL)? (
         ( CALLED ON NULL INPUT)
         | ((RETURNS NULL ON NULL INPUT) | STRICT)
-    )? (VOLATILE | IMMUTABLE)? commentClause? API_INTEGRATION EQ id (
-        HEADERS EQ L_PAREN headerDecl (COMMA headerDecl)* R_PAREN
-    )? (CONTEXT_HEADERS EQ L_PAREN id (COMMA id)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
+    )? (VOLATILE | IMMUTABLE)? (COMMENT EQ string)? API_INTEGRATION EQ id (
+        HEADERS EQ LPAREN headerDecl (COMMA headerDecl)* RPAREN
+    )? (CONTEXT_HEADERS EQ LPAREN id (COMMA id)* RPAREN)? (MAX_BATCH_ROWS EQ INT)? compression? (
         REQUEST_TRANSLATOR EQ id
     )? (RESPONSE_TRANSLATOR EQ id)? AS string
     ;
 
 createExternalTable
     // Partitions computed from expressions
-    : CREATE orReplace? EXTERNAL TABLE ifNotExists? objectName L_PAREN externalTableColumnDeclList R_PAREN cloudProviderParams3? partitionBy? WITH?
-        LOCATION EQ namedStage (REFRESH_ON_CREATE EQ trueFalse)? (AUTO_REFRESH EQ trueFalse)? pattern? fileFormat (
+    : CREATE (OR REPLACE)? EXTERNAL TABLE (IF NOT EXISTS)? dotIdentifier LPAREN externalTableColumnDeclList RPAREN cloudProviderParams3? partitionBy?
+        WITH? LOCATION EQ namedStage (REFRESH_ON_CREATE EQ trueFalse)? (AUTO_REFRESH EQ trueFalse)? pattern? fileFormat (
         AWS_SNS_TOPIC EQ string
-    )? copyGrants? withRowAccessPolicy? withTags? commentClause?
+    )? copyGrants? withRowAccessPolicy? withTags? (COMMENT EQ string)?
     // Partitions added and removed manually
-    | CREATE orReplace? EXTERNAL TABLE ifNotExists? objectName L_PAREN externalTableColumnDeclList R_PAREN cloudProviderParams3? partitionBy? WITH?
-        LOCATION EQ namedStage PARTITION_TYPE EQ USER_SPECIFIED fileFormat copyGrants? withRowAccessPolicy? withTags? commentClause?
+    | CREATE (OR REPLACE)? EXTERNAL TABLE (IF NOT EXISTS)? dotIdentifier LPAREN externalTableColumnDeclList RPAREN cloudProviderParams3? partitionBy?
+        WITH? LOCATION EQ namedStage PARTITION_TYPE EQ USER_SPECIFIED fileFormat copyGrants? withRowAccessPolicy? withTags? (
+        COMMENT EQ string
+    )?
     // Delta Lake
-    | CREATE orReplace? EXTERNAL TABLE ifNotExists? objectName L_PAREN externalTableColumnDeclList R_PAREN cloudProviderParams3? partitionBy? WITH?
-        LOCATION EQ namedStage PARTITION_TYPE EQ USER_SPECIFIED fileFormat (TABLE_FORMAT EQ DELTA)? copyGrants? withRowAccessPolicy? withTags?
-        commentClause?
+    | CREATE (OR REPLACE)? EXTERNAL TABLE (IF NOT EXISTS)? dotIdentifier LPAREN externalTableColumnDeclList RPAREN cloudProviderParams3? partitionBy?
+        WITH? LOCATION EQ namedStage PARTITION_TYPE EQ USER_SPECIFIED fileFormat (
+        TABLE_FORMAT EQ DELTA
+    )? copyGrants? withRowAccessPolicy? withTags? (COMMENT EQ string)?
     ;
 
 externalTableColumnDecl: columnName dataType AS (expr | id) inlineConstraint?
@@ -1510,7 +1517,7 @@ integrationTypeName: SECURITY INTEGRATIONS | API INTEGRATIONS
     ;
 
 createFailoverGroup
-    : CREATE FAILOVER GROUP ifNotExists? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
+    : CREATE FAILOVER GROUP (IF NOT EXISTS)? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
         ALLOWED_DATABASES EQ id (COMMA id)*
     )? (ALLOWED_SHARES EQ id (COMMA id)*)? (
         ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (COMMA integrationTypeName)*
@@ -1518,82 +1525,81 @@ createFailoverGroup
         REPLICATION_SCHEDULE EQ string
     )?
     //      Secondary Replication Group
-    | CREATE FAILOVER GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
+    | CREATE FAILOVER GROUP (IF NOT EXISTS)? id AS REPLICA OF id DOT id DOT id
     ;
 
 typeFileformat: CSV | JSON | AVRO | ORC | PARQUET | XML | string
     ;
 
 createFileFormat
-    : CREATE orReplace? FILE FORMAT ifNotExists? objectName (TYPE EQ typeFileformat)? formatTypeOptions* commentClause?
+    : CREATE (OR REPLACE)? FILE FORMAT (IF NOT EXISTS)? dotIdentifier (TYPE EQ typeFileformat)? formatTypeOptions* (
+        COMMENT EQ string
+    )?
     ;
 
-argDecl: argName argDataType argDefaultValueClause?
-    ;
-
-argDefaultValueClause: DEFAULT expr
+argDecl: id dataType (DEFAULT expr)?
     ;
 
 colDecl: columnName dataType? virtualColumnDecl?
     ;
 
-virtualColumnDecl: AS L_PAREN functionCall R_PAREN
+virtualColumnDecl: AS LPAREN functionCall RPAREN
     ;
 
 functionDefinition: string
     ;
 
+// TODO: merge these rules to avoid massive lookahead
 createFunction
-    : CREATE orReplace? SECURE? FUNCTION ifNotExists? objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) (LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL))? (
+    : CREATE (OR REPLACE)? SECURE? FUNCTION (IF NOT EXISTS)? dotIdentifier LPAREN (
+        argDecl (COMMA argDecl)*
+    )? RPAREN RETURNS (dataType | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN) (LANGUAGE id)? (
         CALLED ON NULL INPUT
         | RETURNS NULL ON NULL INPUT
         | STRICT
-    )? (VOLATILE | IMMUTABLE)? (PACKAGES EQ L_PAREN stringList R_PAREN)? (
+    )? (VOLATILE | IMMUTABLE)? (PACKAGES EQ LPAREN stringList RPAREN)? (
         RUNTIME_VERSION EQ (string | FLOAT)
-    )? (IMPORTS EQ L_PAREN stringList R_PAREN)? (PACKAGES EQ L_PAREN stringList R_PAREN)? (
+    )? (IMPORTS EQ LPAREN stringList RPAREN)? (PACKAGES EQ LPAREN stringList RPAREN)? (
         HANDLER EQ string
-    )? nullNotNull? commentClause? AS functionDefinition
-    | CREATE orReplace? SECURE? FUNCTION objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
+    )? (NOT? NULL)? (COMMENT EQ com = string)? AS functionDefinition
+    | CREATE (OR REPLACE)? SECURE? FUNCTION dotIdentifier LPAREN (argDecl (COMMA argDecl)*)? RPAREN RETURNS (
         dataType
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) nullNotNull? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
+        | TABLE LPAREN (colDecl (COMMA colDecl)*)? RPAREN
+    ) (NOT? NULL)? (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
-    )? MEMOIZABLE? commentClause? AS functionDefinition
+    )? MEMOIZABLE? (COMMENT EQ com = string)? AS functionDefinition
     ;
 
 createManagedAccount
     : CREATE MANAGED ACCOUNT id ADMIN_NAME EQ id COMMA ADMIN_PASSWORD EQ string COMMA TYPE EQ READER (
-        COMMA commentClause
+        COMMA (COMMENT EQ string)
     )?
     ;
 
 createMaskingPolicy
-    : CREATE orReplace? MASKING POLICY ifNotExists? objectName AS L_PAREN argName argDataType (
-        COMMA argName argDataType
-    )? R_PAREN RETURNS argDataType ARROW expr commentClause?
+    : CREATE (OR REPLACE)? MASKING POLICY (IF NOT EXISTS)? dotIdentifier AS LPAREN id dataType (
+        COMMA id dataType
+    )? RPAREN RETURNS dataType ARROW expr (COMMENT EQ string)?
     ;
 
-tagDecl: objectName EQ string
+tagDecl: dotIdentifier EQ string
     ;
 
-columnListInParentheses: L_PAREN columnList R_PAREN
+columnListInParentheses: LPAREN columnList RPAREN
     ;
 
 createMaterializedView
-    : CREATE orReplace? SECURE? MATERIALIZED VIEW ifNotExists? objectName (
-        L_PAREN columnListWithComment R_PAREN
-    )? viewCol* withRowAccessPolicy? withTags? copyGrants? commentClause? clusterBy? AS selectStatement
+    : CREATE (OR REPLACE)? SECURE? MATERIALIZED VIEW (IF NOT EXISTS)? dotIdentifier (
+        LPAREN columnListWithComment RPAREN
+    )? viewCol* withRowAccessPolicy? withTags? copyGrants? (COMMENT EQ string)? clusterBy? AS selectStatement
     //NOTA MATERIALIZED VIEW accept only simple select statement at this time
     ;
 
 createNetworkPolicy
-    : CREATE orReplace? NETWORK POLICY id ALLOWED_IP_LIST EQ L_PAREN stringList? R_PAREN (
-        BLOCKED_IP_LIST EQ L_PAREN stringList? R_PAREN
-    )? commentClause?
+    : CREATE (OR REPLACE)? NETWORK POLICY id ALLOWED_IP_LIST EQ LPAREN stringList? RPAREN (
+        BLOCKED_IP_LIST EQ LPAREN stringList? RPAREN
+    )? (COMMENT EQ string)?
     ;
 
 cloudProviderParamsAuto
@@ -1613,58 +1619,27 @@ cloudProviderParamsPush
     ;
 
 createNotificationIntegration
-    : CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id ENABLED EQ trueFalse TYPE EQ QUEUE cloudProviderParamsAuto commentClause?
-    | CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id ENABLED EQ trueFalse DIRECTION EQ OUTBOUND TYPE EQ QUEUE cloudProviderParamsPush
-        commentClause?
+    : CREATE (OR REPLACE)? NOTIFICATION INTEGRATION (IF NOT EXISTS)? id ENABLED EQ trueFalse TYPE EQ QUEUE cloudProviderParamsAuto (
+        COMMENT EQ string
+    )?
+    | CREATE (OR REPLACE)? NOTIFICATION INTEGRATION (IF NOT EXISTS)? id ENABLED EQ trueFalse DIRECTION EQ OUTBOUND TYPE EQ QUEUE
+        cloudProviderParamsPush (COMMENT EQ string)?
     ;
 
 createPipe
-    : CREATE orReplace? PIPE ifNotExists? objectName (AUTO_INGEST EQ trueFalse)? (
+    : CREATE (OR REPLACE)? PIPE (IF NOT EXISTS)? dotIdentifier (AUTO_INGEST EQ trueFalse)? (
         ERROR_INTEGRATION EQ id
-    )? (AWS_SNS_TOPIC EQ string)? (INTEGRATION EQ string)? commentClause? AS copyIntoTable
+    )? (AWS_SNS_TOPIC EQ string)? (INTEGRATION EQ string)? (COMMENT EQ string)? AS copyIntoTable
     ;
 
-callerOwner: CALLER | OWNER
+executeAs: EXECUTE AS (CALLER | OWNER)
     ;
 
-executaAs: EXECUTE AS callerOwner
-    ;
-
-procedureDefinition: DOLLAR_STRING | declareCommand? BEGIN procStatement+ END SEMI
-    ;
-
-notNull: NOT NULL
-    ;
-
-table_: TABLE (L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN) | (functionCall)
-    ;
-
-createProcedure
-    : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType
-        | table_
-    ) notNull? LANGUAGE SQL (CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT)? (
-        VOLATILE
-        | IMMUTABLE
-    )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
-    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
-        CALLED ON NULL INPUT
-        | RETURNS NULL ON NULL INPUT
-        | STRICT
-    )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
-    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType notNull?
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
-    //            ( CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT )?
-    //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
+table: TABLE (LPAREN (colDecl (COMMA colDecl)*)? RPAREN) | (functionCall)
     ;
 
 createReplicationGroup
-    : CREATE REPLICATION GROUP ifNotExists? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
+    : CREATE REPLICATION GROUP (IF NOT EXISTS)? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
         ALLOWED_DATABASES EQ id (COMMA id)*
     )? (ALLOWED_SHARES EQ id (COMMA id)*)? (
         ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (COMMA integrationTypeName)*
@@ -1672,45 +1647,49 @@ createReplicationGroup
         REPLICATION_SCHEDULE EQ string
     )?
     //Secondary Replication Group
-    | CREATE REPLICATION GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
+    | CREATE REPLICATION GROUP (IF NOT EXISTS)? id AS REPLICA OF id DOT id DOT id
     ;
 
 createResourceMonitor
-    : CREATE orReplace? RESOURCE MONITOR id WITH creditQuota? frequency? (
+    : CREATE (OR REPLACE)? RESOURCE MONITOR id WITH creditQuota? frequency? (
         START_TIMESTAMP EQ ( string | IMMEDIATELY)
     )? (END_TIMESTAMP EQ string)? notifyUsers? (TRIGGERS triggerDefinition+)?
     ;
 
-createRole: CREATE orReplace? ROLE ifNotExists? id withTags? commentClause?
+createRole: CREATE (OR REPLACE)? ROLE (IF NOT EXISTS)? id withTags? (COMMENT EQ string)?
     ;
 
 createRowAccessPolicy
-    : CREATE orReplace? ROW ACCESS POLICY ifNotExists? id AS L_PAREN argDecl (COMMA argDecl)* R_PAREN RETURNS BOOLEAN ARROW expr commentClause?
+    : CREATE (OR REPLACE)? ROW ACCESS POLICY (IF NOT EXISTS)? id AS LPAREN argDecl (COMMA argDecl)* RPAREN RETURNS id /* BOOLEAN */ ARROW expr (
+        COMMENT EQ string
+    )?
     ;
 
 createSchema
-    : CREATE orReplace? TRANSIENT? SCHEMA ifNotExists? schemaName cloneAtBefore? (
+    : CREATE (OR REPLACE)? TRANSIENT? SCHEMA (IF NOT EXISTS)? schemaName cloneAtBefore? (
         WITH MANAGED ACCESS
-    )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? withTags? commentClause?
+    )? (DATA_RETENTION_TIME_IN_DAYS EQ INT)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? defaultDdlCollation? withTags? (
+        COMMENT EQ string
+    )?
     ;
 
 createSecurityIntegrationExternalOauth
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ EXTERNAL_OAUTH ENABLED EQ trueFalse EXTERNAL_OAUTH_TYPE EQ (
+    : CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? id TYPE EQ EXTERNAL_OAUTH ENABLED EQ trueFalse EXTERNAL_OAUTH_TYPE EQ (
         OKTA
         | id
         | PING_FEDERATE
         | CUSTOM
     ) EXTERNAL_OAUTH_ISSUER EQ string EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (
         string
-        | L_PAREN stringList R_PAREN
+        | LPAREN stringList RPAREN
     ) EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )?                                                                      // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN stringList R_PAREN))? // For Azure
-    (EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? (
-        EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN stringList R_PAREN
+    )?                                                                    // For OKTA | PING_FEDERATE | CUSTOM
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | LPAREN stringList RPAREN))? // For Azure
+    (EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN)? (
+        EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ LPAREN stringList RPAREN
     )? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ LPAREN string RPAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ (DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE))? (
         EXTERNAL_OAUTH_SCOPE_DELIMITER EQ string
     )? // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
@@ -1720,42 +1699,42 @@ implicitNone: IMPLICIT | NONE
     ;
 
 createSecurityIntegrationSnowflakeOauth
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ OAUTH OAUTH_CLIENT EQ partnerApplication OAUTH_REDIRECT_URI EQ string
+    : CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? id TYPE EQ OAUTH OAUTH_CLIENT EQ partnerApplication OAUTH_REDIRECT_URI EQ string
     //Required when OAUTH_CLIENTEQLOOKER
     enabledTrueFalse? (OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse)? (
-        OAUTH_REFRESH_TOKEN_VALIDITY EQ num
+        OAUTH_REFRESH_TOKEN_VALIDITY EQ INT
     )? (OAUTH_USE_SECONDARY_ROLES EQ implicitNone)? (
-        BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN
-    )? commentClause?
+        BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN
+    )? (COMMENT EQ string)?
     // Snowflake OAuth for custom clients
-    | CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ OAUTH OAUTH_CLIENT EQ CUSTOM
+    | CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? id TYPE EQ OAUTH OAUTH_CLIENT EQ CUSTOM
     //OAUTH_CLIENT_TYPE EQ 'CONFIDENTIAL' | 'PUBLIC'
     OAUTH_REDIRECT_URI EQ string enabledTrueFalse? (OAUTH_ALLOW_NON_TLS_REDIRECT_URI EQ trueFalse)? (
         OAUTH_ENFORCE_PKCE EQ trueFalse
     )? (OAUTH_USE_SECONDARY_ROLES EQ implicitNone)? (
-        PRE_AUTHORIZED_ROLES_LIST EQ L_PAREN stringList R_PAREN
-    )? (BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? (
-        OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse
-    )? (OAUTH_REFRESH_TOKEN_VALIDITY EQ num)? networkPolicy? (
-        OAUTH_CLIENT_RSA_PUBLIC_KEY EQ string
-    )? (OAUTH_CLIENT_RSA_PUBLIC_KEY_2 EQ string)? commentClause?
+        PRE_AUTHORIZED_ROLES_LIST EQ LPAREN stringList RPAREN
+    )? (BLOCKED_ROLES_LIST EQ LPAREN stringList RPAREN)? (OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse)? (
+        OAUTH_REFRESH_TOKEN_VALIDITY EQ INT
+    )? networkPolicy? (OAUTH_CLIENT_RSA_PUBLIC_KEY EQ string)? (
+        OAUTH_CLIENT_RSA_PUBLIC_KEY_2 EQ string
+    )? (COMMENT EQ string)?
     ;
 
 createSecurityIntegrationSaml2
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? TYPE EQ SAML2 enabledTrueFalse SAML2_ISSUER EQ string SAML2_SSO_URL EQ string SAML2_PROVIDER
-        EQ string SAML2_X509_CERT EQ string (SAML2_SP_INITIATED_LOGIN_PAGE_LABEL EQ string)? (
-        SAML2_ENABLE_SP_INITIATED EQ trueFalse
-    )? (SAML2_SNOWFLAKE_X509_CERT EQ string)? (SAML2_SIGN_REQUEST EQ trueFalse)? (
-        SAML2_REQUESTED_NAMEID_FORMAT EQ string
-    )? (SAML2_POST_LOGOUT_REDIRECT_URL EQ string)? (SAML2_FORCE_AUTHN EQ trueFalse)? (
-        SAML2_SNOWFLAKE_ISSUER_URL EQ string
-    )? (SAML2_SNOWFLAKE_ACS_URL EQ string)?
+    : CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? TYPE EQ SAML2 enabledTrueFalse SAML2_ISSUER EQ string SAML2_SSO_URL EQ string
+        SAML2_PROVIDER EQ string SAML2_X509_CERT EQ string (
+        SAML2_SP_INITIATED_LOGIN_PAGE_LABEL EQ string
+    )? (SAML2_ENABLE_SP_INITIATED EQ trueFalse)? (SAML2_SNOWFLAKE_X509_CERT EQ string)? (
+        SAML2_SIGN_REQUEST EQ trueFalse
+    )? (SAML2_REQUESTED_NAMEID_FORMAT EQ string)? (SAML2_POST_LOGOUT_REDIRECT_URL EQ string)? (
+        SAML2_FORCE_AUTHN EQ trueFalse
+    )? (SAML2_SNOWFLAKE_ISSUER_URL EQ string)? (SAML2_SNOWFLAKE_ACS_URL EQ string)?
     ;
 
 createSecurityIntegrationScim
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ string RUN_AS_ROLE EQ string networkPolicy? (
+    : CREATE (OR REPLACE)? SECURITY INTEGRATION (IF NOT EXISTS)? id TYPE EQ SCIM SCIM_CLIENT EQ string RUN_AS_ROLE EQ string networkPolicy? (
         SYNC_PASSWORD EQ trueFalse
-    )? commentClause?
+    )? (COMMENT EQ string)?
     ;
 
 networkPolicy: NETWORK_POLICY EQ string
@@ -1764,23 +1743,25 @@ networkPolicy: NETWORK_POLICY EQ string
 partnerApplication: TABLEAU_DESKTOP | TABLEAU_SERVER | LOOKER
     ;
 
-startWith: START WITH? EQ? num
+startWith: START WITH? EQ? INT
     ;
 
-incrementBy: INCREMENT BY? EQ? num
+incrementBy: INCREMENT BY? EQ? INT
     ;
 
 createSequence
-    : CREATE orReplace? SEQUENCE ifNotExists? objectName WITH? startWith? incrementBy? orderNoorder? commentClause?
+    : CREATE (OR REPLACE)? SEQUENCE (IF NOT EXISTS)? dotIdentifier WITH? startWith? incrementBy? orderNoorder? (
+        COMMENT EQ string
+    )?
     ;
 
 createSessionPolicy
-    : CREATE orReplace? SESSION POLICY ifExists? id (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
-        SESSION_UI_IDLE_TIMEOUT_MINS EQ num
-    )? commentClause?
+    : CREATE (OR REPLACE)? SESSION POLICY (IF EXISTS)? id (SESSION_IDLE_TIMEOUT_MINS EQ INT)? (
+        SESSION_UI_IDLE_TIMEOUT_MINS EQ INT
+    )? (COMMENT EQ string)?
     ;
 
-createShare: CREATE orReplace? SHARE id commentClause?
+createShare: CREATE (OR REPLACE)? SHARE id (COMMENT EQ string)?
     ;
 
 formatTypeOptions
@@ -1789,28 +1770,28 @@ formatTypeOptions
     | RECORD_DELIMITER EQ ( string | NONE)
     | FIELD_DELIMITER EQ ( string | NONE)
     | FILE_EXTENSION EQ string
-    | SKIP_HEADER EQ num
+    | SKIP_HEADER EQ INT
     | SKIP_BLANK_LINES EQ trueFalse
     | DATE_FORMAT EQ (string | AUTO)
     | TIME_FORMAT EQ (string | AUTO)
     | TIMESTAMP_FORMAT EQ (string | AUTO)
-    | BINARY_FORMAT EQ (HEX | BASE64 | UTF8)
+    | BINARY_FORMAT EQ id
     | ESCAPE EQ (string | NONE)
     | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE)
     | TRIM_SPACE EQ trueFalse
     | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE)
-    | NULL_IF EQ L_PAREN stringList R_PAREN
+    | NULL_IF EQ LPAREN stringList RPAREN
     | ERROR_ON_COLUMN_COUNT_MISMATCH EQ trueFalse
     | REPLACE_INVALID_CHARACTERS EQ trueFalse
     | EMPTY_FIELD_AS_NULL EQ trueFalse
     | SKIP_BYTE_ORDER_MARK EQ trueFalse
-    | ENCODING EQ (string | UTF8) //by the way other encoding keyword are valid ie WINDOWS1252
+    | ENCODING EQ (string | id) //by the way other encoding keyword are valid ie WINDOWS1252
     //-- If TYPE EQ JSON
     //| COMPRESSION EQ (AUTO | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE)
     //    | DATE_FORMAT EQ string | AUTO
     //    | TIME_FORMAT EQ string | AUTO
     //    | TIMESTAMP_FORMAT EQ string | AUTO
-    //    | BINARY_FORMAT EQ HEX | BASE64 | UTF8
+    //    | BINARY_FORMAT id
     //    | TRIM_SPACE EQ trueFalse
     //    | NULL_IF EQ LR_BRACKET stringList RR_BRACKET
     //    | FILE_EXTENSION EQ string
@@ -1856,7 +1837,7 @@ formatTypeOptions
 
 copyOptions
     : ON_ERROR EQ (CONTINUE | SKIP_FILE | SKIP_FILE_N | SKIP_FILE_N ABORT_STATEMENT)
-    | SIZE_LIMIT EQ num
+    | SIZE_LIMIT EQ INT
     | PURGE EQ trueFalse
     | RETURN_FAILED_ONLY EQ trueFalse
     | MATCH_BY_COLUMN_NAME EQ CASE_SENSITIVE
@@ -1867,8 +1848,7 @@ copyOptions
     | FORCE EQ trueFalse
     ;
 
-stageEncryptionOptsInternal
-    : ENCRYPTION EQ L_PAREN TYPE EQ (SNOWFLAKE_FULL | SNOWFLAKE_SSE) R_PAREN
+stageEncryptionOptsInternal: ENCRYPTION EQ LPAREN TYPE EQ (SNOWFLAKE_FULL | SNOWFLAKE_SSE) RPAREN
     ;
 
 storageIntegrationEqId: STORAGE_INTEGRATION EQ id
@@ -1880,7 +1860,7 @@ storageCredentials: CREDENTIALS EQ parenStringOptions
 storageEncryption: ENCRYPTION EQ parenStringOptions
     ;
 
-parenStringOptions: L_PAREN stringOption* R_PAREN
+parenStringOptions: LPAREN stringOption* RPAREN
     ;
 
 stringOption: id EQ string
@@ -1905,45 +1885,45 @@ notificationIntegration: NOTIFICATION_INTEGRATION EQ string
     ;
 
 directoryTableInternalParams
-    : DIRECTORY EQ L_PAREN (
+    : DIRECTORY EQ LPAREN (
         enable refreshOnCreate?
         | REFRESH_ON_CREATE EQ FALSE
         | refreshOnCreate enable
-    ) R_PAREN
+    ) RPAREN
     ;
 
 directoryTableExternalParams
     // (for Amazon S3)
-    : DIRECTORY EQ L_PAREN enable refreshOnCreate? autoRefresh? R_PAREN
+    : DIRECTORY EQ LPAREN enable refreshOnCreate? autoRefresh? RPAREN
     // (for Google Cloud Storage)
-    | DIRECTORY EQ L_PAREN enable autoRefresh? refreshOnCreate? notificationIntegration? R_PAREN
+    | DIRECTORY EQ LPAREN enable autoRefresh? refreshOnCreate? notificationIntegration? RPAREN
     // (for Microsoft Azure)
-    | DIRECTORY EQ L_PAREN enable refreshOnCreate? autoRefresh? notificationIntegration? R_PAREN
+    | DIRECTORY EQ LPAREN enable refreshOnCreate? autoRefresh? notificationIntegration? RPAREN
     ;
 
 /* ===========  Stage DDL section =========== */
 createStage
-    : CREATE orReplace? temporary? STAGE ifNotExists? objectNameOrIdentifier stageEncryptionOptsInternal? directoryTableInternalParams? (
-        FILE_FORMAT EQ L_PAREN (FORMAT_NAME EQ string | TYPE EQ typeFileformat formatTypeOptions*) R_PAREN
-    )? (COPY_OPTIONS_ EQ L_PAREN copyOptions R_PAREN)? withTags? commentClause?
-    | CREATE orReplace? temporary? STAGE ifNotExists? objectNameOrIdentifier externalStageParams directoryTableExternalParams? (
-        FILE_FORMAT EQ L_PAREN (FORMAT_NAME EQ string | TYPE EQ typeFileformat formatTypeOptions*) R_PAREN
-    )? (COPY_OPTIONS_ EQ L_PAREN copyOptions R_PAREN)? withTags? commentClause?
+    : CREATE (OR REPLACE)? temporary? STAGE (IF NOT EXISTS)? dotIdentifierOrIdent stageEncryptionOptsInternal? directoryTableInternalParams? (
+        FILE_FORMAT EQ LPAREN (FORMAT_NAME EQ string | TYPE EQ typeFileformat formatTypeOptions*) RPAREN
+    )? (COPY_OPTIONS_ EQ LPAREN copyOptions RPAREN)? withTags? (COMMENT EQ string)?
+    | CREATE (OR REPLACE)? temporary? STAGE (IF NOT EXISTS)? dotIdentifierOrIdent externalStageParams directoryTableExternalParams? (
+        FILE_FORMAT EQ LPAREN (FORMAT_NAME EQ string | TYPE EQ typeFileformat formatTypeOptions*) RPAREN
+    )? (COPY_OPTIONS_ EQ LPAREN copyOptions RPAREN)? withTags? (COMMENT EQ string)?
     ;
 
 alterStage
-    : ALTER STAGE ifExists? objectNameOrIdentifier RENAME TO objectNameOrIdentifier
-    | ALTER STAGE ifExists? objectNameOrIdentifier setTags
-    | ALTER STAGE ifExists? objectNameOrIdentifier unsetTags
-    | ALTER STAGE ifExists? objectNameOrIdentifier SET externalStageParams? fileFormat? (
-        COPY_OPTIONS_ EQ L_PAREN copyOptions R_PAREN
-    )? commentClause?
+    : ALTER STAGE (IF EXISTS)? dotIdentifierOrIdent RENAME TO dotIdentifierOrIdent
+    | ALTER STAGE (IF EXISTS)? dotIdentifierOrIdent setTags
+    | ALTER STAGE (IF EXISTS)? dotIdentifierOrIdent unsetTags
+    | ALTER STAGE (IF EXISTS)? dotIdentifierOrIdent SET externalStageParams? fileFormat? (
+        COPY_OPTIONS_ EQ LPAREN copyOptions RPAREN
+    )? (COMMENT EQ string)?
     ;
 
-dropStage: DROP STAGE ifExists? objectNameOrIdentifier
+dropStage: DROP STAGE (IF EXISTS)? dotIdentifierOrIdent
     ;
 
-describeStage: describe STAGE objectNameOrIdentifier
+describeStage: DESCRIBE STAGE dotIdentifierOrIdent
     ;
 
 showStages: SHOW STAGES likePattern? inObj?
@@ -1969,8 +1949,10 @@ cloudProviderParams3: INTEGRATION EQ string
     ;
 
 createStorageIntegration
-    : CREATE orReplace? STORAGE INTEGRATION ifNotExists? id TYPE EQ EXTERNAL_STAGE cloudProviderParams ENABLED EQ trueFalse STORAGE_ALLOWED_LOCATIONS
-        EQ L_PAREN stringList R_PAREN (STORAGE_BLOCKED_LOCATIONS EQ L_PAREN stringList R_PAREN)? commentClause?
+    : CREATE (OR REPLACE)? STORAGE INTEGRATION (IF NOT EXISTS)? id TYPE EQ EXTERNAL_STAGE cloudProviderParams ENABLED EQ trueFalse
+        STORAGE_ALLOWED_LOCATIONS EQ LPAREN stringList RPAREN (
+        STORAGE_BLOCKED_LOCATIONS EQ LPAREN stringList RPAREN
+    )? (COMMENT EQ string)?
     ;
 
 copyGrants: COPY GRANTS
@@ -1986,35 +1968,43 @@ showInitialRows: SHOW_INITIAL_ROWS EQ trueFalse
     ;
 
 streamTime
-    : atBefore1 L_PAREN (
+    : atBefore1 LPAREN (
         TIMESTAMP ASSOC string
         | OFFSET ASSOC string
         | STATEMENT ASSOC id
         | STREAM ASSOC string
-    ) R_PAREN
+    ) RPAREN
     ;
 
 createStream
     //-- table
-    : CREATE orReplace? STREAM ifNotExists? objectName copyGrants? ON TABLE objectName streamTime? appendOnly? showInitialRows? commentClause?
+    : CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? dotIdentifier copyGrants? ON TABLE dotIdentifier streamTime? appendOnly? showInitialRows? (
+        COMMENT EQ string
+    )?
     //-- External table
-    | CREATE orReplace? STREAM ifNotExists? objectName copyGrants? ON EXTERNAL TABLE objectName streamTime? insertOnly? commentClause?
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? dotIdentifier copyGrants? ON EXTERNAL TABLE dotIdentifier streamTime? insertOnly? (
+        COMMENT EQ string
+    )?
     //-- Directory table
-    | CREATE orReplace? STREAM ifNotExists? objectName copyGrants? ON STAGE objectName commentClause?
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? dotIdentifier copyGrants? ON STAGE dotIdentifier (
+        COMMENT EQ string
+    )?
     //-- View
-    | CREATE orReplace? STREAM ifNotExists? objectName copyGrants? ON VIEW objectName streamTime? appendOnly? showInitialRows? commentClause?
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? dotIdentifier copyGrants? ON VIEW dotIdentifier streamTime? appendOnly? showInitialRows? (
+        COMMENT EQ string
+    )?
     ;
 
 temporary: TEMP | TEMPORARY
     ;
 
-tableType: (( LOCAL | GLOBAL)? (temporary | VOLATILE)) | TRANSIENT
+tableType: (( LOCAL | GLOBAL)? temporary | VOLATILE) | TRANSIENT
     ;
 
-withTags: WITH? TAG L_PAREN tagDecl (COMMA tagDecl)* R_PAREN
+withTags: WITH? TAG LPAREN tagDecl (COMMA tagDecl)* RPAREN
     ;
 
-withRowAccessPolicy: WITH? ROW ACCESS POLICY id ON L_PAREN columnName (COMMA columnName)* R_PAREN
+withRowAccessPolicy: WITH? ROW ACCESS POLICY id ON LPAREN columnName (COMMA columnName)* RPAREN
     ;
 
 clusterBy: CLUSTER BY LINEAR? exprListInParentheses
@@ -2035,7 +2025,7 @@ orderNoorder: ORDER | NOORDER
 defaultValue
     : DEFAULT expr
     | (AUTOINCREMENT | IDENTITY) (
-        L_PAREN num COMMA num R_PAREN
+        LPAREN INT COMMA INT RPAREN
         | startWith
         | incrementBy
         | startWith incrementBy
@@ -2051,12 +2041,13 @@ primaryKey: PRIMARY KEY
 outOfLineConstraint
     : (CONSTRAINT id)? (
         (UNIQUE | primaryKey) columnListInParentheses commonConstraintProperties*
-        | foreignKey columnListInParentheses REFERENCES objectName columnListInParentheses constraintProperties
+        | foreignKey columnListInParentheses REFERENCES dotIdentifier columnListInParentheses constraintProperties
     )
     ;
 
+// TODO: Fix fullColDecl as defaultvalue being NULL and nullable are ambiguous - works with current visitor thoguh for now
 fullColDecl
-    : colDecl (collate | inlineConstraint | nullNotNull | (defaultValue | NULL))* withMaskingPolicy? withTags? (
+    : colDecl (collate | inlineConstraint | (NOT? NULL) | (defaultValue | NULL))* withMaskingPolicy? withTags? (
         COMMENT string
     )?
     ;
@@ -2068,33 +2059,41 @@ columnDeclItemList: columnDeclItem (COMMA columnDeclItem)*
     ;
 
 createTable
-    : CREATE orReplace? tableType? TABLE (ifNotExists? objectName | objectName ifNotExists?) (
-        (commentClause? createTableClause)
-        | (createTableClause commentClause?)
-    )
+    : CREATE (OR REPLACE)? tableType? TABLE (
+        (IF NOT EXISTS)? dotIdentifier
+        | dotIdentifier (IF NOT EXISTS)?
+    ) (((COMMENT EQ string)? createTableClause) | (createTableClause (COMMENT EQ string)?))
     ;
 
-columnDeclItemListParen: L_PAREN columnDeclItemList R_PAREN
+columnDeclItemListParen: LPAREN columnDeclItemList RPAREN
     ;
 
 createTableClause
-    : (columnDeclItemListParen clusterBy? | clusterBy? commentClause? columnDeclItemListParen) stageFileFormat? (
-        STAGE_COPY_OPTIONS EQ L_PAREN copyOptions R_PAREN
-    )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? changeTracking? defaultDdlCollation? copyGrants? commentClause?
-        withRowAccessPolicy? withTags?
+    : (
+        columnDeclItemListParen clusterBy?
+        | clusterBy? (COMMENT EQ string)? columnDeclItemListParen
+    ) stageFileFormat? (STAGE_COPY_OPTIONS EQ LPAREN copyOptions RPAREN)? (
+        DATA_RETENTION_TIME_IN_DAYS EQ INT
+    )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ INT)? changeTracking? defaultDdlCollation? copyGrants? (
+        COMMENT EQ string
+    )? withRowAccessPolicy? withTags?
     ;
 
 createTableAsSelect
-    : CREATE orReplace? tableType? TABLE (ifNotExists? objectName | objectName ifNotExists?) (
-        L_PAREN columnDeclItemList R_PAREN
-    )? clusterBy? copyGrants? withRowAccessPolicy? withTags? commentClause? AS L_PAREN? queryStatement R_PAREN?
+    : CREATE (OR REPLACE)? tableType? TABLE (
+        (IF NOT EXISTS)? dotIdentifier
+        | dotIdentifier (IF NOT EXISTS)?
+    ) (LPAREN columnDeclItemList RPAREN)? clusterBy? copyGrants? withRowAccessPolicy? withTags? (
+        COMMENT EQ string
+    )? AS LPAREN? queryStatement RPAREN?
     ;
 
 createTableLike
-    : CREATE orReplace? TRANSIENT? TABLE ifNotExists? objectName LIKE objectName clusterBy? copyGrants?
+    : CREATE (OR REPLACE)? TRANSIENT? TABLE (IF NOT EXISTS)? dotIdentifier LIKE dotIdentifier clusterBy? copyGrants?
     ;
 
-createTag: CREATE orReplace? TAG ifNotExists? objectName tagAllowedValues? commentClause?
+createTag
+    : CREATE (OR REPLACE)? TAG (IF NOT EXISTS)? dotIdentifier tagAllowedValues? (COMMENT EQ string)?
     ;
 
 tagAllowedValues: ALLOWED_VALUES stringList
@@ -2188,8 +2187,8 @@ sessionParamsList: sessionParams (COMMA sessionParams)*
     ;
 
 createTask
-    : CREATE orReplace? TASK ifNotExists? objectName taskParameters* commentClause? copyGrants? (
-        AFTER objectName (COMMA objectName)*
+    : CREATE (OR REPLACE)? TASK (IF NOT EXISTS)? dotIdentifier taskParameters* (COMMENT EQ string)? copyGrants? (
+        AFTER dotIdentifier (COMMA dotIdentifier)*
     )? (WHEN searchCondition)? AS sql
     ;
 
@@ -2214,10 +2213,10 @@ taskCompute
 taskSchedule: SCHEDULE EQ string
     ;
 
-taskTimeout: USER_TASK_TIMEOUT_MS EQ num
+taskTimeout: USER_TASK_TIMEOUT_MS EQ INT
     ;
 
-taskSuspendAfterFailureNumber: SUSPEND_TASK_AFTER_NUM_FAILURES EQ num
+taskSuspendAfterFailureNumber: SUSPEND_TASK_AFTER_NUM_FAILURES EQ INT
     ;
 
 taskErrorIntegration: ERROR_INTEGRATION EQ id
@@ -2226,26 +2225,28 @@ taskErrorIntegration: ERROR_INTEGRATION EQ id
 taskOverlap: ALLOW_OVERLAPPING_EXECUTION EQ trueFalse
     ;
 
-sql: EXECUTE IMMEDIATE DOLLAR_STRING | sqlCommand | call
+sql: EXECUTE IMMEDIATE DOLLAR_STRING | sqlClauses | call
     ;
 
 // Snowfllake allows calls to special internal stored procedures, named x.y!entrypoint
-call: CALL objectName (BANG id)? L_PAREN exprList? R_PAREN
+call: CALL dotIdentifier (BANG id)? LPAREN exprList? RPAREN
     ;
 
-createUser: CREATE orReplace? USER ifNotExists? id objectProperties? objectParams? sessionParams?
+createUser
+    : CREATE (OR REPLACE)? USER (IF NOT EXISTS)? id objectProperties? objectParams? sessionParams?
     ;
 
 viewCol: columnName withMaskingPolicy withTags
     ;
 
 createView
-    : CREATE orReplace? SECURE? tableType? RECURSIVE? VIEW ifNotExists? objectName (
-        L_PAREN columnListWithComment R_PAREN
-    )? viewCol* withRowAccessPolicy? withTags? copyGrants? commentClause? AS queryStatement
+    : CREATE (OR REPLACE)? SECURE? RECURSIVE? VIEW (IF NOT EXISTS)? dotIdentifier (
+        LPAREN columnListWithComment RPAREN
+    )? viewCol* withRowAccessPolicy? withTags? copyGrants? (COMMENT EQ string)? AS queryStatement
     ;
 
-createWarehouse: CREATE orReplace? WAREHOUSE ifNotExists? idFn (WITH? whProperties+)? whParams*
+createWarehouse
+    : CREATE (OR REPLACE)? WAREHOUSE (IF NOT EXISTS)? idFn (WITH? whProperties+)? whParams*
     ;
 
 whCommonSize: XSMALL | SMALL | MEDIUM | LARGE | XLARGE | XXLARGE
@@ -2255,25 +2256,25 @@ whExtraSize: XXXLARGE | X4LARGE | X5LARGE | X6LARGE
     ;
 
 whProperties
-    : WAREHOUSE_SIZE EQ (whCommonSize | whExtraSize | ID2)
+    : WAREHOUSE_SIZE EQ (whCommonSize | whExtraSize | LOCAL_ID)
     | WAREHOUSE_TYPE EQ (STANDARD | string)
-    | MAX_CLUSTER_COUNT EQ num
-    | MIN_CLUSTER_COUNT EQ num
+    | MAX_CLUSTER_COUNT EQ INT
+    | MIN_CLUSTER_COUNT EQ INT
     | SCALING_POLICY EQ (STANDARD | ECONOMY)
-    | AUTO_SUSPEND (EQ num | NULL)
+    | AUTO_SUSPEND (EQ INT | NULL)
     | AUTO_RESUME EQ trueFalse
     | INITIALLY_SUSPENDED EQ trueFalse
     | RESOURCE_MONITOR EQ id
-    | commentClause
+    | (COMMENT EQ string)
     | ENABLE_QUERY_ACCELERATION EQ trueFalse
-    | QUERY_ACCELERATION_MAX_SCALE_FACTOR EQ num
-    | MAX_CONCURRENCY_LEVEL EQ num
+    | QUERY_ACCELERATION_MAX_SCALE_FACTOR EQ INT
+    | MAX_CONCURRENCY_LEVEL EQ INT
     ;
 
 whParams
-    : MAX_CONCURRENCY_LEVEL EQ num
-    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ num
-    | STATEMENT_TIMEOUT_IN_SECONDS EQ num withTags?
+    : MAX_CONCURRENCY_LEVEL EQ INT
+    | STATEMENT_QUEUED_TIMEOUT_IN_SECONDS EQ INT
+    | STATEMENT_TIMEOUT_IN_SECONDS EQ INT withTags?
     ;
 
 objectTypeName
@@ -2352,34 +2353,34 @@ dropCommand
     | dropWarehouse
     ;
 
-dropObject: DROP objectType ifExists id cascadeRestrict?
+dropObject: DROP objectType (IF EXISTS)? id cascadeRestrict?
     ;
 
 dropAlert: DROP ALERT id
     ;
 
-dropConnection: DROP CONNECTION ifExists? id
+dropConnection: DROP CONNECTION (IF EXISTS)? id
     ;
 
-dropDatabase: DROP DATABASE ifExists? id cascadeRestrict?
+dropDatabase: DROP DATABASE (IF EXISTS)? id cascadeRestrict?
     ;
 
 dropDynamicTable: DROP DYNAMIC TABLE id
     ;
 
-dropExternalTable: DROP EXTERNAL TABLE ifExists? objectName cascadeRestrict?
+dropExternalTable: DROP EXTERNAL TABLE (IF EXISTS)? dotIdentifier cascadeRestrict?
     ;
 
-dropFailoverGroup: DROP FAILOVER GROUP ifExists? id
+dropFailoverGroup: DROP FAILOVER GROUP (IF EXISTS)? id
     ;
 
-dropFileFormat: DROP FILE FORMAT ifExists? id
+dropFileFormat: DROP FILE FORMAT (IF EXISTS)? id
     ;
 
-dropFunction: DROP FUNCTION ifExists? objectName argTypes
+dropFunction: DROP FUNCTION (IF EXISTS)? dotIdentifier argTypes
     ;
 
-dropIntegration: DROP (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION ifExists? id
+dropIntegration: DROP (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION (IF EXISTS)? id
     ;
 
 dropManagedAccount: DROP MANAGED ACCOUNT id
@@ -2388,67 +2389,64 @@ dropManagedAccount: DROP MANAGED ACCOUNT id
 dropMaskingPolicy: DROP MASKING POLICY id
     ;
 
-dropMaterializedView: DROP MATERIALIZED VIEW ifExists? objectName
+dropMaterializedView: DROP MATERIALIZED VIEW (IF EXISTS)? dotIdentifier
     ;
 
-dropNetworkPolicy: DROP NETWORK POLICY ifExists? id
+dropNetworkPolicy: DROP NETWORK POLICY (IF EXISTS)? id
     ;
 
-dropPipe: DROP PIPE ifExists? objectName
+dropPipe: DROP PIPE (IF EXISTS)? dotIdentifier
     ;
 
-dropProcedure: DROP PROCEDURE ifExists? objectName argTypes
-    ;
-
-dropReplicationGroup: DROP REPLICATION GROUP ifExists? id
+dropReplicationGroup: DROP REPLICATION GROUP (IF EXISTS)? id
     ;
 
 dropResourceMonitor: DROP RESOURCE MONITOR id
     ;
 
-dropRole: DROP ROLE ifExists? id
+dropRole: DROP ROLE (IF EXISTS)? id
     ;
 
-dropRowAccessPolicy: DROP ROW ACCESS POLICY ifExists? id
+dropRowAccessPolicy: DROP ROW ACCESS POLICY (IF EXISTS)? id
     ;
 
-dropSchema: DROP SCHEMA ifExists? schemaName cascadeRestrict?
+dropSchema: DROP SCHEMA (IF EXISTS)? schemaName cascadeRestrict?
     ;
 
-dropSequence: DROP SEQUENCE ifExists? objectName cascadeRestrict?
+dropSequence: DROP SEQUENCE (IF EXISTS)? dotIdentifier cascadeRestrict?
     ;
 
-dropSessionPolicy: DROP SESSION POLICY ifExists? id
+dropSessionPolicy: DROP SESSION POLICY (IF EXISTS)? id
     ;
 
 dropShare: DROP SHARE id
     ;
 
-dropStream: DROP STREAM ifExists? objectName
+dropStream: DROP STREAM (IF EXISTS)? dotIdentifier
     ;
 
-dropTable: DROP TABLE ifExists? objectName cascadeRestrict?
+dropTable: DROP TABLE (IF EXISTS)? dotIdentifier cascadeRestrict?
     ;
 
-dropTag: DROP TAG ifExists? objectName
+dropTag: DROP TAG (IF EXISTS)? dotIdentifier
     ;
 
-dropTask: DROP TASK ifExists? objectName
+dropTask: DROP TASK (IF EXISTS)? dotIdentifier
     ;
 
-dropUser: DROP USER ifExists? id
+dropUser: DROP USER (IF EXISTS)? id
     ;
 
-dropView: DROP VIEW ifExists? objectName
+dropView: DROP VIEW (IF EXISTS)? dotIdentifier
     ;
 
-dropWarehouse: DROP WAREHOUSE ifExists? idFn
+dropWarehouse: DROP WAREHOUSE (IF EXISTS)? idFn
     ;
 
 cascadeRestrict: CASCADE | RESTRICT
     ;
 
-argTypes: L_PAREN dataTypeList? R_PAREN
+argTypes: LPAREN dataTypeList? RPAREN
     ;
 
 // undrop commands
@@ -2465,10 +2463,10 @@ undropDatabase: UNDROP DATABASE id
 undropSchema: UNDROP SCHEMA schemaName
     ;
 
-undropTable: UNDROP TABLE objectName
+undropTable: UNDROP TABLE dotIdentifier
     ;
 
-undropTag: UNDROP TAG objectName
+undropTag: UNDROP TAG dotIdentifier
     ;
 
 // use commands
@@ -2488,25 +2486,6 @@ useSecondaryRoles: USE SECONDARY ROLES (ALL | NONE)
     ;
 
 useWarehouse: USE WAREHOUSE idFn
-    ;
-
-/* */
-commentClause: COMMENT EQ string
-    ;
-
-ifSuspended: IF SUSPENDED
-    ;
-
-ifExists: IF EXISTS
-    ;
-
-ifNotExists: IF NOT EXISTS
-    ;
-
-orReplace: OR REPLACE
-    ;
-
-describe: DESC | DESCRIBE
     ;
 
 // describe command
@@ -2541,85 +2520,85 @@ describeCommand
     | describeWarehouse
     ;
 
-describeAlert: describe ALERT id
+describeAlert: DESCRIBE ALERT id
     ;
 
-describeDatabase: describe DATABASE id
+describeDatabase: DESCRIBE DATABASE id
     ;
 
-describeDynamicTable: describe DYNAMIC TABLE id
+describeDynamicTable: DESCRIBE DYNAMIC TABLE id
     ;
 
-describeEventTable: describe EVENT TABLE id
+describeEventTable: DESCRIBE EVENT TABLE id
     ;
 
-describeExternalTable: describe EXTERNAL? TABLE objectName (TYPE EQ (COLUMNS | STAGE))?
+describeExternalTable: DESCRIBE EXTERNAL? TABLE dotIdentifier (TYPE EQ (COLUMNS | STAGE))?
     ;
 
-describeFileFormat: describe FILE FORMAT id
+describeFileFormat: DESCRIBE FILE FORMAT id
     ;
 
-describeFunction: describe FUNCTION objectName argTypes
+describeFunction: DESCRIBE FUNCTION dotIdentifier argTypes
     ;
 
-describeIntegration: describe (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION id
+describeIntegration: DESCRIBE (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION id
     ;
 
-describeMaskingPolicy: describe MASKING POLICY id
+describeMaskingPolicy: DESCRIBE MASKING POLICY id
     ;
 
-describeMaterializedView: describe MATERIALIZED VIEW objectName
+describeMaterializedView: DESCRIBE MATERIALIZED VIEW dotIdentifier
     ;
 
-describeNetworkPolicy: describe NETWORK POLICY id
+describeNetworkPolicy: DESCRIBE NETWORK POLICY id
     ;
 
-describePipe: describe PIPE objectName
+describePipe: DESCRIBE PIPE dotIdentifier
     ;
 
-describeProcedure: describe PROCEDURE objectName argTypes
+describeProcedure: DESCRIBE PROCEDURE dotIdentifier argTypes
     ;
 
-describeResult: describe RESULT (string | LAST_QUERY_ID L_PAREN R_PAREN)
+describeResult: DESCRIBE RESULT (string | LAST_QUERY_ID LPAREN RPAREN)
     ;
 
-describeRowAccessPolicy: describe ROW ACCESS POLICY id
+describeRowAccessPolicy: DESCRIBE ROW ACCESS POLICY id
     ;
 
-describeSchema: describe SCHEMA schemaName
+describeSchema: DESCRIBE SCHEMA schemaName
     ;
 
-describeSearchOptimization: describe SEARCH OPTIMIZATION ON objectName
+describeSearchOptimization: DESCRIBE SEARCH OPTIMIZATION ON dotIdentifier
     ;
 
-describeSequence: describe SEQUENCE objectName
+describeSequence: DESCRIBE SEQUENCE dotIdentifier
     ;
 
-describeSessionPolicy: describe SESSION POLICY id
+describeSessionPolicy: DESCRIBE SESSION POLICY id
     ;
 
-describeShare: describe SHARE id
+describeShare: DESCRIBE SHARE id
     ;
 
-describeStream: describe STREAM objectName
+describeStream: DESCRIBE STREAM dotIdentifier
     ;
 
-describeTable: describe TABLE objectName (TYPE EQ (COLUMNS | STAGE))?
+describeTable: DESCRIBE TABLE dotIdentifier (TYPE EQ (COLUMNS | STAGE))?
     ;
 
-describeTask: describe TASK objectName
+describeTask: DESCRIBE TASK dotIdentifier
     ;
 
-describeTransaction: describe TRANSACTION num
+describeTransaction: DESCRIBE TRANSACTION INT
     ;
 
-describeUser: describe USER id
+describeUser: DESCRIBE USER id
     ;
 
-describeView: describe VIEW objectName
+describeView: DESCRIBE VIEW dotIdentifier
     ;
 
-describeWarehouse: describe WAREHOUSE id
+describeWarehouse: DESCRIBE WAREHOUSE id
     ;
 
 // show commands
@@ -2685,7 +2664,7 @@ showAlerts
 
 showChannels
     : SHOW CHANNELS likePattern? (
-        IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE? objectName)
+        IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE? dotIdentifier)
     )?
     ;
 
@@ -2696,9 +2675,9 @@ showColumns
             | DATABASE id?
             | SCHEMA schemaName?
             | TABLE
-            | TABLE? objectName
+            | TABLE? dotIdentifier
             | VIEW
-            | VIEW? objectName
+            | VIEW? dotIdentifier
         )
     )?
     ;
@@ -2709,7 +2688,7 @@ showConnections: SHOW CONNECTIONS likePattern?
 startsWith: STARTS WITH string
     ;
 
-limitRows: LIMIT num (FROM string)?
+limitRows: LIMIT INT (FROM string)?
     ;
 
 showDatabases: SHOW TERSE? DATABASES HISTORY? likePattern? startsWith? limitRows?
@@ -2766,7 +2745,7 @@ showGrants
 
 showGrantsOpts
     : ON ACCOUNT
-    | ON objectType objectName
+    | ON objectType dotIdentifier
     | TO (ROLE id | USER id | SHARE id)
     | OF ROLE id
     | OF SHARE id
@@ -2787,7 +2766,7 @@ showMaskingPolicies: SHOW MASKING POLICIES likePattern? inObj?
 inObj: IN (ACCOUNT | DATABASE | DATABASE id | SCHEMA | SCHEMA schemaName | schemaName)
     ;
 
-inObj2: IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE objectName)
+inObj2: IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE dotIdentifier)
     ;
 
 showMaterializedViews: SHOW MATERIALIZED VIEWS likePattern? inObj?
@@ -2812,7 +2791,7 @@ showParameters
             | ACCOUNT
             | USER id?
             | ( WAREHOUSE | DATABASE | SCHEMA | TASK) id?
-            | TABLE objectName
+            | TABLE dotIdentifier
         )
     )?
     ;
@@ -2832,8 +2811,7 @@ showRegions: SHOW REGIONS likePattern?
 showReplicationAccounts: SHOW REPLICATION ACCOUNTS likePattern?
     ;
 
-showReplicationDatabases
-    : SHOW REPLICATION DATABASES likePattern? (WITH PRIMARY accountIdentifier DOT id)?
+showReplicationDatabases: SHOW REPLICATION DATABASES likePattern? (WITH PRIMARY id DOT id)?
     ;
 
 showReplicationGroups: SHOW REPLICATION GROUPS (IN ACCOUNT id)?
@@ -2894,7 +2872,7 @@ showTransactions: SHOW TRANSACTIONS (IN ACCOUNT)?
 showUserFunctions: SHOW USER FUNCTIONS likePattern? inObj?
     ;
 
-showUsers: SHOW TERSE? USERS likePattern? (STARTS WITH string)? (LIMIT num)? (FROM string)?
+showUsers: SHOW TERSE? USERS likePattern? (STARTS WITH string)? (LIMIT INT)? (FROM string)?
     ;
 
 showVariables: SHOW VARIABLES likePattern?
@@ -2910,10 +2888,7 @@ showWarehouses: SHOW WAREHOUSES likePattern?
 likePattern: LIKE string
     ;
 
-//names
-accountIdentifier: id
-    ;
-
+// TODO: Fix this - it is jsut a dotIdentifer - if ther are too many dots, its not the parser's problem
 schemaName: d = id DOT s = id | s = id
     ;
 
@@ -2930,24 +2905,6 @@ objectType
     ;
 
 objectTypeList: objectType (COMMA objectType)*
-    ;
-
-tagValue: string
-    ;
-
-argDataType: dataType
-    ;
-
-argName: id
-    ;
-
-paramName: id
-    ;
-
-regionGroupId: id
-    ;
-
-snowflakeRegionId: id
     ;
 
 // Strings are not a single token match but a stream of parts which may consist
@@ -2970,150 +2927,19 @@ stringPart
 stringList: string (COMMA string)*
     ;
 
-idFn: id | IDENTIFIER L_PAREN id R_PAREN
+idFn: id | IDENTIFIER LPAREN id RPAREN
     ;
 
 id
     : ID
-    | ID2
+    | LOCAL_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
     | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
-    | nonReservedWords //id is used for object name. Snowflake is very permissive
-    ;
-
-nonReservedWords
-    //List here lexer token referenced by rules which is not a keyword (SnowSQL Meaning) and allowed as object name
-    : ACCOUNTADMIN
-    | ACTION
-    | ACTION
-    | AES
-    | ALERT
-    | ARRAY
-    | ARRAY_AGG
-    | AT_KEYWORD
-    | BODY
-    | CHARACTER
-    | CHECKSUM
-    | CLUSTER
-    | COLLATE
-    | COLLECTION
-    | COMMENT
-    | CONDITION
-    | CONFIGURATION
-    | COPY_OPTIONS_
-    | CURRENT_TIME
-    | DATA
-    | DATE
-    | DATE_FORMAT
-    | DEFINITION
-    | DELTA
-    | DENSE_RANK
-    | DIRECTION
-    | DISABLE_AUTO_CONVERT
-    | DOWNSTREAM
-    | DUMMY
-    | DYNAMIC
-    | EDITION
-    | END
-    | EMAIL
-    | EVENT
-    | EXCHANGE
-    | EXPIRY_DATE
-    | FILE_FORMAT
-    | FIRST
-    | FIRST_NAME
-    | FLATTEN
-    | FLOOR
-    | FREQUENCY
-    | FUNCTION
-    | GET
-    | GET
-    | GLOBAL
-    | IDENTIFIER
-    | IDENTITY
-    | IF
-    | INDEX
-    | INPUT
-    | INSERT
-    | INTERVAL
-    | JAVASCRIPT
-    | KEY
-    | KEYS
-    | LANGUAGE
-    | LAST_NAME
-    | LAST_QUERY_ID
-    | LEAD
-    | LENGTH
-    | LISTAGG
-    | LOCAL
-    | LOCATION
-    | MATCHES
-    | MAX_CONCURRENCY_LEVEL
-    | MODE
-    | NAME
-    | NETWORK
-    | NOORDER
-    | OFFSET
-    | OPTION
-    | ORDER
-    | ORGADMIN
-    | OUTBOUND
-    | OUTER
-    | PARTITION
-    | PATH_
-    | PATTERN
-    | PORT
-    | PROCEDURE_NAME
-    | PROPERTY
-    | PROVIDER
-    | PUBLIC
-    | RANK
-    | RECURSIVE
-    | REGION
-    | REPLACE
-    | RESOURCE
-    | RESOURCES
-    | RESPECT
-    | RESTRICT
-    | RESULT
-    | RLIKE
-    | ROLE
-    | ROLLUP
-    | SECURITYADMIN
-    | SHARES
-    | SOURCE
-    | STAGE
-    | START
-    | STATE
-    | STATS
-    | SUBSTRING
-    | SYSADMIN
-    | TABLE
-    | TAG
-    | TAGS
-    | TARGET_LAG
-    | TEMP
-    | TIME
-    | TIMESTAMP
-    | TIMEZONE
-    | TYPE
-    | URL
-    | USER
-    | USERADMIN
-    | VALUE
-    | VALUES
-    | VERSION
-    | WAREHOUSE
-    | WAREHOUSE_TYPE
+    | keyword          // almost any ketword can be used as an id :(
     ;
 
 pattern: PATTERN EQ string
     ;
-
-//patternAssoc
-//    : PATTERN ASSOC string
-//    ;
 
 columnName: (id DOT)? id
     ;
@@ -3124,13 +2950,10 @@ columnList: columnName (COMMA columnName)*
 columnListWithComment: columnName (COMMENT string)? (COMMA columnName (COMMENT string)?)*
     ;
 
-objectName: id (DOT id)*
+dotIdentifier: id (DOT id)*
     ;
 
-objectNameOrIdentifier: objectName | IDENTIFIER L_PAREN string R_PAREN
-    ;
-
-num: DECIMAL
+dotIdentifierOrIdent: dotIdentifier | IDENTIFIER LPAREN string RPAREN
     ;
 
 /*** expressions ***/
@@ -3152,8 +2975,8 @@ expr
 // Use this entry point into epxression when allowing AND and OR would be ambiguous, such as in
 // searchConditions.
 expression
-    : L_PAREN expression R_PAREN                            # exprPrecedence
-    | objectName DOT NEXTVAL                                # exprNextval
+    : LPAREN expression RPAREN                              # exprPrecedence
+    | dotIdentifier DOT NEXTVAL                             # exprNextval
     | expression DOT expression                             # exprDot
     | expression COLON expression                           # exprColon
     | expression COLLATE string                             # exprCollate
@@ -3169,17 +2992,17 @@ expression
     | castExpr                                              # exprCast
     | functionCall                                          # exprFuncCall
     | DISTINCT expression                                   # exprDistinct
-    | L_PAREN subquery R_PAREN                              # exprSubquery
+    | LPAREN subquery RPAREN                                # exprSubquery
     | primitiveExpression                                   # exprPrimitive
     ;
 
-withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
+withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
-iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
+iffExpr: IFF LPAREN searchCondition COMMA expr COMMA expr RPAREN
     ;
 
-castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
+castExpr: castOp = (TRY_CAST | CAST) LPAREN expr AS dataType RPAREN | INTERVAL expr
     ;
 
 jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
@@ -3191,37 +3014,15 @@ kvPair: key = string COLON literal
 arrayLiteral: LSB expr (COMMA expr)* RSB | LSB RSB
     ;
 
-dataTypeSize: L_PAREN num R_PAREN
+dataType
+    : OBJECT (LPAREN objectField (COMMA objectField)* RPAREN)?
+    | ARRAY (LPAREN dataType RPAREN)?
+    | id discard? (LPAREN INT (COMMA INT)? RPAREN)?
     ;
 
-dataType
-    : intAlias = (INT | INTEGER | SMALLINT | TINYINT | BYTEINT | BIGINT)
-    | numberAlias = (NUMBER | NUMERIC | DECIMAL_) (L_PAREN num (COMMA num)? R_PAREN)?
-    | floatAlias = (FLOAT_ | FLOAT4 | FLOAT8 | DOUBLE | DOUBLE_PRECISION | REAL_)
-    | BOOLEAN
-    | DATE
-    | DATETIME dataTypeSize?
-    | TIME dataTypeSize?
-    | TIMESTAMP dataTypeSize?
-    | TIMESTAMP_LTZ dataTypeSize?
-    | TIMESTAMP_NTZ dataTypeSize?
-    | TIMESTAMP_TZ dataTypeSize?
-    | charAlias = ( CHAR | NCHAR | CHARACTER) dataTypeSize?
-    | varcharAlias = (
-        CHAR_VARYING
-        | NCHAR_VARYING
-        | NVARCHAR2
-        | NVARCHAR
-        | STRING_
-        | TEXT
-        | VARCHAR
-    ) dataTypeSize?
-    | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
-    | VARIANT
-    | OBJECT (L_PAREN objectField (COMMA objectField)* R_PAREN)?
-    | ARRAY (L_PAREN dataType R_PAREN)?
-    | GEOGRAPHY
-    | GEOMETRY
+// Caters for things like DOUBLE PRECISION where the PRECISION isn't needed
+// and hrow awaya keywords that are also verbose for no good reason
+discard: VARYING | id
     ;
 
 objectField: id dataType
@@ -3229,14 +3030,14 @@ objectField: id dataType
 
 primitiveExpression
     : DEFAULT           # primExprDefault //?
-    | id LSB num RSB    # primArrayAccess
+    | id LSB INT RSB    # primArrayAccess
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
     | COLON id          # primVariable // TODO: This needs to move to main expression as expression COLON expression  when JSON is implemented
     ;
 
-overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
+overClause: OVER LPAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? RPAREN
     ;
 
 windowOrderingAndFrame: orderByClause rowOrRangeClause?
@@ -3248,18 +3049,18 @@ rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
 windowFrameExtent: BETWEEN windowFrameBound AND windowFrameBound
     ;
 
-windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING) | CURRENT ROW
+windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
 functionCall: builtinFunction | standardFunction | rankingWindowedFunction | aggregateFunction
     ;
 
-builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtract
+builtinFunction: EXTRACT LPAREN (string | ID) FROM expr RPAREN # builtinExtract
     ;
 
 standardFunction
-    : functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
-    | functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+    : functionOptionalBrackets (LPAREN exprList? RPAREN)?
+    | functionName LPAREN (exprList | paramAssocList)? RPAREN
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3281,7 +3082,12 @@ functionOptionalBrackets
 paramAssocList: paramAssoc (COMMA paramAssoc)*
     ;
 
-paramAssoc: id ASSOC expr
+paramAssoc: assocId ASSOC expr
+    ;
+
+assocId
+    : id
+    | OUTER // Outer is stupidly used as a parameter name in FLATTEN() - but we don't want it as an id
     ;
 
 ignoreOrRepectNulls: (IGNORE | RESPECT) NULLS
@@ -3291,24 +3097,27 @@ rankingWindowedFunction: standardFunction ignoreOrRepectNulls? overClause
     ;
 
 aggregateFunction
-    : op = (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
-        WITHIN GROUP L_PAREN orderByClause R_PAREN
-    )?                                      # aggFuncList
-    | id L_PAREN DISTINCT? exprList R_PAREN # aggFuncExprList
-    | id L_PAREN STAR R_PAREN               # aggFuncStar
+    : op = (LISTAGG | ARRAY_AGG) LPAREN DISTINCT? expr (COMMA string)? RPAREN (
+        WITHIN GROUP LPAREN orderByClause RPAREN
+    )?                                    # aggFuncList
+    | id LPAREN DISTINCT? exprList RPAREN # aggFuncExprList
+    | id LPAREN STAR RPAREN               # aggFuncStar
     ;
 
 literal
-    : DATE string
-    | TIMESTAMP string
+    : TIMESTAMP string
     | string
-    | sign? DECIMAL
+    | sign? INT
     | sign? (REAL | FLOAT)
     | trueFalse
     | jsonLiteral
     | arrayLiteral
     | NULL
-    | PARAM // A question mark can be used as a placeholder for a prepared statement that will use binding.
+    | PARAM     // A question mark can be used as a placeholder for a prepared statement that will use binding.
+    | id string // DATE and any other additions
+    ;
+
+constant: string | INT | REAL | FLOAT
     ;
 
 sign: PLUS | MINUS
@@ -3325,28 +3134,31 @@ switchSearchConditionSection: WHEN searchCondition THEN expr
 switchSection: WHEN expr THEN expr
     ;
 
-// select
-queryStatement: withExpression? selectStatement setOperators*
+queryStatement: withExpression? queryExpression
     ;
 
-withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
+withExpression: WITH RECURSIVE? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN (
-        (selectStatement setOperators*)
-        | expr
-    ) R_PAREN
+    : tableName = id (LPAREN columnList RPAREN)? AS LPAREN queryExpression RPAREN # CTETable
+    | id AS LPAREN expr RPAREN                                                    # CTEColumn
+    ;
+
+queryExpression
+    // INTERSECT has higher precedence than EXCEPT and UNION ALL.
+    // MINUS is an alias for EXCEPT
+    // Reference: https://docs.snowflake.com/en/sql-reference/operators-query.html#:~:text=precedence
+    : LPAREN queryExpression RPAREN                                  # queryInParenthesis
+    | queryExpression INTERSECT queryExpression                      # queryIntersect
+    | queryExpression (UNION ALL? | EXCEPT | MINUS_) queryExpression # queryUnion
+    | selectStatement                                                # querySimple
     ;
 
 selectStatement
     : selectClause selectOptionalClauses limitClause?
     | selectTopClause selectOptionalClauses //TOP and LIMIT are not allowed together
-    | L_PAREN selectStatement R_PAREN
-    ;
-
-setOperators
-    : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) selectStatement //EXCEPT and MINUS have same SQL meaning
+    | LPAREN selectStatement RPAREN
     ;
 
 selectOptionalClauses
@@ -3375,10 +3187,10 @@ selectListElem
     //    | udtElem
     ;
 
-columnElemStar: (objectName DOT)? STAR
+columnElemStar: (dotIdentifier DOT)? STAR
     ;
 
-columnElem: (objectName DOT)? columnName | (objectName DOT)? DOLLAR columnPosition
+columnElem: (dotIdentifier DOT)? columnName | (dotIdentifier DOT)? DOLLAR columnPosition
     ;
 
 asAlias: AS? alias
@@ -3387,7 +3199,7 @@ asAlias: AS? alias
 expressionElem: searchCondition | expr
     ;
 
-columnPosition: num
+columnPosition: INT
     ;
 
 allDistinct: ALL | DISTINCT
@@ -3412,21 +3224,21 @@ fromClause
 tableSources: tableSource (COMMA tableSource)*
     ;
 
-tableSource: tableSourceItemJoined sample? | L_PAREN tableSource R_PAREN
+tableSource: tableSourceItemJoined sample? | LPAREN tableSource RPAREN
     ;
 
-tableSourceItemJoined: objectRef joinClause* | L_PAREN tableSourceItemJoined R_PAREN joinClause*
+tableSourceItemJoined: objectRef joinClause* | LPAREN tableSourceItemJoined RPAREN joinClause*
     ;
 
 objectRef
-    : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
-    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
-    | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
-    | valuesTable tableAlias?                                                        # objRefValues
-    | objectName START WITH searchCondition CONNECT BY priorList?                    # objRefStartWith
+    : dotIdentifier atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?   # objRefDefault
+    | TABLE LPAREN functionCall RPAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
+    | valuesTable tableAlias?                                                      # objRefValues
+    | LATERAL? (functionCall | (LPAREN subquery RPAREN)) pivotUnpivot? tableAlias? # objRefSubquery
+    | dotIdentifier START WITH searchCondition CONNECT BY priorList?               # objRefStartWith
     ;
 
-tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
+tableAlias: AS? alias (LPAREN id (COMMA id)* RPAREN)?
     ;
 
 priorList: priorItem (COMMA priorItem)*
@@ -3442,25 +3254,25 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON searchCondition) | (USING L_PAREN columnList R_PAREN))?
+    : joinType? JOIN objectRef ((ON searchCondition) | (USING LPAREN columnList RPAREN))?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
     ;
 
 atBefore
-    : AT_KEYWORD L_PAREN (
+    : AT_KEYWORD LPAREN (
         TIMESTAMP ASSOC expr
         | OFFSET ASSOC expr
         | STATEMENT ASSOC string
         | STREAM ASSOC string
-    ) R_PAREN
-    | BEFORE L_PAREN STATEMENT ASSOC string R_PAREN
+    ) RPAREN
+    | BEFORE LPAREN STATEMENT ASSOC string RPAREN
     ;
 
-end: END L_PAREN ( TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
+end: END LPAREN ( TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) RPAREN
     ;
 
-changes: CHANGES L_PAREN INFORMATION ASSOC defaultAppendOnly R_PAREN atBefore end?
+changes: CHANGES LPAREN INFORMATION ASSOC defaultAppendOnly RPAREN atBefore end?
     ;
 
 defaultAppendOnly: DEFAULT | APPEND_ONLY
@@ -3478,7 +3290,7 @@ exprAliasList: expr AS? alias (COMMA expr AS? alias)*
 measures: MEASURES exprAliasList
     ;
 
-matchOpts: SHOW EMPTY_ MATCHES | OMIT EMPTY_ MATCHES | WITH UNMATCHED ROWS
+matchOpts: SHOW EMPTY MATCHES | OMIT EMPTY MATCHES | WITH UNMATCHED ROWS
     ;
 
 rowMatch: (ONE ROW PER MATCH | ALL ROWS PER MATCH) matchOpts?
@@ -3491,7 +3303,7 @@ firstLast: FIRST | LAST
 symbol: DUMMY
     ;
 
-afterMatch: AFTER MATCH SKIP_ (PAST LAST ROW | TO NEXT ROW | TO firstLast? symbol)
+afterMatch: AFTER MATCH KWSKIP (PAST LAST ROW | TO NEXT ROW | TO firstLast? symbol)
     ;
 
 symbolList: symbol AS expr (COMMA symbol AS expr)*
@@ -3501,51 +3313,48 @@ define: DEFINE symbolList
     ;
 
 matchRecognize
-    : MATCH_RECOGNIZE L_PAREN partitionBy? orderByClause? measures? rowMatch? afterMatch? pattern? define? R_PAREN
+    : MATCH_RECOGNIZE LPAREN partitionBy? orderByClause? measures? rowMatch? afterMatch? pattern? define? RPAREN
     ;
 
 pivotUnpivot
-    : PIVOT L_PAREN aggregateFunc = id L_PAREN pivotColumn = id R_PAREN FOR valueColumn = id IN L_PAREN values += literal (
+    : PIVOT LPAREN aggregateFunc = id LPAREN pivotColumn = id RPAREN FOR valueColumn = id IN LPAREN values += literal (
         COMMA values += literal
-    )* R_PAREN R_PAREN (asAlias columnAliasListInBrackets?)?
-    | UNPIVOT L_PAREN valueColumn = id FOR nameColumn = id IN L_PAREN columnList R_PAREN R_PAREN
+    )* RPAREN RPAREN (asAlias columnAliasListInBrackets?)?
+    | UNPIVOT LPAREN valueColumn = id FOR nameColumn = id IN LPAREN columnList RPAREN RPAREN
     ;
 
-columnAliasListInBrackets: L_PAREN id (COMMA id)* R_PAREN
+columnAliasListInBrackets: LPAREN id (COMMA id)* RPAREN
     ;
 
-exprListInParentheses: L_PAREN exprList R_PAREN
+exprListInParentheses: LPAREN exprList RPAREN
     ;
 
-valuesTable: L_PAREN valuesTableBody R_PAREN | valuesTableBody
+valuesTable: LPAREN valuesTableBody RPAREN | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*
     ;
 
 sampleMethod
-    : (SYSTEM | BLOCK) L_PAREN num R_PAREN        # sampleMethodBlock
-    | (BERNOULLI | ROW)? L_PAREN num ROWS R_PAREN # sampleMethodRowFixed
-    | (BERNOULLI | ROW)? L_PAREN num R_PAREN      # sampleMethodRowProba
+    : (SYSTEM | BLOCK) LPAREN INT RPAREN        # sampleMethodBlock
+    | (BERNOULLI | ROW)? LPAREN INT ROWS RPAREN # sampleMethodRowFixed
+    | (BERNOULLI | ROW)? LPAREN INT RPAREN      # sampleMethodRowProba
     ;
 
 sample: (SAMPLE | TABLESAMPLE) sampleMethod sampleSeed?
     ;
 
-sampleSeed: (REPEATABLE | SEED) L_PAREN num R_PAREN
+sampleSeed: (REPEATABLE | SEED) LPAREN INT RPAREN
     ;
 
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
-    ;
-
-nullNotNull: NOT? NULL
     ;
 
 subquery: queryStatement
     ;
 
 searchCondition
-    : L_PAREN searchCondition R_PAREN     # scPrec
+    : LPAREN searchCondition RPAREN       # scPrec
     | NOT searchCondition                 # scNot
     | searchCondition AND searchCondition # scAnd
     | searchCondition OR searchCondition  # scOr
@@ -3553,11 +3362,11 @@ searchCondition
     ;
 
 predicate
-    : EXISTS L_PAREN subquery R_PAREN                                                            # predExists
+    : EXISTS LPAREN subquery RPAREN                                                              # predExists
     | expression comparisonOperator expression                                                   # predBinop
-    | expression comparisonOperator (ALL | SOME | ANY) L_PAREN subquery R_PAREN                  # predASA
+    | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN                    # predASA
     | expression IS NOT? NULL                                                                    # predIsNull
-    | expression NOT? IN L_PAREN (subquery | exprList) R_PAREN                                   # predIn
+    | expression NOT? IN LPAREN (subquery | exprList) RPAREN                                     # predIn
     | expression NOT? BETWEEN expression AND expression                                          # predBetween
     | expression NOT? op = (LIKE | ILIKE) expression (ESCAPE expression)?                        # predLikeSinglePattern
     | expression NOT? op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expression)? # predLikeMultiplePatterns
@@ -3568,7 +3377,7 @@ predicate
 whereClause: WHERE searchCondition
     ;
 
-groupByElem: columnElem | num | expressionElem
+groupByElem: columnElem | INT | expressionElem
     ;
 
 groupByList: groupByElem (COMMA groupByElem)*
@@ -3576,7 +3385,7 @@ groupByList: groupByElem (COMMA groupByElem)*
 
 groupByClause
     : GROUP BY groupByList havingClause?
-    | GROUP BY (CUBE | GROUPING SETS | ROLLUP) L_PAREN groupByList R_PAREN
+    | GROUP BY (GROUPING SETS | id) LPAREN groupByList RPAREN
     | GROUP BY ALL
     ;
 

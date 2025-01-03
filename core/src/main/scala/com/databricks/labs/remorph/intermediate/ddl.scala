@@ -55,11 +55,11 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true, metadata: Option[Metadata] = None)
 case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 case object VariantType extends DataType
-
+case class Metadata(comment: Option[String])
 // While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
 // Id BIGINT GENERATED ALWAYS AS IDENTITY
 case class IdentityType(start: Option[Int], increment: Option[Int]) extends DataType
@@ -91,9 +91,16 @@ case class ForeignKey(tableCols: String, refObject: String, refCols: String, opt
     extends UnnamedConstraint
 case class DefaultValueConstraint(value: Expression) extends UnnamedConstraint
 case class CheckConstraint(expression: Expression) extends UnnamedConstraint
-case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
+// ExtendedBased on https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-create-table-using.html#syntax
+case class IdentityConstraint(
+    start: Option[String] = None,
+    increment: Option[String] = None,
+    always: Boolean = false,
+    default: Boolean = false)
+    extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
+case class GeneratedAlways(expression: Expression) extends UnnamedConstraint
 
 // This, and the above, are likely to change in a not-so-remote future.
 // There's already a CreateTable case defined in catalog.scala but its structure seems too different from
@@ -106,6 +113,18 @@ case class ColumnDeclaration(
     constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
+
+// TODO Need to introduce TableSpecBase, TableSpec and UnresolvedTableSpec
+
+case class ReplaceTableCommand(name: String, columns: Seq[ColumnDeclaration], orCreate: Boolean) extends Catalog
+
+case class ReplaceTableAsSelect(
+    table_name: String,
+    query: LogicalPlan,
+    writeOptions: Map[String, String],
+    orCreate: Boolean,
+    isAnalyzed: Boolean = false)
+    extends Catalog
 
 sealed trait TableAlteration
 case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration

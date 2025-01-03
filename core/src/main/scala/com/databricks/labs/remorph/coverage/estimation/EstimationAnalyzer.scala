@@ -1,9 +1,9 @@
 package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage.EstimationReportRecord
+import com.databricks.labs.remorph.intermediate.{ParsingErrors}
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
-import upickle.default._
 
 import scala.util.control.NonFatal
 
@@ -21,21 +21,16 @@ object SqlComplexity {
     case s if s < 120 => COMPLEX
     case _ => VERY_COMPLEX
   }
-
-  implicit val rw: ReadWriter[SqlComplexity] = ReadWriter.merge(
-    macroRW[SqlComplexity.LOW.type],
-    macroRW[SqlComplexity.MEDIUM.type],
-    macroRW[SqlComplexity.COMPLEX.type],
-    macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
-case class EstimationStatistics(allStats: EstimationStatisticsEntry, successStats: EstimationStatisticsEntry)
+case class ParseFailStats(ruleNameCounts: Map[String, Int], tokenNameCounts: Map[String, Int])
 
-object EstimationStatistics {
-  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
-}
+case class EstimationStatistics(
+    allStats: EstimationStatisticsEntry,
+    successStats: EstimationStatisticsEntry,
+    pfStats: ParseFailStats)
 
 case class EstimationStatisticsEntry(
     medianScore: Int,
@@ -48,10 +43,6 @@ case class EstimationStatisticsEntry(
     geometricMeanScore: Double,
     complexity: SqlComplexity)
 
-object EstimationStatisticsEntry {
-  implicit val rw: ReadWriter[EstimationStatisticsEntry] = macroRW
-}
-
 class EstimationAnalyzer extends LazyLogging {
 
   def evaluateTree(node: ir.TreeNode[_]): RuleScore = {
@@ -63,14 +54,8 @@ class EstimationAnalyzer extends LazyLogging {
       logicalPlanVisitor: PartialFunction[ir.LogicalPlan, RuleScore],
       expressionVisitor: PartialFunction[ir.Expression, RuleScore]): RuleScore = {
 
-    // NOte, that this means there is a bug in the IR generator. When such bugs are fixed
-    // we can remove this and the check for null as child nodes in expressions.
-    if (node == null) {
-      logger.error("IR_ERROR: Node is null!")
-      return RuleScore(IrErrorRule(), Seq.empty) // Return default value if the node is null
-    }
-
     node match {
+
       case lp: ir.LogicalPlan =>
         val currentRuleScore =
           logicalPlanVisitor.applyOrElse(lp, (_: ir.LogicalPlan) => RuleScore(IrErrorRule(), Seq.empty))
@@ -88,11 +73,6 @@ class EstimationAnalyzer extends LazyLogging {
           childrenRuleScores ++ expressionRuleScores)
 
       case expr: ir.Expression =>
-        // NOte that this may no longer be necessary even now, but the IR generator needs to be checked
-        if (expr.children == null) {
-          logger.error("IR_ERROR: ir.Expression has null for children instead of empty list!")
-          return RuleScore(IrErrorRule(), Seq.empty)
-        }
         val currentRuleScore =
           expressionVisitor.applyOrElse(expr, (_: ir.Expression) => RuleScore(IrErrorRule(), Seq.empty))
         val childrenRuleScores =
@@ -158,7 +138,7 @@ class EstimationAnalyzer extends LazyLogging {
           assessFunction(uf)
 
         // TODO: Add specific rules for things that are more complicated than simple expressions such as
-        //       UDFs or CASE statements
+        //       UDFs or CASE statements - also cater for all the different Unresolved[type] classes
         case _ =>
           RuleScore(ExpressionRule(), Seq.empty) // Default case for straightforward expressions
       }
@@ -168,7 +148,7 @@ class EstimationAnalyzer extends LazyLogging {
   }
 
   /**
-   * Assess the complexity of an unsupported  function conversion based on our internal knowledge of how
+   * Assess the complexity of an unsupported function conversion based on our internal knowledge of how
    * the function is used. Some functions indicate data processing that is not supported in Databricks SQL
    * and some will indicate a well-known conversion pattern that is known to be successful.
    * @param func the function definition to analyze
@@ -233,7 +213,7 @@ class EstimationAnalyzer extends LazyLogging {
         SqlComplexity.fromScore(geometricMean(successScores)))
     }
 
-    EstimationStatistics(allStats = allStats, successStats = successStats)
+    EstimationStatistics(allStats, successStats, assessParsingFailures(reportEntries))
   }
 
   private def percentile(scores: Seq[Int], p: Double): Double = {
@@ -281,4 +261,35 @@ class EstimationAnalyzer extends LazyLogging {
       case l if l < 5000 => 25
       case _ => 50
     }
+
+  /**
+   * Find all the report entries where parsing_error is not null, and accumulate the number of times
+   * each ruleName and tokenName appears in the errors. This will give us an idea of which rules and
+   * tokens, if implemented correctly would have the most impact on increasing the success rate of the
+   * parser for the given sample of queries.
+   *
+   * @param reportEntries the list of all report records
+   */
+  def assessParsingFailures(reportEntries: Seq[EstimationReportRecord]): ParseFailStats = {
+    val ruleNameCounts = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
+    val tokenNameCounts = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
+
+    reportEntries.foreach(err =>
+      err.transpilationReport.parsing_error match {
+        case Some(e: ParsingErrors) =>
+          e.errors.foreach(e => {
+            val ruleName = e.ruleName
+            val tokenName = e.offendingTokenName
+            ruleNameCounts(ruleName) += 1
+            tokenNameCounts(tokenName) += 1
+          })
+        case _ => // No errors
+      })
+
+    val topRuleNames = ruleNameCounts.toSeq.sortBy(-_._2).take(10).toMap
+    val topTokenNames = tokenNameCounts.toSeq.sortBy(-_._2).take(10).toMap
+
+    ParseFailStats(topRuleNames, topTokenNames)
+  }
+
 }

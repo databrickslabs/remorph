@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers
 import com.databricks.labs.remorph.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import org.antlr.v4.runtime.misc.Interval
-import org.antlr.v4.runtime.tree.{AbstractParseTreeVisitor, ParseTree, ParseTreeVisitor, RuleNode}
+import org.antlr.v4.runtime.tree._
 import org.antlr.v4.runtime.{ParserRuleContext, RuleContext, Token}
 
 import scala.collection.JavaConverters._
@@ -121,6 +121,32 @@ trait ParserCommon[A] extends ParseTreeVisitor[A] with LazyLogging { self: Abstr
         }
       case _ =>
         result
+    }
+  }
+
+  /**
+   * If the parser recognizes a syntax error, then it generates an ErrorNode. The ErrorNode represents unparsable text
+   * and contains a manufactured token that encapsulates all the text that the parser ignored when it recovered
+   * from the error. Note that if the error recovery strategy inserts a token rather than deletes one, then an
+   * error node will not be created; those errors will only be reported via the ErrorCollector
+   * TODO: It may be reasonable to add a check for inserted tokens and generate an error node in that case
+   *
+   * @param ctx the context to check for error nodes
+   * @return The unresolved object representing the error and containing the text that was skipped
+   */
+  def errorCheck(ctx: ParserRuleContext): Option[A] = {
+    val unparsedText = Option(ctx.children)
+      .map(_.asScala)
+      .getOrElse(Seq.empty)
+      .collect { case e: ErrorNode =>
+        s"Unparsable text: ${e.getSymbol.getText}"
+      }
+      .mkString("\n")
+
+    if (unparsedText.nonEmpty) {
+      Some(unresolved(unparsedText, "Unparsed input - ErrorNode encountered"))
+    } else {
+      None
     }
   }
 }

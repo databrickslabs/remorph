@@ -36,8 +36,8 @@ Databricks Labs Remorph
 # Introduction
 
 ## Remorph
-Remorph stands as a comprehensive toolkit meticulously crafted to facilitate seamless migrations to Databricks. 
-This suite of tools is dedicated to simplifying and optimizing the entire migration process, offering two distinctive functionalities – Transpile and Reconcile. Whether you are navigating code translation or resolving potential conflicts, Remorph ensures a smooth journey for any migration project. With Remorph as your trusted ally, 
+Remorph stands as a comprehensive toolkit meticulously crafted to facilitate seamless migrations to Databricks.
+This suite of tools is dedicated to simplifying and optimizing the entire migration process, offering two distinctive functionalities – Transpile and Reconcile. Whether you are navigating code translation or resolving potential conflicts, Remorph ensures a smooth journey for any migration project. With Remorph as your trusted ally,
 the migration experience becomes not only efficient but also well-managed, setting the stage for a successful transition to the Databricks platform.
 
 ## Transpile
@@ -72,7 +72,7 @@ Reconcile is an automated tool designed to streamline the reconciliation process
 1. `Databricks CLI` - Ensure that you have the Databricks Command-Line Interface (CLI) installed on your machine. Refer to the installation instructions provided for Linux, MacOS, and Windows, available [here](https://docs.databricks.com/en/dev-tools/cli/install.html#install-or-update-the-databricks-cli).
 
 2. `Databricks Connect` - Set up the Databricks workspace configuration file by following the instructions provided [here](https://docs.databricks.com/en/dev-tools/auth/index.html#databricks-configuration-profiles). Note that Databricks labs use 'DEFAULT' as the default profile for establishing connections to Databricks.
-   
+
 3. `Python` - Verify that your machine has Python version 3.10 or later installed to meet the required dependencies for seamless operation.
    - `Windows` - Install python from [here](https://www.python.org/downloads/). Your Windows computer will need a shell environment ([GitBash](https://www.git-scm.com/downloads) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/about))
    - `MacOS/Unix` - Use [brew](https://formulae.brew.sh/formula/python@3.10) to install python in macOS/Unix machines
@@ -113,12 +113,13 @@ Verify the successful installation by executing the provided command; confirmati
 ![transpile-help](docs/img/transpile-help.png)
 
 ### Execution Pre-Set Up
-1. Transpile necessitates input in the form of either a directory containing SQL files or a single SQL file. 
+1. Transpile necessitates input in the form of either a directory containing SQL files or a single SQL file.
 2. The SQL file should encompass scripts intended for migration to Databricks SQL.
 
 Below is the detailed explanation on the arguments required for Transpile.
-- `input-sql [Required]` - The path to the SQL file or directory containing SQL files to be transpiled.
-- `source [Required]` - The source platform of the SQL scripts. Currently, only Snowflake is supported.
+- `transpiler-config-path [Required]` - Path to the transpiler configuration file.
+- `source-dialect [Required]` - Dialect name.
+- `input-source [Required]` - The path to the SQL file or directory containing SQL files to be transpiled.
 - `output-folder [Optional]` - The path to the output folder where the transpiled SQL files will be stored. If not specified, the transpiled SQL files will be stored in the same directory as the input SQL file.
 - `skip-validation [Optional]` - The default value is True. If set to False, the transpiler will validate the transpiled SQL scripts against the Databricks catalog and schema provided by user.
 - `catalog-name [Optional]` - The name of the catalog in Databricks. If not specified, the default catalog `transpiler_test` will be used.
@@ -127,7 +128,7 @@ Below is the detailed explanation on the arguments required for Transpile.
 ### Execution
 Execute the below command to intialize the transpile process.
 ```bash
- databricks labs remorph transpile --input-sql <absolute-path> --source <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
+ databricks labs remorph transpile --transpiler-config-path <absolute-path> --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
 
 ![transpile run](docs/img/transpile-run.gif)
@@ -208,10 +209,10 @@ sfWarehouse = <warehouse_name>
 sfRole = <role_name>
 pem_private_key = <pkcs8_pem_private_key>
 
-Note: For Snowflake authentication, either sfPassword or pem_private_key is required. 
-Priority is given to pem_private_key, and if it is not found, sfPassword will be used. 
+Note: For Snowflake authentication, either sfPassword or pem_private_key is required.
+Priority is given to pem_private_key, and if it is not found, sfPassword will be used.
 If neither is available, an exception will be raised.
- 
+
 ```
 
 ```

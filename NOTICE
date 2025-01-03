@@ -64,6 +64,16 @@ cryptography - https://github.com/pyca/cryptography
 Copyright 2013-2023 The Python Cryptographic Authority and individual contributors.
 License - https://github.com/pyca/cryptography/blob/main/LICENSE
 
+circe - https://github.com/circe/circe
+Copyright (c) 2015, Ephox Pty Ltd, Mark Hibberd, Sean Parsons, Travis Brown, and other contributors. All rights reserved.
+https://github.com/circe/circe/blob/series/0.14.x/LICENSE
+
+circe-generic-extras - https://github.com/circe/circe-generic-extras
+https://github.com/circe/circe-generic-extras/blob/main/LICENSE
+
+circe-jackson - https://github.com/circe/circe-jackson
+https://github.com/circe/circe-jackson/blob/main/LICENSE
+
 This software contains code from the following open source projects, licensed under the BSD license:
 
 ANTLR v4 - https://github.com/antlr/antlr4
@@ -78,3 +88,4 @@ https://github.com/databrickslabs/blueprint/blob/main/LICENSE
 
 Databricks Connect - https://pypi.org/project/databricks-connect/
 Copyright (2019) Databricks Inc.
+

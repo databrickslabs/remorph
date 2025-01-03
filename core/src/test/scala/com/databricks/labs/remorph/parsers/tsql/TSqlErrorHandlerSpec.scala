@@ -58,7 +58,11 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     token.setCharPositionInLine(1)
     token.setText("text")
     errorCollector.errors += ParsingError(1, 1, "msg", 4, "text", "unresolved token name", "unresolved rule name")
-    errorCollector.errorsAsJson should include("\"line\":1")
+    errorCollector.errorsAsJson should include("starting at 1:1")
+    errorCollector.errorsAsJson should include("'unresolved rule name'")
+    errorCollector.errorsAsJson should include("'text'")
+    errorCollector.errorsAsJson should include("(unresolved token name)")
+    errorCollector.errorsAsJson should include("msg")
   }
 
   it should "count errors correctly" in {

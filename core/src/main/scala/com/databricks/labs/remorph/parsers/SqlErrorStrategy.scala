@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers
 
 import org.antlr.v4.runtime._
-import org.antlr.v4.runtime.misc.IntervalSet
+import org.antlr.v4.runtime.misc.{Interval, IntervalSet, Pair}
+import org.antlr.v4.runtime.tree.ErrorNodeImpl
 
 /**
  * Custom error strategy for SQL parsing <p> While we do not do anything super special here, we wish to override a
@@ -15,22 +16,51 @@ import org.antlr.v4.runtime.misc.IntervalSet
  */
 abstract class SqlErrorStrategy extends DefaultErrorStrategy {
 
-  // Note that it is not possible to get this error from the current grammar, we would have to do an inordinate
-  // amount of mocking to raise this. It isn't worth the effort.
-  // $COVERAGE-OFF$
+  private def createErrorNode(token: Token, text: String): ErrorNodeImpl = {
+    val errorToken = new CommonToken(
+      new Pair(token.getTokenSource, token.getInputStream),
+      Token.INVALID_TYPE,
+      Token.DEFAULT_CHANNEL,
+      token.getStartIndex,
+      token.getStopIndex)
+    errorToken.setText(text)
+    errorToken.setLine(token.getLine)
+    errorToken.setCharPositionInLine(token.getCharPositionInLine)
+    new ErrorNodeImpl(errorToken)
+  }
+
+  override def recover(recognizer: Parser, e: RecognitionException): Unit = {
+    val tokens: TokenStream = recognizer.getInputStream
+    val startIndex: Int = tokens.index
+    val first = tokens.LT(1)
+    super.recover(recognizer, e)
+    val endIndex: Int = tokens.index
+    if (startIndex < endIndex) {
+      val interval = new Interval(startIndex, endIndex)
+      val errorText = s"parser recovered by ignoring: ${tokens.getText(interval)}"
+      val errorNode = createErrorNode(first, errorText)
+
+      // Here we add the error node to the current context so that we can report it in the correct place
+      recognizer.getContext.addErrorNode(errorNode)
+    }
+  }
+
   override protected def reportNoViableAlternative(recognizer: Parser, e: NoViableAltException): Unit = {
     val tokens = recognizer.getInputStream
-    var input: String = null
-    if (tokens != null)
-      if (e.getStartToken.getType == Token.EOF) input = "<EOF>"
-      else input = tokens.getText(e.getStartToken, e.getOffendingToken)
-    else input = "<unknown input>"
+    val input = if (tokens != null) {
+      if (e.getStartToken.getType == Token.EOF) "<EOF>"
+      else tokens.getText(e.getStartToken, e.getOffendingToken)
+    } else "<unknown input>"
+
     val msg = new StringBuilder()
-    msg.append("could not process ")
+    msg.append("input is not parsable ")
     msg.append(escapeWSAndQuote(input))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(e.getStartToken, input)
+    recognizer.getContext.addErrorNode(errorNode)
   }
-  // $COVERAGE-ON$
 
   override protected def reportInputMismatch(recognizer: Parser, e: InputMismatchException): Unit = {
     val msg = new StringBuilder()
@@ -40,6 +70,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append("\nexpecting one of: ")
     msg.append(buildExpectedMessage(recognizer, e.getExpectedTokens))
     recognizer.notifyErrorListeners(e.getOffendingToken, msg.toString(), e)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(e.getOffendingToken, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   override protected def reportUnwantedToken(recognizer: Parser): Unit = {
@@ -56,6 +90,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append("\nexpecting one of: ")
     msg.append(buildExpectedMessage(recognizer, expecting))
     recognizer.notifyErrorListeners(t, msg.toString(), null)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(t, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   override protected def reportMissingToken(recognizer: Parser): Unit = {
@@ -72,6 +110,10 @@ abstract class SqlErrorStrategy extends DefaultErrorStrategy {
     msg.append('\n')
     msg.append(generateMessage(recognizer, new InputMismatchException(recognizer)))
     recognizer.notifyErrorListeners(t, msg.toString(), null)
+
+    // Here we add the error node to the current context so that we can report it in the correct place
+    val errorNode = createErrorNode(t, msg.toString())
+    recognizer.getContext.addErrorNode(errorNode)
   }
 
   val capitalizedSort: Ordering[String] = Ordering.fromLessThan((a, b) =>

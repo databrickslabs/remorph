@@ -35,14 +35,38 @@ THE SOFTWARE.
 
 parser grammar TSqlParser;
 
+import procedure, commonparse, jinja;
+
 options {
     tokenVocab = TSqlLexer;
 }
 
-tSqlFile: batch? EOF
+// ============== Dialect compatibiltiy rules ==============
+// The following rules provide substitutes for grammar rules referenced in the procedure.g4 grammar, that
+// we do not have real equivalents for in this gramamr.
+// Over time, as we homogonize more and more of the dialect grammars, these rules will be removed.
+// Note that these rules will not be visited by the TSQL transpiler, as they are not part of
+// TSQL and we are expecting syntacticly and semanticly sound input.
+
+// string and stringList will eventually expand to composite token sequences for macro substitution, so they
+// are not redundant here.
+string: STRING
+    ;
+stringList: string (COMMA string)*
     ;
 
-batch: SEMI* executeBodyBatch? SEMI* (sqlClauses+ SEMI*)+
+// expr is just an alias for expression, for Snowflake compatibility
+// TODO: Change Snowflake to use the rule name expression instead of expr as this is what the Spark parser uses
+expr: expression
+    ;
+// ======================================================
+
+// ================= TSQL Specific Rules ========================================
+
+tSqlFile: SEMI* batch? EOF
+    ;
+
+batch: executeBodyBatch? SEMI* (sqlClauses SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -60,6 +84,7 @@ sqlClauses
     | createOrAlterTrigger SEMI*
     | createView SEMI*
     | goStatement SEMI*
+    | jinjaTemplate SEMI*
     ;
 
 dmlClause: withExpression? ( selectStatement | merge | delete | insert | update | bulkStatement)
@@ -268,9 +293,6 @@ continueStatement: CONTINUE SEMI?
 gotoStatement: GOTO id COLON? SEMI?
     ;
 
-returnStatement: RETURN expression? SEMI?
-    ;
-
 ifStatement: IF searchCondition sqlClauses (ELSE sqlClauses)? SEMI?
     ;
 
@@ -424,7 +446,7 @@ classTypeForGrant
     | SEARCH PROPERTY LIST
     | SERVER ( ( AUDIT SPECIFICATION?) | ROLE)?
     | SERVICE
-    | SQL LOGIN
+    | id LOGIN
     | SYMMETRIC KEY
     | TRIGGER ( DATABASE | SERVER)
     | TYPE
@@ -857,7 +879,7 @@ alterExternalDataSource
 alterExternalLibrary
     : ALTER EXTERNAL LIBRARY id (AUTHORIZATION id)? (SET | ADD) (
         LPAREN CONTENT EQ (STRING | HEX | NONE) (COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN) WITH (
-            COMMA? LANGUAGE EQ (R | PYTHON)
+            COMMA? LANGUAGE EQ id
             | DATA_SOURCE EQ id
         )+ RPAREN
     )
@@ -868,7 +890,7 @@ createExternalLibrary
         COMMA? LPAREN? (CONTENT EQ)? (STRING | HEX | NONE) (
             COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         )?
-    ) (WITH ( COMMA? LANGUAGE EQ (R | PYTHON) | DATA_SOURCE EQ id)+ RPAREN)?
+    ) (WITH ( COMMA? LANGUAGE EQ id | DATA_SOURCE EQ id)+ RPAREN)?
     ;
 
 alterExternalResourcePool
@@ -1489,7 +1511,8 @@ receiveStatement
 selectStatementStandalone: withExpression? selectStatement
     ;
 
-selectStatement: queryExpression forClause? optionClause? SEMI?
+// Reference: https://learn.microsoft.com/en-us/sql/t-sql/queries/select-transact-sql?view=sql-server-ver16#syntax
+selectStatement: queryExpression selectOrderByClause? forClause? optionClause? SEMI?
     ;
 
 update
@@ -1507,7 +1530,7 @@ outputClause
     )?
     ;
 
-outputDmlListElem: (expression | asterisk) asColumnAlias?
+outputDmlListElem: (expression | asterisk) (AS? columnAlias)?
     ;
 
 createDatabase
@@ -1619,18 +1642,6 @@ createNonclusteredColumnstoreIndex
     )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
-createOrAlterProcedure
-    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) dotIdentifier (SEMI INT)? (
-        LPAREN? procedureParam (COMMA procedureParam)* RPAREN?
-    )? (WITH procedureOption (COMMA procedureOption)*)? (FOR REPLICATION)? AS (
-        asExternalName
-        | sqlClauses*
-    )
-    ;
-
-asExternalName: EXTERNAL NAME dotIdentifier
-    ;
-
 createOrAlterTrigger: createOrAlterDmlTrigger | createOrAlterDdlTrigger
     ;
 
@@ -1642,7 +1653,7 @@ createOrAlterDmlTrigger
     )? AS sqlClauses+
     ;
 
-dmlTriggerOption: ENCRYPTION | executeClause
+dmlTriggerOption: ENCRYPTION | executeAs
     ;
 
 dmlTriggerOperation: (INSERT | UPDATE | DELETE)
@@ -1667,37 +1678,23 @@ createOrAlterFunction
 
 funcBodyReturnsSelect
     : RETURNS TABLE (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | RETURN (LPAREN selectStatementStandalone RPAREN | selectStatementStandalone)
     )
     ;
 
 funcBodyReturnsTable
     : RETURNS LOCAL_ID tableTypeDefinition (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | BEGIN sqlClauses* RETURN SEMI? END SEMI?
     )
     ;
 
 funcBodyReturnsScalar
     : RETURNS dataType (WITH functionOption (COMMA functionOption)*)? AS? (
-        asExternalName
+        (EXTERNAL NAME dotIdentifier)
         | BEGIN sqlClauses* RETURN expression SEMI? END
     )
-    ;
-
-procedureParamDefaultValue: NULL | DEFAULT | constant | LOCAL_ID
-    ;
-
-procedureParam
-    : LOCAL_ID AS? (id DOT)? dataType VARYING? (EQ procedureParamDefaultValue)? (
-        OUT
-        | OUTPUT
-        | READONLY
-    )?
-    ;
-
-procedureOption: executeClause | genericOption
     ;
 
 functionOption
@@ -1705,7 +1702,7 @@ functionOption
     | SCHEMABINDING
     | RETURNS NULL ON NULL INPUT
     | CALLED ON NULL INPUT
-    | executeClause
+    | executeAs
     ;
 
 createStatistics
@@ -1742,6 +1739,9 @@ createExternal
     : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN (
         AS selectStatementStandalone
     ) SEMI?
+    ;
+
+table: TABLE tableName (LPAREN columnDefTableConstraints? COMMA? RPAREN)?
     ;
 
 createTableAs
@@ -2114,10 +2114,6 @@ dropRelationalOrXmlOrSpatialIndex: id ON tableName
 dropBackwardCompatibleIndex: dotIdentifier
     ;
 
-dropProcedure
-    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
-    ;
-
 dropTrigger: dropDmlTrigger | dropDdlTrigger
     ;
 
@@ -2219,26 +2215,24 @@ killStatsJob: STATS JOB INT
 executeStatement: EXECUTE executeBody SEMI?
     ;
 
-executeBodyBatch: dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
+executeBodyBatch
+    : jinjaTemplate
+    | dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
 executeBody
-    : (LOCAL_ID EQ)? (dotIdentifier | executeVarString) executeStatementArg?
+    : (LOCAL_ID EQ)? (dotIdentifier | executeVarString) (
+        executeStatementArg (COMMA executeStatementArg)*
+    )?
     | LPAREN executeVarString (COMMA executeVarString)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
         AT_KEYWORD id
     )?
     | AS ( (LOGIN | USER) EQ STRING | CALLER)
     ;
 
-executeStatementArg
-    : executeStatementArgUnnamed (COMMA executeStatementArg)*
-    | executeStatementArgNamed (COMMA executeStatementArgNamed)*
-    ;
-
-executeStatementArgNamed: LOCAL_ID EQ executeParameter
-    ;
-
-executeStatementArgUnnamed: executeParameter
+// In practice unnamed arguments must precede named arguments, but we assume the input is syntactically valid
+// and accept them in any order to simplitfy the grammar
+executeStatementArg: (LOCAL_ID EQ)? executeParameter
     ;
 
 executeParameter: ( constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL)
@@ -2250,7 +2244,7 @@ executeVarString
     ;
 
 securityStatement
-    : executeClause SEMI?
+    : executeAs SEMI?
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
@@ -2524,7 +2518,7 @@ dbccClause
     )
     ;
 
-executeClause: EXECUTE AS clause = (CALLER | SELF | OWNER | STRING)
+executeAs: EXECUTE AS (CALLER | SELF | OWNER | STRING)
     ;
 
 declareLocal: LOCAL_ID AS? dataType (EQ expression)?
@@ -2741,6 +2735,7 @@ expression
     | DOLLAR_ACTION                                           # exprDollar
     | STAR                                                    # exprStar
     | id                                                      # exprId
+    | jinjaTemplate                                           # exprJinja
     ;
 
 // TODO: Implement this ?
@@ -2799,20 +2794,19 @@ predicate
     ;
 
 queryExpression
-    : querySpecification sqlUnion*
-    | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
+    // INTERSECT has higher precedence than EXCEPT and UNION ALL.
+    // Reference: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver16#:~:text=following%20precedence
+    : LPAREN queryExpression RPAREN                         # queryInParenthesis
+    | queryExpression INTERSECT queryExpression             # queryIntersect
+    | queryExpression (UNION ALL? | EXCEPT) queryExpression # queryUnion
+    | querySpecification                                    # querySimple
     ;
 
-sqlUnion
-    : (UNION ALL? | EXCEPT | INTERSECT) (querySpecification | (LPAREN queryExpression RPAREN))
-    ;
-
-querySpecification
-    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)* selectOptionalClauses
+querySpecification: SELECT (ALL | DISTINCT)? topClause? selectList selectOptionalClauses
     ;
 
 selectOptionalClauses
-    : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
+    : intoClause? fromClause? whereClause? groupByClause? havingClause?
     ;
 
 groupByClause
@@ -2869,13 +2863,26 @@ orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
 optionClause: OPTION lparenOptionList
     ;
 
-selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
+// Note that comma is optional to cater for complications added by Jinja template element
+// references, which, if they are specifying the presence of COMMA or not, will look consecutive
+// elements without a COMMA, such as:
+//
+// select
+//    order_id,
+//    {%- for payment_method in payment_methods %}
+//    sum(case when payment_method = '{{payment_method}}' then amount end) as {{payment_method}}_amount
+//    {%- if not loop.last %},{% endif -%}
+//    {% endfor %}
+selectList: selectListElem selectElemTempl*
+    ;
+
+selectElemTempl: COMMA selectListElem | COMMA? jinjaTemplate selectListElem?
     ;
 
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
-expressionElem: columnAlias EQ expression | expression asColumnAlias?
+expressionElem: columnAlias EQ expression | expression (AS? columnAlias)?
     ;
 
 selectListElem
@@ -2910,6 +2917,7 @@ tsiElement
     | openJson                                                    # tsiOpenJson
     | dotIdentifier? DOUBLE_COLON functionCall                    # tsiDoubleColonFunctionCall
     | LPAREN tableSource RPAREN                                   # tsiParenTableSource
+    | jinjaTemplate                                               # tsiJinja
     ;
 
 openJson
@@ -3055,10 +3063,7 @@ nodesMethod
 switchSection: WHEN searchCondition THEN expression
     ;
 
-asColumnAlias: AS? columnAlias
-    ;
-
-asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
+asTableAlias: AS? (jinjaTemplate | id | DOUBLE_QUOTE_ID)
     ;
 
 withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
@@ -3073,7 +3078,7 @@ tableHint
 columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
-columnAlias: id | STRING
+columnAlias: jinjaTemplate | id | STRING
     ;
 
 tableValueConstructor: VALUES tableValueRow (COMMA tableValueRow)*
@@ -3090,7 +3095,7 @@ withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
 
 // The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
 // but trails certain windowing functions such as LAG and LEAD. However, all such functions
-// must use the OVER clause, so it is included here to make build the IR simpler.
+// must use the OVER clause, so it is included here to make building the IR simpler.
 overClause
     : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
@@ -3200,729 +3205,20 @@ sendConversation
     )? SEMI?
     ;
 
-dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType
+    : jinjaTemplate
+    | dataTypeIdentity
+    | XML LPAREN id RPAREN
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+    ;
+
+dataTypeList: dataType (COMMA dataType)*
     ;
 
 dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
     ;
 
 constant: con = (STRING | HEX | INT | REAL | FLOAT | MONEY) | parameter
-    ;
-
-keyword
-    : ABORT
-    | ABORT_AFTER_WAIT
-    | ABSENT
-    | ABSOLUTE
-    | ACCENT_SENSITIVITY
-    | ACCESS
-    | ACTION
-    | ACTIVATION
-    | ACTIVE
-    | ADD // ?
-    | ADDRESS
-    | ADMINISTER
-    | AES
-    | AES_128
-    | AES_192
-    | AES_256
-    | AFFINITY
-    | AFTER
-    | AGGREGATE
-    | ALGORITHM
-    | ALL_CONSTRAINTS
-    | ALL_ERRORMSGS
-    | ALL_INDEXES
-    | ALL_LEVELS
-    | ALLOW_CONNECTIONS
-    | ALLOW_ENCRYPTED_VALUE_MODIFICATIONS
-    | ALLOW_MULTIPLE_EVENT_LOSS
-    | ALLOW_PAGE_LOCKS
-    | ALLOW_ROW_LOCKS
-    | ALLOW_SINGLE_EVENT_LOSS
-    | ALLOW_SNAPSHOT_ISOLATION
-    | ALLOWED
-    | ALWAYS
-    | ANONYMOUS
-    | ANSI_DEFAULTS
-    | ANSI_NULL_DEFAULT
-    | ANSI_NULL_DFLT_OFF
-    | ANSI_NULL_DFLT_ON
-    | ANSI_NULLS
-    | ANSI_PADDING
-    | ANSI_WARNINGS
-    | APPEND
-    | APPLICATION
-    | APPLICATION_LOG
-    | APPLY
-    | ARITHABORT
-    | ARITHIGNORE
-    | ASSEMBLY
-    | ASYMMETRIC
-    | ASYNCHRONOUS_COMMIT
-    | AT_KEYWORD
-    | AUDIT
-    | AUDIT_GUID
-    | AUTHENTICATE
-    | AUTHENTICATION
-    | AUTO
-    | AUTO_CLEANUP
-    | AUTO_CLOSE
-    | AUTO_CREATE_STATISTICS
-    | AUTO_DROP
-    | AUTO_SHRINK
-    | AUTO_UPDATE_STATISTICS
-    | AUTO_UPDATE_STATISTICS_ASYNC
-    | AUTOGROW_ALL_FILES
-    | AUTOGROW_SINGLE_FILE
-    | AUTOMATED_BACKUP_PREFERENCE
-    | AUTOMATIC
-    | AVAILABILITY
-    | AVAILABILITY_MODE
-    | BACKUP_CLONEDB
-    | BACKUP_PRIORITY
-    | BASE64
-    | BEFORE
-    | BEGIN_DIALOG
-    | BIGINT
-    | BINARY_KEYWORD
-    | BINDING
-    | BLOB_STORAGE
-    | BLOCK
-    | BLOCKERS
-    | BLOCKSIZE
-    | BROKER
-    | BROKER_INSTANCE
-    | BUFFER
-    | BUFFERCOUNT
-    | BULK_LOGGED
-    | CACHE
-    | CALLED
-    | CALLER
-    | CAP_CPU_PERCENT
-    | CAST
-    | CATALOG
-    | CATCH
-    | CERTIFICATE
-    | CHANGE
-    | CHANGE_RETENTION
-    | CHANGE_TRACKING
-    | CHANGES
-    | CHANGETABLE
-    | CHECK_EXPIRATION
-    | CHECK_POLICY
-    | CHECKALLOC
-    | CHECKCATALOG
-    | CHECKCONSTRAINTS
-    | CHECKDB
-    | CHECKFILEGROUP
-    | CHECKSUM
-    | CHECKTABLE
-    | CLASSIFIER_FUNCTION
-    | CLEANTABLE
-    | CLEANUP
-    | CLONEDATABASE
-    | CLUSTER
-    | COLLECTION
-    | COLUMN_ENCRYPTION_KEY
-    | COLUMN_MASTER_KEY
-    | COLUMNS
-    | COLUMNSTORE
-    | COLUMNSTORE_ARCHIVE
-    | COMMITTED
-    | COMPATIBILITY_LEVEL
-    | COMPRESS_ALL_ROW_GROUPS
-    | COMPRESSION
-    | COMPRESSION_DELAY
-    | CONCAT
-    | CONCAT_NULL_YIELDS_NULL
-    | CONFIGURATION
-    | CONNECT
-    | CONNECTION
-    | CONTAINMENT
-    | CONTENT
-    | CONTEXT
-    | CONTINUE_AFTER_ERROR
-    | CONTRACT
-    | CONTRACT_NAME
-    | CONTROL
-    | CONVERSATION
-    | COOKIE
-    | COPY_ONLY
-    | COUNTER
-    | CPU
-    | CREATE_NEW
-    | CREATION_DISPOSITION
-    | CREDENTIAL
-    | CRYPTOGRAPHIC
-    | CURSOR_CLOSE_ON_COMMIT
-    | CURSOR_DEFAULT
-    | CYCLE
-    | DATA
-    | DATA_COMPRESSION
-    | DATA_PURITY
-    | DATA_SOURCE
-    | DATABASE_MIRRORING
-    | DATASPACE
-    | DATE_CORRELATION_OPTIMIZATION
-    | DAYS
-    | DB_CHAINING
-    | DB_FAILOVER
-    | DBCC
-    | DBREINDEX
-    | DDL
-    | DECRYPTION
-    | DEFAULT
-    | DEFAULT_DATABASE
-    | DEFAULT_DOUBLE_QUOTE
-    | DEFAULT_FULLTEXT_LANGUAGE
-    | DEFAULT_LANGUAGE
-    | DEFAULT_SCHEMA
-    | DEFINITION
-    | DELAY
-    | DELAYED_DURABILITY
-    | DELETED
-    | DEPENDENTS
-    | DES
-    | DESCRIPTION
-    | DESX
-    | DETERMINISTIC
-    | DHCP
-    | DIAGNOSTICS
-    | DIALOG
-    | DIFFERENTIAL
-    | DIRECTORY_NAME
-    | DISABLE
-    | DISABLE_BROKER
-    | DISABLED
-    | DISTRIBUTION
-    | DOCUMENT
-    | DROP_EXISTING
-    | DROPCLEANBUFFERS
-    | DTC_SUPPORT
-    | DYNAMIC
-    | ELEMENTS
-    | EMERGENCY
-    | EMPTY
-    | ENABLE
-    | ENABLE_BROKER
-    | ENABLED
-    | ENCRYPTED
-    | ENCRYPTED_VALUE
-    | ENCRYPTION
-    | ENCRYPTION_TYPE
-    | ENDPOINT
-    | ENDPOINT_URL
-    | ERROR
-    | ERROR_BROKER_CONVERSATIONS
-    | ESTIMATEONLY
-    | EVENT
-    | EVENT_RETENTION_MODE
-    | EXCLUSIVE
-    | EXECUTABLE
-    | EXECUTABLE_FILE
-    | EXPIREDATE
-    | EXPIRY_DATE
-    | EXPLICIT
-    | EXTENDED_LOGICAL_CHECKS
-    | EXTENSION
-    | EXTERNAL
-    | EXTERNAL_ACCESS
-    | FAIL_OPERATION
-    | FAILOVER
-    | FAILOVER_MODE
-    | FAILURE
-    | FAILURE_CONDITION_LEVEL
-    | FAILURECONDITIONLEVEL
-    | FAN_IN
-    | FAST_FORWARD
-    | FILE_SNAPSHOT
-    | FILEGROUP
-    | FILEGROWTH
-    | FILENAME
-    | FILEPATH
-    | FILESTREAM
-    | FILESTREAM_ON
-    | FILTER
-    | FIRST
-    | FMTONLY
-    | FOLLOWING
-    | FORCE
-    | FORCE_FAILOVER_ALLOW_DATA_LOSS
-    | FORCE_SERVICE_ALLOW_DATA_LOSS
-    | FORCEPLAN
-    | FORCESCAN
-    | FORCESEEK
-    | FORMAT
-    | FORWARD_ONLY
-    | FREE
-    | FULLSCAN
-    | FULLTEXT
-    | GB
-    | GENERATED
-    | GET
-    | GETROOT
-    | GLOBAL
-    | GO
-    | GOVERNOR
-    | GROUP_MAX_REQUESTS
-    | GROUPING
-    | HADR
-    | HASH
-    | HASHED
-    | HEALTH_CHECK_TIMEOUT
-    | HEALTHCHECKTIMEOUT
-    | HEAP
-    | HIDDEN_KEYWORD
-    | HIERARCHYID
-    | HIGH
-    | HONOR_BROKER_PRIORITY
-    | HOURS
-    | IDENTITY
-    | IDENTITY_VALUE
-    | IGNORE_CONSTRAINTS
-    | IGNORE_DUP_KEY
-    | IGNORE_REPLICATED_TABLE_CACHE
-    | IGNORE_TRIGGERS
-    | IIF
-    | IMMEDIATE
-    | IMPERSONATE
-    | IMPLICIT_TRANSACTIONS
-    | IMPORTANCE
-    | INCLUDE
-    | INCLUDE_NULL_VALUES
-    | INCREMENT
-    | INCREMENTAL
-    | INFINITE
-    | INIT
-    | INITIATOR
-    | INPUT
-    | INSENSITIVE
-    | INSERTED
-    | INSTEAD
-    | IO
-    | IP
-    | ISOLATION
-    | JOB
-    | JSON
-    | JSON_ARRAY
-    | JSON_OBJECT
-    | KB
-    | KEEPDEFAULTS
-    | KEEPIDENTITY
-    | KERBEROS
-    | KEY_PATH
-    | KEY_SOURCE
-    | KEY_STORE_PROVIDER_NAME
-    | KEYS
-    | KEYSET
-    | KWINT
-    | LANGUAGE
-    | LAST
-    | LEVEL
-    | LIBRARY
-    | LIFETIME
-    | LINKED
-    | LINUX
-    | LIST
-    | LISTENER
-    | LISTENER_IP
-    | LISTENER_PORT
-    | LISTENER_URL
-    | LOB_COMPACTION
-    | LOCAL
-    | LOCAL_SERVICE_NAME
-    | LOCATION
-    | LOCK
-    | LOCK_ESCALATION
-    | LOGIN
-    | LOOP
-    | LOW
-    | MANUAL
-    | MARK
-    | MASK
-    | MASKED
-    | MASTER
-    | MATCHED
-    | MATERIALIZED
-    | MAX
-    | MAX_CPU_PERCENT
-    | MAX_DISPATCH_LATENCY
-    | MAX_DOP
-    | MAX_DURATION
-    | MAX_EVENT_SIZE
-    | MAX_FILES
-    | MAX_IOPS_PER_VOLUME
-    | MAX_MEMORY
-    | MAX_MEMORY_PERCENT
-    | MAX_OUTSTANDING_IO_PER_VOLUME
-    | MAX_PROCESSES
-    | MAX_QUEUE_READERS
-    | MAX_ROLLOVER_FILES
-    | MAX_SIZE
-    | MAXSIZE
-    | MAXTRANSFER
-    | MAXVALUE
-    | MB
-    | MEDIADESCRIPTION
-    | MEDIANAME
-    | MEDIUM
-    | MEMBER
-    | MEMORY_OPTIMIZED_DATA
-    | MEMORY_PARTITION_MODE
-    | MESSAGE
-    | MESSAGE_FORWARD_SIZE
-    | MESSAGE_FORWARDING
-    | MIN_CPU_PERCENT
-    | MIN_IOPS_PER_VOLUME
-    | MIN_MEMORY_PERCENT
-    | MINUTES
-    | MINVALUE
-    | MIRROR
-    | MIRROR_ADDRESS
-    | MIXED_PAGE_ALLOCATION
-    | MODE
-    | MODIFY
-    | MOVE
-    | MULTI_USER
-    | MUST_CHANGE
-    | NAME
-    | NESTED_TRIGGERS
-    | NEW_ACCOUNT
-    | NEW_BROKER
-    | NEW_PASSWORD
-    | NEWNAME
-    | NEXT
-    | NO
-    | NO_CHECKSUM
-    | NO_COMPRESSION
-    | NO_EVENT_LOSS
-    | NO_INFOMSGS
-    | NO_QUERYSTORE
-    | NO_STATISTICS
-    | NO_TRUNCATE
-    | NOCOUNT
-    | NODES
-    | NOEXEC
-    | NOEXPAND
-    | NOFORMAT
-    | NOINDEX
-    | NOINIT
-    | NOLOCK
-    | NON_TRANSACTED_ACCESS
-    | NONE
-    | NORECOMPUTE
-    | NORECOVERY
-    | NOREWIND
-    | NOSKIP
-    | NOTIFICATION
-    | NOTIFICATIONS
-    | NOUNLOAD
-    | NTILE
-    | NTLM
-    | NUMANODE
-    | NUMBER
-    | NUMERIC_ROUNDABORT
-    | OBJECT
-    | OFFLINE
-    | OFFSET
-    | OLD_ACCOUNT
-    | OLD_PASSWORD
-    | ON_FAILURE
-    | ON
-    | OFF
-    | ONLINE
-    | ONLY
-    | OPEN_EXISTING
-    | OPENJSON
-    | OPERATIONS
-    | OPTIMISTIC
-    | OUT
-    | OUTPUT
-    | OVERRIDE
-    | OWNER
-    | OWNERSHIP
-    | PAD_INDEX
-    | PAGE
-    | PAGE_VERIFY
-    | PAGECOUNT
-    | PAGLOCK
-    | PARAM_NODE
-    | PARAMETERIZATION
-    | PARSEONLY
-    | PARTIAL
-    | PARTITION
-    | PARTITIONS
-    | PARTNER
-    | PASSWORD
-    | PATH
-    | PAUSE
-    | PDW_SHOWSPACEUSED
-    | PER_CPU
-    | PER_DB
-    | PER_NODE
-    | PERMISSION_SET
-    | PERSIST_SAMPLE_PERCENT
-    | PERSISTED
-    | PHYSICAL_ONLY
-    | PLATFORM
-    | POISON_MESSAGE_HANDLING
-    | POLICY
-    | POOL
-    | PORT
-    | PRECEDING
-    | PRECISION
-    | PREDICATE
-    | PRIMARY_ROLE
-    | PRIOR
-    | PRIORITY
-    | PRIORITY_LEVEL
-    | PRIVATE
-    | PRIVATE_KEY
-    | PRIVILEGES
-    | PROCCACHE
-    | PROCEDURE_NAME
-    | PROCESS
-    | PROFILE
-    | PROPERTY
-    | PROVIDER
-    | PROVIDER_KEY_NAME
-    | PYTHON
-    | QUERY
-    | QUEUE
-    | QUEUE_DELAY
-    | QUOTED_IDENTIFIER
-    | R
-    | RANDOMIZED
-    | RANGE
-    | RC2
-    | RC4
-    | RC4_128
-    | READ_COMMITTED_SNAPSHOT
-    | READ_ONLY
-    | READ_ONLY_ROUTING_LIST
-    | READ_WRITE
-    | READ_WRITE_FILEGROUPS
-    | READCOMMITTED
-    | READCOMMITTEDLOCK
-    | READONLY
-    | READPAST
-    | READUNCOMMITTED
-    | READWRITE
-    | REBUILD
-    | RECEIVE
-    | RECOVERY
-    | RECURSIVE_TRIGGERS
-    | REGENERATE
-    | RELATED_CONVERSATION
-    | RELATED_CONVERSATION_GROUP
-    | RELATIVE
-    | REMOTE
-    | REMOTE_PROC_TRANSACTIONS
-    | REMOTE_SERVICE_NAME
-    | REMOVE
-    | REORGANIZE
-    | REPAIR_ALLOW_DATA_LOSS
-    | REPAIR_FAST
-    | REPAIR_REBUILD
-    | REPEATABLE
-    | REPEATABLEREAD
-    | REPLACE
-    | REPLICA
-    | REPLICATE
-    | REQUEST_MAX_CPU_TIME_SEC
-    | REQUEST_MAX_MEMORY_GRANT_PERCENT
-    | REQUEST_MEMORY_GRANT_TIMEOUT_SEC
-    | REQUIRED
-    | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT
-    | RESAMPLE
-    | RESERVE_DISK_SPACE
-    | RESET
-    | RESOURCE
-    | RESOURCE_MANAGER_LOCATION
-    | RESOURCES
-    | RESTART
-    | RESTRICTED_USER
-    | RESUMABLE
-    | RESUME
-    | RETAINDAYS
-    | RETENTION
-    | RETURNS
-    | REWIND
-    | ROLE
-    | ROOT
-    | ROUND_ROBIN
-    | ROUTE
-    | ROW
-    | ROWGUID
-    | ROWLOCK
-    | ROWS
-    | RSA_512
-    | RSA_1024
-    | RSA_2048
-    | RSA_3072
-    | RSA_4096
-    | SAFE
-    | SAFETY
-    | SAMPLE
-    | SCHEDULER
-    | SCHEMABINDING
-    | SCHEME
-    | SCOPED
-    | SCRIPT
-    | SCROLL
-    | SCROLL_LOCKS
-    | SEARCH
-    | SECONDARY
-    | SECONDARY_ONLY
-    | SECONDARY_ROLE
-    | SECONDS
-    | SECRET
-    | SECURABLES
-    | SECURITY
-    | SECURITY_LOG
-    | SEEDING_MODE
-    | SELF
-    | SEMI_SENSITIVE
-    | SEND
-    | SENT
-    | SEQUENCE
-    | SEQUENCE_NUMBER
-    | SERIALIZABLE
-    | SERVER
-    | SERVICE
-    | SERVICE_BROKER
-    | SERVICE_NAME
-    | SERVICEBROKER
-    | SESSION
-    | SESSION_TIMEOUT
-    | SETTINGS
-    | SHARE
-    | SHARED
-    | SHOWCONTIG
-    | SHOWPLAN
-    | SHOWPLAN_ALL
-    | SHOWPLAN_TEXT
-    | SHOWPLAN_XML
-    | SHRINKLOG
-    | SID
-    | SIGNATURE
-    | SINGLE_USER
-    | SIZE
-    | SKIP_KEYWORD
-    | SMALLINT
-    | SNAPSHOT
-    | SOFTNUMA
-    | SORT_IN_TEMPDB
-    | SOURCE
-    | SP_EXECUTESQL
-    | SPARSE
-    | SPATIAL_WINDOW_MAX_CELLS
-    | SPECIFICATION
-    | SPLIT
-    | SQL
-    | SQLDUMPERFLAGS
-    | SQLDUMPERPATH
-    | SQLDUMPERTIMEOUT
-    | STANDBY
-    | START
-    | START_DATE
-    | STARTED
-    | STARTUP_STATE
-    | STATE
-    | STATIC
-    | STATISTICS_INCREMENTAL
-    | STATISTICS_NORECOMPUTE
-    | STATS
-    | STATS_STREAM
-    | STATUS
-    | STATUSONLY
-    | STOP
-    | STOP_ON_ERROR
-    | STOPLIST
-    | STOPPED
-    | SUBJECT
-    | SUBSCRIBE
-    | SUBSCRIPTION
-    | SUPPORTED
-    | SUSPEND
-    | SWITCH
-    | SYMMETRIC
-    | SYNCHRONOUS_COMMIT
-    | SYNONYM
-    | SYSTEM
-    | TABLE
-    | TABLERESULTS
-    | TABLOCK
-    | TABLOCKX
-    | TAKE
-    | TAPE
-    | TARGET
-    | TARGET_RECOVERY_TIME
-    | TB
-    | TCP
-    | TEXTIMAGE_ON
-    | THROW
-    | TIES
-    | TIMEOUT
-    | TIMER
-    | TINYINT
-    | TORN_PAGE_DETECTION
-    | TOSTRING
-    | TRACE
-    | TRACK_CAUSALITY
-    | TRACKING
-    | TRANSACTION_ID
-    | TRANSFER
-    | TRANSFORM_NOISE_WORDS
-    | TRIPLE_DES
-    | TRIPLE_DES_3KEY
-    | TRUSTWORTHY
-    | TRY
-    | TRY_CAST
-    | TSQL
-    | TWO_DIGIT_YEAR_CUTOFF
-    | TYPE
-    | TYPE_WARNING
-    | UNBOUNDED
-    | UNCHECKED
-    | UNCOMMITTED
-    | UNLIMITED
-    | UNLOCK
-    | UNMASK
-    | UNSAFE
-    | UOW
-    | UPDLOCK
-    | URL
-    | USED
-    | USING
-    | VALID_XML
-    | VALIDATION
-    | VALUE
-    | VAR
-    | VERBOSELOGGING
-    | VERIFY_CLONEDB
-    | VERSION
-    | VIEW_METADATA
-    | VISIBILITY
-    | WAIT
-    | WAIT_AT_LOW_PRIORITY
-    | WELL_FORMED_XML
-    | WINDOWS
-    | WITHOUT
-    | WITHOUT_ARRAY_WRAPPER
-    | WITNESS
-    | WORK
-    | WORKLOAD
-    | XACT_ABORT
-    | XLOCK
-    | XML
-    | XML_COMPRESSION
-    | XMLDATA
-    | XMLNAMESPACES
-    | XMLSCHEMA
-    | XSINIL
-    | ZONE
     ;
 
 id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
@@ -4052,5 +3348,5 @@ xmlIndexOptions: WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
 xmlIndexOption: ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF) | genericOption
     ;
 
-xmlCommonDirectives: COMMA ( BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
+xmlCommonDirectives: COMMA ( BINARY id | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;

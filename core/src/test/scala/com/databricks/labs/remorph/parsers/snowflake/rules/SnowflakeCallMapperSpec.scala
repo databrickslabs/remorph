@@ -1,17 +1,17 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.{OkResult, TranspilerState, intermediate => ir}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
 
-  private val snowflakeCallMapper = new SnowflakeCallMapper
+  private[this] val snowflakeCallMapper = new SnowflakeCallMapper
 
   implicit class CallMapperOps(fn: ir.Fn) {
     def becomes(expected: ir.Expression): Assertion = {
-      snowflakeCallMapper.convert(fn) shouldBe expected
+      snowflakeCallMapper.convert(fn).runAndDiscardState(TranspilerState()) shouldBe OkResult(expected)
     }
   }
 
@@ -202,6 +202,9 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
           Some(ir.Literal(0))),
         Seq(ir.UnresolvedNamedLambdaVariable(Seq("left")), ir.UnresolvedNamedLambdaVariable(Seq("right")))))
 
+    ir.CallFunction("SUBSTR", Seq(ir.Literal("Hello"), ir.Literal(1), ir.Literal(3))) becomes
+      ir.Substring(ir.Literal("Hello"), ir.Literal(1), Some(ir.Literal(3)))
+
     "ARRAY_SLICE index shift" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.IntLiteral(0), ir.IntLiteral(2))) becomes ir.Slice(
         ir.Id("arr1"),
@@ -219,6 +222,97 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
             ir.Add(ir.Id("col1"), ir.IntLiteral(1)),
             ir.Id("col1")),
           ir.IntLiteral(2))
+    }
+    "REGEXP_SUBSTR" in {
+      ir.CallFunction("REGEXP_SUBSTR", Seq(ir.Literal("foo"), ir.Literal("f.."))) becomes
+        ir.RegExpExtract(ir.Literal("foo"), ir.Literal("f.."), Some(ir.Literal(0)))
+
+      ir.CallFunction("REGEXP_SUBSTR", Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1))) becomes
+        ir.RegExpExtract(ir.Substring(ir.Literal("foo"), ir.Literal(1)), ir.Literal("f.."), Some(ir.Literal(0)))
+
+      ir.CallFunction("REGEXP_SUBSTR", Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1), ir.Literal(1))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(ir.Substring(ir.Literal("foo"), ir.Literal(1)), ir.Literal("f.."), Some(ir.Literal(0))),
+          ir.Literal(0))
+
+      ir.CallFunction(
+        "REGEXP_SUBSTR",
+        Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1), ir.Id("occurrence"))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(ir.Substring(ir.Literal("foo"), ir.Literal(1)), ir.Literal("f.."), Some(ir.Literal(0))),
+          ir.Subtract(ir.Id("occurrence"), ir.Literal(1)))
+
+      ir.CallFunction(
+        "REGEXP_SUBSTR",
+        Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1), ir.Id("occurrence"), ir.Literal("icmes"))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(
+            ir.Substring(ir.Literal("foo"), ir.Literal(1)),
+            ir.Literal("(?ms)f.."),
+            Some(ir.Literal(0))),
+          ir.Subtract(ir.Id("occurrence"), ir.Literal(1)))
+
+      ir.CallFunction(
+        "REGEXP_SUBSTR",
+        Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1), ir.Id("occurrence"), ir.Literal("icmesi"))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(
+            ir.Substring(ir.Literal("foo"), ir.Literal(1)),
+            ir.Literal("(?msi)f.."),
+            Some(ir.Literal(0))),
+          ir.Subtract(ir.Id("occurrence"), ir.Literal(1)))
+
+      ir.CallFunction(
+        "REGEXP_SUBSTR",
+        Seq(ir.Literal("foo"), ir.Literal("f.."), ir.Literal(1), ir.Id("occurrence"), ir.Id("regex_params"))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(
+            ir.Substring(ir.Literal("foo"), ir.Literal(1)),
+            ir.ArrayAggregate(
+              ir.StringSplit(ir.Id("regex_params"), ir.Literal(""), None),
+              ir.Cast(ir.CreateArray(Seq()), ir.ArrayType(ir.StringType)),
+              ir.LambdaFunction(
+                ir.Case(
+                  expression = None,
+                  branches = Seq(
+                    ir.WhenBranch(
+                      ir.Equals(ir.Id("item"), ir.Literal("c")),
+                      ir.ArrayFilter(
+                        ir.Id("agg"),
+                        ir.LambdaFunction(
+                          ir.NotEquals(ir.Id("item"), ir.Literal("i")),
+                          Seq(ir.UnresolvedNamedLambdaVariable(Seq("item")))))),
+                    ir.WhenBranch(
+                      ir.In(ir.Id("item"), Seq(ir.Literal("i"), ir.Literal("s"), ir.Literal("m"))),
+                      ir.ArrayAppend(ir.Id("agg"), ir.Id("item")))),
+                  otherwise = Some(ir.Id("agg"))),
+                Seq(ir.UnresolvedNamedLambdaVariable(Seq("agg")), ir.UnresolvedNamedLambdaVariable(Seq("item")))),
+              ir.LambdaFunction(
+                ir.Concat(
+                  Seq(
+                    ir.Literal("(?"),
+                    ir.ArrayJoin(ir.Id("filtered"), ir.Literal("")),
+                    ir.Literal(")"),
+                    ir.Literal("f.."))),
+                Seq(ir.UnresolvedNamedLambdaVariable(Seq("filtered"))))),
+            Some(ir.Literal(0))),
+          ir.Subtract(ir.Id("occurrence"), ir.Literal(1)))
+
+      ir.CallFunction(
+        "REGEXP_SUBSTR",
+        Seq(
+          ir.Literal("foo"),
+          ir.Literal("(f.)."),
+          ir.Literal(1),
+          ir.Id("occurrence"),
+          ir.Literal("icmesi"),
+          ir.Literal(1))) becomes
+        ir.ArrayAccess(
+          ir.RegExpExtractAll(
+            ir.Substring(ir.Literal("foo"), ir.Literal(1)),
+            ir.Literal("(?msi)(f.)."),
+            Some(ir.Literal(1))),
+          ir.Subtract(ir.Id("occurrence"), ir.Literal(1)))
     }
   }
 }

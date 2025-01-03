@@ -4,7 +4,7 @@ description: Code Transpiler and Data Reconciliation tool for Accelerating Data 
 install:
   min_runtime_version: 13.3
   require_running_cluster: false
-  require_databricks_connect: true
+  require_databricks_connect: false
   script: src/databricks/labs/remorph/install.py
 uninstall:
   script: src/databricks/labs/remorph/uninstall.py
@@ -14,9 +14,13 @@ commands:
   - name: transpile
     description: Transpile SQL script to Databricks SQL
     flags:
-      - name: source
-        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
-      - name: input-sql
+      - name: transpiler-config-path
+        description: Path to the transpiler configuration file
+        default: sqlglot
+      - name: source-dialect
+        description: Dialect name
+        default: None
+      - name: input-source
         description: Input SQL Folder or File
       - name: output-folder
         default: None
@@ -45,9 +49,13 @@ commands:
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
-      - name: source
-        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
-      - name: input-sql
+      - name: transpiler-config-path
+        description: Path to the transpiler configuration file
+        default: sqlglot
+      - name: source-dialect
+        description: Dialect name
+        default: None
+      - name: input-source
         description: Input SQL Folder or File
       - name: output-folder
         description: Directory to store the generated lineage file
@@ -65,9 +73,32 @@ commands:
   - name: debug-coverage
     description: "[INTERNAL] Run coverage tests"
     flags:
+      - name: dialect
+        description: sql dialect
       - name: src
         description: The parent directory under which test queries are laid out
       - name: dst
         description: The directory under which the report files will be written
       - name: extractor
         description: The strategy for extracting queries from the test files. Valid strategies are "full" (when files contain only one input query) and "comment" (when files contain an input query and the corresponding translation, separated by a comment stating the dialect of each query).
+  - name: debug-estimate
+    description: "[INTERNAL] estimate migration effort"
+    flags:
+      - name: dialect
+        description: sql dialect
+      - name: source-queries
+        description: The folder with queries. Otherwise will attempt to fetch query history for a dialect
+      - name: console-output
+        default: true
+        description: Output results to a folder
+      - name: dst
+        description: The directory for report
+  - name: debug-bundle
+    description: "[INTERNAL] Generate bundle for the translated queries"
+    flags:
+      - name: dialect
+        description: sql dialect
+      - name: source-queries
+        description: The folder with queries. Otherwise will attempt to fetch query history for a dialect
+      - name: dst
+        description: The directory for generated files

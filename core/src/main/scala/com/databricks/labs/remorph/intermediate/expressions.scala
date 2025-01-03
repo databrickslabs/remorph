@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.intermediate
 
-import java.util.{UUID}
+import java.util.UUID
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -20,7 +20,7 @@ abstract class LeafExpression extends Expression {
 }
 
 object NamedExpression {
-  private val curId = new java.util.concurrent.atomic.AtomicLong()
+  private[this] val curId = new java.util.concurrent.atomic.AtomicLong()
   private[intermediate] val jvmId = UUID.randomUUID()
   def newExprId: ExprId = ExprId(curId.getAndIncrement(), jvmId)
   def unapply(expr: NamedExpression): Option[(String, DataType)] = Some((expr.name, expr.dataType))
@@ -148,9 +148,9 @@ case class Window(
     partition_spec: Seq[Expression] = Seq.empty,
     sort_order: Seq[SortOrder] = Seq.empty,
     frame_spec: Option[WindowFrame] = None,
-    ignore_nulls: Boolean = false) // This Translates to Databricks Default Respect Nulls
+    ignore_nulls: Boolean = false) // TODO: this is a property of Last(), not Window
     extends Expression {
-  override def children: Seq[Expression] = window_function +: partition_spec
+  override def children: Seq[Expression] = Seq(window_function) ++ partition_spec ++ sort_order
   override def dataType: DataType = window_function.dataType
 }
 

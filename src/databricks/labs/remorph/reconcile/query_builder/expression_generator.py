@@ -5,7 +5,7 @@ from pyspark.sql.types import DataType, NumericType
 from sqlglot import Dialect
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping
 
 
@@ -85,7 +85,7 @@ def array_sort(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Expression:
+def anonymous(expr: exp.Column, func: str, is_expr: bool = False, dialect=None) -> exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -104,6 +104,8 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Express
 
     """
     if is_expr:
+        if dialect:
+            return exp.Column(this=func.format(expr.sql(dialect=dialect)))
         return exp.Column(this=func.format(expr))
     is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
@@ -235,11 +237,17 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
     "universal": {"default": [partial(coalesce, default='_null_recon_', is_string=True), partial(trim)]},
     "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
-        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
-        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
+        exp.DataType.Type.NCHAR.value: [
+            partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')", dialect=get_dialect("oracle"))
+        ],
+        exp.DataType.Type.NVARCHAR.value: [
+            partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')", dialect=get_dialect("oracle"))
+        ],
     },
     "databricks": {
-        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
+        exp.DataType.Type.ARRAY.value: [
+            partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))", dialect=get_dialect("databricks"))
+        ],
     },
 }
 
@@ -250,7 +258,9 @@ Dialect_hash_algo_mapping: dict[Dialect, HashAlgoMapping] = {
         target=sha256_partial,
     ),
     get_dialect("oracle"): HashAlgoMapping(
-        source=partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True),
+        source=partial(
+            anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True, dialect=get_dialect("oracle")
+        ),
         target=sha256_partial,
     ),
     get_dialect("databricks"): HashAlgoMapping(

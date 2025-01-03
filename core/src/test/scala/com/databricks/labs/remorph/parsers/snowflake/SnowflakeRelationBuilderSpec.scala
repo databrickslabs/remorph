@@ -33,7 +33,7 @@ class SnowflakeRelationBuilderSpec
   "SnowflakeRelationBuilder" should {
 
     "translate query with no FROM clause" in {
-      example("", _.selectOptionalClauses(), NoTable())
+      example("", _.selectOptionalClauses(), NoTable)
     }
 
     "translate FROM clauses" should {
@@ -248,7 +248,7 @@ class SnowflakeRelationBuilderSpec
               window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Id("p")),
               sort_order = Seq(SortOrder(Id("o"), Ascending, NullsLast)),
-              frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))),
+              frame_spec = None),
             Literal(1))))
     }
 
@@ -285,6 +285,10 @@ class SnowflakeRelationBuilderSpec
         "VALUES ('a', 1), ('b', 2)",
         _.objectRef(),
         Values(Seq(Seq(Literal("a"), Literal(1)), Seq(Literal("b"), Literal(2)))))
+    }
+
+    "do not confuse VALUES clauses with a single row with a function call" in {
+      example("VALUES (1, 2, 3)", _.objectRef(), Values(Seq(Seq(Literal(1), Literal(2), Literal(3)))))
     }
 
     "translate table functions as object references" should {

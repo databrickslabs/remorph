@@ -1,15 +1,15 @@
 package com.databricks.labs.remorph.transpilers
 
+import com.databricks.labs.remorph.Parsing
+
 import java.nio.file.{Files, Path, Paths}
 import scala.io.Source.fromFile
 import scala.collection.JavaConverters._
 
-case class SourceCode(source: String, filename: String = "-- test source --")
-
-trait Source extends Iterator[SourceCode]
+trait Source extends Iterator[Parsing]
 
 class DirectorySource(root: String, fileFilter: Option[Path => Boolean] = None) extends Source {
-  private val files =
+  private[this] val files =
     Files
       .walk(Paths.get(root))
       .iterator()
@@ -20,12 +20,12 @@ class DirectorySource(root: String, fileFilter: Option[Path => Boolean] = None) 
 
   override def hasNext: Boolean = files.hasNext
 
-  override def next(): SourceCode = {
+  override def next(): Parsing = {
     if (!hasNext) throw new NoSuchElementException("No more source entities")
     val file = files.next()
     val source = fromFile(file.toFile)
     try {
-      SourceCode(source.mkString, file.getFileName.toString)
+      Parsing(source.mkString, file.getFileName.toString)
     } finally {
       source.close()
     }

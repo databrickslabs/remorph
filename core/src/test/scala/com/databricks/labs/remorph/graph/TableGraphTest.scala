@@ -11,8 +11,8 @@ import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
 import com.databricks.labs.remorph.intermediate.{IntegerType, StringType, StructField}
 
 class TableGraphTest extends AnyFlatSpec with Matchers {
-  private val parser = new SnowflakePlanParser()
-  private val queryHistory = QueryHistory(
+  private[this] val parser = new SnowflakePlanParser()
+  private[this] val queryHistory = QueryHistory(
     Seq(
       ExecutedQuery(
         "query1",
@@ -76,7 +76,7 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
         Duration.ofSeconds(65),
         Some("user5"))))
 
-  private val tableDefinitions = Set(
+  private[this] val tableDefinitions = Set(
     TableDefinition(
       catalog = "catalog1",
       schema = "schema1",

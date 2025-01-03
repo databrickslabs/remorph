@@ -30,15 +30,21 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     tree
   }
 
-  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan): Unit = {
+  protected def example[R <: RuleContext](
+      query: String,
+      rule: P => R,
+      expectedAst: ir.LogicalPlan,
+      failOnErrors: Boolean = true): Unit = {
     val sfTree = parseString(query, rule)
     if (errListener != null && errListener.errorCount != 0) {
       errListener.logErrors()
-      fail(s"${errListener.errorCount} errors found in the child string")
+      if (failOnErrors) {
+        fail(s"${errListener.errorCount} errors found in the child string")
+      }
     }
 
-    val result = astBuilder.visit(sfTree)
-    comparePlans(expectedAst, result.asInstanceOf[ir.LogicalPlan])
+    val result = astBuilder.visit(sfTree).asInstanceOf[ir.LogicalPlan]
+    comparePlans(ok(result), expectedAst)
   }
 
   protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression): Unit = {
@@ -49,7 +55,7 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     }
     val result = astBuilder.visit(sfTree)
     val wrapExpr = (expr: ir.Expression) => ir.Filter(ir.NoopNode, expr)
-    comparePlans(wrapExpr(expectedAst), wrapExpr(result.asInstanceOf[ir.Expression]))
+    comparePlans(ok(wrapExpr(result.asInstanceOf[ir.Expression])), wrapExpr(expectedAst))
   }
 
   /**

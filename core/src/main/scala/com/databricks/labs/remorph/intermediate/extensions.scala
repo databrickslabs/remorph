@@ -6,16 +6,27 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-// TODO: (nfx) refactor to align more with catalyst
-case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
+sealed trait NameOrPosition extends LeafExpression
+
+// TODO: (nfx) refactor to align more with catalyst, replace with Name
+case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor with NameOrPosition
+
+case class Name(name: String) extends NameOrPosition {
+  override def dataType: DataType = UnresolvedType
+}
+
+case class Position(index: Int) extends ToRefactor with NameOrPosition {}
 
 // TODO: (nfx) refactor to align more with catalyst
-case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
+case class ObjectReference(head: NameOrPosition, tail: NameOrPosition*) extends ToRefactor
 
 // TODO: (nfx) refactor to align more with catalyst
-case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
+case class Column(tableNameOrAlias: Option[ObjectReference], columnName: NameOrPosition)
+    extends ToRefactor
+    with AstExtension {}
+
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
-case class DollarAction() extends ToRefactor with AstExtension {}
+case object DollarAction extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
 
 case object Noop extends LeafExpression {
@@ -33,6 +44,11 @@ case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationC
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
 
+case class WithRecursiveCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = query.output
+  override def children: Seq[LogicalPlan] = ctes :+ query
+}
+
 // TODO: (nfx) refactor to align more with catalyst, rename to UnresolvedStar
 case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression with StarOrAlias {
   override def dataType: DataType = UnresolvedType
@@ -45,7 +61,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 }
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends LeafNode {
+case object NoTable extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
@@ -75,7 +91,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
@@ -172,8 +188,8 @@ case class Lateral(expr: LogicalPlan, outer: Boolean = false, isView: Boolean = 
   override def output: Seq[Attribute] = expr.output
 }
 
-case class Comment(text: String) extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
+case class PlanComment(child: LogicalPlan, text: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 }
 
 case class Options(
@@ -251,7 +267,7 @@ case object WEEK_INTERVAL extends KnownIntervalType
 case object MONTH_INTERVAL extends KnownIntervalType
 case object YEAR_INTERVAL extends KnownIntervalType
 
-// TSQL - For translation purposes, we cannot use teh standard Catalyst CalendarInterval as it is not
+// TSQL - For translation purposes, we cannot use the standard Catalyst CalendarInterval as it is not
 // meant for code generation and converts everything to microseconds. It is much easier to use an extension
 // to the AST to represent the interval as it is required in TSQL, where we need to know if we were dealing with
 // MONTHS, HOURS, etc.
@@ -259,3 +275,13 @@ case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Ex
   override def children: Seq[Expression] = Seq(value)
   override def dataType: DataType = UnresolvedType
 }
+
+case class JinjaAsStatement(text: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case class JinjaAsExpression(text: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
+
+case class JinjaAsDataType(text: String) extends DataType

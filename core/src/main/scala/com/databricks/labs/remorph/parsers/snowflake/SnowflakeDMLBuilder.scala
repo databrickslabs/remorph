@@ -19,68 +19,82 @@ class SnowflakeDMLBuilder(override val vc: SnowflakeVisitorCoordinator)
 
   // Concrete visitors
 
-  override def visitDmlCommand(ctx: DmlCommandContext): ir.Modification = ctx match {
-    case q if q.queryStatement() != null => q.queryStatement().accept(this)
-    case i if i.insertStatement() != null => i.insertStatement().accept(this)
-    case i if i.insertMultiTableStatement() != null => i.insertMultiTableStatement().accept(this)
-    case u if u.updateStatement() != null => u.updateStatement().accept(this)
-    case d if d.deleteStatement() != null => d.deleteStatement().accept(this)
-    case m if m.mergeStatement() != null => m.mergeStatement().accept(this)
+  override def visitDmlCommand(ctx: DmlCommandContext): ir.Modification = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      ctx match {
+        case q if q.queryStatement() != null => q.queryStatement().accept(this)
+        case i if i.insertStatement() != null => i.insertStatement().accept(this)
+        case i if i.insertMultiTableStatement() != null => i.insertMultiTableStatement().accept(this)
+        case u if u.updateStatement() != null => u.updateStatement().accept(this)
+        case d if d.deleteStatement() != null => d.deleteStatement().accept(this)
+        case m if m.mergeStatement() != null => m.mergeStatement().accept(this)
+        case _ => unresolved("dmlCommand", "everything is null")
+      }
   }
 
-  override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = {
-    val table = ctx.objectName().accept(vc.relationBuilder)
-    val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.visitId))
-    val values = ctx match {
-      case c if c.queryStatement() != null => c.queryStatement().accept(vc.relationBuilder)
-      case c if c.valuesTableBody() != null => c.valuesTableBody().accept(vc.relationBuilder)
+  override def visitInsertStatement(ctx: InsertStatementContext): ir.Modification = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val table = ctx.dotIdentifier().accept(vc.relationBuilder)
+      val columns = Option(ctx.ids).map(_.asScala).filter(_.nonEmpty).map(_.map(vc.expressionBuilder.buildId))
+      val values = ctx match {
+        case c if c.queryStatement() != null => c.queryStatement().accept(vc.relationBuilder)
+        case c if c.valuesTableBody() != null => c.valuesTableBody().accept(vc.relationBuilder)
+      }
+      val overwrite = ctx.OVERWRITE() != null
+      ir.InsertIntoTable(table, columns, values, None, None, overwrite)
+  }
+
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification =
+    errorCheck(ctx) match {
+      case Some(errorResult) => errorResult
+      case None =>
+        val target = ctx.tableRef().accept(vc.relationBuilder)
+        val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
+        Option(ctx.tablesOrQueries()) match {
+          case Some(value) =>
+            val relation = vc.relationBuilder.visit(value)
+            ir.MergeIntoTable(target, relation, where.getOrElse(ir.Noop), matchedActions = Seq(ir.DeleteAction(None)))
+          case None => ir.DeleteFromTable(target, where = where)
+        }
     }
-    val overwrite = ctx.OVERWRITE() != null
-    ir.InsertIntoTable(table, columns, values, None, None, overwrite)
+
+  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.Modification = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val target = ctx.tableRef().accept(vc.relationBuilder)
+      val set = vc.expressionBuilder.visitMany(ctx.setColumnValue())
+      val sources =
+        Option(ctx.tableSources()).map(t => vc.relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
+      val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
+      ir.UpdateTable(target, sources, set, where, None, None)
   }
 
-  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(vc.relationBuilder)
-    val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
-    Option(ctx.tablesOrQueries()) match {
-      case Some(value) =>
-        val relation = vc.relationBuilder.visit(value)
-        ir.MergeIntoTable(target, relation, where.getOrElse(ir.Noop), matchedActions = Seq(ir.DeleteAction(None)))
-      case None => ir.DeleteFromTable(target, where = where)
-    }
-  }
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = errorCheck(ctx) match {
+    case Some(errorResult) => errorResult
+    case None =>
+      val target = ctx.tableRef().accept(vc.relationBuilder)
+      val relation = ctx.tableSource().accept(vc.relationBuilder)
+      val predicate = ctx.searchCondition().accept(vc.expressionBuilder)
+      val matchedActions = ctx
+        .mergeCond()
+        .mergeCondMatch()
+        .asScala
+        .map(buildMatchAction)
 
-  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(vc.relationBuilder)
-    val set = vc.expressionBuilder.visitMany(ctx.setColumnValue())
-    val sources =
-      Option(ctx.tableSources()).map(t => vc.relationBuilder.visitMany(t.tableSource()).foldLeft(target)(crossJoin))
-    val where = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
-    ir.UpdateTable(target, sources, set, where, None, None)
-  }
+      val notMatchedActions = ctx
+        .mergeCond()
+        .mergeCondNotMatch()
+        .asScala
+        .map(buildNotMatchAction)
 
-  override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
-    val target = ctx.tableRef().accept(vc.relationBuilder)
-    val relation = ctx.tableSource().accept(vc.relationBuilder)
-    val predicate = ctx.searchCondition().accept(vc.expressionBuilder)
-    val matchedActions = ctx
-      .mergeCond()
-      .mergeCondMatch()
-      .asScala
-      .map(buildMatchAction)
-
-    val notMatchedActions = ctx
-      .mergeCond()
-      .mergeCondNotMatch()
-      .asScala
-      .map(buildNotMatchAction)
-
-    ir.MergeIntoTable(
-      target,
-      relation,
-      predicate,
-      matchedActions = matchedActions,
-      notMatchedActions = notMatchedActions)
+      ir.MergeIntoTable(
+        target,
+        relation,
+        predicate,
+        matchedActions = matchedActions,
+        notMatchedActions = notMatchedActions)
   }
 
   private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {

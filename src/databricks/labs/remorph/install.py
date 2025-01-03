@@ -14,9 +14,8 @@ from databricks.sdk.errors import NotFound, PermissionDenied
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
-    MorphConfig,
+    TranspileConfig,
     ReconcileConfig,
-    SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
     ReconcileMetadataConfig,
@@ -25,6 +24,7 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
+from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +93,9 @@ class WorkspaceInstaller:
     def _is_testing(self):
         return self._product_info.product_name() != "remorph"
 
-    def _configure_transpile(self) -> MorphConfig:
+    def _configure_transpile(self) -> TranspileConfig:
         try:
-            self._installation.load(MorphConfig)
+            self._installation.load(TranspileConfig)
             logger.info("Remorph `transpile` is already installed on this workspace.")
             if not self._prompts.confirm("Do you want to override the existing installation?"):
                 raise SystemExit(
@@ -113,7 +113,7 @@ class WorkspaceInstaller:
         logger.info("Finished configuring remorph `transpile`.")
         return config
 
-    def _configure_new_transpile_installation(self) -> MorphConfig:
+    def _configure_new_transpile_installation(self) -> TranspileConfig:
         default_config = self._prompt_for_new_transpile_installation()
         runtime_config = None
         catalog_name = "remorph"
@@ -133,20 +133,22 @@ class WorkspaceInstaller:
         self._save_config(config)
         return config
 
-    def _prompt_for_new_transpile_installation(self) -> MorphConfig:
+    def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        source = self._prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
-        input_sql = self._prompts.question("Enter input SQL path (directory/file)")
+        transpiler = self._prompts.question("Enter path to the transpiler configuration file", default="sqlglot")
+        source_dialect = self._prompts.choice("Select the source dialect:", list(SQLGLOT_DIALECTS.keys()))
+        input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         run_validation = self._prompts.confirm(
             "Would you like to validate the syntax and semantics of the transpiled queries?"
         )
 
-        return MorphConfig(
-            source=source,
+        return TranspileConfig(
+            transpiler_config_path=transpiler,
+            source_dialect=source_dialect,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
-            input_sql=input_sql,
+            input_source=input_source,
             output_folder=output_folder,
         )
 
@@ -269,7 +271,7 @@ class WorkspaceInstaller:
             default_volume_name,
         )
 
-    def _save_config(self, config: MorphConfig | ReconcileConfig):
+    def _save_config(self, config: TranspileConfig | ReconcileConfig):
         logger.info(f"Saving configuration file {config.__file__}")
         self._installation.save(config)
         ws_file_url = self._installation.workspace_link(config.__file__)

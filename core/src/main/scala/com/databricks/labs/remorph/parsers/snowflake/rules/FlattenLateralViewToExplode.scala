@@ -1,17 +1,18 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
+import com.databricks.labs.remorph.{Transformation, TransformationConstructors}
 import com.databricks.labs.remorph.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
 
 // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
-class FlattenLateralViewToExplode extends Rule[LogicalPlan] with IRHelpers {
+class FlattenLateralViewToExplode extends Rule[LogicalPlan] with IRHelpers with TransformationConstructors {
 
-  private val FLATTEN_OUTPUT_COLUMNS = Set("seq", "key", "path", "index", "value", "this")
+  private[this] val FLATTEN_OUTPUT_COLUMNS = Set("seq", "key", "path", "index", "value", "this")
 
-  override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
-    case j: Join if isLateralFlatten(j.left) => j.copy(left = translatePosExplode(plan, j.left))
-    case j: Join if isLateralFlatten(j.right) => j.copy(right = translatePosExplode(plan, j.right))
-    case p if isLateralFlatten(p) => translatePosExplode(plan, p)
+  override def apply(plan: LogicalPlan): Transformation[LogicalPlan] = plan transform {
+    case j: Join if isLateralFlatten(j.left) => ok(j.copy(left = translatePosExplode(plan, j.left)))
+    case j: Join if isLateralFlatten(j.right) => ok(j.copy(right = translatePosExplode(plan, j.right)))
+    case p if isLateralFlatten(p) => ok(translatePosExplode(plan, p))
   }
 
   private def isLateralFlatten(plan: LogicalPlan): Boolean = plan match {

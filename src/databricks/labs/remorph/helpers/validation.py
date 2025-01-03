@@ -2,7 +2,7 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.labs.remorph.config import MorphConfig, ValidationResult
+from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class Validator:
     def __init__(self, sql_backend: SqlBackend):
         self._sql_backend = sql_backend
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str) -> ValidationResult:
+    def validate_format_result(self, config: TranspileConfig, sql_text: str) -> ValidationResult:
         """
         Validates the SQL query and formats the result.
 
@@ -25,7 +25,7 @@ class Validator:
 
         Parameters:
         - config (MorphConfig): The configuration for the validation.
-        - input_sql (str): The SQL query to be validated.
+        - sql_text (str): The SQL query to be validated.
 
         Returns:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
@@ -33,18 +33,18 @@ class Validator:
         logger.debug(f"Validating query with catalog {config.catalog_name} and schema {config.schema_name}")
         (is_valid, exception_type, exception_msg) = self._query(
             self._sql_backend,
-            input_sql,
+            sql_text,
             config.catalog_name,
             config.schema_name,
         )
         if is_valid:
-            result = input_sql + "\n;\n"
+            result = sql_text + "\n;\n"
             if exception_type is not None:
                 exception_msg = f"[{exception_type.upper()}]: {exception_msg}"
         else:
             query = ""
             if "[UNRESOLVED_ROUTINE]" in str(exception_msg):
-                query = input_sql
+                query = sql_text
             buffer = StringIO()
             buffer.write("-------------- Exception Start-------------------\n")
             buffer.write("/* \n")

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.generators.{GeneratorContext, GeneratorTestCommon}
+import com.databricks.labs.remorph.{Generating, intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -13,6 +14,13 @@ class ExpressionGeneratorTest
     with ir.IRHelpers {
 
   override protected val generator = new ExpressionGenerator
+
+  private[this] val optionGenerator = new OptionGenerator(generator)
+
+  private[this] val logical = new LogicalPlanGenerator(generator, optionGenerator)
+
+  override protected def initialState(expr: ir.Expression) =
+    Generating(optimizedPlan = ir.Batch(Seq.empty), currentNode = expr, ctx = GeneratorContext(logical))
 
   "options" in {
     ir.Options(
@@ -62,6 +70,10 @@ class ExpressionGeneratorTest
     }
     "s.t.a" in {
       ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
+    }
+
+    "$1" in {
+      ir.Column(None, ir.Position(1)).doesNotTranspile
     }
   }
 
@@ -1602,6 +1614,10 @@ class ExpressionGeneratorTest
       ir.Literal("abc") generates "'abc'"
     }
 
+    "string containing single quotes" in {
+      ir.Literal("a'b'c") generates "'a\\'b\\'c'"
+    }
+
     "CAST('2024-07-23 18:03:21' AS TIMESTAMP)" in {
       ir.Literal(new Timestamp(1721757801L)) generates "CAST('2024-07-23 18:03:21' AS TIMESTAMP)"
     }
@@ -1725,6 +1741,17 @@ class ExpressionGeneratorTest
           ir.JsonAccess(ir.Dot(ir.Id("demo"), ir.Id("level_key")), ir.Literal("level_1_key")),
           ir.Literal("level_2_key")),
         ir.Id("1")) generates "demo.level_key['level_1_key']['level_2_key'][\"1\"]"
+    }
+  }
+
+  "error node in expression tree" should {
+    "generate inline error message comment for a and bad text" in {
+      ir.And(ir.Id("a"), ir.UnresolvedExpression(ruleText = "bad text", message = "some error message")) generates
+        """a AND /* The following issues were detected:
+         |
+         |   some error message
+         |    bad text
+         | */""".stripMargin
     }
   }
 }

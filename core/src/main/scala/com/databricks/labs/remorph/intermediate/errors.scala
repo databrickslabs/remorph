@@ -1,15 +1,15 @@
 package com.databricks.labs.remorph.intermediate
 
+import com.databricks.labs.remorph.Phase
 import com.databricks.labs.remorph.utils.Strings
-import upickle.default._
 
-trait RemorphError {
+sealed trait RemorphError {
   def msg: String
 }
 
-trait SingleError extends RemorphError
+sealed trait SingleError extends RemorphError
 
-trait MultipleErrors extends RemorphError {
+sealed trait MultipleErrors extends RemorphError {
   def errors: Seq[SingleError]
 }
 
@@ -26,46 +26,46 @@ case class RemorphErrors(errors: Seq[SingleError]) extends RemorphError with Mul
   override def msg: String = s"Multiple errors: ${errors.map(_.msg).mkString(", ")}"
 }
 
+case class PreParsingError(line: Int, charPositionInLine: Int, offendingTokenText: String, message: String)
+    extends RemorphError
+    with SingleError {
+  override def msg: String = s"Pre-parsing error starting at $line:$charPositionInLine: $message"
+}
+
 case class ParsingError(
     line: Int,
     charPositionInLine: Int,
-    msg: String,
+    message: String,
     offendingTokenWidth: Int,
     offendingTokenText: String,
     offendingTokenName: String,
     ruleName: String)
     extends RemorphError
-    with SingleError
-
-object ParsingError {
-  implicit val errorDetailRW: ReadWriter[ParsingError] = macroRW
+    with SingleError {
+  override def msg: String =
+    s"Parsing error starting at $line:$charPositionInLine involving rule '$ruleName' and" +
+      s" token '$offendingTokenText'($offendingTokenName): $message"
 }
 
 case class ParsingErrors(errors: Seq[ParsingError]) extends RemorphError with MultipleErrors {
   override def msg: String = s"Parsing errors: ${errors.map(_.msg).mkString(", ")}"
 }
 
-case class VisitingError(cause: Throwable) extends RemorphError with SingleError {
-  override def msg: String = s"Visiting error: ${cause.getMessage}"
+// TODO: If we wish to preserve the whole node in say JSON output, we will need to accept TreeNodew[_] and deal with
+//       implicits for TreeNode[_] as well
+case class UnexpectedNode(offendingNode: String) extends RemorphError with SingleError {
+  override def msg: String = s"Unexpected node of class ${offendingNode}"
 }
 
-case class OptimizingError(cause: Throwable) extends RemorphError with SingleError {
-  override def msg: String = s"Optimizing error: ${cause.getMessage}"
-}
-
-case class UnexpectedNode(offendingNode: TreeNode[_]) extends RemorphError with SingleError {
-  override def msg: String = s"Unexpected node of class ${offendingNode.getClass.getSimpleName}"
-}
-
-case class UnexpectedTableAlteration(offendingTableAlteration: TableAlteration) extends RemorphError with SingleError {
+case class UnexpectedTableAlteration(offendingTableAlteration: String) extends RemorphError with SingleError {
   override def msg: String = s"Unexpected table alteration $offendingTableAlteration"
 }
 
-case class UnsupportedGroupType(offendingGroupType: GroupType) extends RemorphError with SingleError {
+case class UnsupportedGroupType(offendingGroupType: String) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported group type $offendingGroupType"
 }
 
-case class UnsupportedDataType(offendingDataType: DataType) extends RemorphError with SingleError {
+case class UnsupportedDataType(offendingDataType: String) extends RemorphError with SingleError {
   override def msg: String = s"Unsupported data type $offendingDataType"
 }
 
@@ -86,6 +86,14 @@ case class UnsupportedDateTimePart(expression: Expression) extends RemorphError 
   override def msg: String = s"Unsupported date/time part specification: $expression"
 }
 
+case class PlanGenerationFailure(exception: Throwable) extends RemorphError with SingleError {
+  override def msg: String = s"PlanGenerationFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
+}
+
+case class TranspileFailure(exception: Throwable) extends RemorphError with SingleError {
+  override def msg: String = s"TranspileFailure: ${exception.getClass.getSimpleName}, ${exception.getMessage}"
+}
+
 case class UncaughtException(exception: Throwable) extends RemorphError with SingleError {
   override def msg: String = exception.getMessage
 }
@@ -97,3 +105,10 @@ case class UnexpectedOutput(expected: String, actual: String) extends RemorphErr
        |${Strings.sideBySide(expected, actual).mkString("\n")}
        |""".stripMargin
 }
+
+case class IncoherentState(currentPhase: Phase, expectedPhase: Class[_]) extends RemorphError with SingleError {
+  override def msg: String =
+    s"Incoherent state: current phase is ${currentPhase.getClass.getSimpleName} but should be ${expectedPhase.getSimpleName}"
+}
+
+case class SimpleError(msg: String) extends RemorphError with SingleError

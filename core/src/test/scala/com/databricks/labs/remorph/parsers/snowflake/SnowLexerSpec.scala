@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
 
-  private val lexer = new SnowflakeLexer(null)
+  private[this] val lexer = new SnowflakeLexer(null)
 
   private def fillTokens(input: String): List[Token] = {
     val inputString = CharStreams.fromString(input)
@@ -32,7 +32,47 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
         ("child", "expected"), // Headers
 
         (""""quoted""id"""", SnowflakeLexer.DOUBLE_QUOTE_ID),
-        ("\"quote\"\"andunquote\"\"\"", SnowflakeLexer.DOUBLE_QUOTE_ID))
+        ("\"quote\"\"andunquote\"\"\"", SnowflakeLexer.DOUBLE_QUOTE_ID),
+        ("identifier_1", SnowflakeLexer.ID),
+        ("SELECT", SnowflakeLexer.SELECT),
+        ("FROM", SnowflakeLexer.FROM),
+        ("WHERE", SnowflakeLexer.WHERE),
+        ("GROUP", SnowflakeLexer.GROUP),
+        ("BY", SnowflakeLexer.BY),
+        ("HAVING", SnowflakeLexer.HAVING),
+        ("ORDER", SnowflakeLexer.ORDER),
+        ("LIMIT", SnowflakeLexer.LIMIT),
+        ("UNION", SnowflakeLexer.UNION),
+        ("ALL", SnowflakeLexer.ALL),
+        ("INTERSECT", SnowflakeLexer.INTERSECT),
+        ("INSERT", SnowflakeLexer.INSERT),
+        ("EXCEPT", SnowflakeLexer.EXCEPT),
+        ("-", SnowflakeLexer.MINUS),
+        ("+", SnowflakeLexer.PLUS),
+        ("42", SnowflakeLexer.INT),
+        ("42.42", SnowflakeLexer.FLOAT),
+        ("42E4", SnowflakeLexer.REAL),
+        ("!=", SnowflakeLexer.NE),
+        ("*", SnowflakeLexer.STAR),
+        ("/", SnowflakeLexer.DIVIDE),
+        ("!ABORT", SnowflakeLexer.SQLCOMMAND),
+        ("$parameter", SnowflakeLexer.LOCAL_ID),
+        ("$ids", SnowflakeLexer.LOCAL_ID),
+        ("=", SnowflakeLexer.EQ),
+        ("!=", SnowflakeLexer.NE),
+        (">", SnowflakeLexer.GT),
+        ("<", SnowflakeLexer.LT),
+        (">=", SnowflakeLexer.GE),
+        ("<=", SnowflakeLexer.LE),
+        ("(", SnowflakeLexer.LPAREN),
+        (")", SnowflakeLexer.RPAREN),
+        (",", SnowflakeLexer.COMMA),
+        (";", SnowflakeLexer.SEMI),
+        ("[", SnowflakeLexer.LSB),
+        ("]", SnowflakeLexer.RSB),
+        (":", SnowflakeLexer.COLON),
+        ("::", SnowflakeLexer.COLON_COLON),
+        ("_!Jinja0001", SnowflakeLexer.JINJA_REF))
 
       forAll(testInput) { (input: String, expectedType: Int) =>
         val inputString = CharStreams.fromString(input)

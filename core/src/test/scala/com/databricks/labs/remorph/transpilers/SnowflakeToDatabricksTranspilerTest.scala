@@ -2,20 +2,55 @@ package com.databricks.labs.remorph.transpilers
 
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon {
+class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTestCommon with SetOperationBehaviors {
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
+
+  "transpile TO_NUMBER and TO_DECIMAL" should {
+    "transpile TO_NUMBER" in {
+      "select TO_NUMBER(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_NUMBER with precision and scale" in {
+      "select TO_NUMBER(EXPR,38,0) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+
+    "transpile TO_DECIMAL" in {
+      "select TO_DECIMAL(EXPR) from test_tbl;" transpilesTo
+        """SELECT CAST(EXPR AS DECIMAL(38, 0)) FROM test_tbl
+          |  ;""".stripMargin
+    }
+  }
 
   "snowsql commands" should {
 
     "transpile BANG with semicolon" in {
-      "!set error_flag = true;" transpilesTo "-- !set error_flag = true;"
+      "!set error_flag = true;" transpilesTo
+        """/* The following issues were detected:
+          |
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !set error_flag = true;
+          | */""".stripMargin
     }
     "transpile BANG without semicolon" in {
-      "!print Include This Text" transpilesTo "-- !print Include This Text;"
+      "!print Include This Text" transpilesTo
+        """/* The following issues were detected:
+        |
+        |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+        |    !print Include This Text
+        | */""".stripMargin
     }
     "transpile BANG with options" in {
-      "!options catch=true" transpilesTo "-- !options catch=true;"
+      "!options catch=true" transpilesTo
+        """/* The following issues were detected:
+          |
+          |   Unknown command in SnowflakeAstBuilder.visitSnowSqlCommand
+          |    !options catch=true
+          | */""".stripMargin
     }
     "transpile BANG with negative scenario unknown command" in {
       "!test unknown command".failsTranspilation
@@ -135,7 +170,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
         |FROM t1;""".stripMargin transpilesTo
         s"""SELECT
-           |  LAST_VALUE(c1) IGNORE NULLS OVER (
+           |  LAST(c1) IGNORE NULLS OVER (
            |    PARTITION BY
            |      t1.c2
            |    ORDER BY
@@ -224,6 +259,36 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "SELECT ARRAY_SORT([0, 2, 4, NULL, 5, NULL], 1 = 1, TRUE);".failsTranspilation
     }
 
+    "GROUP BY ALL" in {
+      "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;" transpilesTo
+        "SELECT car_model, COUNT(DISTINCT city) FROM dealer GROUP BY ALL;"
+    }
+
+    "transpile LCA replacing aliases" in {
+      "SELECT column_a AS alias_a FROM table_a WHERE alias_a = '123';" transpilesTo
+        "SELECT column_a AS alias_a FROM table_a WHERE column_a = '123';"
+    }
+
+    "transpile LCA replacing aliased literals" in {
+      "SELECT '123' as alias_a FROM table_a where alias_a = '123';" transpilesTo
+        "SELECT '123' as alias_a FROM table_a where '123' = '123';"
+    }
+
+    "transpile LCA with aliased table" in {
+      "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 t WHERE ca in ('v1', 'v2');" transpilesTo
+        "SELECT t.col1, t.col2, t.col3 AS ca FROM table1 as t WHERE t.col3 in ('v1', 'v2');"
+    }
+
+    "transpile LCA with partition" in {
+      "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by ca ORDER BY ca) FROM table1 t;" transpilesTo
+        "SELECT t.col1 AS ca, ROW_NUMBER() OVER (PARTITION by t.col1 ORDER BY t.col1 ASC NULLS LAST) FROM table1 AS t;"
+    }
+
+    "transpile LCA with function" in {
+      "SELECT col1 AS ca FROM table1 where SUBSTR(ca, 1, 3) = '123';" transpilesTo
+        "SELECT col1 AS ca FROM table1 where SUBSTR(col1, 1, 3) = '123';"
+    }
+
     "transpile CREATE VIEW queries" ignore {
       "CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;" transpilesTo
         s"CREATE OR REPLACE VIEW v1 AS SELECT * FROM t1;"
@@ -285,7 +350,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     "EXECUTE TASK task1;" in {
       "EXECUTE TASK task1;" transpilesTo
-        s"""-- EXECUTE TASK task1;""".stripMargin
+        """/* The following issues were detected:
+          |
+          |   Execute Task is not yet supported
+          |    EXECUTE TASK task1
+          | */""".stripMargin
     }
   }
 
@@ -313,4 +382,118 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  override protected[this] final val expectedSetOperationTranslations: Map[String, String] = {
+    super.expectedSetOperationTranslations ++ Map(
+      "SELECT a, b FROM c MINUS SELECT x, y FROM z" -> "(SELECT a, b FROM c) EXCEPT (SELECT x, y FROM z);",
+      """SELECT a, b FROM c
+        |UNION
+        |SELECT d, e FROM f
+        |MINUS
+        |SELECT g, h FROM i
+        |INTERSECT
+        |SELECT j, k FROM l
+        |EXCEPT
+        |SELECT m, n FROM o""".stripMargin ->
+        """(((SELECT a, b FROM c)
+          |  UNION
+          |  (SELECT d, e FROM f))
+          | EXCEPT
+          | ((SELECT g, h FROM i)
+          |  INTERSECT
+          |  (SELECT j, k FROM l)))
+          |EXCEPT
+          |(SELECT m, n FROM o);""".stripMargin)
+  }
+
+  "Set operations" should {
+    behave like setOperationsAreTranspiled()
+  }
+
+  "Common Table Expressions (CTEs)" should {
+    "support expressions" in {
+      """WITH
+        |    a AS (1),
+        |    b AS (2),
+        |    t (d, e) AS (SELECT 4, 5),
+        |    c AS (3)
+        |SELECT
+        |    a + b,
+        |    a * c,
+        |    a * t.d
+        |FROM t;""".stripMargin transpilesTo
+        """WITH
+          |    t (d, e) AS (SELECT 4, 5)
+          |SELECT
+          |    1 + 2,
+          |    1 * 3,
+          |    1 * t.d
+          |FROM
+          |    t;""".stripMargin
+    }
+    "have lower precedence than set operations" in {
+      """WITH
+        |   a AS (SELECT b, c, d FROM e),
+        |   f AS (SELECT g, h, i FROM j)
+        |SELECT * FROM a
+        |UNION
+        |SELECT * FROM f;""".stripMargin transpilesTo
+        """WITH
+          |   a AS (SELECT b, c, d FROM e),
+          |   f AS (SELECT g, h, i FROM j)
+          |(SELECT * FROM a)
+          |UNION
+          |(SELECT * FROM f);""".stripMargin
+    }
+    "allow nested set operations" in {
+      """WITH
+        |   a AS (
+        |     SELECT b, c, d from e
+        |     UNION
+        |     SELECT e, f, g from h),
+        |   i AS (SELECT j, k, l from m)
+        |SELECT * FROM a
+        |UNION
+        |SELECT * FROM i;""".stripMargin transpilesTo
+        """WITH
+          |   a AS (
+          |     (SELECT b, c, d from e)
+          |     UNION
+          |     (SELECT e, f, g from h)
+          |   ),
+          |   i AS (SELECT j, k, l from m)
+          |(SELECT * FROM a)
+          |UNION
+          |(SELECT * FROM i);""".stripMargin
+    }
+  }
+
+  "Batch statements" should {
+    "survive invalid SQL" in {
+      """
+        |CREATE TABLE t1 (x VARCHAR);
+        |SELECT x y z;
+        |SELECT 3 FROM t3;
+        |""".stripMargin transpilesTo ("""
+        |CREATE TABLE t1 (x STRING);
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECTxyz
+        | */
+        |/* The following issues were detected:
+        |
+        |   Unparsed input - ErrorNode encountered
+        |    Unparsable text: SELECT
+        |    Unparsable text: x
+        |    Unparsable text: y
+        |    Unparsable text: z
+        |    Unparsable text: parser recovered by ignoring: SELECTxyz;
+        | */
+        | SELECT
+        |  3
+        |FROM
+        |  t3;""".stripMargin, false)
+
+    }
+  }
 }

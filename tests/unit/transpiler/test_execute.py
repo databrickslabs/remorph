@@ -8,15 +8,18 @@ import pytest
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.lsql.core import Row
-from databricks.labs.remorph.config import MorphConfig, ValidationResult
+from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
-    morph,
-    morph_column_exp,
-    morph_sql,
+    transpile,
+    transpile_column_exp,
+    transpile_sql,
 )
 from databricks.sdk.core import Config
+
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+
 
 # pylint: disable=unspecified-encoding
 
@@ -33,7 +36,8 @@ def safe_remove_file(file_path: Path):
 
 def write_data_to_file(path: Path, content: str):
     with path.open("w") as writable:
-        writable.write(content)
+        # added encoding to avoid UnicodeEncodeError while writing to file for token error test
+        writable.write(content.encode("utf-8", "ignore").decode("utf-8"))
 
 
 @pytest.fixture
@@ -42,6 +46,8 @@ def initial_setup(tmp_path: Path):
     query_1_sql_file = input_dir / "query1.sql"
     query_2_sql_file = input_dir / "query2.sql"
     query_3_sql_file = input_dir / "query3.sql"
+    query_4_sql_file = input_dir / "query4.sql"
+    query_5_sql_file = input_dir / "query5.sql"
     stream_1_sql_file = input_dir / "stream1.sql"
     call_center_ddl_file = input_dir / "call_center.ddl"
     file_text = input_dir / "file.txt"
@@ -125,10 +131,19 @@ def initial_setup(tmp_path: Path):
 
     stream_1_sql = """CREATE STREAM unsupported_stream AS SELECT * FROM some_table;"""
 
+    query_4_sql = """create table(
+    col1 int
+    col2 string
+    );"""
+
+    query_5_sql = """1SELECT * from ~v\ud83d' table;"""
+
     write_data_to_file(query_1_sql_file, query_1_sql)
     write_data_to_file(call_center_ddl_file, call_center_ddl)
     write_data_to_file(query_2_sql_file, query_2_sql)
     write_data_to_file(query_3_sql_file, query_3_sql)
+    write_data_to_file(query_4_sql_file, query_4_sql)
+    write_data_to_file(query_5_sql_file, query_5_sql)
     write_data_to_file(stream_1_sql_file, stream_1_sql)
     write_data_to_file(file_text, "This is a test file")
 
@@ -137,26 +152,27 @@ def initial_setup(tmp_path: Path):
 
 def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
-        input_sql=str(input_dir),
-        output_folder="None",
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir),
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
-    # call morph
+    # call transpile
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
-        assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 5, "total_queries_processed does not match expected value"
+        assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 0
+            stat["no_of_sql_failed_while_parsing"] == 2
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
             stat["no_of_sql_failed_while_validating"] == 1
@@ -193,24 +209,25 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
 
 def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
-        input_sql=str(input_dir),
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
-        assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 5, "total_queries_processed does not match expected value"
+        assert stat["total_files_processed"] == 8, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == 7, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 0
+            stat["no_of_sql_failed_while_parsing"] == 2
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
             stat["no_of_sql_failed_while_validating"] == 1
@@ -250,11 +267,12 @@ def test_with_file(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
-    config = MorphConfig(
-        input_sql=str(input_dir / "query1.sql"),
-        output_folder="None",
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "query1.sql"),
+        output_folder=None,
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -270,12 +288,12 @@ def test_with_file(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -290,7 +308,7 @@ def test_with_file(initial_setup, mock_workspace_client):
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
     expected_content = f"""
-ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation error')
+ValidationError(file_path='{input_dir!s}/query1.sql', error_msg='Mock validation error')
     """.strip()
 
     with open(Path(status[0]["error_log_file"])) as file:
@@ -303,11 +321,12 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
 
 def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
-        input_sql=str(input_dir / "query1.sql"),
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -315,12 +334,12 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -337,11 +356,12 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
 
 def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
-        input_sql=str(input_dir / "file.txt"),
-        output_folder="None",
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "file.txt"),
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
@@ -349,12 +369,12 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # assert the status
-    assert status is not None, "Status returned by morph function is None"
-    assert isinstance(status, list), "Status returned by morph function is not a list"
-    assert len(status) > 0, "Status returned by morph function is an empty list"
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 0, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 0, "total_queries_processed does not match expected value"
@@ -371,11 +391,12 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
 
 def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
-    config = MorphConfig(
-        input_sql=str(input_dir / "file_not_exist.txt"),
-        output_folder="None",
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "file_not_exist.txt"),
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
@@ -383,15 +404,16 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
             'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
             return_value=MockBackend(),
         ):
-            morph(mock_workspace_client, config)
+            transpile(mock_workspace_client, SqlglotEngine(), config)
 
     # cleanup
     safe_remove_dir(input_dir)
 
 
-def test_morph_sql(mock_workspace_client):
-    config = MorphConfig(
-        source="snowflake",
+def test_transpile_sql(mock_workspace_client):
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        source_dialect="snowflake",
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
@@ -406,14 +428,15 @@ def test_morph_sql(mock_workspace_client):
             }
         ),
     ):
-        transpiler_result, validation_result = morph_sql(mock_workspace_client, config, query)
-        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
+        assert transpiler_result.transpiled_code == 'SELECT\n  col\nFROM table'
         assert validation_result.exception_msg is None
 
 
-def test_morph_column_exp(mock_workspace_client):
-    config = MorphConfig(
-        source="snowflake",
+def test_transpile_column_exp(mock_workspace_client):
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        source_dialect="snowflake",
         skip_validation=True,
         catalog_name="catalog",
         schema_name="schema",
@@ -428,14 +451,14 @@ def test_morph_column_exp(mock_workspace_client):
             }
         ),
     ):
-        result = morph_column_exp(mock_workspace_client, config, query)
+        result = transpile_column_exp(mock_workspace_client, config, query)
         assert len(result) == 3
-        assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
-        assert result[1][0].transpiled_sql[0] == 'col2 * 2'
-        assert result[2][0].transpiled_sql[0] == 'CURRENT_TIMESTAMP()'
-        assert result[0][0].parse_error_list == []
-        assert result[1][0].parse_error_list == []
-        assert result[2][0].parse_error_list == []
+        assert result[0][0].transpiled_code == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
+        assert result[1][0].transpiled_code == 'col2 * 2'
+        assert result[2][0].transpiled_code == 'CURRENT_TIMESTAMP()'
+        assert result[0][0].error_list == []
+        assert result[1][0].error_list == []
+        assert result[2][0].error_list == []
         assert result[0][1] is None
         assert result[1][1] is None
         assert result[2][1] is None
@@ -445,11 +468,12 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
-    config = MorphConfig(
-        input_sql=str(input_dir / "query1.sql"),
-        output_folder="None",
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "query1.sql"),
+        output_folder=None,
         sdk_config=sdk_config,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
@@ -463,11 +487,11 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status = morph(mock_workspace_client, config)
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
         # assert the status
-        assert status is not None, "Status returned by morph function is None"
-        assert isinstance(status, list), "Status returned by morph function is not a list"
-        assert len(status) > 0, "Status returned by morph function is an empty list"
+        assert status is not None, "Status returned by transpile function is None"
+        assert isinstance(status, list), "Status returned by transpile function is not a list"
+        assert len(status) > 0, "Status returned by transpile function is an empty list"
         for stat in status:
             assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
             assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
@@ -480,14 +504,128 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
             assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
 
 
-def test_with_input_sql_none(initial_setup, mock_workspace_client):
-    config = MorphConfig(
-        input_sql=None,
-        output_folder="None",
+def test_with_input_source_none(initial_setup, mock_workspace_client):
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=None,
+        output_folder=None,
         sdk_config=None,
-        source="snowflake",
+        source_dialect="snowflake",
         skip_validation=True,
     )
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        morph(mock_workspace_client, config)
+        transpile(mock_workspace_client, SqlglotEngine(), config)
+
+
+def test_parse_error_handling(initial_setup, mock_workspace_client):
+    input_dir = initial_setup
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "query4.sql"),
+        output_folder=None,
+        sdk_config=None,
+        source_dialect="snowflake",
+        skip_validation=True,
+    )
+
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+
+    # assert the status
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
+    for stat in status:
+        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_parsing"] == 1
+        ), "no_of_sql_failed_while_parsing does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_validating"] == 0
+        ), "no_of_sql_failed_while_validating does not match expected value"
+        assert stat["error_log_file"], "error_log_file is None or empty"
+        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+            ".lst"
+        ), "error_log_file does not match expected pattern 'err_*.lst'"
+
+    expected_file_name = f"{input_dir}/query4.sql"
+    expected_exception = "PARSING ERROR Start:"
+    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
+
+    with open(Path(status[0]["error_log_file"])) as file:
+        for line in file:
+            # Skip empty lines
+            if line.strip() == "":
+                continue
+
+            match = re.match(pattern, line)
+
+            if match:
+                # Extract information using group names from the pattern
+                error_info = match.groupdict()
+                # Perform assertions
+                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
+                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
+            else:
+                print("No match found.")
+    # cleanup
+    safe_remove_dir(input_dir)
+    safe_remove_file(Path(status[0]["error_log_file"]))
+
+
+def test_token_error_handling(initial_setup, mock_workspace_client):
+    input_dir = initial_setup
+    config = TranspileConfig(
+        transpiler_config_path="sqlglot",
+        input_source=str(input_dir / "query5.sql"),
+        output_folder=None,
+        sdk_config=None,
+        source_dialect="snowflake",
+        skip_validation=True,
+    )
+
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
+        status = transpile(mock_workspace_client, SqlglotEngine(), config)
+    # assert the status
+    assert status is not None, "Status returned by transpile function is None"
+    assert isinstance(status, list), "Status returned by transpile function is not a list"
+    assert len(status) > 0, "Status returned by transpile function is an empty list"
+    for stat in status:
+        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_parsing"] == 1
+        ), "no_of_sql_failed_while_parsing does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_validating"] == 0
+        ), "no_of_sql_failed_while_validating does not match expected value"
+        assert stat["error_log_file"], "error_log_file is None or empty"
+        assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
+            ".lst"
+        ), "error_log_file does not match expected pattern 'err_*.lst'"
+
+    expected_file_name = f"{input_dir}/query5.sql"
+    expected_exception = "TOKEN ERROR Start:"
+    pattern = r"ParserError\(file_name='(?P<file_name>[^']+)', exception=\"(?P<exception>.+)\"\)"
+
+    with open(Path(status[0]["error_log_file"])) as file:
+        for line in file:
+            # Skip empty lines
+            if line.strip() == "":
+                continue
+
+            match = re.match(pattern, line)
+
+            if match:
+                # Extract information using group names from the pattern
+                error_info = match.groupdict()
+                # Perform assertions
+                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
+                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
+            else:
+                print("No match found.")
+    # cleanup
+    safe_remove_dir(input_dir)
+    safe_remove_file(Path(status[0]["error_log_file"]))

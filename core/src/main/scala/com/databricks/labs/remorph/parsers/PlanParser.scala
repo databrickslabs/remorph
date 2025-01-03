@@ -1,15 +1,14 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.intermediate.{OptimizingError, ParsingErrors, VisitingError}
-import com.databricks.labs.remorph.{KoResult, Result, OkResult, WorkflowStage, intermediate => ir}
-import com.databricks.labs.remorph.transpilers.SourceCode
+import com.databricks.labs.remorph.intermediate.{ParsingErrors, PlanGenerationFailure}
+import com.databricks.labs.remorph.{BuildingAst, KoResult, OkResult, Optimizing, Parsing, PartialResult, Transformation, TransformationConstructors, WorkflowStage, intermediate => ir}
 import org.antlr.v4.runtime._
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
 
 import scala.util.control.NonFatal
 
-trait PlanParser[P <: Parser] {
+trait PlanParser[P <: Parser] extends TransformationConstructors {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
@@ -25,24 +24,27 @@ trait PlanParser[P <: Parser] {
 
   /**
    * Parse the input source code into a Parse tree
-   * @param input The source code with filename
    * @return Returns a parse tree on success otherwise a description of the errors
    */
-  def parse(input: SourceCode): Result[ParserRuleContext] = {
-    val inputString = CharStreams.fromString(input.source)
-    val lexer = createLexer(inputString)
-    val tokenStream = new CommonTokenStream(lexer)
-    val parser = createParser(tokenStream)
-    addErrorStrategy(parser)
-    val errListener = new ProductionErrorCollector(input.source, input.filename)
-    parser.removeErrorListeners()
-    parser.addErrorListener(errListener)
-    val tree = createTree(parser)
-    // TODO: Should we return the error listener, or perhaps the collection of errors and not JSON at this stage?
-    if (errListener.errorCount > 0) {
-      KoResult(stage = WorkflowStage.PARSE, ParsingErrors(errListener.errors))
-    } else {
-      OkResult(tree)
+  def parse: Transformation[ParserRuleContext] = {
+
+    getCurrentPhase.flatMap {
+      case Parsing(source, filename, _, _) =>
+        val inputString = CharStreams.fromString(source)
+        val lexer = createLexer(inputString)
+        val tokenStream = new CommonTokenStream(lexer)
+        val parser = createParser(tokenStream)
+        addErrorStrategy(parser)
+        val errListener = new ProductionErrorCollector(source, filename)
+        parser.removeErrorListeners()
+        parser.addErrorListener(errListener)
+        val tree = createTree(parser)
+        if (errListener.errorCount > 0) {
+          lift(PartialResult(tree, ParsingErrors(errListener.errors)))
+        } else {
+          lift(OkResult(tree))
+        }
+      case other => ko(WorkflowStage.PARSE, ir.IncoherentState(other, classOf[Parsing]))
     }
   }
 
@@ -51,13 +53,17 @@ trait PlanParser[P <: Parser] {
    * @param tree The parse tree
    * @return Returns a logical plan on success otherwise a description of the errors
    */
-  def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
-    try {
-      val plan = createPlan(tree)
-      OkResult(plan)
-    } catch {
-      case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.PLAN, VisitingError(e))
+  def visit(tree: ParserRuleContext): Transformation[ir.LogicalPlan] = {
+    updatePhase {
+      case p: Parsing => BuildingAst(tree, Some(p))
+      case _ => BuildingAst(tree)
+    }.flatMap { _ =>
+      try {
+        ok(createPlan(tree))
+      } catch {
+        case NonFatal(e) =>
+          lift(KoResult(stage = WorkflowStage.PLAN, PlanGenerationFailure(e)))
+      }
     }
   }
 
@@ -65,17 +71,15 @@ trait PlanParser[P <: Parser] {
   /**
    * Optimize the logical plan
    *
-   * @param plan The logical plan
+   * @param logicalPlan The logical plan
    * @return Returns an optimized logical plan on success otherwise a description of the errors
    */
-  def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
-    try {
-      val plan = createOptimizer.apply(logicalPlan)
-      OkResult(plan)
-    } catch {
-      case NonFatal(e) =>
-        KoResult(stage = WorkflowStage.OPTIMIZE, OptimizingError(e))
+  def optimize(logicalPlan: ir.LogicalPlan): Transformation[ir.LogicalPlan] = {
+    updatePhase {
+      case b: BuildingAst => Optimizing(logicalPlan, Some(b))
+      case _ => Optimizing(logicalPlan)
+    }.flatMap { _ =>
+      createOptimizer.apply(logicalPlan)
     }
   }
-
 }

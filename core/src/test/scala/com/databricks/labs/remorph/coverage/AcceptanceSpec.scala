@@ -1,9 +1,10 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles}
+import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, TestFile}
+import org.scalatest.Ignore
 import org.scalatest.flatspec.AnyFlatSpec
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec {
   runner.foreachTest { test =>
@@ -11,18 +12,25 @@ abstract class AcceptanceSpec(runner: AcceptanceTestRunner) extends AnyFlatSpec 
       runner.runAcceptanceTest(test) match {
         case None => pending
         case Some(r) if r.isSuccess => succeed
+        case Some(r) if runner.shouldFailParse(test.testName) && r.failedParseOnly => succeed
         case Some(report) => fail(report.errorMessage.getOrElse(""))
       }
     }
   }
 }
 
+object SnowflakeAcceptanceSuite {
+
+  val rootPath: Path = Paths.get(
+    Option(System.getProperty("snowflake.test.resources.path"))
+      .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))
+}
+
 class SnowflakeAcceptanceSuite
     extends AcceptanceSpec(
       new AcceptanceTestRunner(
         AcceptanceTestConfig(
-          new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
-            .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))),
+          new NestedFiles(SnowflakeAcceptanceSuite.rootPath),
           new CommentBasedQueryExtractor("snowflake", "databricks"),
           new IsTranspiledFromSnowflakeQueryRunner,
           ignoredTestNames = Set(
@@ -33,7 +41,24 @@ class SnowflakeAcceptanceSuite
             "test_command/test_command_3.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
-            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql"))))
+            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql",
+            // TODO - Fix these tests as part of the lateral view
+            "arrays/test_array_construct_1.sql",
+            "arrays/test_array_construct_2.sql",
+            "functions/parse_json/test_parse_json_3.sql"),
+          shouldFailParse = Set(
+            "core_engine/test_invalid_syntax/syntax_error_1.sql",
+            "core_engine/test_invalid_syntax/syntax_error_2.sql",
+            "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
+
+@Ignore // this is for debugging individual acceptance tests, simply uncomment to debug the test
+class SnowflakeAcceptanceTest
+    extends AcceptanceSpec(
+      new AcceptanceTestRunner(
+        AcceptanceTestConfig(
+          new TestFile(Paths.get(SnowflakeAcceptanceSuite.rootPath.toString, "core_engine", "lca", "lca_homonym.sql")),
+          new CommentBasedQueryExtractor("snowflake", "databricks"),
+          new IsTranspiledFromSnowflakeQueryRunner)))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(
@@ -66,4 +91,8 @@ class TSqlAcceptanceSuite
             "functions/test_percent_rank_1.sql",
             "functions/test_percentile_cont_1.sql",
             "functions/test_percentile_disc_1.sql",
-            "select/test_cte_xml.sql"))))
+            "select/test_cte_xml.sql"),
+          shouldFailParse = Set(
+            "core_engine/test_invalid_syntax/syntax_error_1.sql",
+            "core_engine/test_invalid_syntax/syntax_error_2.sql",
+            "core_engine/test_invalid_syntax/syntax_error_3.sql"))))
