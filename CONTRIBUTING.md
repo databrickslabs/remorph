@@ -119,14 +119,6 @@ To begin, install prerequisites:
 brew install wget
 ```
 
-`maven` is the dependency manager for JVM based languages
-```shell
-brew install maven
-```
-
-`jdk11` is the jdk used by remorph
-download it from [OpenJDK11](https://www.openlogic.com/openjdk-downloads?field_java_parent_version_target_id=406&field_operating_system_target_id=431&field_architecture_target_id=391&field_java_package_target_id=396) and install it
-
 `python` is the dependency manager for JVM based languages
 ```shell
 brew install maven
@@ -158,8 +150,6 @@ As of writing, we only support IntelliJ IDEA CE 2024.1. Development using more r
 Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
 
 Configure your IDE to:
- - use OpenJDK11 as the SDK for the project
- - install the IntelliJ Scala plugin version 2024.1.25. Do not use more recent versions, they don't work!!!
  - use this Python venv path so that you work within the virtual environment when developing the project:
 ![IDE Setup](docs/img/remorph_intellij.gif)
 
@@ -173,24 +163,6 @@ pull request checks do pass, before your code is reviewed by others:
 ```shell
 make lint test
 ```
-
-## IDE plugins
-
-If you will be working with the ANTLR grammars, then you should install the ANTLR plugin for your IDE. There
-is a plugin for VS Code, but it does not have as many checks as the one for IntelliJ IDEA.
-
-While the ANTLR tool run at build time, will warn (and the build will stop on warnings) about things like
-tokens that are used in the parser grammar but not defined in the lexer grammar, the IntelliJ IDEA plugin
-provides a few extra tools such as identifying unused rules, and providing a visual representation of trees
-etc.
-
-Please read the documentation for the plugin so that you can make the most of it and have it generate
-the lexer and parser in a temp directory to tell you about things like undefined tokens etc.
-
-If you intended to make changes to the ANTLR defined syntax, please read teh README.md under ./core before
-doing so. Changes to ANTLR grammars can have a big knock on effects on the rest of the codebase, and must
-be carefully reviewed and tested - all the way from parse to code generation. Such changes are generally
-not suited to beginners.
 
 ## First contribution
 
