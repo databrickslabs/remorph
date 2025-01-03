@@ -96,7 +96,7 @@ jobs:
         run: pip install hatch==$HATCH_VERSION
 
       - name: Reformat code
-        run: make fmt-python
+        run: make fmt
 
       - name: Fail on differences
         run: |
