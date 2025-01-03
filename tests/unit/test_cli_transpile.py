@@ -24,6 +24,7 @@ def test_transpile_with_missing_installation():
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -43,6 +44,7 @@ def test_transpile_with_no_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
+            error_file="/path/to/errors.log",
             sdk_config=None,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -57,6 +59,7 @@ def test_transpile_with_no_sdk_config():
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -70,6 +73,7 @@ def test_transpile_with_no_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
+                error_file="/path/to/errors.log",
                 sdk_config=None,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -92,6 +96,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
+            error_file="/path/to/errors.log",
             sdk_config=sdk_config,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -106,6 +111,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -119,6 +125,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
+                error_file="/path/to/errors.log",
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -141,6 +148,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
+            error_file="/path/to/errors.log",
             sdk_config=sdk_config,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -155,6 +163,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -168,6 +177,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
+                error_file="/path/to/errors.log",
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -185,6 +195,7 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
             "invalid_dialect",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -200,6 +211,7 @@ def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
             "invalid_dialect",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -222,6 +234,7 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -240,6 +253,7 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "invalid_value",
             "my_catalog",
             "my_schema",
@@ -258,6 +272,7 @@ def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
             "snowflake",
             "/path/to/invalid/sql/file.sql",
             "/path/to/output",
+            "/path/to/errors.log",
             "true",
             "my_catalog",
             "my_schema",
@@ -270,6 +285,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     source_dialect = "snowflake"
     input_source = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
+    error_file = "/path/to/errors.log"
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -286,6 +302,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             source_dialect,
             input_source,
             output_folder,
+            error_file,
             skip_validation,
             catalog_name,
             schema_name,
@@ -299,6 +316,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
+                error_file=error_file,
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -313,6 +331,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     source_dialect = "snowflake"
     input_source = "/path/to/sql/file2.sql"
     output_folder = ""
+    error_file = ""
     skip_validation = "false"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -330,6 +349,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             source_dialect,
             input_source,
             output_folder,
+            error_file,
             skip_validation,
             catalog_name,
             schema_name,
@@ -342,7 +362,8 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
                 transpiler_config_path=transpiler,
                 source_dialect=source_dialect,
                 input_source=input_source,
-                output_folder="",
+                output_folder=output_folder,
+                error_file=error_file,
                 sdk_config=sdk_config,
                 skip_validation=False,
                 catalog_name=catalog_name,
@@ -361,6 +382,7 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
         source_dialect = "snowflake"
         input_source = "/path/to/sql/file2.sql"
         output_folder = ""
+        error_file = ""
         skip_validation = "false"
         catalog_name = "my_catalog"
         schema_name = "my_schema"
@@ -372,6 +394,7 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
             source_dialect,
             input_source,
             output_folder,
+            error_file,
             skip_validation,
             catalog_name,
             schema_name,
