@@ -7,7 +7,7 @@ class JDBCReaderMixin:
     _spark: SparkSession
 
     # TODO update the url
-    def _get_jdbc_reader(self, query, jdbc_url, driver, prepare_query = None):
+    def _get_jdbc_reader(self, query, jdbc_url, driver, prepare_query=None):
         driver_class = {
             "oracle": "oracle.jdbc.driver.OracleDriver",
             "snowflake": "net.snowflake.client.jdbc.SnowflakeDriver",
