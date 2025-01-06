@@ -29,7 +29,7 @@ class TranspileError:
     message: str
 
     def __str__(self):
-        return f"{type(self).__name__}(code={self.code}, kind={self.kind!s}, severity={self.severity!s}, message='{self.message}, path='{self.path!s}')"
+        return f"{type(self).__name__}(code={self.code}, kind={self.kind!s}, severity={self.severity!s}, path='{self.path!s}', message='{self.message}')"
 
 
 @dataclass
