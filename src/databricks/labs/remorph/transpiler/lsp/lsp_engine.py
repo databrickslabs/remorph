@@ -4,7 +4,7 @@ import abc
 import asyncio
 import logging
 import os
-from collections.abc import Iterable, Callable, Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -321,11 +321,6 @@ class LSPEngine(TranspileEngine):
         self.close_document(file_path)
         transpiled_code = ChangeManager.apply(source_code, response.changes)
         return TranspileResult(transpiled_code, 1, [])
-
-    def analyse_table_lineage(
-        self, source_dialect: str, source_code: str, file_path: Path
-    ) -> Iterable[tuple[str, str]]:
-        raise NotImplementedError
 
     def open_document(self, file_path: Path, encoding="utf-8", source_code: str | None = None) -> None:
         if source_code is None:
