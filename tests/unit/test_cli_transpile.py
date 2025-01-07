@@ -244,50 +244,6 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_single_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["snowflake"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value=({}, [])),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "some_transpiler",
-            "",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
-
-
-def test_transpile_with_missing_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["snowflake", "oracle"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        pytest.raises(Exception, match="Missing value for '--source-dialect'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "some_transpiler",
-            "",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
-
-
 def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
     with (
         patch("os.path.exists", return_value=True),
