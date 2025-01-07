@@ -35,12 +35,14 @@ proxy_command(remorph, "debug-bundle")
 
 
 @remorph.command
+# pylint: disable=too-many-arguments
 def transpile(
     w: WorkspaceClient,
     transpiler_config_path: str,
     source_dialect: str,
     input_source: str,
     output_folder: str | None,
+    error_file: str | None,
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
@@ -60,6 +62,8 @@ def transpile(
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
+    if not error_file and default_config.error_file:
+        error_file = str(default_config.error_file)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
@@ -76,6 +80,7 @@ def transpile(
         source_dialect=source_dialect.lower(),
         input_source=input_source,
         output_folder=output_folder,
+        error_file=error_file,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
