@@ -13,9 +13,9 @@ from databricks.sdk.service.workspace import GetSecretResponse
 
 
 def mock_secret(scope, key):
-    secret_mock = {
+    scope_secret_mock = {
         "scope": {
-            'user': GetSecretResponse(key='user', value=base64.b64encode(bytes('my_user', 'utf-8')).decode('utf-8')),
+            'user': GetSecretResponse(key='user', value=base64.b64encode('my_user'.encode('utf-8')).decode('utf-8')),
             'password': GetSecretResponse(
                 key='password', value=base64.b64encode(bytes('my_password', 'utf-8')).decode('utf-8')
             ),
@@ -31,7 +31,7 @@ def mock_secret(scope, key):
         }
     }
 
-    return secret_mock[scope][key]
+    return scope_secret_mock[scope][key]
 
 
 def initial_setup():
@@ -50,8 +50,8 @@ def test_get_jdbc_url_happy():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # create object for SnowflakeDataSource
-    ds = SQLServerDataSource(engine, spark, ws, scope)
-    url = ds.get_jdbc_url
+    data_source = SQLServerDataSource(engine, spark, ws, scope)
+    url = data_source.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
         """jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;"""
@@ -63,8 +63,8 @@ def test_get_jdbc_url_fail():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_secret
     # create object for SnowflakeDataSource
-    ds = SQLServerDataSource(engine, spark, ws, scope)
-    url = ds.get_jdbc_url
+    data_source = SQLServerDataSource(engine, spark, ws, scope)
+    url = data_source.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
         """jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;"""
@@ -76,25 +76,18 @@ def test_read_data_with_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SQLServerDataSource(engine, spark, ws, scope)
+    data_source = SQLServerDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
-        source_name="supplier",
-        target_name="supplier",
+        source_name="src_supplier",
+        target_name="tgt_supplier",
         jdbc_reader_options=JdbcReaderOptions(
-            number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
+            number_partitions=100, partition_column="s_partition_key", lower_bound="0", upper_bound="100"
         ),
-        join_columns=None,
-        select_columns=None,
-        drop_columns=None,
-        column_mapping=None,
-        transformations=None,
-        column_thresholds=None,
-        filters=None,
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    data_source.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -104,11 +97,11 @@ def test_read_data_with_options():
     )
     spark.read.format().option().option.assert_called_with("driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
-    spark.read.format().option().option().option().option.assert_called_with("prepareQuery", "")
+    spark.read.format().option().option().option().option.assert_called_with("prepareQuery", None)
     actual_args = spark.read.format().option().option().option().option().options.call_args.kwargs
     expected_args = {
         "numPartitions": 100,
-        "partitionColumn": "s_nationkey",
+        "partitionColumn": "s_partition_key",
         "lowerBound": '0',
         "upperBound": "100",
         "fetchsize": 100,
@@ -121,9 +114,9 @@ def test_get_schema():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ds = SQLServerDataSource(engine, spark, ws, scope)
+    data_source = SQLServerDataSource(engine, spark, ws, scope)
     # call test method
-    ds.get_schema("org", "schema", "supplier")
+    data_source.get_schema("org", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option().option().option.assert_called_with(
@@ -167,7 +160,7 @@ def test_get_schema():
 def test_get_schema_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SQLServerDataSource(engine, spark, ws, scope)
+    data_source = SQLServerDataSource(engine, spark, ws, scope)
 
     spark.read.format().option().option().option().option().load.side_effect = RuntimeError("Test Exception")
 
@@ -179,4 +172,4 @@ def test_get_schema_exception_handling():
             """Runtime exception occurred while fetching schema using SELECT COLUMN_NAME, CASE WHEN DATA_TYPE IN ('int', 'bigint') THEN DATA_TYPE WHEN DATA_TYPE IN ('smallint', 'tinyint') THEN 'smallint' WHEN DATA_TYPE IN ('decimal' ,'numeric') THEN 'decimal(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')' WHEN DATA_TYPE IN ('float', 'real') THEN 'double' WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') THEN DATA_TYPE WHEN DATA_TYPE IN ('date','time','datetime', 'datetime2','smalldatetime','datetimeoffset') THEN DATA_TYPE WHEN DATA_TYPE IN ('bit') THEN 'boolean' WHEN DATA_TYPE IN ('binary','varbinary') THEN 'binary' ELSE DATA_TYPE END AS 'DATA_TYPE' FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = LOWER('supplier') AND LOWER(TABLE_SCHEMA) = LOWER('schema') AND LOWER(TABLE_CATALOG) = LOWER('org')  : Test Exception"""
         ),
     ):
-        ds.get_schema("org", "schema", "supplier")
+        data_source.get_schema("org", "schema", "supplier")
