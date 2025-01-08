@@ -474,6 +474,11 @@ class Databricks(SqlglotDatabricks):  #
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)
 
+        def create_sql(self, expression: exp.Create) -> str:
+            expression.args["indexes"] = None  # Removing indexes from create statement
+            return super().create_sql(expression)
+
+
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`
             Added logic to handle Lateral View
@@ -613,6 +618,34 @@ class Databricks(SqlglotDatabricks):  #
                 result = self.func(func, expression.args["srcTZ"], expression.args["tgtTZ"], expr)
 
             return result
+
+        def columnconstraint_sql(self, expression: exp.ColumnConstraint) -> str:
+            this = self.sql(expression, "this")
+            kind_sql = self.sql(expression, "kind").strip()
+            match expression.kind:
+                case exp.CharacterSetColumnConstraint():
+                    return ""
+                case exp.CaseSpecificColumnConstraint():
+                    return ""
+                case exp.CompressColumnConstraint():
+                    return ""
+                case exp.DateFormatColumnConstraint():
+                    return ""
+                case exp.TitleColumnConstraint():
+                    comment = re.split(r"'|'", kind_sql)[1]
+                    return f"COMMENT '{comment}'"
+                case exp.DefaultColumnConstraint():
+                    if kind_sql == "DEFAULT DATE":
+                        return "DEFAULT CURRENT_DATE()"
+                    if kind_sql == "DEFAULT TIME":
+                        return "DEFAULT (DATE_FORMAT(CURRENT_TIMESTAMP(), 'hh:mm:ss'))"
+                    if kind_sql == "DEFAULT USER":
+                        return "DEFAULT CURRENT_USER()"
+                    return kind_sql
+                case _:
+                    return f"CONSTRAINT {this} {kind_sql}" if this else kind_sql
+
+
 
         def strtok_sql(self, expression: local_expression.StrTok) -> str:
             """

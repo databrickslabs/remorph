@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from sqlglot import expressions as exp
-from sqlglot.expressions import AggFunc, Condition, Expression, Func
+from sqlglot.expressions import AggFunc, Condition, Expression, Func, Property
 
 
 class NthValue(AggFunc):
@@ -195,3 +195,15 @@ class NamedStruct(Func):
 
 class GetJsonObject(Func):
     arg_types = {"this": True, "path": True}
+
+
+class MapProperty(Property):
+    arg_types = {"this": False, "name": False}
+
+
+class RangeN(Func):
+    arg_types = {"this": True, "expressions": True, "each": False, "range_spec": False}
+
+
+class CaseN(Func):
+    arg_types = {"this": True, "expression": True, "case_spec": False}
