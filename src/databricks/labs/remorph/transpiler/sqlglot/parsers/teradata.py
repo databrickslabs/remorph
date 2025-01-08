@@ -8,7 +8,6 @@ from sqlglot.errors import ErrorLevel
 from databricks.labs.remorph.transpiler.sqlglot import local_expression
 
 
-# pylint: disable=protected-access
 class Teradata(SqlglotTeradata):
     teradata = SqlglotTeradata()
 
