@@ -35,7 +35,6 @@ proxy_command(remorph, "debug-bundle")
 
 
 @remorph.command
-# pylint: disable=too-many-arguments
 def transpile(
     w: WorkspaceClient,
     transpiler_config_path: str,
