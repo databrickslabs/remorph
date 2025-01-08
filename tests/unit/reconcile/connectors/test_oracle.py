@@ -55,6 +55,13 @@ def test_read_data_with_options():
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
+        join_columns=None,
+        select_columns=None,
+        drop_columns=None,
+        column_mapping=None,
+        transformations=None,
+        column_thresholds=None,
+        filters=None,
     )
 
     # Call the read_data method with the Tables configuration
@@ -106,7 +113,7 @@ def test_get_schema():
                                               then data_type || '(' || data_precision || ')'
                                               when data_precision is null and (lower(data_type) in ('date') or
                                               lower(data_type) like 'timestamp%') then  data_type
-                                              when CHAR_LENGTH == 0 then data_type
+                                              when CHAR_LENGTH = 0 then data_type
                                               else data_type || '(' || CHAR_LENGTH || ')'
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
@@ -161,7 +168,7 @@ def test_get_schema_exception_handling():
                                                   then data_type || '(' || data_precision || ')'
                                                   when data_precision is null and (lower(data_type) in ('date') or
                                                   lower(data_type) like 'timestamp%') then  data_type
-                                                  when CHAR_LENGTH == 0 then data_type
+                                                  when CHAR_LENGTH = 0 then data_type
                                                   else data_type || '(' || CHAR_LENGTH || ')'
                                                   end data_type
                                                   FROM ALL_TAB_COLUMNS

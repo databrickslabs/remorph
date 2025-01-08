@@ -21,10 +21,15 @@ class JDBCReaderMixin:
 
     @staticmethod
     def _get_jdbc_reader_options(options: JdbcReaderOptions):
-        return {
-            "numPartitions": options.number_partitions,
-            "partitionColumn": options.partition_column,
-            "lowerBound": options.lower_bound,
-            "upperBound": options.upper_bound,
-            "fetchsize": options.fetch_size,
-        }
+        option_dict = {}
+        if options.number_partitions:
+            option_dict["numPartitions"] = options.number_partitions
+        if options.partition_column:
+            option_dict["partitionColumn"] = options.partition_column
+        if options.lower_bound:
+            option_dict["lowerBound"] = options.lower_bound
+        if options.upper_bound:
+            option_dict["upperBound"] = options.upper_bound
+        if options.fetch_size:
+            option_dict["fetchsize"] = options.fetch_size
+        return option_dict
