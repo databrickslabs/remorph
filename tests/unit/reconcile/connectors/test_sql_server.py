@@ -87,7 +87,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    data_source.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    data_source.read_data("org", "data", "employee", "WITH tmp AS (SELECT * from :tbl) select 1 from tmp", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -96,7 +96,7 @@ def test_read_data_with_options():
         "jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;",
     )
     spark.read.format().option().option.assert_called_with("driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
-    spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
+    spark.read.format().option().option().option.assert_called_with("dbtable", "(WITH tmp AS (SELECT * from org.data.employee) select 1 from tmp) tmp")
     spark.read.format().option().option().option().option.assert_called_with("prepareQuery", None)
     actual_args = spark.read.format().option().option().option().option().options.call_args.kwargs
     expected_args = {
