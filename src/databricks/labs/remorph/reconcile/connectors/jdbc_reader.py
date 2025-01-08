@@ -19,7 +19,7 @@ class JDBCReaderMixin:
             .option("driver", driver_class.get(driver, driver))
             .option("dbtable", f"({query}) tmp")
         )
-        if driver == "sqlserver":
+        if prepare_query is not None:
             reader = reader.option('prepareQuery', prepare_query)
         return reader
 

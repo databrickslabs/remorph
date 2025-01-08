@@ -86,14 +86,14 @@ class SQLServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         with_clause_pattern = re.compile(r'WITH\s+.*?\)\s*(?=SELECT)', re.IGNORECASE | re.DOTALL)
         match = with_clause_pattern.search(table_query)
         if match:
-            prepareqry_str = match.group(0)
+            prepare_query_string = match.group(0)
             query = table_query.replace(match.group(0), '')
         else:
             query = table_query
-            prepareqry_str = ""
+            prepare_query_string = ""
         try:
             if options is None:
-                df = self.reader(query, prepareqry_str).load()
+                df = self.reader(query, prepare_query_string).load()
             else:
                 options = self._get_jdbc_reader_options(options)
                 df = self._get_jdbc_reader(table_query, self.get_jdbc_url, self._DRIVER).options(**options).load()
@@ -128,5 +128,5 @@ class SQLServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
-    def reader(self, query: str, prepareqry_str="") -> DataFrameReader:
-        return self._get_jdbc_reader(query, self.get_jdbc_url, self._DRIVER, prepareqry_str)
+    def reader(self, query: str, prepare_query_str="") -> DataFrameReader:
+        return self._get_jdbc_reader(query, self.get_jdbc_url, self._DRIVER, prepare_query_str)
