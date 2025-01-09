@@ -121,7 +121,7 @@ Below is the detailed explanation on the arguments required for Transpile.
 - `source-dialect [Required]` - Dialect name.
 - `input-source [Required]` - The path to the SQL file or directory containing SQL files to be transpiled.
 - `output-folder [Optional]` - The path to the output folder where the transpiled SQL files will be stored. If not specified, the transpiled SQL files will be stored in the same directory as the input SQL file.
-- `error-file [Optional]` - The path to the file where the transpile errors will be stored. If not specified, the errors will be stored in the same directory as the input SQL file.
+- `error-file-path [Optional]` - The path to the file where the transpile errors will be stored. If not specified, the errors will be stored in the same directory as the input SQL file.
 - `skip-validation [Optional]` - The default value is True. If set to False, the transpiler will validate the transpiled SQL scripts against the Databricks catalog and schema provided by user.
 - `catalog-name [Optional]` - The name of the catalog in Databricks. If not specified, the default catalog `transpiler_test` will be used.
 - `schema-name [Optional]` - The name of the schema in Databricks. If not specified, the default schema `convertor_test` will be used.
