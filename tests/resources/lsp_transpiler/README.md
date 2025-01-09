@@ -11,4 +11,4 @@ The lsp_server itself does mainly logging to a log file name test-lsp-server.log
 The transpilation performed by the LSP Server is simply to convert the source code to lowercase.
 
 The code is located under resources because it is not directly executed by our CI. Rather, it is launched by our unit tests.
-In he end state, it will be part of the Remorph SDK, as a sample
+In the end state, it will be part of the Remorph SDK, as a sample
