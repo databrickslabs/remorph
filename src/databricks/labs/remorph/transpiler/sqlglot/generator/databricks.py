@@ -639,16 +639,6 @@ class Databricks(SqlglotDatabricks):  #
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
 
-        def splitpart_sql(self, expression: local_expression.SplitPart) -> str:
-            """
-            :param expression: local_expression.SplitPart expression to be parsed
-            :return: Converted expression (SPLIT_PART) compatible with Databricks
-            """
-            expr_name = self.sql(expression.this)
-            delimiter = self.sql(expression.expression)
-            part_num = self.sql(expression.args["partNum"])
-            return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
-
         def transaction_sql(self, expression: exp.Transaction) -> str:
             """
             Skip begin command
