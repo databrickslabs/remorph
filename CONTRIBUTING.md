@@ -114,14 +114,9 @@ This section provides a step-by-step guide to set up and start working on the pr
 
 To begin, install prerequisites:
 
-`wget` is required by the maven installer
+`python` is the runtime language for remorph
 ```shell
-brew install wget
-```
-
-`python` is the dependency manager for JVM based languages
-```shell
-brew install maven
+brew install python
 ```
 
 `hatch` is a Python project manager
