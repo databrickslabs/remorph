@@ -7,14 +7,15 @@ from databricks.labs.remorph.helpers.file_utils import (
     read_file,
 )
 from databricks.labs.remorph.intermediate.dag import DAG
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 logger = logging.getLogger(__name__)
 
 
 class RootTableAnalyzer:
 
-    def __init__(self, engine: TranspileEngine, source_dialect: str, input_path: Path):
+    def __init__(self, engine: SqlglotEngine, source_dialect: str, input_path: Path):
         self.engine = engine
         self.source_dialect = source_dialect
         self.input_path = input_path
