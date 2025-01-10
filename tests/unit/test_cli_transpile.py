@@ -1,4 +1,5 @@
-from unittest.mock import create_autospec, patch, PropertyMock, ANY
+import asyncio
+from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
 
 import pytest
 
@@ -8,6 +9,7 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from tests.unit.conftest import path_to_resource
 
 
 def test_transpile_with_missing_installation():
@@ -31,11 +33,22 @@ def test_transpile_with_missing_installation():
         )
 
 
+def patch_do_transpile():
+    mock_transpile = MagicMock(return_value=({}, []))
+
+    @asyncio.coroutine
+    def patched_do_transpile(*args, **kwargs):
+        return mock_transpile(*args, **kwargs)
+
+    return mock_transpile, patched_do_transpile
+
+
 def test_transpile_with_no_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
@@ -81,10 +94,11 @@ def test_transpile_with_no_sdk_config():
 
 def test_transpile_with_warehouse_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
@@ -130,10 +144,11 @@ def test_transpile_with_warehouse_id_in_sdk_config():
 
 def test_transpile_with_cluster_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
@@ -276,9 +291,10 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -308,6 +324,47 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
         )
 
 
+def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
+    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    source_dialect = "snowflake"
+    input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
+    output_folder = path_to_resource("lsp_transpiler")
+    skip_validation = "true"
+    catalog_name = "my_catalog"
+    schema_name = "my_schema"
+    mode = "current"
+    sdk_config = {'cluster_id': 'test_cluster'}
+
+    mock_transpile, patched_do_transpile = patch_do_transpile()
+    with (patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),):
+        cli.transpile(
+            mock_workspace_client_cli,
+            transpiler_config_path,
+            source_dialect,
+            input_source,
+            output_folder,
+            skip_validation,
+            catalog_name,
+            schema_name,
+            mode,
+        )
+        mock_transpile.assert_called_once_with(
+            mock_workspace_client_cli,
+            ANY,
+            TranspileConfig(
+                transpiler_config_path=transpiler_config_path,
+                source_dialect=source_dialect,
+                input_source=input_source,
+                output_folder=output_folder,
+                sdk_config=sdk_config,
+                skip_validation=True,
+                catalog_name=catalog_name,
+                schema_name=schema_name,
+                mode=mode,
+            ),
+        )
+
+
 def test_transpile_empty_output_folder(mock_workspace_client_cli):
     transpiler = "sqlglot"
     source_dialect = "snowflake"
@@ -320,9 +377,10 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", return_value={}) as mock_transpile,
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
             mock_workspace_client_cli,
@@ -377,3 +435,28 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
             schema_name,
             mode,
         )
+
+
+def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
+    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    source_dialect = "snowflake"
+    input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
+    output_folder = str(tmp_path)
+    skip_validation = "true"
+    catalog_name = "my_catalog"
+    schema_name = "my_schema"
+    mode = "current"
+    cli.transpile(
+        mock_workspace_client_cli,
+        transpiler_config_path,
+        source_dialect,
+        input_source,
+        output_folder,
+        skip_validation,
+        catalog_name,
+        schema_name,
+        mode,
+    )
+    captured = capsys.readouterr()
+    assert "TranspileError" in captured.out
+    assert "UNSUPPORTED_LCA" in captured.out
