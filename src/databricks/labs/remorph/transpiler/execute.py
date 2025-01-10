@@ -1,8 +1,9 @@
 import asyncio
+import datetime
 import logging
-import os
 from pathlib import Path
 from typing import Any
+from typing import cast
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -30,12 +31,10 @@ from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
-# pylint: disable=unspecified-encoding
-
 logger = logging.getLogger(__name__)
 
 
-async def _process_file(
+async def _process_one_file(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
@@ -73,18 +72,13 @@ async def _process_file(
     return transpile_result.success_count, error_list
 
 
-async def _process_directory(
+async def _process_many_files(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
-    root: Path,
-    base_root: Path,
+    output_folder: Path,
     files: list[Path],
 ) -> tuple[int, list[TranspileError]]:
-
-    output_folder = config.output_folder
-    output_folder_base = root / ("transpiled" if output_folder is None else base_root)
-    make_dir(output_folder_base)
 
     counter = 0
     all_errors: list[TranspileError] = []
@@ -93,9 +87,8 @@ async def _process_directory(
         logger.info(f"Processing file :{file}")
         if not is_sql_file(file):
             continue
-
-        output_file_name = output_folder_base / file.name
-        success_count, error_list = await _process_file(config, validator, transpiler, file, output_file_name)
+        output_file_name = output_folder / file.name
+        success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
 
@@ -106,15 +99,17 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     error_list = []
     file_list = []
     counter = 0
-    input_source = str(config.input_source)
-    input_path = Path(input_source)
-    for root, _, files in dir_walk(input_path):
-        base_root = Path(str(root).replace(input_source, ""))
-        folder = str(input_path.resolve().joinpath(base_root))
-        msg = f"Processing for sqls under this folder: {folder}"
-        logger.info(msg)
+    input_source = Path(str(config.input_source))
+    output_folder = config.output_path
+    if output_folder is None:
+        output_folder = input_source.parent / "transpiled"
+    make_dir(output_folder)
+    for source_dir, _, files in dir_walk(input_source):
+        relative_path = cast(Path, source_dir).relative_to(input_source)
+        transpiled_dir = output_folder / relative_path
+        logger.info(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
         file_list.extend(files)
-        no_of_sqls, errors = await _process_directory(config, validator, transpiler, root, base_root, files)
+        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
         error_list.extend(errors)
     return TranspileStatus(file_list, counter, error_list)
@@ -128,23 +123,21 @@ async def _process_input_file(
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
-    msg = f"Processing sql from this file: {config.input_source}"
+    msg = f"Transpiling sql file: {config.input_source}"
     logger.info(msg)
-    if config.output_path is None:
+    output_path = config.output_path
+    if output_path is None:
         output_path = config.input_path.parent / "transpiled"
-    else:
-        output_path = config.output_path
-
     make_dir(output_path)
     output_file = output_path / config.input_path.name
-    no_of_sqls, error_list = await _process_file(config, validator, transpiler, config.input_path, output_file)
+    no_of_sqls, error_list = await _process_one_file(config, validator, transpiler, config.input_path, output_file)
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
 
 
 @timeit
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -153,7 +146,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -164,8 +157,6 @@ async def _do_transpile(
     if not config.input_source:
         logger.error("Input SQL path is not provided.")
         raise ValueError("Input SQL path is not provided.")
-
-    status = []
 
     validator = None
     if not config.skip_validation:
@@ -186,23 +177,26 @@ async def _do_transpile(
     if not config.skip_validation:
         logger.info(f"No of Sql Failed while Validating: {result.validation_error_count}")
 
-    error_log_file = "None"
-    if len(result.error_list) > 0:
-        error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
-        with Path(error_log_file).open("a") as e:
+    error_log_path: Path | None = None
+    if result.error_list:
+        if config.error_path:
+            error_log_path = config.error_path
+        else:
+            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
+        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
 
-    status.append(
-        {
-            "total_files_processed": len(result.file_list),
-            "total_queries_processed": result.no_of_transpiled_queries,
-            "no_of_sql_failed_while_analysing": result.analysis_error_count,
-            "no_of_sql_failed_while_parsing": result.parsing_error_count,
-            "no_of_sql_failed_while_generating": result.generation_error_count,
-            "no_of_sql_failed_while_validating": result.validation_error_count,
-            "error_log_file": str(error_log_file),
-        }
-    )
+    status = {
+        "total_files_processed": len(result.file_list),
+        "total_queries_processed": result.no_of_transpiled_queries,
+        "analysis_error_count": result.analysis_error_count,
+        "parsing_error_count": result.parsing_error_count,
+        "validation_error_count": result.validation_error_count,
+        "generation_error_count": result.generation_error_count,
+        "error_log_file": str(error_log_path),
+    }
+
     return status, result.error_list
 
 
