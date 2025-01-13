@@ -39,6 +39,7 @@ def transpile(
     source_dialect: str,
     input_source: str,
     output_folder: str | None,
+    error_file_path: str | None,
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
@@ -58,6 +59,8 @@ def transpile(
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not output_folder and default_config.output_folder:
         output_folder = str(default_config.output_folder)
+    if not error_file_path and default_config.error_file_path:
+        error_file_path = str(default_config.error_file_path)
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
@@ -74,6 +77,7 @@ def transpile(
         source_dialect=source_dialect.lower(),
         input_source=input_source,
         output_folder=output_folder,
+        error_file_path=error_file_path,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
