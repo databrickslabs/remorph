@@ -10,7 +10,7 @@ CREATE SET TABLE TBL1 ,FALLBACK ,
      )
 PRIMARY INDEX COL2 ( COL3 )
 PARTITION BY (
-    CASE_N(a =  'FRA',b =  'ZRH',c =  'MUC')
+    CASE_N(a =  'IND',b =  'USA',c =  'CAN')
     );
 
 --databricks sql:
