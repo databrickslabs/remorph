@@ -1,7 +1,8 @@
+import datetime
 import asyncio
 import logging
-import os
 from pathlib import Path
+from typing import cast
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -28,8 +29,6 @@ from databricks.labs.remorph.helpers.string_utils import remove_bom
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
-
-# pylint: disable=unspecified-encoding
 
 logger = logging.getLogger(__name__)
 
@@ -175,16 +174,18 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
         logger.error(msg)
         raise FileNotFoundError(msg)
 
-    error_list_count = result.parse_error_count + result.validate_error_count
     if not config.skip_validation:
         logger.info(f"No of Sql Failed while Validating: {result.validate_error_count}")
 
-    error_log_file = "None"
-    if error_list_count > 0:
-        error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
-        if result.error_list:
-            with Path(error_log_file).open("a") as e:
-                e.writelines(f"{err!s}\n" for err in result.error_list)
+    error_log_path: Path | None = None
+    if result.error_list:
+        if config.error_path:
+            error_log_path = config.error_path
+        else:
+            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
+        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
+            e.writelines(f"{err!s}\n" for err in result.error_list)
 
     status.append(
         {
@@ -192,7 +193,7 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
             "total_queries_processed": result.no_of_transpiled_queries,
             "no_of_sql_failed_while_parsing": result.parse_error_count,
             "no_of_sql_failed_while_validating": result.validate_error_count,
-            "error_log_file": str(error_log_file),
+            "error_log_file": str(error_log_path),
         }
     )
     return status

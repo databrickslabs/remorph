@@ -135,6 +135,7 @@ def test_change_mgr_replaces_text(source, changes, expected):
     result = ChangeManager.apply(source, Path("dummy.sql"), changes)
     assert result.transpiled_code == expected
 
+
 def test_change_mgr_returns_error():
     source = "abc"
     changes = [TextEdit(Range(Position(9, 0), Position(10, 10)), "def")]
