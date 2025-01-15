@@ -1,3 +1,5 @@
+from typing import Any
+
 from pyspark.sql import SparkSession
 
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
@@ -21,7 +23,7 @@ class JDBCReaderMixin:
 
     @staticmethod
     def _get_jdbc_reader_options(options: JdbcReaderOptions):
-        option_dict = {}
+        option_dict: dict[str, Any] = {}
         if options.number_partitions:
             option_dict["numPartitions"] = options.number_partitions
         if options.partition_column:
