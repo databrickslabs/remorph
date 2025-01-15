@@ -1,8 +1,9 @@
 from pathlib import Path
 import yaml
+from databricks.labs.blueprint.wheels import ProductInfo
 
 class Credentials:
-    def __init__(self, product_info: str) -> None:
+    def __init__(self, product_info: ProductInfo) -> None:
         self._product_info = product_info
         self._credentials: dict[str, Any] = self._load_credentials(self._get_local_version_file_path())
 
@@ -18,4 +19,4 @@ class Credentials:
         if source in self._credentials:
             return self._credentials[source]
         else:
-            raise KeyError(f"source system: {source} credentials not found not in credentials: {source}")
+            raise KeyError(f"source system: {source} credentials not found not in file credentials.yml")

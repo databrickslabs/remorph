@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import yaml
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from typing import Any
 
@@ -34,7 +35,7 @@ class _BaseConnector(_ISourceSystemConnector):
             session.close()
 
 class SnowflakeConnector(_BaseConnector):
-    def connect(self) -> Engine:
+    def connect(self) -> _ISourceSystemConnector:
         connection_string = (
             f"snowflake://{self.config['user']}:{self.config['password']}@{self.config['account']}/"
             f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}&role={self.config['role']}"
@@ -42,7 +43,7 @@ class SnowflakeConnector(_BaseConnector):
         self.engine = create_engine(connection_string)
 
 class MSSQLConnector(_BaseConnector):
-    def connect(self) -> Engine:
+    def connect(self) -> _ISourceSystemConnector:
         connection_string = (
             f"mssql+pyodbc://{self.config['user']}:{self.config['password']}@{self.config['server']}/"
             f"{self.config['database']}?driver={self.config['driver']}"
@@ -52,10 +53,10 @@ class MSSQLConnector(_BaseConnector):
 #TODO: Move this application context
 class SourceSystemConnectorFactory:
     @staticmethod
-    def create_connector(db_type: str, config: dict[str, str]) -> ISourceSystemConnector:
+    def create_connector(db_type: str, config: dict[str, str]) -> _ISourceSystemConnector:
         if db_type == "snowflake":
-            return SnowflakeConnector(config)
+            return SnowflakeConnector(config).connect()
         elif db_type == "mssql":
-            return MSSQLConnector(config)
+            return MSSQLConnector(config).connect()
         else:
             raise ValueError(f"Unsupported database type: {db_type}")
