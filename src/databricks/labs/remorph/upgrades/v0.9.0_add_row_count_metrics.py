@@ -25,7 +25,7 @@ def _upgrade_reconcile_metadata_metrics_table(
     ]
 
     for sql in sqls:
-        logger.debug(f"Executing SQL to upgrade metrics table: \n{sql}")
+        logger.debug(f"Executing SQL to upgrade metrics table fields: \n{sql}")
         db_sql.get_sql_backend(ws).execute(sql)
     installation.save(reconcile_config)
     logger.debug("Upgraded Reconcile metrics table")
