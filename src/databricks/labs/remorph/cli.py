@@ -15,6 +15,7 @@ from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
 
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
@@ -138,11 +139,11 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, input_source: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    engine = TranspileEngine.load_engine(Path(transpiler))
+    engine = SqlglotEngine()
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")

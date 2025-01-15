@@ -1,6 +1,5 @@
 from __future__ import annotations
 import abc
-from collections.abc import Iterable
 from pathlib import Path
 
 from databricks.labs.remorph.config import TranspileResult
@@ -26,12 +25,7 @@ class TranspileEngine(abc.ABC):
         return LSPEngine.from_config_path(transpiler_config_path)
 
     @abc.abstractmethod
-    def analyse_table_lineage(
-        self, source_dialect: str, source_code: str, file_path: Path
-    ) -> Iterable[tuple[str, str]]: ...
-
-    @abc.abstractmethod
-    def transpile(
+    async def transpile(
         self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
     ) -> TranspileResult: ...
 
