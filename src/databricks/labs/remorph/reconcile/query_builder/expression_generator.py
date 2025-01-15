@@ -91,10 +91,6 @@ def array_sort(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def cast(expr: exp.Expression, to: exp.DataType) -> exp.Expression:
-    return exp.Cast(this=expr, to=to)
-
-
 def anonymous(expr: exp.Column, func: str, is_expr: bool = False, dialect=None) -> exp.Expression:
     """
 
@@ -140,12 +136,12 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
 
 
 def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True, cast=None) -> exp.Expression:
-    lit: exp.Expression = exp.Literal(this=this, is_string=is_string)
-    if cast:
-        lit = exp.Cast(this=lit, to=exp.DataType(this=cast))
-    if alias:
-        lit = exp.Alias(this=lit, alias=exp.Identifier(this=alias, quoted=quoted))
-    return lit
+    base_literal = exp.Literal(this=this, is_string=is_string)
+    if not cast and not alias:
+        return base_literal
+
+    cast_expr = exp.Cast(this=base_literal, to=exp.DataType(this=cast)) if cast else base_literal
+    return exp.Alias(this=cast_expr, alias=exp.Identifier(this=alias, quoted=quoted)) if alias else cast_expr
 
 
 def transform_expression(
