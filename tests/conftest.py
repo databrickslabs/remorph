@@ -159,6 +159,8 @@ def report_tables_schema():
                 "recon_metrics",
                 StructType(
                     [
+                        StructField("source_record_count", IntegerType()),
+                        StructField("target_record_count", IntegerType()),
                         StructField(
                             "row_comparison",
                             StructType(
