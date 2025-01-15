@@ -4,7 +4,7 @@ import yaml
 
 class Credentials:
 
-    def __init__(self, product_info, source):
+    def __init__(self, product_info):
         self._product_info = product_info
         self._credentials = self._load_credentials(self._get_local_version_file_path())
 
@@ -16,5 +16,9 @@ class Credentials:
         with open(file_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
 
-
+    def get(self, source):
+        if source in self._credentials:
+            return self._credentials[source]
+        else:
+            raise KeyError(f"source system: {source} credentials not found not in credentials: {key}")
 
