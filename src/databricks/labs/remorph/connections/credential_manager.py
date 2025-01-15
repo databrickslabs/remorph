@@ -2,10 +2,11 @@ from pathlib import Path
 import yaml
 from databricks.labs.blueprint.wheels import ProductInfo
 
+
 class Credentials:
     def __init__(self, product_info: ProductInfo) -> None:
         self._product_info = product_info
-        self._credentials: dict[str, Any] = self._load_credentials(self._get_local_version_file_path())
+        self._credentials: dict[str, str] = self._load_credentials(self._get_local_version_file_path())
 
     def _get_local_version_file_path(self) -> Path:
         user_home = f"{Path(__file__).home()}"
@@ -16,7 +17,10 @@ class Credentials:
             return yaml.safe_load(f)
 
     def get(self, source: str) -> dict[str, str]:
+        error_msg = f"source system: {source} credentials not found not in file credentials.yml"
         if source in self._credentials:
-            return self._credentials[source]
-        else:
-            raise KeyError(f"source system: {source} credentials not found not in file credentials.yml")
+            value = self._credentials[source]
+            if isinstance(value, dict):
+                return value
+            raise KeyError(error_msg)
+        raise KeyError(error_msg)
