@@ -53,7 +53,7 @@ def test_read_data_with_options():
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
-            number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
+            number_partitions=50, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
         join_columns=None,
         select_columns=None,
@@ -77,7 +77,7 @@ def test_read_data_with_options():
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from data.employee) tmp")
     actual_args = spark.read.format().option().option().option().options.call_args.kwargs
     expected_args = {
-        "numPartitions": 100,
+        "numPartitions": 50,
         "partitionColumn": "s_nationkey",
         "lowerBound": '0',
         "upperBound": "100",
