@@ -19,7 +19,7 @@ def _upgrade_reconcile_metadata_metrics_table(
         f"{reconcile_config.metadata_config.catalog}.{reconcile_config.metadata_config.schema}.{table_name}"
     )
 
-    sqls: list | None = [
+    sqls: list = [
         f"ALTER TABLE {table_identifier} ADD COLUMN recon_metrics.source_record_count BIGINT",
         f"ALTER TABLE {table_identifier} ADD COLUMN recon_metrics.target_record_count BIGINT",
     ]
