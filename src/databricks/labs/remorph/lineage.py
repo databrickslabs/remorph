@@ -4,7 +4,7 @@ from pathlib import Path
 
 from databricks.labs.remorph.intermediate.dag import DAG
 from databricks.labs.remorph.intermediate.root_tables import RootTableAnalyzer
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def _generate_dot_file_contents(dag: DAG) -> str:
     return _lineage_str
 
 
-def lineage_generator(engine: TranspileEngine, source_dialect: str, input_source: str, output_folder: str):
+def lineage_generator(engine: SqlglotEngine, source_dialect: str, input_source: str, output_folder: str):
     input_sql_path = Path(input_source)
     output_folder = output_folder if output_folder.endswith('/') else output_folder + '/'
 
