@@ -35,10 +35,20 @@ class _BaseConnector(_ISourceSystemConnector):
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        connection_string = (
-            f"snowflake://{self.config['user']}:{self.config['password']}@{self.config['account']}/"
-            f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}&role={self.config['role']}"
-        )
+        if self.config['private_key_path'] is not None:
+            connection_string = (
+                f"snowflake://{self.config['user']}@{self.config['account']}/"
+                f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}"
+                f"&role={self.config['role']}"
+                f"&authenticator=externalbrowser&private_key_path={self.config['private_key_path']}"
+                f"&private_key_passphrase={self.config['private_key_passphrase']}"
+            )
+        else:
+            connection_string = (
+                f"snowflake://{self.config['user']}:{self.config['password']}@{self.config['account']}/"
+                f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}"
+                f"&role={self.config['role']}"
+            )
         self.engine = create_engine(connection_string)
         return self.engine
 
@@ -49,7 +59,7 @@ class MSSQLConnector(_BaseConnector):
             f"mssql+pyodbc://{self.config['user']}:{self.config['password']}@{self.config['server']}/"
             f"{self.config['database']}?driver={self.config['driver']}"
         )
-        self.engine = create_engine(connection_string)
+        self.engine = create_engine(connection_string, echo = True)
         return self.engine
 
 
