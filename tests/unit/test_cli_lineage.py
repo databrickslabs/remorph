@@ -28,7 +28,6 @@ def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_clie
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
         mock_workspace_client_cli,
-        transpiler="sqlglot",
         source_dialect="snowflake",
         input_source=str(input_dir),
         output_folder=str(output_dir),
@@ -57,7 +56,6 @@ def test_generate_lineage_with_invalid_dialect(mock_workspace_client_cli):
     with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            transpiler="sqlglot",
             source_dialect="invalid_dialect",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -71,7 +69,6 @@ def test_generate_lineage_invalid_input_source(mock_workspace_client_cli):
     ):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            transpiler="sqlglot",
             source_dialect="snowflake",
             input_source="/path/to/invalid/sql/file.sql",
             output_folder="/path/to/output",
@@ -85,7 +82,6 @@ def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypa
     with pytest.raises(Exception, match="Invalid value for '--output-folder'"):
         cli.generate_lineage(
             mock_workspace_client_cli,
-            transpiler="sqlglot",
             source_dialect="snowflake",
             input_source=input_source,
             output_folder=output_folder,

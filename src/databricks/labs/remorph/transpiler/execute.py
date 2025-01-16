@@ -1,6 +1,8 @@
+import datetime
+import asyncio
 import logging
-import os
 from pathlib import Path
+from typing import cast
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -28,8 +30,6 @@ from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
-# pylint: disable=unspecified-encoding
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,26 +37,26 @@ def _process_file(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
-    input_file: Path,
-    output_file: Path,
+    input_path: Path,
+    output_path: Path,
 ) -> tuple[int, list[TranspileError]]:
-    logger.info(f"started processing for the file ${input_file}")
+    logger.info(f"started processing for the file ${input_path}")
     error_list: list[TranspileError] = []
 
-    with input_file.open("r") as f:
+    with input_path.open("r") as f:
         source_sql = remove_bom(f.read())
 
-    transpile_result = _transpile(
-        transpiler, config.source_dialect or "", config.target_dialect, source_sql, input_file
+    transpile_result = asyncio.run(
+        _transpile(transpiler, config.source_dialect, config.target_dialect, source_sql, input_path)
     )
     error_list.extend(transpile_result.error_list)
 
-    with output_file.open("w") as w:
+    with output_path.open("w") as w:
         if validator:
             validation_result = _validation(validator, config, transpile_result.transpiled_code)
             w.write(validation_result.validated_sql)
             if validation_result.exception_msg is not None:
-                error_list.append(ValidationError(input_file, validation_result.exception_msg))
+                error_list.append(ValidationError(input_path, validation_result.exception_msg))
         else:
             w.write(transpile_result.transpiled_code)
             w.write("\n;\n")
@@ -174,16 +174,18 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
         logger.error(msg)
         raise FileNotFoundError(msg)
 
-    error_list_count = result.parse_error_count + result.validate_error_count
     if not config.skip_validation:
         logger.info(f"No of Sql Failed while Validating: {result.validate_error_count}")
 
-    error_log_file = "None"
-    if error_list_count > 0:
-        error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
-        if result.error_list:
-            with Path(error_log_file).open("a") as e:
-                e.writelines(f"{err!s}\n" for err in result.error_list)
+    error_log_path: Path | None = None
+    if result.error_list:
+        if config.error_path:
+            error_log_path = config.error_path
+        else:
+            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
+            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
+        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
+            e.writelines(f"{err!s}\n" for err in result.error_list)
 
     status.append(
         {
@@ -191,7 +193,7 @@ def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config
             "total_queries_processed": result.no_of_transpiled_queries,
             "no_of_sql_failed_while_parsing": result.parse_error_count,
             "no_of_sql_failed_while_validating": result.validate_error_count,
-            "error_log_file": str(error_log_file),
+            "error_log_file": str(error_log_path),
         }
     )
     return status
@@ -211,10 +213,10 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
     return workspace_client
 
 
-def _transpile(
-    transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_file: Path
+async def _transpile(
+    transpiler: TranspileEngine, from_dialect: str, to_dialect: str, source_code: str, input_path: Path
 ) -> TranspileResult:
-    return transpiler.transpile(from_dialect, to_dialect, source_code, input_file)
+    return await transpiler.transpile(from_dialect, to_dialect, source_code, input_path)
 
 
 def _validation(
@@ -236,8 +238,8 @@ def transpile_sql(
 
     transpiler: TranspileEngine = SqlglotEngine()
 
-    transpiler_result = _transpile(
-        transpiler, config.source_dialect or "", config.target_dialect, source_sql, Path("inline_sql")
+    transpiler_result = asyncio.run(
+        _transpile(transpiler, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:
