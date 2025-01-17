@@ -12,7 +12,7 @@ from databricks.labs.remorph.transpiler import execute
 # Please provide the catalog_name,schema_name,source_dialect,input_source,output_folder.
 
 catalog_name ="remorph" # provide catalog name for remorph
-schema_name="default"            # provide schema name for remorph 
+schema_name="default"            # provide schema name for remorph
 source_dialect="snowflake"        # Provide source dialect
 input_source = "/Workspace/Users/sriram.mohanty@databricks.com/snowflake/input_sql/"   #Provide input folder path which contains the DDLs
 output_folder = "/Workspace/Users/sriram.mohanty@databricks.com/snowflake/converted_sql/" #Output folder path
@@ -24,5 +24,5 @@ mrophconfig = MorphConfig(source=source_dialect,input_sql=input_source,output_fo
 
 
 status = execute.morph(workspace_client=wsclient,config=mrophconfig)
-display(status)
+#display(status)
 #Please check output_folder for the converted DDLs
