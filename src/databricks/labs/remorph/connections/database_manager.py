@@ -63,12 +63,18 @@ class MSSQLConnector(_BaseConnector):
         return self.engine
 
 #TODO Refactor into application context
-class SourceSystemConnectorFactory:
-    @staticmethod
-    def create_connector(db_type: str, config: dict[str, str]) -> _ISourceSystemConnector:
-        if db_type == "snowflake":
-            return SnowflakeConnector(config)
-        if db_type == "mssql":
-            return MSSQLConnector(config)
+class DatabaseManager:
+    def __init__(self, db_type: str, config: dict[str, str]):
+        self.db_type = db_type
+        self.config = config
+        self.connector = self._create_connector()
 
-        raise ValueError(f"Unsupported database type: {db_type}")
+    def _create_connector(self) -> _ISourceSystemConnector:
+        if self.db_type == "snowflake":
+            return SnowflakeConnector(self.config)
+        if self.db_type == "mssql":
+            return MSSQLConnector(self.config)
+        raise ValueError(f"Unsupported database type: {self.db_type}")
+
+    def execute_query(self, query: str) -> Result[Any]:
+        return self.connector.execute_query(query)
