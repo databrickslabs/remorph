@@ -50,7 +50,6 @@ class MSSQLConnector(_BaseConnector):
         return self.engine
 
 
-
 # TODO Refactor into application context
 class DatabaseManager:
     def __init__(self, db_type: str, config: dict[str, str]):
@@ -61,10 +60,9 @@ class DatabaseManager:
     def _create_connector(self) -> _ISourceSystemConnector:
         if self.db_type.lower() == "snowflake":
             return SnowflakeConnector(self.config)
-        if self.db_type.lower() in ("mssql", "tsql", "synapse"):
+        if self.db_type.lower() in {"mssql", "tsql", "synapse"}:
             return MSSQLConnector(self.config)
         raise ValueError(f"Unsupported database type: {self.db_type}")
-
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)
