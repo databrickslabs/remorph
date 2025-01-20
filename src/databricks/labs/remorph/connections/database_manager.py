@@ -34,23 +34,9 @@ class _BaseConnector(_ISourceSystemConnector):
 
 
 class SnowflakeConnector(_BaseConnector):
+    # TODO: Not Implemented
     def _connect(self) -> Engine:
-        if self.config['private_key_path'] is not None:
-            connection_string = (
-                f"snowflake://{self.config['user']}@{self.config['account']}/"
-                f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}"
-                f"&role={self.config['role']}"
-                f"&authenticator=externalbrowser&private_key_path={self.config['private_key_path']}"
-                f"&private_key_passphrase={self.config['private_key_passphrase']}"
-            )
-        else:
-            connection_string = (
-                f"snowflake://{self.config['user']}:{self.config['password']}@{self.config['account']}/"
-                f"{self.config['database']}/{self.config['schema']}?warehouse={self.config['warehouse']}"
-                f"&role={self.config['role']}"
-            )
-        self.engine = create_engine(connection_string)
-        return self.engine
+        raise NotImplementedError("Snowflake connector not implemented")
 
 
 class MSSQLConnector(_BaseConnector):
@@ -59,10 +45,13 @@ class MSSQLConnector(_BaseConnector):
             f"mssql+pyodbc://{self.config['user']}:{self.config['password']}@{self.config['server']}/"
             f"{self.config['database']}?driver={self.config['driver']}"
         )
-        self.engine = create_engine(connection_string, echo = True)
+        # TODO: Add support for other connection parameters through a custom dictionary or config
+        self.engine = create_engine(connection_string, echo=True, connect_args=None)
         return self.engine
 
-#TODO Refactor into application context
+
+
+# TODO Refactor into application context
 class DatabaseManager:
     def __init__(self, db_type: str, config: dict[str, str]):
         self.db_type = db_type
@@ -72,9 +61,10 @@ class DatabaseManager:
     def _create_connector(self) -> _ISourceSystemConnector:
         if self.db_type.lower() == "snowflake":
             return SnowflakeConnector(self.config)
-        if self.db_type.lower() == "mssql":
+        if self.db_type.lower() in ("mssql", "tsql", "synapse"):
             return MSSQLConnector(self.config)
         raise ValueError(f"Unsupported database type: {self.db_type}")
+
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)

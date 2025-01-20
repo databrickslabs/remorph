@@ -3,6 +3,7 @@ import yaml
 from databricks.labs.blueprint.wheels import ProductInfo
 import os
 
+
 class Credentials:
     def __init__(self, product_info: ProductInfo) -> None:
         self._product_info = product_info
@@ -26,18 +27,18 @@ class Credentials:
         raise KeyError(error_msg)
 
     def get_secret_value(self, key: str) -> str:
-        secret_vault_type = self._credentials.get('secret_vault_type', 'local')
+        secret_vault_type = self._credentials.get('secret_vault_type', 'local').lower()
         if secret_vault_type == 'local':
             return key
         elif secret_vault_type == 'env':
             print(f"key: {key}")
-            v = os.getenv(str(key)) # Port numbers can be int
+            v = os.getenv(str(key))  # Port numbers can be int
             print(v)
             if v is None:
                 print(f"Environment variable {key} not found Failing back to actual strings")
                 return key
             return v
         elif secret_vault_type == 'databricks':
-            return NotImplemented
+            raise NotImplementedError("Databricks secret vault not implemented")
         else:
             raise ValueError(f"Unsupported secret vault type: {secret_vault_type}")
