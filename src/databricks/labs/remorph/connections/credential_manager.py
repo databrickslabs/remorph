@@ -30,7 +30,13 @@ class Credentials:
         if secret_vault_type == 'local':
             return key
         elif secret_vault_type == 'env':
-            return os.getenv(key, f"Environment variable {key} not found")
+            print(f"key: {key}")
+            v = os.getenv(str(key)) # Port numbers can be int
+            print(v)
+            if v is None:
+                print(f"Environment variable {key} not found Failing back to actual strings")
+                return key
+            return v
         elif secret_vault_type == 'databricks':
             return NotImplemented
         else:
