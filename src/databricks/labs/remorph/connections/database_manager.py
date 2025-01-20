@@ -70,9 +70,9 @@ class DatabaseManager:
         self.connector = self._create_connector()
 
     def _create_connector(self) -> _ISourceSystemConnector:
-        if self.db_type == "snowflake":
+        if self.db_type.lower() == "snowflake":
             return SnowflakeConnector(self.config)
-        if self.db_type == "mssql":
+        if self.db_type.lower() == "mssql":
             return MSSQLConnector(self.config)
         raise ValueError(f"Unsupported database type: {self.db_type}")
 
