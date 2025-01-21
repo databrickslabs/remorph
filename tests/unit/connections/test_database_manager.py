@@ -1,52 +1,55 @@
 import pytest
-from unittest.mock import create_autospec, patch
+from unittest.mock import MagicMock, patch
+from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
-from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
+sample_config = {
+    'user': 'test_user',
+    'password': 'test_pass',
+    'server': 'test_server',
+    'database': 'test_db',
+    'driver': 'ODBC Driver 17 for SQL Server',
+}
 
-def test_unsupported_database_type():
-    config = {'user': 'user', 'password': 'password', 'server': 'server', 'database': 'database', 'driver': 'driver'}
-    with pytest.raises(ValueError, match="Unsupported database type: invalid_db"):
-        DatabaseManager('invalid_db', config)
 
-def test_mssql_connector_connection():
-    config = {
-        'user': 'valid_user',
-        'password': 'valid_password',
-        'server': 'valid_server',
-        'database': 'valid_database',
-        'driver': 'ODBC Driver 17 for SQL Server'
-    }
+def test_create_connector_unsupported_db_type():
+    with pytest.raises(ValueError, match="Unsupported database type: unsupported_db"):
+        DatabaseManager("unsupported_db", sample_config)
 
-    with patch('sqlalchemy.create_engine') as mock_create_engine, \
-        patch.object(MSSQLConnector, '_connect', return_value=None):  # Prevent actual connection
-        connector = MSSQLConnector(config)
-        engine = connector._connect()
 
-        assert engine is not None
-        mock_create_engine.assert_called_once_with(
-            f"mssql+pyodbc://{config['user']}:{config['password']}@{config['server']}/{config['database']}?driver={config['driver']}",
-            echo=True,
-            connect_args=None
-        )
+# Test case for MSSQLConnector
+@patch('databricks.labs.remorph.connections.database_manager.MSSQLConnector')
+def test_mssql_connector(mock_mssql_connector):
+    mock_connector_instance = MagicMock()
+    mock_mssql_connector.return_value = mock_connector_instance
 
-def test_execute_successful_query():
-    config = {
-        'user': 'valid_user',
-        'password': 'valid_password',
-        'server': 'valid_server',
-        'database': 'valid_database',
-        'driver': 'ODBC Driver 17 for SQL Server'
-    }
+    db_manager = DatabaseManager("mssql", sample_config)
 
-    with patch('sqlalchemy.create_engine'), \
-         patch('sqlalchemy.orm.sessionmaker') as mock_session, \
-         patch.object(MSSQLConnector, '_connect', return_value='result'):
-        connector = MSSQLConnector(config)
-        connector._connect()
+    assert db_manager.connector == mock_connector_instance
+    mock_mssql_connector.assert_called_once_with(sample_config)
 
-        mock_connection = mock_session.return_value.__enter__.return_value
-        mock_connection.execute.return_value = "result"
 
-        result = connector.execute_query("SELECT * FROM valid_table")
+@patch('databricks.labs.remorph.connections.database_manager.MSSQLConnector')
+def test_execute_query(mock_mssql_connector):
+    mock_connector_instance = MagicMock()
+    mock_mssql_connector.return_value = mock_connector_instance
 
-        assert result == "result"
+    db_manager = DatabaseManager("mssql", sample_config)
+
+    query = "SELECT * FROM users"
+    mock_result = MagicMock()
+    mock_connector_instance.execute_query.return_value = mock_result
+
+    result = db_manager.execute_query(query)
+
+    assert result == mock_result
+    mock_connector_instance.execute_query.assert_called_once_with(query)
+
+
+def test_execute_query_without_connection():
+    db_manager = DatabaseManager("mssql", sample_config)
+
+    # Simulating that the engine is not connected
+    db_manager.connector.engine = None
+
+    with pytest.raises(ConnectionError, match="Not connected to the database."):
+        db_manager.execute_query("SELECT * FROM users")
