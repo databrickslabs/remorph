@@ -44,9 +44,6 @@ from databricks.labs.remorph.transpiler.transpile_status import TranspileError, 
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
-
 @dataclass
 class _LSPRemorphConfigV1:
     dialects: list[str]
