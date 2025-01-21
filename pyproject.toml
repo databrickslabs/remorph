@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "databricks-sdk>=0.29,<0.42",
-  "sqlglot==26.1.3",
+  "sqlglot==26.2.1",
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.7.5,<0.14.0",  # TODO: Limit the LSQL version until dependencies are correct.
   "cryptography>=41.0.3",
