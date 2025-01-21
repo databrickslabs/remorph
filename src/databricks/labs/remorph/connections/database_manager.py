@@ -29,8 +29,24 @@ class _BaseConnector(_ISourceSystemConnector):
         if not self.engine:
             raise ConnectionError("Not connected to the database.")
         session = sessionmaker(bind=self.engine)
-        with session() as connection:
-            return connection.execute(text(query))
+        connection = session()
+        return connection.execute(text(query))
+
+
+def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
+    connectors = {
+        "snowflake": SnowflakeConnector,
+        "mssql": MSSQLConnector,
+        "tsql": MSSQLConnector,
+        "synapse": MSSQLConnector,
+    }
+
+    connector_class = connectors.get(db_type.lower())
+
+    if connector_class is None:
+        raise ValueError(f"Unsupported database type: {db_type}")
+
+    return connector_class(config)
 
 
 class SnowflakeConnector(_BaseConnector):
@@ -49,22 +65,7 @@ class MSSQLConnector(_BaseConnector):
 
 class DatabaseManager:
     def __init__(self, db_type: str, config: dict[str, Any]):
-        self.connector = self._create_connector(db_type, config)
-
-    def _create_connector(self, db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
-        connectors = {
-            "snowflake": SnowflakeConnector,
-            "mssql": MSSQLConnector,
-            "tsql": MSSQLConnector,
-            "synapse": MSSQLConnector,
-        }
-
-        connector_class = connectors.get(db_type.lower())
-
-        if connector_class is None:
-            raise ValueError(f"Unsupported database type: {db_type}")
-
-        return connector_class(config)
+        self.connector = _create_connector(db_type, config)
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)
