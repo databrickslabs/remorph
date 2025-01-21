@@ -9,7 +9,7 @@ from databricks.sdk.errors import NotFound
 from databricks.sdk.service.workspace import GetSecretResponse
 
 
-class Test(SecretsMixin):
+class MockSecrets(SecretsMixin):
     def __init__(self, ws: WorkspaceClient, secret_scope: str):
         self._ws = ws
         self._secret_scope = secret_scope
@@ -37,7 +37,7 @@ def test_get_secrets_happy():
     ws = create_autospec(WorkspaceClient)
     ws.secrets.get_secret.side_effect = mock_secret
 
-    mock = Test(ws, "scope")
+    mock = MockSecrets(ws, "scope")
 
     assert mock.get_secret("user_name") == "my_user"
     assert mock.get_secret("password") == "my_password"
@@ -46,7 +46,7 @@ def test_get_secrets_happy():
 def test_get_secrets_not_found_exception():
     ws = create_autospec(WorkspaceClient)
     ws.secrets.get_secret.side_effect = NotFound("Test Exception")
-    mock = Test(ws, "scope")
+    mock = MockSecrets(ws, "scope")
 
     with pytest.raises(NotFound, match="Secret does not exist with scope: scope and key: unknown : Test Exception"):
         mock.get_secret("unknown")
