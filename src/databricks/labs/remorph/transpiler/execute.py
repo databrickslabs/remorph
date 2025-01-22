@@ -2,8 +2,7 @@ import asyncio
 import datetime
 import logging
 from pathlib import Path
-from typing import cast
-from typing import Any
+from typing import cast, Any
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (

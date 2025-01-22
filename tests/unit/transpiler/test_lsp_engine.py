@@ -134,8 +134,8 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
     ],
 )
 def test_change_mgr_replaces_text(source, changes, expected):
-    result = ChangeManager.apply(source, changes)
-    assert result == expected
+    result = ChangeManager.apply(source, changes, [], Path())
+    assert result.transpiled_code == expected
 
 
 @pytest.mark.parametrize(
