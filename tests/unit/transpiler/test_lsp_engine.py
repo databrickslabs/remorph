@@ -120,7 +120,7 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
 
 
 @pytest.mark.parametrize(
-    "source, changes, result",
+    "source, changes, expected",
     [
         ("", [], ""),
         ("\n", [], "\n"),
@@ -133,9 +133,9 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
         ("abc\ndef\nghi", [TextEdit(Range(Position(0, 2), Position(2, 1)), "x\ny")], "abx\nyhi"),
     ],
 )
-def test_change_mgr_replaces_text(source, changes, result):
-    transformed = ChangeManager.apply(source, changes)
-    assert transformed == result
+def test_change_mgr_replaces_text(source, changes, expected):
+    result = ChangeManager.apply(source, changes)
+    assert result == expected
 
 
 @pytest.mark.parametrize(
