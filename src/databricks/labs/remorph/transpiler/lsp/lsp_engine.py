@@ -30,7 +30,10 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     METHOD_TO_TYPES,
     LanguageKind,
+    Range as LSPRange,
+    Position as LSPPosition,
     _SPECIAL_PROPERTIES,
+    DiagnosticSeverity,
 )
 from pygls.lsp.client import BaseLanguageClient
 from pygls.exceptions import FeatureRequestError
@@ -40,7 +43,13 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
+from databricks.labs.remorph.transpiler.transpile_status import (
+    TranspileError,
+    ErrorKind,
+    ErrorSeverity,
+    CodeRange,
+    CodePosition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -187,15 +196,18 @@ class _LanguageClient(BaseLanguageClient):
 class ChangeManager(abc.ABC):
 
     @classmethod
-    def apply(cls, source_code: str, file_path: Path, changes: Sequence[TextEdit]) -> TranspileResult:
-        if not changes:
+    def apply(
+        cls, source_code: str, changes: Sequence[TextEdit], diagnostics: Sequence[Diagnostic], file_path: Path
+    ) -> TranspileResult:
+        if not changes and not diagnostics:
             return TranspileResult(source_code, 1, [])
+        transpile_errors = [DiagnosticConverter.apply(file_path, diagnostic) for diagnostic in diagnostics]
         try:
             lines = source_code.split("\n")
             for change in changes:
                 lines = cls._apply(lines, change)
             transpiled_code = "\n".join(lines)
-            return TranspileResult(transpiled_code, 1, [])
+            return TranspileResult(transpiled_code, 1, transpile_errors)
         except IndexError as e:
             logger.error("Failed to apply changes", exc_info=e)
             error = TranspileError(
@@ -205,7 +217,8 @@ class ChangeManager(abc.ABC):
                 path=file_path,
                 message="Internal error, failed to apply changes",
             )
-            return TranspileResult(source_code, 1, [error])
+            transpile_errors.append(error)
+            return TranspileResult(source_code, 1, transpile_errors)
 
     @classmethod
     def _apply(cls, lines: list[str], change: TextEdit) -> list[str]:
@@ -245,6 +258,46 @@ class ChangeManager(abc.ABC):
             and change.range.end.line >= len(lines) - 1
             and change.range.end.character >= len(lines[-1])
         )
+
+
+class DiagnosticConverter(abc.ABC):
+
+    _KIND_NAMES = {e.name for e in ErrorKind}
+
+    @classmethod
+    def apply(cls, file_path: Path, diagnostic: Diagnostic) -> TranspileError:
+        code = str(diagnostic.code)
+        kind = ErrorKind.INTERNAL
+        parts = code.split("-")
+        if len(parts) >= 2 and parts[0] in cls._KIND_NAMES:
+            kind = ErrorKind[parts[0]]
+            parts.pop(0)
+            code = "-".join(parts)
+        severity = cls._convert_severity(diagnostic.severity)
+        lsp_range = cls._convert_range(diagnostic.range)
+        return TranspileError(
+            code=code, kind=kind, severity=severity, path=file_path, message=diagnostic.message, range=lsp_range
+        )
+
+    @classmethod
+    def _convert_range(cls, lsp_range: LSPRange | None) -> CodeRange | None:
+        if not lsp_range:
+            return None
+        return CodeRange(cls._convert_position(lsp_range.start), cls._convert_position(lsp_range.end))
+
+    @classmethod
+    def _convert_position(cls, lsp_position: LSPPosition) -> CodePosition:
+        return CodePosition(lsp_position.line, lsp_position.character)
+
+    @classmethod
+    def _convert_severity(cls, severity: DiagnosticSeverity | None) -> ErrorSeverity:
+        if severity == DiagnosticSeverity.Information:
+            return ErrorSeverity.INFO
+        if severity == DiagnosticSeverity.Warning:
+            return ErrorSeverity.WARNING
+        if severity == DiagnosticSeverity.Error:
+            return ErrorSeverity.ERROR
+        return ErrorSeverity.INFO
 
 
 class LSPEngine(TranspileEngine):
@@ -335,7 +388,7 @@ class LSPEngine(TranspileEngine):
         self.open_document(file_path, source_code=source_code)
         response = await self.transpile_document(file_path)
         self.close_document(file_path)
-        return ChangeManager.apply(source_code, file_path, response.changes)
+        return ChangeManager.apply(source_code, response.changes, response.diagnostics, file_path)
 
     def open_document(self, file_path: Path, encoding="utf-8", source_code: str | None = None) -> None:
         if source_code is None:
