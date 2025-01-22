@@ -196,27 +196,37 @@ class _LanguageClient(BaseLanguageClient):
 class ChangeManager(abc.ABC):
 
     @classmethod
-    def apply(cls, source_code: str, changes: Sequence[TextEdit]) -> str:
-        lines = source_code.split("\n")
-        for change in changes:
-            lines = cls._apply(lines, change)
-        return "\n".join(lines)
+    def apply(
+        cls, source_code: str, changes: Sequence[TextEdit], diagnostics: Sequence[Diagnostic], file_path: Path
+    ) -> TranspileResult:
+        if not changes and not diagnostics:
+            return TranspileResult(source_code, 1, [])
+        transpile_errors = [DiagnosticConverter.apply(file_path, diagnostic) for diagnostic in diagnostics]
+        try:
+            lines = source_code.split("\n")
+            for change in changes:
+                lines = cls._apply(lines, change)
+            transpiled_code = "\n".join(lines)
+            return TranspileResult(transpiled_code, 1, transpile_errors)
+        except IndexError as e:
+            logger.error("Failed to apply changes", exc_info=e)
+            error = TranspileError(
+                code="INTERNAL_ERROR",
+                kind=ErrorKind.INTERNAL,
+                severity=ErrorSeverity.ERROR,
+                path=file_path,
+                message="Internal error, failed to apply changes",
+            )
+            transpile_errors.append(error)
+            return TranspileResult(source_code, 1, transpile_errors)
 
     @classmethod
     def _apply(cls, lines: list[str], change: TextEdit) -> list[str]:
         new_lines = change.new_text.split("\n")
-        # special case where change covers the entire source code
-        if (
-            change.range.start.line <= 0
-            and change.range.start.character <= 0
-            and change.range.end.line >= len(lines) - 1
-            and change.range.end.character >= len(lines[-1])
-        ):
+        if cls._is_full_document_change(lines, change):
             return new_lines
-        result: list[str] = []
         # keep lines before
-        if change.range.start.line > 0:
-            result.extend(lines[0 : change.range.start.line])
+        result: list[str] = [] if change.range.start.line <= 0 else lines[0 : change.range.start.line]
         # special case where change covers full lines
         if change.range.start.character <= 0 and change.range.end.character >= len(lines[change.range.end.line]):
             pass
@@ -239,6 +249,15 @@ class ChangeManager(abc.ABC):
         if change.range.end.line < len(lines) - 1:
             result.extend(lines[change.range.end.line + 1 :])
         return result
+
+    @classmethod
+    def _is_full_document_change(cls, lines: list[str], change: TextEdit) -> bool:
+        return (
+            change.range.start.line <= 0
+            and change.range.start.character <= 0
+            and change.range.end.line >= len(lines) - 1
+            and change.range.end.character >= len(lines[-1])
+        )
 
 
 class DiagnosticConverter(abc.ABC):
@@ -369,9 +388,7 @@ class LSPEngine(TranspileEngine):
         self.open_document(file_path, source_code=source_code)
         response = await self.transpile_document(file_path)
         self.close_document(file_path)
-        transpiled_code = ChangeManager.apply(source_code, response.changes)
-        transpile_errors = [DiagnosticConverter.apply(file_path, diagnostic) for diagnostic in response.diagnostics]
-        return TranspileResult(transpiled_code, 1, transpile_errors)
+        return ChangeManager.apply(source_code, response.changes, response.diagnostics, file_path)
 
     def open_document(self, file_path: Path, encoding="utf-8", source_code: str | None = None) -> None:
         if source_code is None:

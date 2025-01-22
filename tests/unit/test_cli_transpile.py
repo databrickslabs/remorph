@@ -57,7 +57,7 @@ def test_transpile_with_no_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
-            error_file="/path/to/errors.log",
+            error_file_path="/path/to/errors.log",
             sdk_config=None,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -86,7 +86,7 @@ def test_transpile_with_no_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
-                error_file="/path/to/errors.log",
+                error_file_path="/path/to/errors.log",
                 sdk_config=None,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -110,7 +110,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
-            error_file="/path/to/errors.log",
+            error_file_path="/path/to/errors.log",
             sdk_config=sdk_config,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -139,7 +139,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
-                error_file="/path/to/errors.log",
+                error_file_path="/path/to/errors.log",
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -163,7 +163,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
-            error_file="/path/to/errors.log",
+            error_file_path="/path/to/errors.log",
             sdk_config=sdk_config,
             skip_validation=True,
             catalog_name="my_catalog",
@@ -192,7 +192,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
-                error_file="/path/to/errors.log",
+                error_file_path="/path/to/errors.log",
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name="my_catalog",
@@ -332,7 +332,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
-                error_file=error_file,
+                error_file_path=error_file,
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -375,6 +375,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
+                error_file_path=None,
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -422,7 +423,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
-                error_file=error_file,
+                error_file_path=error_file,
                 sdk_config=sdk_config,
                 skip_validation=False,
                 catalog_name=catalog_name,
@@ -461,12 +462,12 @@ def test_transpile_with_invalid_mode(mock_workspace_client_cli):
         )
 
 
-def test_transpile_prints_errors(capsys, output_folder, error_file, mock_workspace_client_cli):
+def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
-    output_folder = str(output_folder)
-    error_file = str(error_file)
+    output_folder = str(tmp_path)
+    error_file = None
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"

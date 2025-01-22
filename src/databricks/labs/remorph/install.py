@@ -139,7 +139,7 @@ class WorkspaceInstaller:
         source_dialect = self._prompts.choice("Select the source dialect:", list(SQLGLOT_DIALECTS.keys()))
         input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
-        error_file = self._prompts.question("Enter error file", default="errors.log")
+        error_file_path = self._prompts.question("Enter error file path", default="errors.log")
         run_validation = self._prompts.confirm(
             "Would you like to validate the syntax and semantics of the transpiled queries?"
         )
@@ -151,7 +151,7 @@ class WorkspaceInstaller:
             mode="current",  # mode will not have a prompt as this is a hidden flag
             input_source=input_source,
             output_folder=output_folder,
-            error_file=error_file,
+            error_file_path=error_file_path,
         )
 
     def _configure_catalog(

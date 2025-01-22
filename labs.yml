@@ -24,10 +24,10 @@ commands:
         description: Input SQL Folder or File
       - name: output-folder
         default: None
-        description: Output Location For Storing Transpiled Code
-      - name: error-file
+        description: Output Location For Storing Transpiled Code, defaults to input-source folder
+      - name: error-file-path
         default: None
-        description: Output Location For Storing Errors
+        description: Output Location For Storing Errors, defaults to input-source folder
       - name: skip-validation
         default: true
         description: Validate Transpiled Code, default True validation skipped, False validate

@@ -2,8 +2,7 @@ import asyncio
 import datetime
 import logging
 from pathlib import Path
-from typing import Any
-from typing import cast
+from typing import cast, Any
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -207,10 +206,11 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
 
     TODO: In future refactor this function so it can be used for reconcile module without cross access.
     """
-    if workspace_client.config._product != "remorph":
-        workspace_client.config._product = "remorph"
-    if workspace_client.config._product_version != __version__:
-        workspace_client.config._product_version = __version__
+    product_info = workspace_client.config._product_info
+    if product_info[0] != "remorph":
+        product_info[0] = "remorph"
+    if product_info[1] != __version__:
+        product_info[1] = __version__
     return workspace_client
 
 

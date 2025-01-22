@@ -18,7 +18,7 @@ class TranspileConfig:
     source_dialect: str
     input_source: str | None = None
     output_folder: str | None = None
-    error_file: str | None = None
+    error_file_path: str | None = None
     sdk_config: dict[str, str] | None = None
     skip_validation: bool = False
     catalog_name: str = "remorph"
@@ -41,7 +41,7 @@ class TranspileConfig:
 
     @property
     def error_path(self):
-        return None if self.error_file is None else Path(self.error_file)
+        return Path(self.error_file_path) if self.error_file_path else None
 
     @property
     def target_dialect(self):
