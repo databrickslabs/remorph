@@ -347,6 +347,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     source_dialect = "snowflake"
     input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
     output_folder = path_to_resource("lsp_transpiler")
+    error_file = ""
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -361,7 +362,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
             source_dialect,
             input_source,
             output_folder,
-            None,
+            error_file,
             skip_validation,
             catalog_name,
             schema_name,
@@ -375,7 +376,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
-                error_file_path=None,
+                error_file_path=error_file,
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name=catalog_name,

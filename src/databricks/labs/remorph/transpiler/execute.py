@@ -98,13 +98,13 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     error_list = []
     file_list = []
     counter = 0
-    input_source = Path(str(config.input_source))
+    input_path = config.input_path
     output_folder = config.output_path
     if output_folder is None:
-        output_folder = input_source.parent / "transpiled"
+        output_folder = input_path.parent / "transpiled"
     make_dir(output_folder)
-    for source_dir, _, files in dir_walk(input_source):
-        relative_path = cast(Path, source_dir).relative_to(input_source)
+    for source_dir, _, files in dir_walk(input_path):
+        relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
         logger.info(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
         file_list.extend(files)
@@ -122,7 +122,7 @@ async def _process_input_file(
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
-    msg = f"Transpiling sql file: {config.input_source}"
+    msg = f"Transpiling sql file: {config.input_path!s}"
     logger.info(msg)
     output_path = config.output_path
     if output_path is None:
