@@ -141,4 +141,4 @@ def test_change_mgr_returns_error():
     changes = [TextEdit(Range(Position(9, 0), Position(10, 10)), "def")]
     result = ChangeManager.apply(source, Path("dummy.sql"), changes)
     assert result.transpiled_code == source
-    assert "Internal error" in result.error_list[0].error_msg
+    assert "Internal error" in result.error_list[0].message

@@ -40,7 +40,7 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
 
 logger = logging.getLogger(__name__)
 
@@ -198,9 +198,14 @@ class ChangeManager(abc.ABC):
             return TranspileResult(transpiled_code, 1, [])
         except IndexError as e:
             logger.error("Failed to apply changes", exc_info=e)
-            return TranspileResult(
-                source_code, 1, [TranspileError(file_path, "Internal error, failed to apply changes")]
+            error = TranspileError(
+                code="INTERNAL_ERROR",
+                kind=ErrorKind.INTERNAL,
+                severity=ErrorSeverity.ERROR,
+                path=file_path,
+                message="Internal error, failed to apply changes",
             )
+            return TranspileResult(source_code, 1, [error])
 
     @classmethod
     def _apply(cls, lines: list[str], change: TextEdit) -> list[str]:
