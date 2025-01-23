@@ -18,16 +18,16 @@ output_folder = "/Workspace/Users/sriram.mohanty@databricks.com/snowflake/conver
 skip_validation = True  # Skip validation : generated queries are validated syntactically.To validate a query the table definations should be present.Hence for all the DDLs skip_validation will be always false.
 
 # Initialize the WorkspaceClient with the specified product and version and TranspileConfig object with the provided configuration parameters.
-wsclient = WorkspaceClient(product="remorph", product_version="0.9.0")
-mrophconfig = MorphConfig(
-    source=source_dialect,
-    input_sql=input_source,
+ws_client = WorkspaceClient(product="remorph", product_version="0.9.0")
+morph_config = MorphConfig(
+    source_dialect=source_dialect,
+    input_source=input_source,
     output_folder=output_folder,
     catalog_name=catalog_name,
     schema_name=schema_name,
 )
 
 
-status = execute.morph(workspace_client=wsclient, config=mrophconfig)
+status = execute.morph(workspace_client=ws_client, config=morph_config)
 # display(status)
 # Please check output_folder for the converted DDLs
