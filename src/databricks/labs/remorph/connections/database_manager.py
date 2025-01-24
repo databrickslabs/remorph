@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -5,6 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Result, URL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from pyodbc import OperationalError
+
+logger = logging.getLogger(__name__)
 
 
 class _ISourceSystemConnector(ABC):
@@ -28,9 +32,12 @@ class _BaseConnector(_ISourceSystemConnector):
     def execute_query(self, query: str) -> Result[Any]:
         if not self.engine:
             raise ConnectionError("Not connected to the database.")
-        session = sessionmaker(bind=self.engine)
-        connection = session()
-        return connection.execute(text(query))
+        try:
+            session = sessionmaker(bind=self.engine)
+            connection = session()
+            return connection.execute(text(query))
+        except OperationalError:
+            raise ConnectionError("Error connecting to the database check credentials")
 
 
 def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
@@ -79,7 +86,3 @@ class DatabaseManager:
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)
-
-    # query to ORM
-    # ORM model to some inbuilt daabase/DUCKDB
-    # push that ducbk db to rsult to databricks for sharing.

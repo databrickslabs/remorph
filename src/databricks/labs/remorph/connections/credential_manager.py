@@ -1,9 +1,11 @@
 from pathlib import Path
 import yaml
-
+import logging
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.connections.env_getter import EnvGetter
+
+logger = logging.getLogger(__name__)
 
 
 class Credentials:
@@ -37,7 +39,7 @@ class Credentials:
             try:
                 value = self._env.get(str(key))  # Port numbers can be int
             except KeyError:
-                print(f"Environment variable {key} not found Failing back to actual strings")
+                logger.debug(f"Environment variable {key} not found Failing back to actual string value")
                 return key
             return value
 

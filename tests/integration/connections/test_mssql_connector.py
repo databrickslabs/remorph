@@ -7,33 +7,37 @@ import pytest
 from unittest.mock import patch
 from urllib.parse import urlparse
 
+
 @pytest.fixture(scope="module")
 def mock_credentials():
-    with patch.object(Credentials, '_load_credentials', return_value={
-        'secret_vault_type': 'env',
-        'secret_vault_name': '',
-        'mssql': {
-            'user': 'TEST_TSQL_USER',
-            'password': 'TEST_TSQL_PASS',
-            'server': 'TEST_TSQL_JDBC',
-            'database': 'TEST_TSQL_JDBC',
-            'driver': 'ODBC Driver 18 for SQL Server'
-        }
-    }):
+    with patch.object(
+        Credentials,
+        '_load_credentials',
+        return_value={
+            'secret_vault_type': 'env',
+            'secret_vault_name': '',
+            'mssql': {
+                'user': 'TEST_TSQL_USER',
+                'password': 'TEST_TSQL_PASS',
+                'server': 'TEST_TSQL_JDBC',
+                'database': 'TEST_TSQL_JDBC',
+                'driver': 'ODBC Driver 18 for SQL Server',
+            },
+        },
+    ):
         yield
+
 
 @pytest.fixture(scope="module")
 def db_manager(mock_credentials):
-    config = Credentials(ProductInfo.from_class(RemorphConfigs),EnvGetter(True)).load("mssql")
+    config = Credentials(ProductInfo.from_class(RemorphConfigs), EnvGetter(True)).load("mssql")
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
     url_parts = urlparse(base_url)
     server = url_parts.hostname
-    query_params = dict(
-        param.split("=", 1) for param in params.split(";") if "=" in param
-    )
+    query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
     database = query_params.get("database", "")
-    config['server'] = '' #server
+    config['server'] = server
     config['database'] = database
 
     return DatabaseManager("mssql", config)
@@ -41,6 +45,7 @@ def db_manager(mock_credentials):
 
 def test_mssql_connector_connection(db_manager):
     assert isinstance(db_manager.connector, MSSQLConnector)
+
 
 def test_mssql_connector_execute_query(db_manager):
     # Test executing a query
