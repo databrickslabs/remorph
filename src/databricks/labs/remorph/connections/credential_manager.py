@@ -1,6 +1,6 @@
 from pathlib import Path
-import yaml
 import logging
+import yaml
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.connections.env_getter import EnvGetter

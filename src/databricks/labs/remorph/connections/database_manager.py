@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Result, URL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-from pyodbc import OperationalError
+from sqlalchemy.exc import OperationalError
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class _BaseConnector(_ISourceSystemConnector):
             connection = session()
             return connection.execute(text(query))
         except OperationalError:
-            raise ConnectionError("Error connecting to the database check credentials")
+            raise ConnectionError("Error connecting to the database check credentials") from None
 
 
 def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
