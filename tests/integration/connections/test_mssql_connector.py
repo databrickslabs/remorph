@@ -1,11 +1,13 @@
+from unittest.mock import patch
+from urllib.parse import urlparse
+
+import pytest
+
 from databricks.labs.remorph.connections.credential_manager import Credentials
 from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.connections.env_getter import EnvGetter
-import pytest
-from unittest.mock import patch
-from urllib.parse import urlparse
 
 
 @pytest.fixture(scope="module")
