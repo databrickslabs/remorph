@@ -29,7 +29,7 @@ from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIA
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"transpile", "reconcile", "all"})
+MODULES = sorted({"assessment","transpile", "reconcile"})
 
 
 class WorkspaceInstaller:
@@ -61,11 +61,12 @@ class WorkspaceInstaller:
 
     def run(
         self,
+        module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
-            config = self.configure()
+            config = self.configure(module)
         if self._is_testing():
             return config
         self._ws_installation.install(config)
@@ -73,8 +74,7 @@ class WorkspaceInstaller:
         return config
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
-        selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
-        match selected_module:
+        match module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
                 return RemorphConfigs(self._configure_transpile(), None)
@@ -289,6 +289,24 @@ if __name__ == "__main__":
     logger.setLevel("INFO")
     if is_in_debug():
         logging.getLogger("databricks").setLevel(logging.DEBUG)
+
+    prompts = Prompts()
+    selected_module = prompts.choice("Select a module to configure:", MODULES)
+
+    if selected_module == "assessment":
+        logger.info("Configuring remorph `assessment`.")
+        """
+        Step 1 open Do you have a existing databricks workspace
+        step 2 ask for the databricks workspace url
+        step 3 open the workspace url
+        step 4 share the instruction to configure token or configure manually
+        step 5 validate the connection by creating workspace client
+        step 6 Ask for source details and credentials
+        step 8 Ask for execute the assessment
+        step 9 instructions to execute the assessment multiple days
+        step 10 instructions to zip the assessment and share it with databricks team
+        """
+
 
     app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
     installer = WorkspaceInstaller(
