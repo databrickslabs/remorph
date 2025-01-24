@@ -7,5 +7,6 @@ remorph:
   command_line:
     - python
     - lsp_server.py
+    - --stuff=12
 custom:
   whatever: xyz
