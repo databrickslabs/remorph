@@ -44,7 +44,9 @@ table_recon = TableRecon(
             source_name="source_employee_table",  # Provide the source table name
             target_name="target_employee_table",  # Provide the target table name
             column_mapping=[
-                ColumnMapping(source_name="emp_id", target_name="employee_id"), # Provide the source and target column name if they have different names
+                ColumnMapping(
+                    source_name="emp_id", target_name="employee_id"
+                ),  # Provide the source and target column name if they have different names
                 ColumnMapping(source_name="salary", target_name="sal"),
             ],
             join_columns=["emp_id"],  # for recon type all join_columns is mandatory
