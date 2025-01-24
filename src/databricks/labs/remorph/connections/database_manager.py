@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine, Result
+from sqlalchemy.engine import Engine, Result, URL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
@@ -56,11 +56,21 @@ class SnowflakeConnector(_BaseConnector):
 
 class MSSQLConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        connection_string = (
-            f"mssql+pyodbc://{self.config['user']}:{self.config['password']}@{self.config['server']}/"
-            f"{self.config['database']}?driver={self.config['driver']}"
+        query_params = {"driver": self.config['driver']}
+
+        for key, value in self.config.items():
+            if key not in ["user", "password", "server", "database", "port"]:
+                query_params[key] = value
+        connection_string = URL.create(
+            "mssql+pyodbc",
+            username=self.config['user'],
+            password=self.config['password'],
+            host=self.config['server'],
+            port=self.config.get('port', 1433),
+            database=self.config['database'],
+            query=query_params,
         )
-        return create_engine(connection_string, echo=True)
+        return create_engine(connection_string)
 
 
 class DatabaseManager:
@@ -69,3 +79,7 @@ class DatabaseManager:
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)
+
+    # query to ORM
+    # ORM model to some inbuilt daabase/DUCKDB
+    # push that ducbk db to rsult to databricks for sharing.
