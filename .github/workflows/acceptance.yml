@@ -41,10 +41,10 @@ jobs:
 
       - name: Install MSSQL ODBC Driver
         run: |
-              curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-              sudo add-apt-repository "$(curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list)"
-              sudo apt-get update
-              sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/ubuntu/24.04/prod noble main" > /etc/apt/sources.list.d/microsoft-prod.list'
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
 
       - name: Fetch relevant branches
