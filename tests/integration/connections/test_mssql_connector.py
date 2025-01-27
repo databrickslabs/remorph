@@ -39,8 +39,7 @@ def db_manager(mock_credentials):
     url_parts = urlparse(base_url)
     server = url_parts.hostname
     query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
-    database = query_params.get("database", ""
-                                            "")
+    database = query_params.get("database", "" "")
     config['server'] = server
     config['database'] = database
 

@@ -19,6 +19,7 @@ def debug_env_name():
 def product_info():
     return "remorph", __version__
 
+
 @pytest.fixture(scope="session")
 def mock_spark() -> SparkSession:
     """
