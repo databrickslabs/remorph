@@ -3,9 +3,11 @@ from json import loads, dumps
 import logging
 import os
 from shutil import rmtree, move
-from subprocess import run
+from subprocess import run, CalledProcessError
 import sys
+from typing import Any
 from urllib import request
+from urllib.error import URLError
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -43,6 +45,7 @@ OSS_TRANSPILER_NAME = "remorph-community-transpiler"
 OSS_TRANSPILER_PYPI_NAME = f"databricks-labs-{OSS_TRANSPILER_NAME}"
 MORPHEUS_TRANSPILER_NAME = "morpheus"
 MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
+
 
 class WorkspaceInstaller:
     def __init__(
@@ -99,11 +102,16 @@ class WorkspaceInstaller:
             product_path.rename(f"{MORPHEUS_TRANSPILER_NAME}-saved")
         install_path = product_path / "lib"
         install_path.mkdir()
-        return_code = cls.download_from_maven(MORPHEUS_TRANSPILER_GROUP_NAME, MORPHEUS_TRANSPILER_NAME, latest_version)
+        return_code = cls.download_from_maven(
+            MORPHEUS_TRANSPILER_GROUP_NAME,
+            MORPHEUS_TRANSPILER_NAME,
+            latest_version,
+            install_path / f"{MORPHEUS_TRANSPILER_NAME}.jar",
+        )
         if return_code == 0:
             state_path = product_path / "state"
             state_path.mkdir()
-            version_data = { "version": f"v{latest_version}", "date": str(datetime.now()) }
+            version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
             version_path = state_path / "version.json"
             version_path.write_text(dumps(version_data), "utf-8")
             logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
@@ -125,10 +133,11 @@ class WorkspaceInstaller:
             if path:
                 move(path, str(target))
                 return 0
-            return -2
-        except:
+            logger.error(message)
             return -1
-
+        except URLError as e:
+            logger.error("While downloading from maven", exc_info=e)
+            return -1
 
     @classmethod
     def install_community_transpiler(cls):
@@ -143,19 +152,19 @@ class WorkspaceInstaller:
             product_path.rename(f"{OSS_TRANSPILER_NAME}-saved")
         install_path = product_path / "lib"
         install_path.mkdir()
-        args = [ "pip", "install", OSS_TRANSPILER_PYPI_NAME, "-t", str(install_path)]
-        return_code = run(args, sys.stdin, sys.stdout, sys.stderr)
-        if return_code == 0:
-            state_path = product_path / "state"
-            state_path.mkdir()
-            version_data = { "version": f"v{latest_version}", "date": str(datetime.now()) }
-            version_path = state_path / "version.json"
+        args = ["pip", "install", OSS_TRANSPILER_PYPI_NAME, "-t", str(install_path)]
+        state_path = product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
+        version_path = state_path / "version.json"
+        try:
+            run(args, sys.stdin, sys.stdout, sys.stderr, check=True)
             version_path.write_text(dumps(version_data), "utf-8")
             logger.info(f"Successfully installed Remorph community transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
-        else:
-            logger.info(f"Failed to install Remorph community transpiler v{latest_version}")
+        except CalledProcessError as e:
+            logger.info(f"Failed to install Remorph community transpiler v{latest_version}", exc_info=e)
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
@@ -164,24 +173,26 @@ class WorkspaceInstaller:
     @classmethod
     def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
         url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-        text = request.urlopen(url).read()
-        data: dict[str, any] = loads(text)
+        with request.urlopen(url) as server:
+            text = server.read()
+        data: dict[str, Any] = loads(text)
         return data.get("response", {}).get('docs', [{}])[0].get("v", None)
 
     @classmethod
     def get_pypi_version(cls, product_name: str) -> str | None:
-        text = request.urlopen(f"https://pypi.org/pypi/{product_name}/json").read()
-        data: dict[str, any] = loads(text)
+        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+            text = server.read()
+        data: dict[str, Any] = loads(text)
         return data.get("info", {}).get('version', None)
 
     @classmethod
-    def get_installed_version(cls, product_name: str, is_transpiler = True) -> str | None:
+    def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
         product_path = (TRANSPILERS_PATH if is_transpiler else LABS_PATH) / product_name
         current_version_path = product_path / "state" / "version.json"
         if not current_version_path.exists():
             return None
         text = current_version_path.read_text("utf-8")
-        data: dict[str, any] = loads(text)
+        data: dict[str, Any] = loads(text)
         version: str | None = data.get("version", None)
         if not version or not version.startswith("v"):
             return None

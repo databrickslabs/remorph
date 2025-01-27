@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-from tempfile import TemporaryFile
 from unittest.mock import create_autospec, patch
 
 import pytest
