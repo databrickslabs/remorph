@@ -41,7 +41,7 @@ class TranspileConfig:
 
     @property
     def error_path(self):
-        return None if self.error_file_path is None else Path(self.error_file_path)
+        return Path(self.error_file_path) if self.error_file_path else None
 
     @property
     def target_dialect(self):
