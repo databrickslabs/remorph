@@ -15,8 +15,6 @@ def test_snowflake(dialect_context, sample: FunctionalTestFile):
     validate_source_transpile(databricks_sql=sample.databricks_sql, source={"snowflake": sample.source}, pretty=True)
 
 
-
-
 def test_parse_parameter(dialect_context):
     """
     Function to assert conversion from source: `snowflake(read)` to target: `Databricks(sql)`
