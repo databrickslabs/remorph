@@ -40,12 +40,7 @@ jobs:
         run: pip install hatch==1.9.4
 
       - name: Install MSSQL ODBC Driver
-        run: |
-          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/ubuntu/24.04/prod noble main" > /etc/apt/sources.list.d/microsoft-prod.list'
-          sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
-
+        run: python $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.py
 
       - name: Fetch relevant branches
         run: |
