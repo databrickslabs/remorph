@@ -44,11 +44,6 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.sh
           $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.sh
 
-      - name: Fetch relevant branches
-        run: |
-          git fetch origin $GITHUB_BASE_REF:$GITHUB_BASE_REF
-          git fetch origin $GITHUB_HEAD_REF:$GITHUB_HEAD_REF
-
       - name: Run integration tests
         uses: databrickslabs/sandbox/acceptance@acceptance/v0.4.2
         with:
