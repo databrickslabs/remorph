@@ -40,7 +40,7 @@ jobs:
         run: pip install hatch==1.9.4
 
       - name: Install MSSQL ODBC Driver
-        run: python $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.py
+        run: hatch run $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.py
 
       - name: Fetch relevant branches
         run: |
