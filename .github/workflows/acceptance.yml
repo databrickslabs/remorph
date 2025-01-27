@@ -48,8 +48,7 @@ jobs:
         uses: databrickslabs/sandbox/acceptance@acceptance/v0.4.2
         with:
           vault_uri: ${{ secrets.VAULT_URI }}
-          project: ${{ github.workspace }}
-          directory: tests/integration/connections
+          directory: ${{ github.workspace }}/tests
           timeout: 2h
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
