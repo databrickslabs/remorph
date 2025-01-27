@@ -42,7 +42,7 @@ jobs:
       - name: Install MSSQL ODBC Driver
         run: |
           chmod +x $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.sh
-          $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.py
+          $GITHUB_WORKSPACE/.github/scripts/setup_mssql_odbc.sh
 
       - name: Fetch relevant branches
         run: |
