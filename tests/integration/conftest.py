@@ -20,12 +20,13 @@ def debug_env_name():
 def product_info():
     return "remorph", __version__
 
+
 def pytest_collection_modifyitems(config, items):
     if os.getenv('TEST_ENV') == 'ACCEPTANCE':
         selected_items = []
         deselected_items = []
         for item in items:
-            if 'tests/integration' in str(item.fspath):
+            if 'tests/integration/connections' in str(item.fspath):
                 selected_items.append(item)
             else:
                 deselected_items.append(item)
