@@ -31,7 +31,8 @@ def ws():
 def workspace_installer():
 
     class TestWorkspaceInstaller(WorkspaceInstaller):
-
+        # TODO the below methods currently raise a 404 because the artifacts don't exist yet
+        # TODO remove this once they are available !!!
         def install_morpheus(cls): pass
         def install_community_transpiler(cls): pass
 
