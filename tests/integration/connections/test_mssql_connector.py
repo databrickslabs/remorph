@@ -35,10 +35,11 @@ def db_manager(mock_credentials):
     config = Credentials(ProductInfo.from_class(RemorphConfigs), EnvGetter(True)).load("mssql")
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
+
     url_parts = urlparse(base_url)
     server = url_parts.hostname
     query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
-    database = query_params.get("database", "")
+    database = query_params.get("database", "" "")
     config['server'] = server
     config['database'] = database
 
