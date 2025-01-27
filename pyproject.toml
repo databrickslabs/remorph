@@ -70,7 +70,7 @@ reconcile = "databricks.labs.remorph.reconcile.execute:main"
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"
-integration = "pytest -n 10 --cov src tests/integration --durations 20 --ignore=tests/integration/connections"
+integration = "pytest --cov src tests/integration --durations 20 --ignore=tests/integration/connections"
 fmt         = ["black .",
                "ruff  check . --fix",
                "mypy --disable-error-code 'annotation-unchecked' .",
