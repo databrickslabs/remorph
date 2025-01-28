@@ -9,6 +9,7 @@ from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
@@ -26,10 +27,11 @@ from databricks.labs.remorph.deployment.installation import WorkspaceInstallatio
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
+
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"assessment","transpile", "reconcile"})
+MODULES = sorted({"assessment", "transpile", "reconcile"})
 
 
 class WorkspaceInstaller:
@@ -293,29 +295,18 @@ if __name__ == "__main__":
     prompts = Prompts()
     selected_module = prompts.choice("Select a module to configure:", MODULES)
 
-    if selected_module == "assessment":
-        logger.info("Configuring remorph `assessment`.")
-        """
-        Step 1 open Do you have a existing databricks workspace
-        step 2 ask for the databricks workspace url
-        step 3 open the workspace url
-        step 4 share the instruction to configure token or configure manually
-        step 5 validate the connection by creating workspace client
-        step 6 Ask for source details and credentials
-        step 8 Ask for execute the assessment
-        step 9 instructions to execute the assessment multiple days
-        step 10 instructions to zip the assessment and share it with databricks team
-        """
+    if selected_module != "assessment":
+        app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
+        installer = WorkspaceInstaller(
+            app_context.workspace_client,
+            app_context.prompts,
+            app_context.installation,
+            app_context.install_state,
+            app_context.product_info,
+            app_context.resource_configurator,
+            app_context.workspace_installation,
+        )
+        installer.run(selected_module)
 
-
-    app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
-    installer = WorkspaceInstaller(
-        app_context.workspace_client,
-        app_context.prompts,
-        app_context.installation,
-        app_context.install_state,
-        app_context.product_info,
-        app_context.resource_configurator,
-        app_context.workspace_installation,
-    )
-    installer.run()
+    logger.info("Configuring remorph `assessment`.")
+    ConfigureAssessment().run()

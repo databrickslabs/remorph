@@ -23,9 +23,11 @@ class CredentialConfig:
         credential_configs = []
         for key, value in credentials_data.items():
             if isinstance(value, dict):
-                config = cls(secret_vault_type=credentials_data.get('secret_vault_type', 'local'),
-                             secret_vault_name=credentials_data.get('secret_vault_name', None),
-                             **value)
+                config = cls(
+                    secret_vault_type=credentials_data.get('secret_vault_type', 'local'),
+                    secret_vault_name=credentials_data.get('secret_vault_name', None),
+                    **value,
+                )
                 credential_configs.append(config)
 
         return credential_configs

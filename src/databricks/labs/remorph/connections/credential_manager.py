@@ -3,6 +3,8 @@ import logging
 import yaml
 
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.blueprint.tui import Prompts
+
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 logger = logging.getLogger(__name__)
@@ -47,3 +49,33 @@ class Credentials:
             raise NotImplementedError("Databricks secret vault not implemented")
 
         raise ValueError(f"Unsupported secret vault type: {secret_vault_type}")
+
+    def configure(self, prompts: Prompts):
+        cred_file = self._get_local_version_file_path()
+        source_details = prompts.question("Please enter the source details:")
+
+        # Step 2: Guide the user to documentation around what local vs env means.
+        logger.info("Please refer to the documentation to understand the difference between local and env.")
+
+        # Step 3: Based on user response, populate secret_vault_type and secret_vault_name.
+        secret_vault_type = prompts.choice(
+            "Enter secret vault type (local | databricks | env)", {"local", "env", "databricks"}
+        )
+        secret_vault_name = prompts.question("Enter secret vault name (or leave blank for none):")
+
+        credentials = {
+            "secret_vault_type": secret_vault_type,
+            "secret_vault_name": secret_vault_name,
+            source_details: {
+                "database": prompts.question("Enter the database name:"),
+                "driver": prompts.question("Enter the driver details:"), #"ODBC Driver 18 for SQL Server",
+                "server": prompts.question("Enter the server or host details:"),
+                "port": prompts.question("Enter the port details:"),
+                "user": prompts.question("Enter the user details:"),
+                "password": prompts.question("Enter the password details:"),
+            },
+        }
+
+        with open(cred_file, 'w', encoding='utf-8') as file:
+            yaml.dump(credentials, file, default_flow_style=False)
+            logger.debug("Credential template created for MSSQL.")
