@@ -917,7 +917,7 @@ def test_configure_all_override_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure(module="reconcile")
+    config = workspace_installer.configure(module="all")
     expected_transpile_config = TranspileConfig(
         transpiler_config_path="sqlglot",
         source_dialect="snowflake",

@@ -31,7 +31,7 @@ from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIA
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"assessment", "transpile", "reconcile"})
+MODULES = sorted({"assessment", "transpile", "reconcile", "all"})
 
 
 class WorkspaceInstaller:
