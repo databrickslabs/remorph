@@ -70,7 +70,7 @@ class Credentials:
             "secret_vault_name": secret_vault_name,
             source_details: {
                 "database": prompts.question("Enter the database name:"),
-                "driver": prompts.question("Enter the driver details:"), #"ODBC Driver 18 for SQL Server",
+                "driver": prompts.question("Enter the driver details:"),
                 "server": prompts.question("Enter the server or host details:"),
                 "port": prompts.question("Enter the port details:"),
                 "user": prompts.question("Enter the user details:"),
