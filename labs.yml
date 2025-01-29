@@ -50,7 +50,7 @@ commands:
   - name: aggregates-reconcile
     description: Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared between source and target data residing on Databricks.
   - name: generate-lineage
-    description: Utility to generate a lineage of the SQL files
+    description: "[INTERNAL] Utility to generate a lineage of the SQL files"
     flags:
       - name: transpiler-config-path
         description: Path to the transpiler configuration file
@@ -64,44 +64,5 @@ commands:
         description: Directory to store the generated lineage file
   - name: configure-secrets
     description: Utility to setup Scope and Secrets on Databricks Workspace
-  - name: debug-script
-    description: "[INTERNAL] Debug Script"
-    flags:
-      - name: name
-        description: Filename to debug
-      - name: dialect
-        description: sql dialect
   - name: debug-me
     description: "[INTERNAL] Debug SDK connectivity"
-  - name: debug-coverage
-    description: "[INTERNAL] Run coverage tests"
-    flags:
-      - name: dialect
-        description: sql dialect
-      - name: src
-        description: The parent directory under which test queries are laid out
-      - name: dst
-        description: The directory under which the report files will be written
-      - name: extractor
-        description: The strategy for extracting queries from the test files. Valid strategies are "full" (when files contain only one input query) and "comment" (when files contain an input query and the corresponding translation, separated by a comment stating the dialect of each query).
-  - name: debug-estimate
-    description: "[INTERNAL] estimate migration effort"
-    flags:
-      - name: dialect
-        description: sql dialect
-      - name: source-queries
-        description: The folder with queries. Otherwise will attempt to fetch query history for a dialect
-      - name: console-output
-        default: true
-        description: Output results to a folder
-      - name: dst
-        description: The directory for report
-  - name: debug-bundle
-    description: "[INTERNAL] Generate bundle for the translated queries"
-    flags:
-      - name: dialect
-        description: sql dialect
-      - name: source-queries
-        description: The folder with queries. Otherwise will attempt to fetch query history for a dialect
-      - name: dst
-        description: The directory for generated files
