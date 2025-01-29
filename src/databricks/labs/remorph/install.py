@@ -75,7 +75,7 @@ class WorkspaceInstaller:
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
         return config
 
-    def configure(self, module: str | None = None) -> RemorphConfigs:
+    def configure(self, module: str) -> RemorphConfigs:
         match module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
@@ -90,7 +90,7 @@ class WorkspaceInstaller:
                     self._configure_reconcile(),
                 )
             case _:
-                raise ValueError(f"Invalid input: {selected_module}")
+                raise ValueError(f"Invalid input: {module}")
 
     def _is_testing(self):
         return self._product_info.product_name() != "remorph"
@@ -292,8 +292,8 @@ if __name__ == "__main__":
     if is_in_debug():
         logging.getLogger("databricks").setLevel(logging.DEBUG)
 
-    prompts = Prompts()
-    selected_module = prompts.choice("Select a module to configure:", MODULES)
+    prompt = Prompts()
+    selected_module = prompt.choice("Select a module to configure:", MODULES)
 
     if selected_module != "assessment":
         app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
@@ -309,4 +309,4 @@ if __name__ == "__main__":
         installer.run(selected_module)
 
     logger.info("Configuring remorph `assessment`.")
-    ConfigureAssessment().run()
+    ConfigureAssessment("remorph").run()

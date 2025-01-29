@@ -1,9 +1,9 @@
 from pathlib import Path
 import logging
-import yaml
 import shutil
+import yaml
 
-from databricks.labs.blueprint.wheels import ProductInfo
+
 from databricks.labs.blueprint.tui import Prompts
 
 from databricks.labs.remorph.connections.env_getter import EnvGetter
@@ -52,8 +52,6 @@ class Credentials:
 
         raise ValueError(f"Unsupported secret vault type: {secret_vault_type}")
 
-
-
     def configure(self, prompts: Prompts):
         cred_file = self._credential_file
         source_details = prompts.question("Please enter the source details:")
@@ -61,7 +59,7 @@ class Credentials:
         logger.info("Please refer to the documentation to understand the difference between local and env.")
 
         secret_vault_type = prompts.choice(
-            "Enter secret vault type (local | databricks | env)", {"local", "env", "databricks"}
+            "Enter secret vault type (local | databricks | env)", ["local", "env", "databricks"]
         )
         secret_vault_name = prompts.question("Enter secret vault name (or leave blank for none):")
         # Currently covering only MSSQL
@@ -83,10 +81,7 @@ class Credentials:
             shutil.copy(cred_file, backup_filename)
             logger.debug(f"Backup of the existing file created at {backup_filename}")
 
-
         with open(cred_file, 'w', encoding='utf-8') as file:
             yaml.dump(credentials, file, default_flow_style=False)
 
         logger.info("Credential template created for MSSQL.")
-
-

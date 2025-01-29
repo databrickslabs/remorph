@@ -63,7 +63,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    returned_config = workspace_installer.run(config=provided_config)
+    returned_config = workspace_installer.run(config=provided_config, module="transpile")
     assert returned_config == provided_config
     ws_installation.install.assert_not_called()
 
@@ -85,7 +85,7 @@ def test_workspace_installer_run_install_called_with_provided_config(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    returned_config = workspace_installer.run(config=provided_config)
+    returned_config = workspace_installer.run(config=provided_config, module="transpile")
     assert returned_config == provided_config
     ws_installation.install.assert_called_once_with(provided_config)
 
@@ -142,7 +142,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    workspace_installer.run()
+    workspace_installer.run("transpile")
     installation.assert_file_written(
         "config.yml",
         {
@@ -191,7 +191,7 @@ def test_configure_transpile_no_existing_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path="sqlglot",
         source_dialect="snowflake",
@@ -262,7 +262,7 @@ def test_configure_transpile_installation_no_override(ws):
         ctx.workspace_installation,
     )
     with pytest.raises(SystemExit):
-        workspace_installer.configure()
+        workspace_installer.configure(module="transpile")
 
 
 def test_configure_transpile_installation_config_error_continue_install(ws):
@@ -312,7 +312,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path="sqlglot",
         source_dialect="snowflake",
@@ -375,7 +375,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path="sqlglot",
         source_dialect="snowflake",
@@ -444,7 +444,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path="sqlglot",
@@ -515,7 +515,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path="sqlglot",
@@ -584,7 +584,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path="sqlglot",
@@ -660,7 +660,7 @@ def test_configure_reconcile_installation_no_override(ws):
         ctx.workspace_installation,
     )
     with pytest.raises(SystemExit):
-        workspace_installer.configure()
+        workspace_installer.configure(module="reconcile")
 
 
 def test_configure_reconcile_installation_config_error_continue_install(ws):
@@ -719,7 +719,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="reconcile")
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
             data_source="oracle",
@@ -797,7 +797,7 @@ def test_configure_reconcile_no_existing_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="reconcile")
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
             data_source="snowflake",
@@ -917,7 +917,7 @@ def test_configure_all_override_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure(module="reconcile")
     expected_transpile_config = TranspileConfig(
         transpiler_config_path="sqlglot",
         source_dialect="snowflake",
@@ -1048,7 +1048,7 @@ def test_runs_upgrades_on_more_recent_version(ws):
         ctx.workspace_installation,
     )
 
-    workspace_installer.run()
+    workspace_installer.run("transpile")
 
     mock_workspace_installation.install.assert_called_once_with(
         RemorphConfigs(
