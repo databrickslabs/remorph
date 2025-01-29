@@ -28,6 +28,26 @@ def ws():
     return w
 
 
+@pytest.fixture()
+def ws_installer():
+
+    class TestWorkspaceInstaller(WorkspaceInstaller):
+        # TODO the below methods currently raise a 404 because the artifacts don't exist yet
+        # TODO remove this once they are available !!!
+        @classmethod
+        def install_morpheus(cls):
+            pass
+
+        @classmethod
+        def install_community_transpiler(cls):
+            pass
+
+    def installer(*args, **kwargs) -> WorkspaceInstaller:
+        return TestWorkspaceInstaller(*args, **kwargs)
+
+    yield installer
+
+
 def test_workspace_installer_run_raise_error_in_dbr(ws):
     ctx = ApplicationContext(ws)
     environ = {"DATABRICKS_RUNTIME_VERSION": "8.3.x-scala2.12"}
@@ -44,7 +64,7 @@ def test_workspace_installer_run_raise_error_in_dbr(ws):
         )
 
 
-def test_workspace_installer_run_install_not_called_in_test(ws):
+def test_workspace_installer_run_install_not_called_in_test(ws_installer, ws):
     ws_installation = create_autospec(WorkspaceInstallation)
     ctx = ApplicationContext(ws)
     ctx.replace(
@@ -54,7 +74,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws):
     )
 
     provided_config = RemorphConfigs()
-    workspace_installer = WorkspaceInstaller(
+    workspace_installer = ws_installer(
         ctx.workspace_client,
         ctx.prompts,
         ctx.installation,
@@ -68,7 +88,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws):
     ws_installation.install.assert_not_called()
 
 
-def test_workspace_installer_run_install_called_with_provided_config(ws):
+def test_workspace_installer_run_install_called_with_provided_config(ws_installer, ws):
     ws_installation = create_autospec(WorkspaceInstallation)
     ctx = ApplicationContext(ws)
     ctx.replace(
@@ -76,7 +96,7 @@ def test_workspace_installer_run_install_called_with_provided_config(ws):
         workspace_installation=ws_installation,
     )
     provided_config = RemorphConfigs()
-    workspace_installer = WorkspaceInstaller(
+    workspace_installer = ws_installer(
         ctx.workspace_client,
         ctx.prompts,
         ctx.installation,
@@ -110,7 +130,7 @@ def test_configure_error_if_invalid_module_selected(ws):
         workspace_installer.configure(module="invalid_module")
 
 
-def test_workspace_installer_run_install_called_with_generated_config(ws):
+def test_workspace_installer_run_install_called_with_generated_config(ws_installer, ws):
     prompts = MockPrompts(
         {
             r"Select a module to configure:": MODULES.index("transpile"),
@@ -133,7 +153,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         workspace_installation=create_autospec(WorkspaceInstallation),
     )
 
-    workspace_installer = WorkspaceInstaller(
+    workspace_installer = ws_installer(
         ctx.workspace_client,
         ctx.prompts,
         ctx.installation,
@@ -986,7 +1006,7 @@ def test_configure_all_override_installation(ws):
     )
 
 
-def test_runs_upgrades_on_more_recent_version(ws):
+def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
     installation = MockInstallation(
         {
             'version.json': {'version': '0.3.0', 'wheel': '...', 'date': '...'},
@@ -1038,7 +1058,7 @@ def test_runs_upgrades_on_more_recent_version(ws):
         wheels=wheels,
     )
 
-    workspace_installer = WorkspaceInstaller(
+    workspace_installer = ws_installer(
         ctx.workspace_client,
         ctx.prompts,
         ctx.installation,
