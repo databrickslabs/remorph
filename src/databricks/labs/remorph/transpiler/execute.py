@@ -209,16 +209,17 @@ async def _do_transpile(
 
 
 def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
-    # pylint: disable=protected-access
     """
     [Private] Verifies and updates the workspace client configuration.
 
     TODO: In future refactor this function so it can be used for reconcile module without cross access.
     """
-    if workspace_client.config._product != "remorph":
-        workspace_client.config._product = "remorph"
-    if workspace_client.config._product_version != __version__:
-        workspace_client.config._product_version = __version__
+
+    # Using reflection to set right value for _product_info for telemetry
+    product_info = getattr(workspace_client.config, '_product_info')
+    if product_info[0] != "remorph":
+        setattr(workspace_client.config, '_product_info', ('remorph', __version__))
+
     return workspace_client
 
 
