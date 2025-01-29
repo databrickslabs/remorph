@@ -12,7 +12,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-
 class ConfigureAssessment:
     def __init__(self):
         self.prompts = Prompts()
@@ -41,16 +40,14 @@ class ConfigureAssessment:
         product_info = ProductInfo.from_class(RemorphConfigs)
         try:
             "Tracking user agent"
-            ws = WorkspaceClient(
-                profile="remorph_assessment",
-                product=product_info.product_name(),
-                product_version=product_info.version(),
-            )
+            ws = WorkspaceClient(profile="remorph_assessment", product=product_info.product_name(), product_version=product_info.version())
             logger.info(f"Successfully connected to the Databricks workspace. ${ws.current_user.me()}")
         except Exception as e:
             logger.error(f"Failed to connect to the Databricks workspace: {e}")
             raise SystemExit("Connection validation failed. Exiting...")
 
         cred_manager = Credentials(product_info, EnvGetter(False))
+        cred_manager.configure(self.prompts)
+
 
         logger.info("Source details and credentials received.")

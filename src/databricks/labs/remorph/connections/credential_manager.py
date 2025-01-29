@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging
 import yaml
+import shutil
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.blueprint.tui import Prompts
@@ -14,7 +15,8 @@ class Credentials:
     def __init__(self, product_info: ProductInfo, env: EnvGetter) -> None:
         self._product_info = product_info
         self._env = env
-        self._credentials: dict[str, str] = self._load_credentials(self._get_local_version_file_path())
+        self._credential_file = self._get_local_version_file_path()
+        self._credentials: dict[str, str] = self._load_credentials(self._credential_file)
 
     def _get_local_version_file_path(self) -> Path:
         user_home = f"{Path(__file__).home()}"
@@ -50,19 +52,19 @@ class Credentials:
 
         raise ValueError(f"Unsupported secret vault type: {secret_vault_type}")
 
+
+
     def configure(self, prompts: Prompts):
-        cred_file = self._get_local_version_file_path()
+        cred_file = self._credential_file
         source_details = prompts.question("Please enter the source details:")
 
-        # Step 2: Guide the user to documentation around what local vs env means.
         logger.info("Please refer to the documentation to understand the difference between local and env.")
 
-        # Step 3: Based on user response, populate secret_vault_type and secret_vault_name.
         secret_vault_type = prompts.choice(
             "Enter secret vault type (local | databricks | env)", {"local", "env", "databricks"}
         )
         secret_vault_name = prompts.question("Enter secret vault name (or leave blank for none):")
-
+        # Currently covering only MSSQL
         credentials = {
             "secret_vault_type": secret_vault_type,
             "secret_vault_name": secret_vault_name,
@@ -76,6 +78,15 @@ class Credentials:
             },
         }
 
+        if cred_file.exists():
+            backup_filename = cred_file.with_suffix('.bak')
+            shutil.copy(cred_file, backup_filename)
+            logger.debug(f"Backup of the existing file created at {backup_filename}")
+
+
         with open(cred_file, 'w', encoding='utf-8') as file:
             yaml.dump(credentials, file, default_flow_style=False)
-            logger.debug("Credential template created for MSSQL.")
+
+        logger.info("Credential template created for MSSQL.")
+
+
