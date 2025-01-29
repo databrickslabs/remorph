@@ -12,15 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 class Credentials:
-    def __init__(self, product_info: ProductInfo, env: EnvGetter) -> None:
-        self._product_info = product_info
+    def __init__(self, product_name: str, env: EnvGetter) -> None:
+        self._product_name = product_name
         self._env = env
         self._credential_file = self._get_local_version_file_path()
         self._credentials: dict[str, str] = self._load_credentials(self._credential_file)
 
     def _get_local_version_file_path(self) -> Path:
         user_home = f"{Path(__file__).home()}"
-        return Path(f"{user_home}/.databricks/labs/{self._product_info.product_name()}/credentials.yml")
+        return Path(f"{user_home}/.databricks/labs/{self._product_name}/credentials.yml")
 
     def _load_credentials(self, file_path: Path) -> dict[str, str]:
         with open(file_path, encoding="utf-8") as f:
