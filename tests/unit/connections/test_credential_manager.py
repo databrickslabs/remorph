@@ -68,7 +68,7 @@ def test_local_credentials(
     mock_load_credentials, mock_get_local_version_file_path, product_info, local_credentials, env_getter
 ):
     mock_load_credentials.return_value = local_credentials
-    mock_get_local_version_file_path.return_value = Path("/fake/path/to/credentials.yml")
+    mock_get_local_version_file_path.return_value = Path("/fake/path/to/.credentials.yml")
     credentials = Credentials(product_info, env_getter)
     creds = credentials.load('mssql')
     assert creds['user'] == 'local_user'
@@ -82,7 +82,7 @@ def test_env_credentials(
     mock_load_credentials, mock_get_local_version_file_path, product_info, env_credentials, env_getter
 ):
     mock_load_credentials.return_value = env_credentials
-    mock_get_local_version_file_path.return_value = Path("/fake/path/to/credentials.yml")
+    mock_get_local_version_file_path.return_value = Path("/fake/path/to/.credentials.yml")
     env_getter.get.side_effect = lambda key: os.environ[key]
     credentials = Credentials(product_info, env_getter)
     creds = credentials.load('mssql')
@@ -96,7 +96,7 @@ def test_databricks_credentials(
     mock_load_credentials, mock_get_local_version_file_path, product_info, databricks_credentials, env_getter
 ):
     mock_load_credentials.return_value = databricks_credentials
-    mock_get_local_version_file_path.return_value = Path("/fake/path/to/credentials.yml")
+    mock_get_local_version_file_path.return_value = Path("/fake/path/to/.credentials.yml")
     credentials = Credentials(product_info, env_getter)
     with pytest.raises(NotImplementedError):
         credentials.load('mssql')

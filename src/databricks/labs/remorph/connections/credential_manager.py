@@ -19,7 +19,7 @@ class Credentials:
 
     def _get_local_version_file_path(self) -> Path:
         user_home = f"{Path(__file__).home()}"
-        return Path(f"{user_home}/.databricks/labs/{self._product_name}/credentials.yml")
+        return Path(f"{user_home}/.databricks/labs/{self._product_name}/.credentials.yml")
 
     def _load_credentials(self, file_path: Path) -> dict[str, str]:
         with open(file_path, encoding="utf-8") as f:
