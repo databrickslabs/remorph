@@ -115,6 +115,7 @@ class TranspileDocumentRequest:
 @attrs.define
 class TranspileDocumentResult:
     uri: str = attrs.field()
+    language_id: LanguageKind | str = attrs.field()
     changes: Sequence[TextEdit] = attrs.field()
     diagnostics: Sequence[Diagnostic] = attrs.field()
 
