@@ -87,3 +87,10 @@ class DatabaseManager:
 
     def execute_query(self, query: str) -> Result[Any]:
         return self.connector.execute_query(query)
+
+    def connection_test(self) -> bool:
+        query = "SELECT 101 AS test_column"
+        result = self.execute_query(query)
+        row = result.fetchone()
+        return row[0] == 101
+

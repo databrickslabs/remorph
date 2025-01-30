@@ -21,6 +21,8 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
+from databricks.labs.remorph.connections.credential_manager import Credentials
+from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
@@ -294,9 +296,10 @@ if __name__ == "__main__":
 
     prompt = Prompts()
     selected_module = prompt.choice("Select a module to configure:", MODULES)
+    product_name = "remorph"
 
     if selected_module != "assessment":
-        app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
+        app_context = ApplicationContext(WorkspaceClient(product=product_name, product_version=__version__))
         installer = WorkspaceInstaller(
             app_context.workspace_client,
             app_context.prompts,
@@ -307,6 +310,7 @@ if __name__ == "__main__":
             app_context.workspace_installation,
         )
         installer.run(selected_module)
-
-    logger.info("Configuring remorph `assessment`.")
-    ConfigureAssessment("remorph").run()
+    else:
+        logger.info("Configuring remorph `assessment`.")
+        credential_manager = Credentials(product_name, EnvGetter(False))
+        ConfigureAssessment(product_name, prompt, credential_manager).run()

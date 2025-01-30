@@ -15,11 +15,13 @@ _DOC_URL = "https://docs.databricks.com/en/dev-tools/auth/pat.html"
 
 
 class ConfigureAssessment:
-    def __init__(self, product_name: str):
-        self.prompts = Prompts()
+    def __init__(self, product_name: str, prompts: Prompts, cred_manager: Credentials):
+        self.prompts = prompts
         self._product_name = product_name
+        self.cred_manager = cred_manager
 
-    def run(self):
+    def _configure_workspace_auth(self, profile_name: str):
+
         has_workspace = self.prompts.choice("Do you have an existing Databricks workspace?", ["Yes", "No"])
         if has_workspace.lower() == "no":
             logger.info("Please create a Databricks workspace before proceeding.")
@@ -36,7 +38,7 @@ class ConfigureAssessment:
         webbrowser.open(_DOC_URL)
         sleep(3)  # Added sleep for better transition
         logger.info("Please run the following command to configure your Databricks CLI profile")
-        logger.info(f"databricks configure --profile remorph_assessment --host {workspace_url}")
+        logger.info(f"databricks configure --profile {profile_name} --host {workspace_url}")
 
         if not self.prompts.confirm("Confirm that you have created the profile"):
             logger.error("Please create the profile and try again.")
@@ -46,7 +48,7 @@ class ConfigureAssessment:
 
         try:
             # Tracking user agent
-            ws = WorkspaceClient(profile="remorph_assessment", product=self._product_name, product_version=__version__)
+            ws = WorkspaceClient(profile=profile_name, product=self._product_name, product_version=__version__)
             curr_user = ws.current_user.me()
             logger.debug(f"User Details: ${curr_user}")
             logger.info("Successfully connected to the Databricks workspace.")
@@ -54,20 +56,24 @@ class ConfigureAssessment:
             logger.error(f"Failed to connect to the Databricks workspace: {e}")
             raise SystemExit("Connection validation failed. Exiting...") from e
 
-        cred_manager = Credentials(self._product_name, EnvGetter(False))
-        source = cred_manager.configure(self.prompts)
+    def _configure_source_credentials(self):
+        source = self.cred_manager.configure(self.prompts)
 
         if self.prompts.confirm("Do you test the connection to the source system?"):
-            config = cred_manager.load(source)
+            config = self.cred_manager.load(source)
             try:
                 db_manager = DatabaseManager(source, config)
-                query = "SELECT 101 AS test_column"
-                result = db_manager.execute_query(query)
-                row = result.fetchone()
-                assert row[0] == 101
-                logger.info("Successfully connected to the source system.")
+                db_manager.connection_test()
             except ConnectionError as e:
                 logger.error(f"Failed to connect to the source system: {e}")
                 raise SystemExit("Connection validation failed. Exiting...") from e
 
         logger.info("Source details and credentials received.")
+
+    def run(self):
+        self._configure_workspace_auth("remorph_assessment")
+
+        self._configure_source_credentials()
+
+
+

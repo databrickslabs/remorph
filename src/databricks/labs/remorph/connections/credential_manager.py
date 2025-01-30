@@ -58,13 +58,16 @@ class Credentials:
         source = str(prompts.question("Please enter the source system name (e.g. MSSQL, Snowflake, etc.)")).lower()
 
         secret_vault_type = str(
-            prompts.choice("Enter secret vault type (local | databricks | env)", ["local", "env", "databricks"])
+            prompts.choice("Enter secret vault type (local | env | databricks)\n"
+                           "local means values are read as plain text \n"
+                           "env means values are read from environment variables fall back to plain text if not found\n",
+                           ["local", "env" ])
+
         ).lower()
 
         secret_vault_name = None
 
-        if secret_vault_type == 'databricks':
-            secret_vault_name = prompts.question("Enter secret scope name")
+        #TODO Implement Databricks secret vault
 
         logger.info("Please refer to the documentation to understand the difference between local and env.")
 
@@ -91,4 +94,5 @@ class Credentials:
             yaml.dump(credentials, file, default_flow_style=False)
 
         logger.info("Credential template created for MSSQL.")
+
         return source
