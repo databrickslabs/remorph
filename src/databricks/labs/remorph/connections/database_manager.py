@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 logger = logging.getLogger(__name__)
+logger.setLevel("INFO")
 
 
 class _ISourceSystemConnector(ABC):
