@@ -20,8 +20,8 @@ class ConfigureAssessment:
         self._product_name = product_name
 
     def run(self):
-        has_workspace = bool(self.prompts.choice("Do you have an existing Databricks workspace?", ["Yes", "No"]))
-        if not has_workspace:
+        has_workspace = self.prompts.choice("Do you have an existing Databricks workspace?", ["Yes", "No"])
+        if has_workspace.lower() == "no":
             logger.info("Please create a Databricks workspace before proceeding.")
             raise SystemExit(
                 "Current version of Remorph Assessment requires a Databricks workspace Contact your Account Rep."
