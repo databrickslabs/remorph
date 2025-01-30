@@ -59,7 +59,7 @@ class ConfigureAssessment:
         if self.prompts.confirm("Do you test the connection to the source system?"):
             config = cred_manager.load(source)
             try:
-                db_manager = DatabaseManager("mssql", config)
+                db_manager = DatabaseManager(source, config)
                 query = "SELECT 101 AS test_column"
                 result = db_manager.execute_query(query)
                 row = result.fetchone()
