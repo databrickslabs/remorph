@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 MODULES = sorted({"assessment", "transpile", "reconcile", "all"})
+PRODUCT_NAME = "remorph"
 
 
 class WorkspaceInstaller:
@@ -296,10 +297,9 @@ if __name__ == "__main__":
 
     prompt = Prompts()
     selected_module = prompt.choice("Select a module to configure:", MODULES)
-    product_name = "remorph"
 
     if selected_module != "assessment":
-        app_context = ApplicationContext(WorkspaceClient(product=product_name, product_version=__version__))
+        app_context = ApplicationContext(WorkspaceClient(product=PRODUCT_NAME, product_version=__version__))
         installer = WorkspaceInstaller(
             app_context.workspace_client,
             app_context.prompts,
@@ -312,5 +312,5 @@ if __name__ == "__main__":
         installer.run(selected_module)
     else:
         logger.info("Configuring remorph `assessment`.")
-        credential_manager = Credentials(product_name, EnvGetter(False))
-        ConfigureAssessment(product_name, prompt, credential_manager).run()
+        credential_manager = Credentials(PRODUCT_NAME, EnvGetter(False))
+        ConfigureAssessment(PRODUCT_NAME, prompt, credential_manager).run()

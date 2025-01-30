@@ -58,16 +58,17 @@ class Credentials:
         source = str(prompts.question("Please enter the source system name (e.g. MSSQL, Snowflake, etc.)")).lower()
 
         secret_vault_type = str(
-            prompts.choice("Enter secret vault type (local | env | databricks)\n"
-                           "local means values are read as plain text \n"
-                           "env means values are read from environment variables fall back to plain text if not found\n",
-                           ["local", "env" ])
-
+            prompts.choice(
+                "Enter secret vault type (local | env | databricks)\n"
+                "local means values are read as plain text \n"
+                "env means values are read from environment variables fall back to plain text if not found\n",
+                ["local", "env"],
+            )
         ).lower()
 
         secret_vault_name = None
 
-        #TODO Implement Databricks secret vault
+        # TODO Implement Databricks secret vault
 
         logger.info("Please refer to the documentation to understand the difference between local and env.")
 

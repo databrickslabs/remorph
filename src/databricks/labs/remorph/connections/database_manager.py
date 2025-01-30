@@ -92,5 +92,6 @@ class DatabaseManager:
         query = "SELECT 101 AS test_column"
         result = self.execute_query(query)
         row = result.fetchone()
+        if row is None:
+            return False
         return row[0] == 101
-

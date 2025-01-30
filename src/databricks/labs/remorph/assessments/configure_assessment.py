@@ -7,7 +7,6 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph import __version__
 from databricks.labs.remorph.connections.credential_manager import Credentials
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
-from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -74,6 +73,3 @@ class ConfigureAssessment:
         self._configure_workspace_auth("remorph_assessment")
 
         self._configure_source_credentials()
-
-
-
