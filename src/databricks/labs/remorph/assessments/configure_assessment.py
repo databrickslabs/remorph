@@ -47,8 +47,9 @@ class ConfigureAssessment:
         try:
             # Tracking user agent
             ws = WorkspaceClient(profile="remorph_assessment", product=self._product_name, product_version=__version__)
+            curr_user = ws.current_user.me()
+            logger.debug(f"User Details: ${curr_user}")
             logger.info("Successfully connected to the Databricks workspace.")
-            logger.debug(f"User Details: ${ws.current_user.me()}")
         except Exception as e:
             logger.error(f"Failed to connect to the Databricks workspace: {e}")
             raise SystemExit("Connection validation failed. Exiting...") from e
