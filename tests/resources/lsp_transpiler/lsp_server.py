@@ -25,6 +25,7 @@ from lsprotocol.types import (
     METHOD_TO_TYPES,
     _SPECIAL_PROPERTIES,
     DiagnosticSeverity,
+    LanguageKind,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -44,7 +45,7 @@ TRANSPILE_TO_DATABRICKS_CAPABILITY = {"id": str(uuid4()), "method": TRANSPILE_TO
 @attrs.define
 class TranspileDocumentParams:
     uri: str = attrs.field()
-    language_id: str = attrs.field()
+    language_id: LanguageKind | str = attrs.field()
 
 
 @attrs.define
@@ -60,7 +61,7 @@ class TranspileDocumentRequest:
 @attrs.define
 class TranspileDocumentResult:
     uri: str = attrs.field()
-    language_id: str = attrs.field() #
+    language_id: LanguageKind | str = attrs.field()  #
     changes: Sequence[TextEdit] = attrs.field()
     diagnostics: Sequence[Diagnostic] = attrs.field()
 
@@ -118,7 +119,9 @@ class TestLspServer(LanguageServer):
         range = Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1])))
         transpiled_sql, diagnostics = self._transpile(Path(params.uri).name, range, source_sql)
         changes = [TextEdit(range=range, new_text=transpiled_sql)]
-        return TranspileDocumentResult(uri=params.uri, language_id=LanguageKind.Sql, changes=changes, diagnostics=diagnostics)
+        return TranspileDocumentResult(
+            uri=params.uri, language_id=LanguageKind.Sql, changes=changes, diagnostics=diagnostics
+        )
 
     def _transpile(self, file_name: str, lsp_range: Range, source_sql: str) -> tuple[str, list[Diagnostic]]:
         if file_name == "no_transpile.sql":
