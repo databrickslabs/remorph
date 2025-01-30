@@ -9,6 +9,7 @@ from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
@@ -20,16 +21,20 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
+from databricks.labs.remorph.connections.credential_manager import Credentials
+from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
+
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"transpile", "reconcile", "all"})
+MODULES = sorted({"assessment", "transpile", "reconcile", "all"})
+PRODUCT_NAME = "remorph"
 
 
 class WorkspaceInstaller:
@@ -61,20 +66,20 @@ class WorkspaceInstaller:
 
     def run(
         self,
+        module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
-            config = self.configure()
+            config = self.configure(module)
         if self._is_testing():
             return config
         self._ws_installation.install(config)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
         return config
 
-    def configure(self, module: str | None = None) -> RemorphConfigs:
-        selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
-        match selected_module:
+    def configure(self, module: str) -> RemorphConfigs:
+        match module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
                 return RemorphConfigs(self._configure_transpile(), None)
@@ -88,7 +93,7 @@ class WorkspaceInstaller:
                     self._configure_reconcile(),
                 )
             case _:
-                raise ValueError(f"Invalid input: {selected_module}")
+                raise ValueError(f"Invalid input: {module}")
 
     def _is_testing(self):
         return self._product_info.product_name() != "remorph"
@@ -290,14 +295,22 @@ if __name__ == "__main__":
     if is_in_debug():
         logging.getLogger("databricks").setLevel(logging.DEBUG)
 
-    app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
-    installer = WorkspaceInstaller(
-        app_context.workspace_client,
-        app_context.prompts,
-        app_context.installation,
-        app_context.install_state,
-        app_context.product_info,
-        app_context.resource_configurator,
-        app_context.workspace_installation,
-    )
-    installer.run()
+    prompt = Prompts()
+    selected_module = prompt.choice("Select a module to configure:", MODULES)
+
+    if selected_module != "assessment":
+        app_context = ApplicationContext(WorkspaceClient(product=PRODUCT_NAME, product_version=__version__))
+        installer = WorkspaceInstaller(
+            app_context.workspace_client,
+            app_context.prompts,
+            app_context.installation,
+            app_context.install_state,
+            app_context.product_info,
+            app_context.resource_configurator,
+            app_context.workspace_installation,
+        )
+        installer.run(selected_module)
+    else:
+        logger.info("Configuring remorph `assessment`.")
+        credential_manager = Credentials(PRODUCT_NAME, EnvGetter(False))
+        ConfigureAssessment(PRODUCT_NAME, prompt, credential_manager).run()

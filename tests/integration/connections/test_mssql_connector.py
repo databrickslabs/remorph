@@ -5,8 +5,6 @@ import pytest
 
 from databricks.labs.remorph.connections.credential_manager import Credentials
 from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
-from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 
@@ -32,7 +30,7 @@ def mock_credentials():
 
 @pytest.fixture(scope="module")
 def db_manager(mock_credentials):
-    config = Credentials(ProductInfo.from_class(RemorphConfigs), EnvGetter(True)).load("mssql")
+    config = Credentials("remorph", EnvGetter(True)).load("mssql")
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
 
