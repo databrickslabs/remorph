@@ -80,7 +80,7 @@ class SqlglotEngine(TranspileEngine):
         read_dialect = get_dialect(source_dialect)
         error: TranspileError | None = self._check_supported(read_dialect, source_code, file_path)
         if error:
-            return TranspileResult(str(file_path), 1, [error])
+            return TranspileResult(source_code, 1, [error])
         write_dialect = get_dialect(target_dialect)
         try:
             transpiled_expressions = transpile(
