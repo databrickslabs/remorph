@@ -1,3 +1,5 @@
+import abc
+import configparser
 import dataclasses
 from json import loads, dumps
 import logging
@@ -12,6 +14,7 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
+import yaml
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
@@ -33,18 +36,182 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 MODULES = sorted({"transpile", "reconcile", "all"})
-LABS_PATH = Path.home() / ".databricks" / "labs"
-TRANSPILERS_PATH = LABS_PATH / "remorph-transpilers"
-OSS_TRANSPILER_NAME = "remorph-community-transpiler"
-OSS_TRANSPILER_PYPI_NAME = f"databricks-labs-{OSS_TRANSPILER_NAME}"
-MORPHEUS_TRANSPILER_NAME = "morpheus"
-MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
+
+
+class TranspilerInstaller(abc.ABC):
+
+    @classmethod
+    def labs_path(cls):
+        return Path.home() / ".databricks" / "labs"
+
+    @classmethod
+    def transpilers_path(cls):
+        return cls.labs_path() / "remorph-transpilers"
+
+    @classmethod
+    def resources_folder(cls):
+        return Path(__file__).parent / "resources" / "transpilers"
+
+    @classmethod
+    def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
+        product_path = (cls.transpilers_path() if is_transpiler else cls.labs_path()) / product_name
+        current_version_path = product_path / "state" / "version.json"
+        if not current_version_path.exists():
+            return None
+        text = current_version_path.read_text("utf-8")
+        data: dict[str, Any] = loads(text)
+        version: str | None = data.get("version", None)
+        if not version or not version.startswith("v"):
+            return None
+        return version[1:]
+
+    @classmethod
+    def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
+        url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+        with request.urlopen(url) as server:
+            text = server.read()
+        data: dict[str, Any] = loads(text)
+        return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+
+    @classmethod
+    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+        group_id = group_id.replace(".", "/")
+        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
+        try:
+            path, message = request.urlretrieve(url)
+            if path:
+                move(path, str(target))
+                return 0
+            logger.error(message)
+            return -1
+        except URLError as e:
+            logger.error("While downloading from maven", exc_info=e)
+            return -1
+
+    @classmethod
+    def get_pypi_version(cls, product_name: str) -> str | None:
+        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+            text = server.read()
+        data: dict[str, Any] = loads(text)
+        return data.get("info", {}).get('version', None)
+
+    @classmethod
+    def install_from_pypi(cls, product_name: str, pypi_name: str):
+        current_version = cls.get_installed_version(product_name)
+        latest_version = cls.get_pypi_version(pypi_name)
+        if current_version == latest_version:
+            logger.info(f"{pypi_name} v{latest_version} already installed")
+            return
+        logger.info(f"Installing {pypi_name} v{latest_version}")
+        product_path = cls.transpilers_path() / product_name
+        if current_version is not None:
+            product_path.rename(f"{product_name}-saved")
+        install_path = product_path / "lib"
+        install_path.mkdir()
+        args = ["pip", "install", pypi_name, "-t", str(install_path)]
+        state_path = product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
+        version_path = state_path / "version.json"
+        try:
+            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, check=True)
+            version_path.write_text(dumps(version_data), "utf-8")
+            logger.info(f"Successfully installed {pypi_name} v{latest_version}")
+            if current_version is not None:
+                rmtree(f"{product_path!s}-saved")
+        except CalledProcessError as e:
+            logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
+            if current_version is not None:
+                rmtree(str(product_path))
+                renamed = Path(f"{product_path!s}-saved")
+                renamed.rename(product_path.name)
+
+    @classmethod
+    def  all_transpiler_configs(cls) -> dict[str, LSPConfig]:
+        all_files = os.listdir(cls.transpilers_path())
+        all_configs = [cls._transpiler_config(cls.transpilers_path() / file) for file in all_files]
+        return { config.name: config for config in  filter(lambda _: _ is not None, all_configs)}
+
+    @classmethod
+    def all_transpiler_names(cls) -> set[str]:
+        all_configs = cls.all_transpiler_configs()
+        return set(all_configs.keys())
+
+    @classmethod
+    def _transpiler_config(cls, path: Path) -> LSPConfig | None:
+        try:
+            return LSPConfig.load(path / "config.yml")
+        except:
+            return None
+
+    @classmethod
+    def all_dialects(cls):
+        all_dialects: set[str] = set()
+        for config in cls.all_transpiler_configs().values():
+            all_dialects = all_dialects.union(config.remorph.dialects)
+        return all_dialects
+
+    @classmethod
+    def transpilers_with_dialect(cls, dialect: str) -> set[str]:
+        configs = filter(lambda cfg: dialect in cfg.remorph.dialects, cls.all_transpiler_configs().values())
+        return set(config.name for config in configs)
+
+
+
+class RCTInstaller(TranspilerInstaller):
+    RCT_TRANSPILER_NAME = "remorph-community-transpiler"
+    RCT_TRANSPILER_PYPI_NAME = f"databricks-labs-{RCT_TRANSPILER_NAME}"
+
+    @classmethod
+    def install(cls):
+        cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+
+
+class MorpheusInstaller(TranspilerInstaller):
+    MORPHEUS_TRANSPILER_NAME = "morpheus"
+    MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
+
+    @classmethod
+    def install(cls):
+        current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
+        latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
+        if current_version == latest_version:
+            logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
+            return
+        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
+        product_path = cls.TRANSPILERS_PATH / cls.MORPHEUS_TRANSPILER_NAME
+        if current_version is not None:
+            product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
+        install_path = product_path / "lib"
+        install_path.mkdir()
+        return_code = cls.download_from_maven(
+            cls.MORPHEUS_TRANSPILER_GROUP_NAME,
+            cls.MORPHEUS_TRANSPILER_NAME,
+            latest_version,
+            install_path / f"{cls.MORPHEUS_TRANSPILER_NAME}.jar",
+        )
+        if return_code == 0:
+            state_path = product_path / "state"
+            state_path.mkdir()
+            version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
+            version_path = state_path / "version.json"
+            version_path.write_text(dumps(version_data), "utf-8")
+            logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
+            if current_version is not None:
+                rmtree(f"{product_path!s}-saved")
+        else:
+            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
+            if current_version is not None:
+                rmtree(str(product_path))
+                renamed = Path(f"{product_path!s}-saved")
+                renamed.rename(product_path.name)
 
 
 class WorkspaceInstaller:
@@ -78,7 +245,7 @@ class WorkspaceInstaller:
         self,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        self.install_community_transpiler()
+        self.install_rct()
         self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
@@ -90,113 +257,12 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
+    def install_rct(cls):
+        RCTInstaller.install()
+
+    @classmethod
     def install_morpheus(cls):
-        current_version = cls.get_installed_version(MORPHEUS_TRANSPILER_NAME)
-        latest_version = cls.get_maven_version(MORPHEUS_TRANSPILER_GROUP_NAME, MORPHEUS_TRANSPILER_NAME)
-        if current_version == latest_version:
-            logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
-            return
-        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
-        product_path = TRANSPILERS_PATH / MORPHEUS_TRANSPILER_NAME
-        if current_version is not None:
-            product_path.rename(f"{MORPHEUS_TRANSPILER_NAME}-saved")
-        install_path = product_path / "lib"
-        install_path.mkdir()
-        return_code = cls.download_from_maven(
-            MORPHEUS_TRANSPILER_GROUP_NAME,
-            MORPHEUS_TRANSPILER_NAME,
-            latest_version,
-            install_path / f"{MORPHEUS_TRANSPILER_NAME}.jar",
-        )
-        if return_code == 0:
-            state_path = product_path / "state"
-            state_path.mkdir()
-            version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
-            version_path = state_path / "version.json"
-            version_path.write_text(dumps(version_data), "utf-8")
-            logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
-            if current_version is not None:
-                rmtree(f"{product_path!s}-saved")
-        else:
-            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
-            if current_version is not None:
-                rmtree(str(product_path))
-                renamed = Path(f"{product_path!s}-saved")
-                renamed.rename(product_path.name)
-
-    @classmethod
-    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
-        group_id = group_id.replace(".", "/")
-        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
-        try:
-            path, message = request.urlretrieve(url)
-            if path:
-                move(path, str(target))
-                return 0
-            logger.error(message)
-            return -1
-        except URLError as e:
-            logger.error("While downloading from maven", exc_info=e)
-            return -1
-
-    @classmethod
-    def install_community_transpiler(cls):
-        current_version = cls.get_installed_version(OSS_TRANSPILER_NAME)
-        latest_version = cls.get_pypi_version(OSS_TRANSPILER_PYPI_NAME)
-        if current_version == latest_version:
-            logger.info(f"Remorph community transpiler v{latest_version} already installed")
-            return
-        logger.info(f"Installing Remorph community transpiler v{latest_version}")
-        product_path = TRANSPILERS_PATH / OSS_TRANSPILER_NAME
-        if current_version is not None:
-            product_path.rename(f"{OSS_TRANSPILER_NAME}-saved")
-        install_path = product_path / "lib"
-        install_path.mkdir()
-        args = ["pip", "install", OSS_TRANSPILER_PYPI_NAME, "-t", str(install_path)]
-        state_path = product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
-        version_path = state_path / "version.json"
-        try:
-            run(args, sys.stdin, sys.stdout, sys.stderr, check=True)
-            version_path.write_text(dumps(version_data), "utf-8")
-            logger.info(f"Successfully installed Remorph community transpiler v{latest_version}")
-            if current_version is not None:
-                rmtree(f"{product_path!s}-saved")
-        except CalledProcessError as e:
-            logger.info(f"Failed to install Remorph community transpiler v{latest_version}", exc_info=e)
-            if current_version is not None:
-                rmtree(str(product_path))
-                renamed = Path(f"{product_path!s}-saved")
-                renamed.rename(product_path.name)
-
-    @classmethod
-    def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
-        url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-        with request.urlopen(url) as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("response", {}).get('docs', [{}])[0].get("v", None)
-
-    @classmethod
-    def get_pypi_version(cls, product_name: str) -> str | None:
-        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("info", {}).get('version', None)
-
-    @classmethod
-    def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
-        product_path = (TRANSPILERS_PATH if is_transpiler else LABS_PATH) / product_name
-        current_version_path = product_path / "state" / "version.json"
-        if not current_version_path.exists():
-            return None
-        text = current_version_path.read_text("utf-8")
-        data: dict[str, Any] = loads(text)
-        version: str | None = data.get("version", None)
-        if not version or not version.startswith("v"):
-            return None
-        return version[1:]
+        MorpheusInstaller.install()
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
         selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)

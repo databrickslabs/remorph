@@ -1,5 +1,6 @@
 remorph:
   version: 1
+  name: Morpheus
   dialects:
     - snowflake
     - tsql

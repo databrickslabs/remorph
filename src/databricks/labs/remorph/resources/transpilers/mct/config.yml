@@ -1,5 +1,6 @@
 remorph:
   version: 1
+  name: Remorph Community Transpiler
   dialects:
     - athena
     - bigquery

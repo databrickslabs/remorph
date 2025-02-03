@@ -35,11 +35,11 @@ def ws_installer():
         # TODO the below methods currently raise a 404 because the artifacts don't exist yet
         # TODO remove this once they are available !!!
         @classmethod
-        def install_morpheus(cls):
+        def install_rct(cls):
             pass
 
         @classmethod
-        def install_community_transpiler(cls):
+        def install_morpheus(cls):
             pass
 
     def installer(*args, **kwargs) -> WorkspaceInstaller:

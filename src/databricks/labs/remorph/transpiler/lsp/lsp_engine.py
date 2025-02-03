@@ -56,6 +56,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class _LSPRemorphConfigV1:
+    name: str
     dialects: list[str]
     env_vars: dict[str, str]
     command_line: list[str]
@@ -65,17 +66,43 @@ class _LSPRemorphConfigV1:
         version = data.get("version", 0)
         if version != 1:
             raise ValueError(f"Unsupported transpiler config version: {version}")
+        name: str | None = data.get("name", None)
+        if not name:
+            raise ValueError("Missing 'name' entry")
         dialects = data.get("dialects", [])
         if len(dialects) == 0:
-            raise ValueError("Missing dialects entry")
+            raise ValueError("Missing 'dialects' entry")
         env_list = data.get("environment", [])
         env_vars: dict[str, str] = {}
         for env_var in env_list:
             env_vars = env_vars | env_var
         command_line = data.get("command_line", [])
         if len(command_line) == 0:
-            raise ValueError("Missing command_line entry")
-        return _LSPRemorphConfigV1(dialects, env_vars, command_line)
+            raise ValueError("Missing 'command_line' entry")
+        return _LSPRemorphConfigV1(name, dialects, env_vars, command_line)
+
+@dataclass
+class LSPConfig:
+    remorph: _LSPRemorphConfigV1
+    custom: dict[str, Any]
+
+    @property
+    def name(self):
+        return self.remorph.name
+
+    @classmethod
+    def load(cls, path: Path) -> LSPConfig:
+        yaml_text = path.read_text()
+        data = yaml.safe_load(yaml_text)
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid transpiler config, expecting a dict, got a {type(data).__name__}")
+        remorph_data = data.get("remorph", None)
+        if not isinstance(remorph_data, dict):
+            raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph_data}")
+        remorph = _LSPRemorphConfigV1.parse(remorph_data)
+        custom = data.get("custom", {})
+        return LSPConfig(remorph, custom)
+
 
 
 def lsp_feature(
@@ -304,31 +331,18 @@ class LSPEngine(TranspileEngine):
 
     @classmethod
     def from_config_path(cls, config_path: Path) -> LSPEngine:
-        config, custom = cls._load_config(config_path)
-        return LSPEngine(config_path.parent, config, custom)
+        config = LSPConfig.load(config_path)
+        return LSPEngine(config_path.parent, config)
 
-    @classmethod
-    def _load_config(cls, config_path: Path) -> tuple[_LSPRemorphConfigV1, dict[str, Any]]:
-        yaml_text = config_path.read_text()
-        data = yaml.safe_load(yaml_text)
-        if not isinstance(data, dict):
-            raise ValueError(f"Invalid transpiler config, expecting a dict, got a {type(data).__name__}")
-        remorph = data.get("remorph", None)
-        if not isinstance(remorph, dict):
-            raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph}")
-        config = _LSPRemorphConfigV1.parse(remorph)
-        return config, data.get("custom", {})
-
-    def __init__(self, workdir: Path, config: _LSPRemorphConfigV1, custom: dict[str, Any]):
+    def __init__(self, workdir: Path, config: LSPConfig):
         self._workdir = workdir
         self._config = config
-        self._custom = custom
         self._client = _LanguageClient()
         self._init_response: InitializeResult | None = None
 
     @property
     def supported_dialects(self) -> list[str]:
-        return self._config.dialects
+        return self._config.remorph.dialects
 
     @property
     def server_has_transpile_capability(self) -> bool:
@@ -347,11 +361,11 @@ class LSPEngine(TranspileEngine):
             os.chdir(cwd)
 
     async def _do_initialize(self, config: TranspileConfig) -> None:
-        executable = self._config.command_line[0]
+        executable = self._config.remorph.command_line[0]
         env = deepcopy(os.environ)
-        for name, value in self._config.env_vars.items():
+        for name, value in self._config.remorph.env_vars.items():
             env[name] = value
-        args = self._config.command_line[1:]
+        args = self._config.remorph.command_line[1:]
         await self._client.start_io(executable, env=env, *args)
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
@@ -370,7 +384,7 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
-            "custom": self._custom,
+            "custom": self._config.custom,
         }
 
     async def shutdown(self):
