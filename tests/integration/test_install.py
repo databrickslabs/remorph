@@ -34,7 +34,7 @@ def mock_transpiler_folder():
     with TemporaryDirectory() as tmpdir:
         folder = Path(tmpdir)
         folder.mkdir(exist_ok=True)
-        for transpiler in { "mct", "morpheus" }:
+        for transpiler in ("mct", "morpheus"):
             target = folder / transpiler
             target.mkdir(exist_ok=True)
             target = target / "config.yml"
@@ -52,7 +52,22 @@ def test_lists_all_transpiler_names(mock_transpiler_folder):
 def test_lists_all_dialects(mock_transpiler_folder):
     TranspilerInstaller.transpilers_path = lambda: mock_transpiler_folder
     dialects = TranspilerInstaller.all_dialects()
-    assert dialects == { "athena", "bigquery", "mysql", "netezza", "oracle", "postgresql", "presto", "redshift", "snowflake", "sqlite", "teradata", "trino", "tsql", "vertica" }
+    assert dialects == {
+        "athena",
+        "bigquery",
+        "mysql",
+        "netezza",
+        "oracle",
+        "postgresql",
+        "presto",
+        "redshift",
+        "snowflake",
+        "sqlite",
+        "teradata",
+        "trino",
+        "tsql",
+        "vertica",
+    }
 
 
 def test_lists_dialect_transpilers(mock_transpiler_folder):

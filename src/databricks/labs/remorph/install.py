@@ -1,6 +1,6 @@
 import abc
-import configparser
 import dataclasses
+from collections.abc import Iterable
 from json import loads, dumps
 import logging
 import os
@@ -14,7 +14,6 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
-import yaml
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
@@ -134,10 +133,9 @@ class TranspilerInstaller(abc.ABC):
                 renamed.rename(product_path.name)
 
     @classmethod
-    def  all_transpiler_configs(cls) -> dict[str, LSPConfig]:
-        all_files = os.listdir(cls.transpilers_path())
-        all_configs = [cls._transpiler_config(cls.transpilers_path() / file) for file in all_files]
-        return { config.name: config for config in  filter(lambda _: _ is not None, all_configs)}
+    def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
+        all_configs = cls._all_transpiler_configs()
+        return {config.name: config for config in all_configs}
 
     @classmethod
     def all_transpiler_names(cls) -> set[str]:
@@ -145,16 +143,9 @@ class TranspilerInstaller(abc.ABC):
         return set(all_configs.keys())
 
     @classmethod
-    def _transpiler_config(cls, path: Path) -> LSPConfig | None:
-        try:
-            return LSPConfig.load(path / "config.yml")
-        except:
-            return None
-
-    @classmethod
     def all_dialects(cls):
         all_dialects: set[str] = set()
-        for config in cls.all_transpiler_configs().values():
+        for config in cls._all_transpiler_configs():
             all_dialects = all_dialects.union(config.remorph.dialects)
         return all_dialects
 
@@ -163,6 +154,20 @@ class TranspilerInstaller(abc.ABC):
         configs = filter(lambda cfg: dialect in cfg.remorph.dialects, cls.all_transpiler_configs().values())
         return set(config.name for config in configs)
 
+    @classmethod
+    def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
+        all_files = os.listdir(cls.transpilers_path())
+        for file in all_files:
+            config = cls._transpiler_config(cls.transpilers_path() / file)
+            if config:
+                yield config
+
+    @classmethod
+    def _transpiler_config(cls, path: Path) -> LSPConfig | None:
+        try:
+            return LSPConfig.load(path / "config.yml")
+        except ValueError:
+            return None
 
 
 class RCTInstaller(TranspilerInstaller):
@@ -186,7 +191,7 @@ class MorpheusInstaller(TranspilerInstaller):
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
         logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
-        product_path = cls.TRANSPILERS_PATH / cls.MORPHEUS_TRANSPILER_NAME
+        product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
         if current_version is not None:
             product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
         install_path = product_path / "lib"

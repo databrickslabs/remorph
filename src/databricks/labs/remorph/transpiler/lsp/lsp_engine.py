@@ -81,6 +81,7 @@ class _LSPRemorphConfigV1:
             raise ValueError("Missing 'command_line' entry")
         return _LSPRemorphConfigV1(name, dialects, env_vars, command_line)
 
+
 @dataclass
 class LSPConfig:
     remorph: _LSPRemorphConfigV1
@@ -102,7 +103,6 @@ class LSPConfig:
         remorph = _LSPRemorphConfigV1.parse(remorph_data)
         custom = data.get("custom", {})
         return LSPConfig(remorph, custom)
-
 
 
 def lsp_feature(
