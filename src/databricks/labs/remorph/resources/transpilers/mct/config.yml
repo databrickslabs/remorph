@@ -1,0 +1,22 @@
+remorph:
+  version: 1
+  dialects:
+    - athena
+    - bigquery
+    - mysql
+    - netezza
+    - oracle
+    - postgresql
+    - presto
+    - redshift
+    - snowflake
+    - sqlite
+    - teradata
+    - trino
+    - tsql
+    - vertica
+  command_line:
+    - python
+    - databricks/labs/remorph/transpiler/server.py
+custom:
+  experimental: true

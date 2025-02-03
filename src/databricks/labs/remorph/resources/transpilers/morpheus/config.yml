@@ -1,0 +1,9 @@
+remorph:
+  version: 1
+  dialects:
+    - snowflake
+    - tsql
+  command_line:
+    - java
+    - '-jar'
+    - morpheus-lsp.jar
