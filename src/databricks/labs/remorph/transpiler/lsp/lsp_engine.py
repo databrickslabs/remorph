@@ -84,6 +84,7 @@ class _LSPRemorphConfigV1:
 
 @dataclass
 class LSPConfig:
+    path: Path
     remorph: _LSPRemorphConfigV1
     custom: dict[str, Any]
 
@@ -102,7 +103,7 @@ class LSPConfig:
             raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph_data}")
         remorph = _LSPRemorphConfigV1.parse(remorph_data)
         custom = data.get("custom", {})
-        return LSPConfig(remorph, custom)
+        return LSPConfig(path, remorph, custom)
 
 
 def lsp_feature(

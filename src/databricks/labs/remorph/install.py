@@ -36,7 +36,6 @@ from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +154,11 @@ class TranspilerInstaller(abc.ABC):
         return set(config.name for config in configs)
 
     @classmethod
+    def transpiler_config_path(cls, transpiler_name):
+        config = cls.all_transpiler_configs()[transpiler_name]
+        return f"{config.path!s}"
+
+    @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
         all_files = os.listdir(cls.transpilers_path())
         for file in all_files:
@@ -168,6 +172,7 @@ class TranspilerInstaller(abc.ABC):
             return LSPConfig.load(path / "config.yml")
         except ValueError:
             return None
+
 
 
 class RCTInstaller(TranspilerInstaller):
@@ -330,10 +335,26 @@ class WorkspaceInstaller:
         self._save_config(config)
         return config
 
+    def _all_installed_dialects(self):
+        return sorted(TranspilerInstaller.all_dialects())
+
+    def _transpilers_with_dialect(self, dialect: str):
+        return sorted(TranspilerInstaller.transpilers_with_dialect(dialect))
+
+    def _transpiler_config_path(self, transpiler: str):
+        return TranspilerInstaller.transpiler_config_path(transpiler)
+
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        transpiler = self._prompts.question("Enter path to the transpiler configuration file", default="sqlglot")
-        source_dialect = self._prompts.choice("Select the source dialect:", list(SQLGLOT_DIALECTS.keys()))
+        all_dialects = self._all_installed_dialects()
+        source_dialect = self._prompts.choice("Select the source dialect:", all_dialects)
+        transpilers = self._transpilers_with_dialect(source_dialect)
+        if len(transpilers) > 1:
+            transpiler_name = self._prompts.choice("Select the transpiler:", transpilers)
+        else:
+            transpiler_name = next(t for t in transpilers)
+            logger.info(f"Remorph will use the {transpiler_name} transpiler")
+        transpiler_config_path = self._transpiler_config_path(transpiler_name)
         input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
@@ -342,7 +363,7 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            transpiler_config_path=transpiler,
+            transpiler_config_path=transpiler_config_path,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
             mode="current",  # mode will not have a prompt as this is a hidden flag
