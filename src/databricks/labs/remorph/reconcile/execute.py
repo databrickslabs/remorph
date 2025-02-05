@@ -735,7 +735,7 @@ class Reconciliation:
             options=None,
         )
 
-        df = mismatch_sampler.sample(mismatch, key_columns, sampling_model_target)
+        df = mismatch_sampler.sample(mismatch, key_columns, sampling_model_target).cache()
 
         src_mismatch_sample_query = src_sampler.build_query(df)
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)
