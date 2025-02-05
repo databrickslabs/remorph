@@ -2,7 +2,7 @@
 name: remorph
 description: Code Transpiler and Data Reconciliation tool for Accelerating Data onboarding to Databricks from EDW, CDW and other ETL sources.
 install:
-  script: src/databricks/labs/remorph/install.py
+  script: src/databricks/labs/remorph/base_install.py
 uninstall:
   script: src/databricks/labs/remorph/uninstall.py
 entrypoint: src/databricks/labs/remorph/cli.py
@@ -63,3 +63,9 @@ commands:
     description: Utility to setup Scope and Secrets on Databricks Workspace
   - name: debug-me
     description: "[INTERNAL] Debug SDK connectivity"
+  - name: install-assessment
+    description: "Install Assessment"
+  - name: install-transpile
+    description: "Install Transpile"
+  - name: install-reconcile
+    description: "Install Reconcile"

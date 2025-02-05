@@ -3,7 +3,6 @@ import logging
 import os
 import webbrowser
 
-from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
@@ -13,7 +12,6 @@ from databricks.labs.remorph.assessments.configure_assessment import ConfigureAs
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
-from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
     ReconcileConfig,
@@ -21,9 +19,7 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.connections.credential_manager import Credentials
-from databricks.labs.remorph.connections.env_getter import EnvGetter
-from databricks.labs.remorph.contexts.application import ApplicationContext
+
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
@@ -33,8 +29,6 @@ from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIA
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"assessment", "transpile", "reconcile", "all"})
-PRODUCT_NAME = "remorph"
 
 
 class WorkspaceInstaller:
@@ -287,30 +281,3 @@ class WorkspaceInstaller:
 
     def _has_necessary_access(self, catalog_name: str, schema_name: str, volume_name: str | None = None):
         self._resource_configurator.has_necessary_access(catalog_name, schema_name, volume_name)
-
-
-if __name__ == "__main__":
-    logger = get_logger(__file__)
-    logger.setLevel("INFO")
-    if is_in_debug():
-        logging.getLogger("databricks").setLevel(logging.DEBUG)
-
-    prompt = Prompts()
-    selected_module = prompt.choice("Select a module to configure:", MODULES)
-
-    if selected_module != "assessment":
-        app_context = ApplicationContext(WorkspaceClient(product=PRODUCT_NAME, product_version=__version__))
-        installer = WorkspaceInstaller(
-            app_context.workspace_client,
-            app_context.prompts,
-            app_context.installation,
-            app_context.install_state,
-            app_context.product_info,
-            app_context.resource_configurator,
-            app_context.workspace_installation,
-        )
-        installer.run(selected_module)
-    else:
-        logger.info("Configuring remorph `assessment`.")
-        credential_manager = Credentials(PRODUCT_NAME, EnvGetter(False))
-        ConfigureAssessment(PRODUCT_NAME, prompt, credential_manager).run()
