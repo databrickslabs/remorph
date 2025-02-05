@@ -8,6 +8,8 @@ from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
@@ -32,6 +34,32 @@ proxy_command(remorph, "debug-me")
 proxy_command(remorph, "debug-coverage")
 proxy_command(remorph, "debug-estimate")
 proxy_command(remorph, "debug-bundle")
+
+
+def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
+    app_context = ApplicationContext(_verify_workspace_client(ws))
+    return WorkspaceInstaller(
+        app_context.workspace_client,
+        app_context.prompts,
+        app_context.installation,
+        app_context.install_state,
+        app_context.product_info,
+        app_context.resource_configurator,
+        app_context.workspace_installation,
+    )
+
+
+def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
+    """
+    [Private] Verifies and updates the workspace client configuration.
+    """
+
+    # Using reflection to set right value for _product_info for telemetry
+    product_info = getattr(ws.config, '_product_info')
+    if product_info[0] != "remorph":
+        setattr(ws.config, '_product_info', ('remorph', __version__))
+
+    return ws
 
 
 @remorph.command
@@ -166,6 +194,26 @@ def configure_secrets(w: WorkspaceClient):
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
     recon_conf.prompt_and_save_connection_details()
+
+
+@remorph.command(is_unauthenticated=True)
+def install_assessment():
+    """Install the Remorph Assessment package"""
+    raise NotImplementedError("Assessment package is not available yet.")
+
+
+@remorph.command()
+def install_transpile(w: WorkspaceClient):
+    """Install the Remorph Transpile package"""
+    installer = _installer(w)
+    installer.run(module="transpile")
+
+
+@remorph.command(is_unauthenticated=False)
+def install_reconcile(w: WorkspaceClient):
+    """Install the Remorph Reconcile package"""
+    installer = _installer(w)
+    installer.run(module="reconcile")
 
 
 if __name__ == "__main__":
