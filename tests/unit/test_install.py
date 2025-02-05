@@ -267,7 +267,6 @@ def test_configure_transpile_installation_no_override(ws):
         workspace_installer.configure(module="transpile")
 
 
-
 def test_configure_transpile_installation_config_error_continue_install(ws):
     prompts = MockPrompts(
         {
@@ -726,7 +725,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
         ctx.workspace_installation,
     )
     config = workspace_installer.configure(module="reconcile")
-  
+
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
             data_source="oracle",
