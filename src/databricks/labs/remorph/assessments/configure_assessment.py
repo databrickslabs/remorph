@@ -70,6 +70,8 @@ class ConfigureAssessment:
         logger.info("Source details and credentials received.")
 
     def run(self):
-        self._configure_workspace_auth("remorph_assessment")
-
+        logger.info("Welcome to the Remorph Assessment Configuration")
         self._configure_source_credentials()
+        logger.info("Remorph Assessment Configuration Completed")
+        # TODO Add the instructions for next step
+        # logger.info("You can now Remorph Assessment Execute command to start the assessment")

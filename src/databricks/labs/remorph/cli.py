@@ -5,8 +5,13 @@ from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+
+from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.remorph.connections.credential_manager import Credentials
+from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.install import WorkspaceInstaller
@@ -199,7 +204,10 @@ def configure_secrets(w: WorkspaceClient):
 @remorph.command(is_unauthenticated=True)
 def install_assessment():
     """Install the Remorph Assessment package"""
-    raise NotImplementedError("Assessment package is not available yet.")
+    prompts = Prompts()
+    credential = Credentials("remorph", EnvGetter(True))
+    assessment = ConfigureAssessment(product_name="remorph", prompts=prompts, cred_manager=credential)
+    assessment.run()
 
 
 @remorph.command()
