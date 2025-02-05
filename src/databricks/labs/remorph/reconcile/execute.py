@@ -54,7 +54,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileRecordCount,
     AggregateQueryOutput,
     AggregateQueryRules,
+    SamplingOptions,
 )
+from databricks.labs.remorph.reconcile.sampler import SamplerFactory
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
@@ -681,6 +683,7 @@ class Reconciliation:
                     table_conf.join_columns,
                     table_conf.source_name,
                     table_conf.target_name,
+                    table_conf.sampling_options
                 )
 
             if reconcile_output.missing_in_src_count > 0:
@@ -720,8 +723,20 @@ class Reconciliation:
         key_columns,
         src_table: str,
         tgt_table: str,
+        sampling_options: SamplingOptions
     ):
-        df = mismatch.limit(_SAMPLE_ROWS).cache()
+        mismatch_sampler = SamplerFactory.get_sampler(sampling_options)
+
+        sampling_model_target = self._target.read_data(
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
+            table=tgt_table,
+            query="select * from :tbl",
+            options=None,
+        )
+
+        df = mismatch_sampler.sample(mismatch, key_columns, sampling_model_target)
+
         src_mismatch_sample_query = src_sampler.build_query(df)
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
