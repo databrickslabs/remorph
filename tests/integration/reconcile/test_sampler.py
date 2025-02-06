@@ -196,7 +196,7 @@ def test_stratified_sampler_negative_count(mock_spark):
         stratified_buckets=3,
     )
 
-    # Create RandomSampler instance
+    # Create StratifiedSampler instance
     stratified_sampler = SamplerFactory.get_sampler(stratified_sampling_options)
 
     # Perform stratified sampling
