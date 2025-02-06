@@ -14,7 +14,6 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
-from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
@@ -23,7 +22,6 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
-from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
     ReconcileConfig,
@@ -31,7 +29,6 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
@@ -40,7 +37,6 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
 logger = logging.getLogger(__name__)
 
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
-MODULES = sorted({"transpile", "reconcile", "all"})
 
 
 class TranspilerInstaller(abc.ABC):
@@ -174,7 +170,6 @@ class TranspilerInstaller(abc.ABC):
             return None
 
 
-
 class RCTInstaller(TranspilerInstaller):
     RCT_TRANSPILER_NAME = "remorph-community-transpiler"
     RCT_TRANSPILER_PYPI_NAME = f"databricks-labs-{RCT_TRANSPILER_NAME}"
@@ -253,13 +248,14 @@ class WorkspaceInstaller:
 
     def run(
         self,
+        module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
         self.install_rct()
         self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
-            config = self.configure()
+            config = self.configure(module)
         if self._is_testing():
             return config
         self._ws_installation.install(config)
@@ -274,9 +270,8 @@ class WorkspaceInstaller:
     def install_morpheus(cls):
         MorpheusInstaller.install()
 
-    def configure(self, module: str | None = None) -> RemorphConfigs:
-        selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
-        match selected_module:
+    def configure(self, module: str) -> RemorphConfigs:
+        match module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
                 return RemorphConfigs(self._configure_transpile(), None)
@@ -290,7 +285,7 @@ class WorkspaceInstaller:
                     self._configure_reconcile(),
                 )
             case _:
-                raise ValueError(f"Invalid input: {selected_module}")
+                raise ValueError(f"Invalid input: {module}")
 
     def _is_testing(self):
         return self._product_info.product_name() != "remorph"
@@ -500,22 +495,3 @@ class WorkspaceInstaller:
 
     def _has_necessary_access(self, catalog_name: str, schema_name: str, volume_name: str | None = None):
         self._resource_configurator.has_necessary_access(catalog_name, schema_name, volume_name)
-
-
-if __name__ == "__main__":
-    logger = get_logger(__file__)
-    logger.setLevel("INFO")
-    if is_in_debug():
-        logging.getLogger("databricks").setLevel(logging.DEBUG)
-
-    app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
-    installer = WorkspaceInstaller(
-        app_context.workspace_client,
-        app_context.prompts,
-        app_context.installation,
-        app_context.install_state,
-        app_context.product_info,
-        app_context.resource_configurator,
-        app_context.workspace_installation,
-    )
-    installer.run()

@@ -9,7 +9,7 @@ from databricks.labs.remorph.config import RemorphConfigs, ReconcileConfig, Data
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
-from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
+from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
@@ -26,9 +26,11 @@ def ws():
     )
     return w
 
-ALL_INSTALLED_DIALECTS = sorted([ "tsql", "snowflake" ])
-TRANSPILERS_FOR_SNOWFLAKE = sorted([ "Remorph Community Transpiler", "Morpheus" ])
+
+ALL_INSTALLED_DIALECTS = sorted(["tsql", "snowflake"])
+TRANSPILERS_FOR_SNOWFLAKE = sorted(["Remorph Community Transpiler", "Morpheus"])
 PATH_TO_TRANSPILER_COMFIG = "/some/path/to/config.yml"
+
 
 @pytest.fixture()
 def ws_installer():
@@ -94,7 +96,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws_installer, ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    returned_config = workspace_installer.run(config=provided_config)
+    returned_config = workspace_installer.run(module="transpile", config=provided_config)
     assert returned_config == provided_config
     ws_installation.install.assert_not_called()
 
@@ -116,7 +118,7 @@ def test_workspace_installer_run_install_called_with_provided_config(ws_installe
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    returned_config = workspace_installer.run(config=provided_config)
+    returned_config = workspace_installer.run(module="transpile", config=provided_config)
     assert returned_config == provided_config
     ws_installation.install.assert_called_once_with(provided_config)
 
@@ -144,7 +146,6 @@ def test_configure_error_if_invalid_module_selected(ws):
 def test_workspace_installer_run_install_called_with_generated_config(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Do you want to override the existing installation?": "no",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
@@ -173,7 +174,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws_install
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    workspace_installer.run()
+    workspace_installer.run("transpile")
     installation.assert_file_written(
         "config.yml",
         {
@@ -186,7 +187,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws_install
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
-           "version": 2,
+            "version": 2,
         },
     )
 
@@ -194,7 +195,6 @@ def test_workspace_installer_run_install_called_with_generated_config(ws_install
 def test_configure_transpile_no_existing_installation(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Do you want to override the existing installation?": "no",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
@@ -222,7 +222,7 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
         source_dialect="snowflake",
@@ -256,7 +256,6 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
 def test_configure_transpile_installation_no_override(ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Do you want to override the existing installation?": "no",
         }
     )
@@ -293,13 +292,12 @@ def test_configure_transpile_installation_no_override(ws):
         ctx.workspace_installation,
     )
     with pytest.raises(SystemExit):
-        workspace_installer.configure()
+        workspace_installer.configure("transpile")
 
 
 def test_configure_transpile_installation_config_error_continue_install(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Do you want to override the existing installation?": "no",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
@@ -343,7 +341,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
         source_dialect="snowflake",
@@ -378,7 +376,6 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
 def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
             r"Enter input SQL path.*": "/tmp/queries/snow",
@@ -406,7 +403,7 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
         source_dialect="snowflake",
@@ -440,7 +437,6 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
 def test_configure_transpile_installation_with_validation_and_cluster_id_in_config(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
             r"Enter input SQL path.*": "/tmp/queries/snow",
@@ -475,7 +471,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
@@ -510,7 +506,6 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
 def test_configure_transpile_installation_with_validation_and_cluster_id_from_prompt(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
             r"Enter input SQL path.*": "/tmp/queries/snow",
@@ -546,7 +541,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
@@ -581,7 +576,6 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
 def test_configure_transpile_installation_with_validation_and_warehouse_id_from_prompt(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
             r"Enter input SQL path.*": "/tmp/queries/snow",
@@ -615,7 +609,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("transpile")
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
@@ -650,7 +644,6 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
 def test_configure_reconcile_installation_no_override(ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Do you want to override the existing installation?": "no",
         }
     )
@@ -691,13 +684,12 @@ def test_configure_reconcile_installation_no_override(ws):
         ctx.workspace_installation,
     )
     with pytest.raises(SystemExit):
-        workspace_installer.configure()
+        workspace_installer.configure("reconcile")
 
 
 def test_configure_reconcile_installation_config_error_continue_install(ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Select the Data Source": RECONCILE_DATA_SOURCES.index("oracle"),
             r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
             r"Enter Secret scope name to store .* connection details / secrets": "remorph_oracle",
@@ -750,7 +742,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("reconcile")
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
             data_source="oracle",
@@ -794,7 +786,6 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
 def test_configure_reconcile_no_existing_installation(ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Select the Data Source": RECONCILE_DATA_SOURCES.index("snowflake"),
             r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
             r"Enter Secret scope name to store .* connection details / secrets": "remorph_snowflake",
@@ -828,7 +819,7 @@ def test_configure_reconcile_no_existing_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("reconcile")
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
             data_source="snowflake",
@@ -873,7 +864,6 @@ def test_configure_reconcile_no_existing_installation(ws):
 def test_configure_all_override_installation(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("all"),
             r"Do you want to override the existing installation?": "yes",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
@@ -948,7 +938,7 @@ def test_configure_all_override_installation(ws_installer, ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
     )
-    config = workspace_installer.configure()
+    config = workspace_installer.configure("all")
     expected_transpile_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_COMFIG,
         source_dialect="snowflake",
@@ -1046,7 +1036,6 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
     ctx = ApplicationContext(ws)
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("transpile"),
             r"Do you want to override the existing installation?": "yes",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
@@ -1079,7 +1068,7 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    workspace_installer.run()
+    workspace_installer.run("transpile")
 
     mock_workspace_installation.install.assert_called_once_with(
         RemorphConfigs(
