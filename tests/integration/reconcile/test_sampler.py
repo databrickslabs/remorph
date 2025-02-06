@@ -126,7 +126,7 @@ def test_stratified_sampler_count(mock_spark):
     # Create StratifiedSampler instance
     stratified_sampler = SamplerFactory.get_sampler(stratified_sampling_options)
 
-    # Perform st sampling
+    # Perform stratified sampling
     stratified_sample = stratified_sampler.sample(keys_df, ["key"], target_table_df)
 
     assert (
@@ -199,7 +199,7 @@ def test_stratified_sampler_negative_count(mock_spark):
     # Create RandomSampler instance
     stratified_sampler = SamplerFactory.get_sampler(stratified_sampling_options)
 
-    # Perform random sampling
+    # Perform stratified sampling
     stratified_sample = stratified_sampler.sample(keys_df, ["key"], target_table_df)
 
     assert (
