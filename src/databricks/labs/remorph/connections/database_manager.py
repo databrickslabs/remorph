@@ -33,12 +33,9 @@ class _BaseConnector(_ISourceSystemConnector):
     def execute_query(self, query: str) -> Result[Any]:
         if not self.engine:
             raise ConnectionError("Not connected to the database.")
-        try:
-            session = sessionmaker(bind=self.engine)
-            connection = session()
-            return connection.execute(text(query))
-        except OperationalError:
-            raise ConnectionError("Error connecting to the database check credentials") from None
+        session = sessionmaker(bind=self.engine)
+        connection = session()
+        return connection.execute(text(query))
 
 
 def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
@@ -86,7 +83,10 @@ class DatabaseManager:
         self.connector = _create_connector(db_type, config)
 
     def execute_query(self, query: str) -> Result[Any]:
-        return self.connector.execute_query(query)
+        try:
+            return self.connector.execute_query(query)
+        except OperationalError:
+            raise ConnectionError("Error connecting to the database check credentials") from None
 
     def connection_test(self) -> bool:
         query = "SELECT 101 AS test_column"

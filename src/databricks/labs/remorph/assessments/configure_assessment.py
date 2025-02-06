@@ -16,17 +16,21 @@ class ConfigureAssessment:
 
     def _configure_source_credentials(self):
         source = self.cred_manager.configure(self.prompts)
+        logger.info("Source details and credentials received.")
 
         if self.prompts.confirm("Do you test the connection to the source system?"):
             config = self.cred_manager.load(source)
             try:
                 db_manager = DatabaseManager(source, config)
-                db_manager.connection_test()
+                if db_manager.connection_test():
+                    logger.info("Connection to the source system successful")
+                else:
+                    logger.error("Connection to the source system failed, check logs in debug mode")
+                    raise SystemExit("Connection validation failed. Exiting...")
+
             except ConnectionError as e:
                 logger.error(f"Failed to connect to the source system: {e}")
                 raise SystemExit("Connection validation failed. Exiting...") from e
-
-        logger.info("Source details and credentials received.")
 
     def run(self):
         logger.info("Welcome to the Remorph Assessment Configuration")

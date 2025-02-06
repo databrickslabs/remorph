@@ -56,15 +56,11 @@ class Credentials:
     def configure(self, prompts: Prompts):
         cred_file = self._credential_file
         source = str(prompts.question("Please enter the source system name (e.g. MSSQL, Snowflake, etc.)")).lower()
-
-        secret_vault_type = str(
-            prompts.choice(
-                "Enter secret vault type (local | env | databricks)\n"
-                "local means values are read as plain text \n"
-                "env means values are read from environment variables fall back to plain text if not found\n",
-                ["local", "env"],
-            )
-        ).lower()
+        logger.info(
+            "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
+            "from environment variables fall back to plain text if not variable is not found\n",
+        )
+        secret_vault_type = str(prompts.choice("Enter secret vault type (local | env)", ["local", "env"])).lower()
 
         secret_vault_name = None
 
