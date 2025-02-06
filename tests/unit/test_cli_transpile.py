@@ -30,7 +30,6 @@ def test_transpile_with_missing_installation():
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -62,7 +61,6 @@ def test_transpile_with_no_sdk_config():
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-            mode="current",
         )
         mock_app_context.return_value.transpile_config = default_config
         mock_app_context.return_value.workspace_client = workspace_client
@@ -76,7 +74,6 @@ def test_transpile_with_no_sdk_config():
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
@@ -91,7 +88,6 @@ def test_transpile_with_no_sdk_config():
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
-                mode="current",
             ),
         )
 
@@ -115,7 +111,6 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-            mode="current",
         )
         mock_app_context.return_value.workspace_client = workspace_client
         mock_app_context.return_value.transpile_config = default_config
@@ -129,7 +124,6 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
@@ -144,7 +138,6 @@ def test_transpile_with_warehouse_id_in_sdk_config():
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
-                mode="current",
             ),
         )
 
@@ -168,7 +161,6 @@ def test_transpile_with_cluster_id_in_sdk_config():
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-            mode="current",
         )
         mock_app_context.return_value.workspace_client = workspace_client
         mock_app_context.return_value.transpile_config = default_config
@@ -182,7 +174,6 @@ def test_transpile_with_cluster_id_in_sdk_config():
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
         mock_transpile.assert_called_once_with(
             workspace_client,
@@ -197,7 +188,6 @@ def test_transpile_with_cluster_id_in_sdk_config():
                 skip_validation=True,
                 catalog_name="my_catalog",
                 schema_name="my_schema",
-                mode="current",
             ),
         )
 
@@ -214,7 +204,6 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -230,7 +219,6 @@ def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -253,7 +241,6 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -272,7 +259,6 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
             "invalid_value",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -291,7 +277,6 @@ def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
-            "current",
         )
 
 
@@ -304,7 +289,6 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
@@ -322,7 +306,6 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
-            mode,
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
@@ -337,7 +320,6 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
-                mode=mode,
             ),
         )
 
@@ -351,7 +333,6 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
@@ -366,7 +347,6 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
-            mode,
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
@@ -381,7 +361,6 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
-                mode=mode,
             ),
         )
 
@@ -396,7 +375,6 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     catalog_name = "my_catalog"
     schema_name = "my_schema"
 
-    mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
@@ -414,7 +392,6 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
-            mode,
         )
         mock_transpile.assert_called_once_with(
             mock_workspace_client_cli,
@@ -429,37 +406,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
                 skip_validation=False,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
-                mode=mode,
             ),
-        )
-
-
-def test_transpile_with_invalid_mode(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Invalid value for '--mode':"),
-    ):
-        transpiler = "sqlglot"
-        source_dialect = "snowflake"
-        input_source = "/path/to/sql/file2.sql"
-        output_folder = ""
-        error_file = ""
-        skip_validation = "false"
-        catalog_name = "my_catalog"
-        schema_name = "my_schema"
-        mode = "preview"
-
-        cli.transpile(
-            mock_workspace_client_cli,
-            transpiler,
-            source_dialect,
-            input_source,
-            output_folder,
-            error_file,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
         )
 
 
@@ -472,7 +419,6 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    mode = "current"
     cli.transpile(
         mock_workspace_client_cli,
         transpiler_config_path,
@@ -483,7 +429,6 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
         skip_validation,
         catalog_name,
         schema_name,
-        mode,
     )
     captured = capsys.readouterr()
     assert "TranspileError" in captured.out
