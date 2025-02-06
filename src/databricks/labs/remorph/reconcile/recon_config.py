@@ -32,16 +32,20 @@ class TableThresholdBoundsException(ValueError):
 class InvalidModelForTableThreshold(ValueError):
     """Raise the error when the model for table threshold is invalid"""
 
+
 @dataclass
 class SamplingSpecifications:
     type: SamplingSpecificationsType
     value: float
 
     def __post_init__(self):
-        if self.type == SamplingSpecificationsType.FRACTION or str(self.type).lower() == "fraction":
-            raise ValueError("SamplingSpecifications: 'FRACTION' type is disabled")
         if not isinstance(self.type, SamplingSpecificationsType):
             self.type = SamplingSpecificationsType(str(self.type).lower())
+        # Disabled
+        if self.type == SamplingSpecificationsType.FRACTION:
+            raise ValueError("SamplingSpecifications: 'FRACTION' type is disabled")
+        if self.type == SamplingSpecificationsType.FRACTION and (self.value is None or (not 0 < self.value < 1)):
+            raise ValueError("SamplingSpecifications: Fraction value must be greater than  0 and less than 1")
 
 
 @dataclass
@@ -60,8 +64,10 @@ class SamplingOptions:
 
         if self.method == SamplingOptionMethod.STRATIFIED:
             if not self.stratified_columns or not self.stratified_buckets:
-                raise ValueError("SamplingOptions : "
-                                 "stratified_columns and stratified_buckets are required for STRATIFIED method")
+                raise ValueError(
+                    "SamplingOptions : stratified_columns and stratified_buckets are required for STRATIFIED method"
+                )
+
 
 @dataclass
 class JdbcReaderOptions:
@@ -163,7 +169,7 @@ def to_lower_case(input_list: list[str]) -> list[str]:
 class Table:
     source_name: str
     target_name: str
-    sampling_options: SamplingOptions = None
+    sampling_options: SamplingOptions | None = None
     aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None

@@ -683,7 +683,7 @@ class Reconciliation:
                     table_conf.join_columns,
                     table_conf.source_name,
                     table_conf.target_name,
-                    table_conf.sampling_options
+                    table_conf.sampling_options,
                 )
 
             if reconcile_output.missing_in_src_count > 0:
@@ -723,7 +723,7 @@ class Reconciliation:
         key_columns,
         src_table: str,
         tgt_table: str,
-        sampling_options: SamplingOptions
+        sampling_options: SamplingOptions,
     ):
         mismatch_sampler = SamplerFactory.get_sampler(sampling_options)
 
@@ -731,7 +731,7 @@ class Reconciliation:
             catalog=self._database_config.target_catalog,
             schema=self._database_config.target_schema,
             table=tgt_table,
-            query="select * from :tbl",
+            query="SELECT * FROM :tbl",
             options=None,
         )
 

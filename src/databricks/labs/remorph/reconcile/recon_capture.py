@@ -38,7 +38,6 @@ _RECON_AGGREGATE_METRICS_TABLE_NAME = "aggregate_metrics"
 _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
 
 
-
 class ReconIntermediatePersist:
 
     def __init__(self, spark: SparkSession, path: str):
