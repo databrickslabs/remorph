@@ -1,15 +1,12 @@
 import logging
-import webbrowser
-from time import sleep
 
-from databricks.sdk import WorkspaceClient
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.remorph import __version__
 from databricks.labs.remorph.connections.credential_manager import Credentials
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 class ConfigureAssessment:
     def __init__(self, product_name: str, prompts: Prompts, cred_manager: Credentials):
