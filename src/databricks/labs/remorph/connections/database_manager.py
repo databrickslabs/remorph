@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
 
-class _ISourceSystemConnector(ABC):
+class DatabaseConnector(ABC):
     @abstractmethod
     def _connect(self) -> Engine:
         pass
@@ -22,7 +22,7 @@ class _ISourceSystemConnector(ABC):
         pass
 
 
-class _BaseConnector(_ISourceSystemConnector):
+class _BaseConnector(DatabaseConnector):
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.engine: Engine = self._connect()
@@ -38,7 +38,7 @@ class _BaseConnector(_ISourceSystemConnector):
         return connection.execute(text(query))
 
 
-def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
+def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector:
     connectors = {
         "snowflake": SnowflakeConnector,
         "mssql": MSSQLConnector,

@@ -3,16 +3,15 @@ from urllib.parse import urlparse
 
 import pytest
 
-from databricks.labs.remorph.connections.credential_manager import Credentials
+from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 
 @pytest.fixture(scope="module")
 def mock_credentials():
-    with patch.object(
-        Credentials,
-        '_load_credentials',
+    with patch(
+        'databricks.labs.remorph.connections.credential_manager._load_credentials',
         return_value={
             'secret_vault_type': 'env',
             'secret_vault_name': '',
@@ -30,7 +29,8 @@ def mock_credentials():
 
 @pytest.fixture(scope="module")
 def db_manager(mock_credentials):
-    config = Credentials("remorph", EnvGetter(True)).load("mssql")
+    config = create_credential_manager("remorph", EnvGetter(True)).fetch("mssql")
+
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
 
@@ -54,3 +54,7 @@ def test_mssql_connector_execute_query(db_manager):
     result = db_manager.execute_query(query)
     row = result.fetchone()
     assert row[0] == 101
+
+
+def test_connection_test(db_manager):
+    assert db_manager.connection_test()

@@ -1,57 +1,100 @@
 from pathlib import Path
 import logging
+
 import shutil
 import yaml
 
 
 from databricks.labs.blueprint.tui import Prompts
 
+
+from typing import Protocol
+
+import yaml
+
+
 from databricks.labs.remorph.connections.env_getter import EnvGetter
+
 
 logger = logging.getLogger(__name__)
 
 
-class Credentials:
-    def __init__(self, product_name: str, env: EnvGetter) -> None:
-        self._product_name = product_name
-        self._env = env
-        self._credential_file = self._get_local_version_file_path()
+class SecretProvider(Protocol):
+    def get_secret(self, key: str) -> str:
+        pass
 
-    def _get_local_version_file_path(self) -> Path:
-        user_home = f"{Path(__file__).home()}"
-        return Path(f"{user_home}/.databricks/labs/{self._product_name}/.credentials.yml")
 
-    def _load_credentials(self, file_path: Path) -> dict[str, str]:
-        with open(file_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
 
-    def load(self, source: str) -> dict[str, str]:
-        error_msg = f"source system: {source} credentials not found in file credentials.yml"
-        _credentials = self._load_credentials(self._credential_file)
-        if source in _credentials:
-            value = _credentials[source]
-            if isinstance(value, dict):
-                return {k: self._get_secret_value(v) for k, v in value.items()}
-            raise KeyError(error_msg)
-        raise KeyError(error_msg)
+class LocalSecretProvider:
+    def get_secret(self, key: str) -> str:
+        return key
+
+
+
+class EnvSecretProvider:
+    def __init__(self, env_getter: EnvGetter):
+        self._env_getter = env_getter
+
+    def get_secret(self, key: str) -> str:
+        try:
+            return self._env_getter.get(str(key))
+        except KeyError:
+            logger.debug(f"Environment variable {key} not found. Falling back to actual value")
+            return key
+
+
+class DatabricksSecretProvider:
+    def get_secret(self, key: str) -> str:
+        raise NotImplementedError("Databricks secret vault not implemented")
+
+
+class CredentialManager:
+    def __init__(self, credential_loader: dict, secret_providers: dict):
+        self._credentials = credential_loader
+        self._secret_providers = secret_providers
+        self._default_vault = self._credentials.get('secret_vault_type', 'local').lower()
+
+    def fetch(self, source: str) -> dict:
+        if source not in self._credentials:
+            raise KeyError(f"Source system: {source} credentials not found")
+
+        value = self._credentials[source]
+        if not isinstance(value, dict):
+            raise KeyError(f"Invalid credential format for source: {source}")
+
+        return {k: self._get_secret_value(v) for k, v in value.items()}
 
     def _get_secret_value(self, key: str) -> str:
-        _credentials = self._load_credentials(self._credential_file)
-        secret_vault_type = _credentials.get('secret_vault_type', 'local').lower()
-        if secret_vault_type == 'local':
-            return key
-        if secret_vault_type == 'env':
-            try:
-                value = self._env.get(str(key))  # Port numbers can be int
-            except KeyError:
-                logger.debug(f"Environment variable {key} not found Failing back to actual string value")
-                return key
-            return value
+        provider = self._secret_providers.get(self._default_vault)
+        if not provider:
+            raise ValueError(f"Unsupported secret vault type: {self._default_vault}")
+        return provider.get_secret(key)
 
-        if secret_vault_type == 'databricks':
-            raise NotImplementedError("Databricks secret vault not implemented")
 
-        raise ValueError(f"Unsupported secret vault type: {secret_vault_type}")
+def _get_home() -> Path:
+    return Path(__file__).home()
+
+
+def _load_credentials(path: Path) -> dict:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Credentials file not found at {path}") from e
+
+
+def create_credential_manager(product_name: str, env_getter: EnvGetter):
+    file_path = Path(f"{_get_home()}/.databricks/labs/{product_name}/.credentials.yml")
+
+    secret_providers = {
+        'local': LocalSecretProvider(),
+        'env': EnvSecretProvider(env_getter),
+        'databricks': DatabricksSecretProvider(),
+    }
+
+    loader = _load_credentials(file_path)
+    return CredentialManager(loader, secret_providers)
+
 
     def configure(self, prompts: Prompts):
         cred_file = self._credential_file
