@@ -34,7 +34,7 @@ def mock_transpiler_folder():
     with TemporaryDirectory() as tmpdir:
         folder = Path(tmpdir)
         folder.mkdir(exist_ok=True)
-        for transpiler in ("mct", "morpheus"):
+        for transpiler in ("rct", "morpheus"):
             target = folder / transpiler
             target.mkdir(exist_ok=True)
             target = target / "config.yml"
