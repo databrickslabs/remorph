@@ -11,7 +11,7 @@ from sqlalchemy.exc import OperationalError
 logger = logging.getLogger(__name__)
 
 
-class _ISourceSystemConnector(ABC):
+class DatabaseConnector(ABC):
     @abstractmethod
     def _connect(self) -> Engine:
         pass
@@ -21,7 +21,7 @@ class _ISourceSystemConnector(ABC):
         pass
 
 
-class _BaseConnector(_ISourceSystemConnector):
+class _BaseConnector(DatabaseConnector):
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.engine: Engine = self._connect()
@@ -32,15 +32,12 @@ class _BaseConnector(_ISourceSystemConnector):
     def execute_query(self, query: str) -> Result[Any]:
         if not self.engine:
             raise ConnectionError("Not connected to the database.")
-        try:
-            session = sessionmaker(bind=self.engine)
-            connection = session()
-            return connection.execute(text(query))
-        except OperationalError:
-            raise ConnectionError("Error connecting to the database check credentials") from None
+        session = sessionmaker(bind=self.engine)
+        connection = session()
+        return connection.execute(text(query))
 
 
-def _create_connector(db_type: str, config: dict[str, Any]) -> _ISourceSystemConnector:
+def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector:
     connectors = {
         "snowflake": SnowflakeConnector,
         "mssql": MSSQLConnector,
@@ -85,4 +82,15 @@ class DatabaseManager:
         self.connector = _create_connector(db_type, config)
 
     def execute_query(self, query: str) -> Result[Any]:
-        return self.connector.execute_query(query)
+        try:
+            return self.connector.execute_query(query)
+        except OperationalError:
+            raise ConnectionError("Error connecting to the database check credentials") from None
+
+    def connection_test(self) -> bool:
+        query = "SELECT 101 AS test_column"
+        result = self.execute_query(query)
+        row = result.fetchone()
+        if row is None:
+            return False
+        return row[0] == 101
