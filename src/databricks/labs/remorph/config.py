@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
-    __version__ = 2
+    __version__ = 3
 
     transpiler_config_path: str
     source_dialect: str
@@ -23,7 +23,6 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    mode: str = "current"
 
     @property
     def transpiler_path(self):
@@ -45,7 +44,7 @@ class TranspileConfig:
 
     @property
     def target_dialect(self):
-        return "experimental" if self.mode == "experimental" else "databricks"
+        return "databricks"
 
 
 @dataclass
