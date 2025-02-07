@@ -74,7 +74,6 @@ def transpile(
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
-    mode: str,
 ):
     """Transpiles source dialect to databricks dialect"""
     with_user_agent_extra("cmd", "execute-transpile")
@@ -84,7 +83,6 @@ def transpile(
     if not default_config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
-    mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler_config_path))
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
@@ -97,8 +95,6 @@ def transpile(
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
-    if mode.lower() not in {"current", "experimental"}:
-        raise_validation_exception(f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'.")
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
@@ -113,7 +109,6 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-        mode=mode,
         sdk_config=sdk_config,
     )
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
