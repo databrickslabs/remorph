@@ -10,9 +10,8 @@ from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 @pytest.fixture(scope="module")
 def mock_credentials():
-    with patch.object(
-        create_credential_manager,
-        '_load_credentials',
+    with patch(
+        'databricks.labs.remorph.connections.credential_manager._load_credentials',
         return_value={
             'secret_vault_type': 'env',
             'secret_vault_name': '',
