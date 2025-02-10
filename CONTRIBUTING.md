@@ -38,7 +38,8 @@ Register your PGP key in GitHub:
      - if your databricks email is not registered, register it
      - complete the verification before the next steps
 
-Tell local git to signoff your commits using your PGP key
+Tell local git to signoff your commits using your PGP key:
+
     - see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
     - in short, you need to run the following commands from a terminal:
         - git config --global --unset gpg.format
@@ -53,6 +54,7 @@ Once all this is done, you can verify it's correct as follows:
     - git commit -m "test PGP"
     - git verify-commit <COMMIT>
 The last command should display something like the following:
+
 `gpg: Signature made Tue Nov 26 11:34:23 2024 CET
 gpg:                using RSA key FD4D754BB2B1D4F09F2BF658F4B0C73DFC65A17B
 gpg: Good signature from "GitHub <your.email@databricks.com>" [ultimate]
@@ -119,24 +121,61 @@ To begin, install prerequisites:
 brew install wget
 ```
 
-`python` is the dependency manager for JVM based languages
+`maven` is the dependency manager for JVM based languages
 ```shell
 brew install maven
 ```
 
-`hatch` is a Python project manager
+### Python Configuration
+
+Once you are done with cloning this project to your local machine, you may follow the steps
+mentioned below.
+
+* We recommend using `pyenv` as Python Version Manager. While Remorph is currently developed and built on
+`Python 3.10`, having a version management tool like `pyenv` gives us the flexibility to manage the python versions easily for
+future enhancements while maintaining the standards.
+
+From the project directory you can run the below command to install `pyenv` on your local machine given you don't already
+have `pyenv` installed on your local machine.
+
+```shell
+REMORPH_PYTHON="3.10" make setup_pyenv
+```
+Where the environment variable `REMORPH_PYTHON` needs to be set to `3.10`. After you run the above command
+you might have to restart your terminal to reflect the changes (While it depends on the type of shell, restarting the terminal is always a best practice after an installation).
+
+* Once you have `pyenv` installed on your local machine, you may run the below command which will setup the development environment for you
+with all the necessary dependencies required to build and compile your project.
+
+```shell
+REMORPH_PYTHON="3.10" make dev_with_pyenv
+```
+
+Here also we are setting the python version to `3.10`. The above statement uses `pyenv` to install `Hatch` (Python Project Manager) which is used
+to create a virtual environment (`.venv/bin/python`) for your project inside the project directory.
+
+* If you don't want to use pyenv, make sure you have python3.10 installed on you system. You can use your system python3.10 interpreter to
+install `Hatch`.
+
 ```shell
 pip install hatch
 ```
+Once Hatch is installed you can run the below command to setup the development environment for you.
 
-Then run project-specific install scripts
-
-`make dev` creates the default environment and installs development dependencies, assuming you've already cloned the github repo.
 ```shell
 make dev
 ```
+**Important:** You would not have to run `pip install hatch` or `make dev` if you have already followed the previous steps
+with `pyenv` to setup the development environment.
 
-Verify installation with
+* Once your viryual environment creation is complete. Make sure you have activated that on your terminal
+to start working on the project.
+
+```shell
+source .venv/bin/activate
+```
+
+You can verify installation with
 ```shell
 make test
 ```
@@ -145,6 +184,7 @@ To ensure your integrated development environment (IDE) uses the newly created v
 ```shell
 hatch run python -c "import sys; print(sys.executable)"
 ```
+
 
 As of writing, we only support IntelliJ IDEA CE 2024.1. Development using more recent versions doesn't work (yet!).
 Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
