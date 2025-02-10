@@ -361,7 +361,6 @@ class WorkspaceInstaller:
             transpiler_config_path=transpiler_config_path,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
-            mode="current",  # mode will not have a prompt as this is a hidden flag
             input_source=input_source,
             output_folder=output_folder,
             error_file_path=error_file_path,

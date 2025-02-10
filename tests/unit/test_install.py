@@ -182,12 +182,11 @@ def test_workspace_installer_run_install_called_with_generated_config(ws_install
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "source_dialect": "snowflake",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -232,7 +231,6 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
         skip_validation=True,
         catalog_name="remorph",
         schema_name="transpiler",
-        mode="current",
     )
     expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
@@ -242,13 +240,12 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
             "catalog_name": "remorph",
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -276,7 +273,7 @@ def test_configure_transpile_installation_no_override(ws):
                     "sdk_config": {
                         "warehouse_id": "abc",
                     },
-                    "version": 2,
+                    "version": 3,
                 }
             }
         ),
@@ -321,7 +318,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
-                "version": 2,
+                "version": 3,
             }
         }
     )
@@ -351,7 +348,6 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
         skip_validation=True,
         catalog_name="remorph",
         schema_name="transpiler",
-        mode="current",
     )
     expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
@@ -361,13 +357,12 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -413,7 +408,6 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
         skip_validation=True,
         catalog_name="remorph",
         schema_name="transpiler",
-        mode="current",
     )
     expected_config = RemorphConfigs(transpile=expected_morph_config)
     assert config == expected_config
@@ -423,13 +417,12 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -481,7 +474,6 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
             error_file_path="/tmp/queries/errors.log",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
-            mode="current",
             sdk_config={"cluster_id": "1234"},
         )
     )
@@ -492,13 +484,12 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph_test",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -551,7 +542,6 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
             error_file_path="/tmp/queries/errors.log",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
-            mode="current",
             sdk_config={"cluster_id": "1234"},
         )
     )
@@ -562,13 +552,12 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph_test",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler_test",
             "sdk_config": {"cluster_id": "1234"},
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -619,7 +608,6 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
             error_file_path="/tmp/queries/errors.log",
             catalog_name="remorph_test",
             schema_name="transpiler_test",
-            mode="current",
             sdk_config={"warehouse_id": "w_id"},
         )
     )
@@ -630,13 +618,12 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph_test",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler_test",
             "sdk_config": {"warehouse_id": "w_id"},
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -894,7 +881,7 @@ def test_configure_all_override_installation(ws_installer, ws):
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
-                "version": 2,
+                "version": 3,
             },
             "reconcile.yml": {
                 "data_source": "snowflake",
@@ -948,7 +935,6 @@ def test_configure_all_override_installation(ws_installer, ws):
         skip_validation=True,
         catalog_name="remorph",
         schema_name="transpiler",
-        mode="current",
     )
 
     expected_reconcile_config = ReconcileConfig(
@@ -975,13 +961,12 @@ def test_configure_all_override_installation(ws_installer, ws):
             "transpiler_config_path": PATH_TO_TRANSPILER_COMFIG,
             "catalog_name": "remorph",
             "input_source": "/tmp/queries/snow",
-            "mode": "current",
             "output_folder": "/tmp/queries/databricks",
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
             "source_dialect": "snowflake",
-            "version": 2,
+            "version": 3,
         },
     )
 
@@ -1028,7 +1013,7 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
                 "sdk_config": {
                     "warehouse_id": "dummy",
                 },
-                "version": 2,
+                "version": 3,
             },
         }
     )
@@ -1080,7 +1065,6 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
                 error_file_path="/tmp/queries/errors.log",
                 catalog_name="remorph",
                 schema_name="transpiler",
-                mode="current",
                 skip_validation=True,
             )
         )

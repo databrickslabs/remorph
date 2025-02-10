@@ -43,7 +43,6 @@ def transpile_config():
         skip_validation=False,
         catalog_name="catalog",
         schema_name="schema",
-        mode="current",
     )
 
 
@@ -222,7 +221,7 @@ def mock_workspace_client_cli():
     state = {
         "/Users/foo/.remorph/config.yml": yaml.dump(
             {
-                'version': 2,
+                'version': 3,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
                 'transpiler_config_path': 'sqlglot',
