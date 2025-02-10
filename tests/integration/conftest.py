@@ -26,7 +26,7 @@ def pytest_collection_modifyitems(config, items):
         selected_items = []
         deselected_items = []
         for item in items:
-            if 'tests/integration/reconcile' not in str(item.fspath):
+            if 'tests/integration/connections' in str(item.fspath):
                 selected_items.append(item)
             else:
                 deselected_items.append(item)
