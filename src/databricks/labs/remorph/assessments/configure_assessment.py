@@ -64,7 +64,7 @@ class ConfigureAssessment:
 
         try:
             db_manager = DatabaseManager(source, config)
-            if db_manager.connection_test():
+            if db_manager.check_connection():
                 logger.info("Connection to the source system successful")
             else:
                 logger.error("Connection to the source system failed, check logs in debug mode")

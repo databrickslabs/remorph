@@ -204,7 +204,7 @@ def configure_secrets(w: WorkspaceClient):
 def install_assessment():
     """Install the Remorph Assessment package"""
     prompts = Prompts()
-    credential = create_credential_manager("remorph", EnvGetter(False))
+    credential = create_credential_manager("remorph", EnvGetter())
     assessment = ConfigureAssessment(product_name="remorph", prompts=prompts)
     assessment.run(cred_manager=credential)
 
