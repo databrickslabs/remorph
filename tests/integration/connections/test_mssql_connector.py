@@ -5,7 +5,7 @@ import pytest
 
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
-from databricks.labs.remorph.connections.env_getter import EnvGetter
+from .debug_envgetter import EnvGetter
 
 
 @pytest.fixture(scope="module")
