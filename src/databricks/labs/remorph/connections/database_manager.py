@@ -86,6 +86,7 @@ class DatabaseManager:
         try:
             return self.connector.execute_query(query)
         except OperationalError:
+            logger.error("Error connecting to the database check credentials")
             raise ConnectionError("Error connecting to the database check credentials") from None
 
     def check_connection(self) -> bool:

@@ -78,7 +78,7 @@ class ConfigureAssessment:
         logger.info("Welcome to the Remorph Assessment Configuration")
         source = self._configure_source_credentials()
         logger.info("Source details and credentials received.")
-        if self.prompts.confirm("Do you test the connection to the source system?"):
+        if self.prompts.confirm("Do you want to test the connection to the source system?"):
             self._test_connection(source, cred_manager)
 
         logger.info("Remorph Assessment Configuration Completed")
