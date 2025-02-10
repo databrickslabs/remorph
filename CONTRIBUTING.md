@@ -116,15 +116,11 @@ This section provides a step-by-step guide to set up and start working on the pr
 
 To begin, install prerequisites:
 
-`wget` is required by the maven installer
+`wget` is required for remote spark test suite.
 ```shell
 brew install wget
 ```
 
-`maven` is the dependency manager for JVM based languages
-```shell
-brew install maven
-```
 
 ### Python Configuration
 
