@@ -29,7 +29,7 @@ def mock_credentials():
 
 @pytest.fixture(scope="module")
 def db_manager(mock_credentials):
-    config = create_credential_manager("remorph", EnvGetter(True)).fetch("mssql")
+    config = create_credential_manager("remorph", EnvGetter(True)).get_credentials("mssql")
 
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
@@ -57,4 +57,4 @@ def test_mssql_connector_execute_query(db_manager):
 
 
 def test_connection_test(db_manager):
-    assert db_manager.connection_test()
+    assert db_manager.check_connection()

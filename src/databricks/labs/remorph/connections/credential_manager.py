@@ -42,7 +42,7 @@ class CredentialManager:
         self._secret_providers = secret_providers
         self._default_vault = self._credentials.get('secret_vault_type', 'local').lower()
 
-    def fetch(self, source: str) -> dict:
+    def get_credentials(self, source: str) -> dict:
         if source not in self._credentials:
             raise KeyError(f"Source system: {source} credentials not found")
 

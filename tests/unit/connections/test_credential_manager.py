@@ -62,7 +62,7 @@ def test_local_credentials(mock_get_home, mock_load_credentials, local_credentia
     mock_load_credentials.return_value = local_credentials
     mock_get_home.return_value = Path("/fake/home")
     credentials = create_credential_manager(product_name, env_getter)
-    creds = credentials.fetch('mssql')
+    creds = credentials.get_credentials('mssql')
     assert creds['user'] == 'local_user'
     assert creds['password'] == 'local_password'
 
@@ -75,7 +75,7 @@ def test_env_credentials(mock_get_home, mock_load_credentials, env_credentials, 
     mock_get_home.return_value = Path("/fake/home")
     env_getter.get.side_effect = lambda key: os.environ[key]
     credentials = create_credential_manager(product_name, env_getter)
-    creds = credentials.fetch('mssql')
+    creds = credentials.get_credentials('mssql')
     assert creds['user'] == 'env_user'
     assert creds['password'] == 'env_password'
 
@@ -87,4 +87,4 @@ def test_databricks_credentials(mock_get_home, mock_load_credentials, databricks
     mock_get_home.return_value = Path("/fake/home")
     credentials = create_credential_manager(product_name, env_getter)
     with pytest.raises(NotImplementedError):
-        credentials.fetch('mssql')
+        credentials.get_credentials('mssql')
