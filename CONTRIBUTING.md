@@ -139,22 +139,23 @@ From the project directory you can run the below command to install `pyenv` on y
 have `pyenv` installed on your local machine.
 
 ```shell
-REMORPH_PYTHON="3.10" make setup_pyenv
+make setup_pyenv
 ```
-Where the environment variable `REMORPH_PYTHON` needs to be set to `3.10`. After you run the above command
-you might have to restart your terminal to reflect the changes (While it depends on the type of shell, restarting the terminal is always a best practice after an installation).
+This installation uses python version `3.10`. After you run the above command, The Terminal output will contain and export command
+to update your PATH variable. Append the line (export PATH...) to your profile i.e `~/.zshrc` or `~/.bash_profile` or `~/.profile` and resource your profile for the changes in PATH variable to take effect.
+you might have to restart your terminal to reflect the changes (While it depends on the type of shell, restarting the terminal is always a best practice after updating a Profile variable).
 
 * Once you have `pyenv` installed on your local machine, you may run the below command which will setup the development environment for you
 with all the necessary dependencies required to build and compile your project.
 
 ```shell
-REMORPH_PYTHON="3.10" make dev_with_pyenv
+make dev_with_pyenv
 ```
 
-Here also we are setting the python version to `3.10`. The above statement uses `pyenv` to install `Hatch` (Python Project Manager) which is used
+The above statement uses `pyenv` to install `Hatch` (Python Project Manager) which is used
 to create a virtual environment (`.venv/bin/python`) for your project inside the project directory.
 
-* If you don't want to use pyenv, make sure you have python3.10 installed on you system. You can use your system python3.10 interpreter to
+* If you don't want to use pyenv, make sure you have `python3.10` installed on you system. You can use your system python3.10 interpreter to
 install `Hatch`.
 
 ```shell
