@@ -1,0 +1,1 @@
+SELECT DISTINCT run_metrics.run_by_user FROM {REMORPH_METADATA_SCHEMA}.metrics
