@@ -1,17 +1,7 @@
 from pathlib import Path
 import logging
-
-import shutil
-import yaml
-
-
-from databricks.labs.blueprint.tui import Prompts
-
-
 from typing import Protocol
-
 import yaml
-
 
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 
@@ -24,11 +14,9 @@ class SecretProvider(Protocol):
         pass
 
 
-
 class LocalSecretProvider:
     def get_secret(self, key: str) -> str:
         return key
-
 
 
 class EnvSecretProvider:
@@ -75,6 +63,10 @@ def _get_home() -> Path:
     return Path(__file__).home()
 
 
+def cred_file(product_name) -> Path:
+    return Path(f"{_get_home()}/.databricks/labs/{product_name}/.credentials.yml")
+
+
 def _load_credentials(path: Path) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
@@ -94,45 +86,3 @@ def create_credential_manager(product_name: str, env_getter: EnvGetter):
 
     loader = _load_credentials(file_path)
     return CredentialManager(loader, secret_providers)
-
-
-    def configure(self, prompts: Prompts):
-        cred_file = self._credential_file
-        source = str(prompts.question("Please enter the source system name (e.g. MSSQL, Snowflake, etc.)")).lower()
-        logger.info(
-            "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
-            "from environment variables fall back to plain text if not variable is not found\n",
-        )
-        secret_vault_type = str(prompts.choice("Enter secret vault type (local | env)", ["local", "env"])).lower()
-
-        secret_vault_name = None
-
-        # TODO Implement Databricks secret vault
-
-        logger.info("Please refer to the documentation to understand the difference between local and env.")
-
-        # Currently covering only MSSQL
-        credentials = {
-            "secret_vault_type": secret_vault_type,
-            "secret_vault_name": secret_vault_name,
-            source: {
-                "database": prompts.question("Enter the database name"),
-                "driver": prompts.question("Enter the driver details"),
-                "server": prompts.question("Enter the server or host details"),
-                "port": int(prompts.question("Enter the port details", valid_number=True)),
-                "user": prompts.question("Enter the user details"),
-                "password": prompts.question("Enter the password details"),
-            },
-        }
-
-        if cred_file.exists():
-            backup_filename = cred_file.with_suffix('.bak')
-            shutil.copy(cred_file, backup_filename)
-            logger.debug(f"Backup of the existing file created at {backup_filename}")
-
-        with open(cred_file, 'w', encoding='utf-8') as file:
-            yaml.dump(credentials, file, default_flow_style=False)
-
-        logger.info("Credential template created for MSSQL.")
-
-        return source
