@@ -14,7 +14,7 @@ def test_configure_credentials(tmp_path):
             r"Enter the port details": "1433",
             r"Enter the user details": "TEST_TSQL_USER",
             r"Enter the password details": "TEST_TSQL_PASS",
-            r"Do you test the connection to the source system?": "no",
+            r"Do you want to test the connection to the source system?": "no",
         }
     )
     file = tmp_path / ".credentials.yml"
