@@ -1,8 +1,6 @@
 import yaml
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
-from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 
 def test_configure_credentials(tmp_path):
@@ -20,9 +18,8 @@ def test_configure_credentials(tmp_path):
         }
     )
     file = tmp_path / ".credentials.yml"
-    credential = create_credential_manager("remorph", EnvGetter(True))
     assessment = ConfigureAssessment(product_name="remorph", prompts=prompts, credential_file=file)
-    assessment.run(credential)
+    assessment.run()
 
     expected_credentials = {
         'secret_vault_type': 'env',
