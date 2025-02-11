@@ -54,7 +54,7 @@ class ConfigureAssessment:
         with open(cred_file, 'w', encoding='utf-8') as file:
             yaml.dump(credential, file, default_flow_style=False)
 
-        logger.info("Credential template created for MSSQL.")
+        logger.info(f"Credential template created for {source}.")
 
         return source
 
