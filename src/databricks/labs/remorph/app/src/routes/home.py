@@ -4,7 +4,7 @@ import streamlit.components.v1 as components  # type: ignore
 
 def main():
     # Title and Introduction
-    st.title("🔍 Remorph - Reconcile")
+    st.title("Remorph - Reconcile")
     st.markdown("### A powerful tool for **automated data reconciliation** in Databricks.")
 
     st.header("What is Reconcile?")
