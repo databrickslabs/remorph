@@ -10,6 +10,8 @@ from databricks.labs.remorph.connections.database_manager import DatabaseManager
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+PROFILER_SOURCE_SYSTEM = ["mssql"]
+
 
 class ConfigureAssessment:
     def __init__(self, product_name: str, prompts: Prompts, credential_file=None):
@@ -19,7 +21,9 @@ class ConfigureAssessment:
 
     def _configure_source_credentials(self):
         cred_file = self._credential_file
-        source = str(self.prompts.question("Please enter the source system name (e.g. MSSQL, Snowflake, etc.)")).lower()
+        source = str(
+            self.prompts.choice("Please select the source system you want to configure", PROFILER_SOURCE_SYSTEM)
+        ).lower()
         logger.info(
             "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
             "from environment variables fall back to plain text if not variable is not found\n",
