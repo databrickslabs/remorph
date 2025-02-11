@@ -4,7 +4,10 @@ import yaml
 
 from databricks.labs.blueprint.tui import Prompts
 
-from databricks.labs.remorph.connections.credential_manager import cred_file as creds
+from databricks.labs.remorph.connections.credential_manager import (
+    cred_file as creds,
+    CredentialManager,
+)
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -63,8 +66,8 @@ class ConfigureAssessment:
         return source
 
     @staticmethod
-    def _test_connection(source: str, cred_manager):
-        config = cred_manager.load(source)
+    def _test_connection(source: str, cred_manager: CredentialManager):
+        config = cred_manager.get_credentials(source)
 
         try:
             db_manager = DatabaseManager(source, config)
