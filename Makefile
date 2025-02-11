@@ -3,17 +3,16 @@ all: clean dev fmt lint test
 clean:
 	rm -fr .venv clean htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml .python-version
 
-setup_pyenv:
-	@echo "You have selected pyenv setup. It will install pyenv on your system."
+setup_python:
+	@echo "You have selected python setup with pyenv. It will install pyenv on your system."
 	brew list pyenv &>/dev/null || brew install pyenv
 	pyenv install -s 3.10
+	pyenv local 3.10
 	pyenv init - | grep PATH | tail -1
 	@echo "Append the above line (export PATH...) to your profile i.e ~/.zshrc or ~/.bash_profile or ~/.profile and resource your profile for the changes in PATH variable to take effect."
 
 
-dev_with_pyenv:
-	pyenv local 3.10
-	pip install --upgrade pip
+dev:
 	pip install hatch
 	hatch env create
 	hatch run pip install --upgrade pip
@@ -21,12 +20,6 @@ dev_with_pyenv:
 	hatch run which python
 	@echo "Hatch has created the above virtual environment. Please activate it using 'source .venv/bin/activate' and also select the .venv/bin/python interpreter in your IDE."
 
-dev:
-	hatch env create
-	hatch run pip install --upgrade pip
-	hatch run pip install -e '.[test]'
-	hatch run which python
-	@echo "Hatch has created the above virtual environment. Please activate it using 'source .venv/bin/activate' and also select the .venv/bin/python interpreter in your IDE."
 
 lint:
 	hatch run verify

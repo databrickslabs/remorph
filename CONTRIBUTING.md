@@ -135,7 +135,7 @@ From the project directory you can run the below command to install `pyenv` on y
 have `pyenv` installed on your local machine.
 
 ```shell
-make setup_pyenv
+make setup_python
 ```
 This installation uses python version `3.10`. After you run the above command, The Terminal output will contain and export command
 to update your PATH variable. Append the line (export PATH...) to your profile i.e `~/.zshrc` or `~/.bash_profile` or `~/.profile` and resource your profile for the changes in PATH variable to take effect.
@@ -145,27 +145,17 @@ you might have to restart your terminal to reflect the changes (While it depends
 with all the necessary dependencies required to build and compile your project.
 
 ```shell
-make dev_with_pyenv
-```
-
-The above statement uses `pyenv` to install `Hatch` (Python Project Manager) which is used
-to create a virtual environment (`.venv/bin/python`) for your project inside the project directory.
-
-* If you don't want to use pyenv, make sure you have `python3.10` installed on you system. You can use your system python3.10 interpreter to
-install `Hatch`.
-
-```shell
-pip install hatch
-```
-Once Hatch is installed you can run the below command to setup the development environment for you.
-
-```shell
 make dev
 ```
-**Important:** You would not have to run `pip install hatch` or `make dev` if you have already followed the previous steps
-with `pyenv` to setup the development environment.
 
-* Once your viryual environment creation is complete. Make sure you have activated that on your terminal
+The above statement  installs `Hatch` (Python Project Manager) which is used
+to create a virtual environment (`.venv/bin/python`) for your project inside the project directory with all
+the necessary libraries and project dependencies.
+
+* If you don't want to use `pyenv`, make sure you have `python3.10` installed on you system. You can use your system `python3.10` interpreter to
+directly run `make dev`.
+
+* Once your virtual environment creation is complete. Make sure you have activated that on your terminal
 to start working on the project.
 
 ```shell
@@ -179,7 +169,7 @@ make test
 
 To ensure your integrated development environment (IDE) uses the newly created virtual environment, you can retrieve the Python path with this command:
 ```shell
-hatch run python -c "import sys; print(sys.executable)"
+hatch run python -c "import sys; print(sys.version); print(sys.executable)"
 ```
 
 
