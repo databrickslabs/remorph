@@ -12,8 +12,7 @@ class TableFQN:
     def fqn(self) -> str:
         if self.catalog:
             return f"{self.catalog}.{self.schema}.{self.name}"
-        else:
-            return f"{self.schema}.{self.name}"
+        return f"{self.schema}.{self.name}"
 
 
 @dataclass
