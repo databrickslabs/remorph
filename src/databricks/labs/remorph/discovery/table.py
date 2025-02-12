@@ -33,5 +33,5 @@ class TableDefinition:
     view_text: str | None = None
     columns: list[FieldInfo] = field(default_factory=list)
     primary_keys: list[str] | None = None
-    size_gb: int = 0
+    size_gb: int | None = None
     comment: str | None = None
