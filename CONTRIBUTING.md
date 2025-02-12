@@ -172,9 +172,9 @@ To ensure your integrated development environment (IDE) uses the newly created v
 hatch run python -c "import sys; print(sys.version); print(sys.executable)"
 ```
 
-While you may choose an IDE of your choice, the below IDE configuration is in reference with IntelliJ IDEA CE.
+While you may choose an IDE of your choice (PyCharm, VS Code, IntelliJ IDEA), the below IDE configuration is in reference with IntelliJ IDEA CE.
 As of writing, we are already using IntelliJ IDEA 2024.3+.
-You may download and install from: [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
+You may download and install it from: [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
 
 Configure your IDE to:
  - use this Python venv path so that you work within the virtual environment when developing the project:
