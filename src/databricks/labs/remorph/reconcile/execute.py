@@ -679,6 +679,7 @@ class Reconciliation:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
                     tgt_sampler,
+                    reconcile_output.mismatch_count,
                     reconcile_output.mismatch.mismatch_df,
                     table_conf.join_columns,
                     table_conf.source_name,
@@ -719,6 +720,7 @@ class Reconciliation:
         self,
         src_sampler,
         tgt_sampler,
+        mismatch_count,
         mismatch,
         key_columns,
         src_table: str,
@@ -735,7 +737,8 @@ class Reconciliation:
             options=None,
         )
 
-        df = mismatch_sampler.sample(mismatch, key_columns, sampling_model_target).cache()
+        # Uses pre-calculated `mismatch_count` from `reconcile_output.mismatch_count` to avoid from recomputing `mismatch` for RandomSampler.
+        df = mismatch_sampler.sample(mismatch, mismatch_count, key_columns, sampling_model_target).cache()
 
         src_mismatch_sample_query = src_sampler.build_query(df)
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)

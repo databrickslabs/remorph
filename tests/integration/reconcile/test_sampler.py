@@ -14,6 +14,7 @@ _MAX_SAMPLE_COUNT = 400
 
 def test_random_sampler_count(mock_spark):
     keys_df = mock_spark.createDataFrame([Row(key=1), Row(key=2), Row(key=3), Row(key=4), Row(key=5)])
+    keys_df_count = keys_df.count()
 
     target_table_df = mock_spark.createDataFrame(
         [
@@ -41,7 +42,7 @@ def test_random_sampler_count(mock_spark):
     random_sampler = SamplerFactory.get_sampler(random_sampling_options)
 
     # Perform random sampling
-    random_sample = random_sampler.sample(keys_df, ["key"], target_table_df)
+    random_sample = random_sampler.sample(keys_df, keys_df_count, ["key"], target_table_df)
 
     assert (
         random_sample.count() <= (sample_count if sample_count > _MIN_SAMPLE_COUNT else _MIN_SAMPLE_COUNT)
@@ -52,6 +53,7 @@ def test_random_sampler_count(mock_spark):
 
 def test_random_sampler_negative_count(mock_spark):
     keys_df = mock_spark.createDataFrame([Row(key=1), Row(key=2), Row(key=3), Row(key=4), Row(key=5)])
+    keys_df_count = keys_df.count()
 
     target_table_df = mock_spark.createDataFrame(
         [
@@ -79,7 +81,7 @@ def test_random_sampler_negative_count(mock_spark):
     random_sampler = SamplerFactory.get_sampler(random_sampling_options)
 
     # Perform random sampling
-    random_sample = random_sampler.sample(keys_df, ["key"], target_table_df)
+    random_sample = random_sampler.sample(keys_df, keys_df_count, ["key"], target_table_df)
 
     assert (
         random_sample.count() <= (sample_count if sample_count > _MIN_SAMPLE_COUNT else _MIN_SAMPLE_COUNT)
@@ -100,6 +102,7 @@ def test_random_sampler_invalid_fraction():
 
 def test_stratified_sampler_count(mock_spark):
     keys_df = mock_spark.createDataFrame([Row(key=1), Row(key=2), Row(key=3), Row(key=4), Row(key=5)])
+    keys_df_count = keys_df.count()
 
     target_table_df = mock_spark.createDataFrame(
         [
@@ -127,7 +130,7 @@ def test_stratified_sampler_count(mock_spark):
     stratified_sampler = SamplerFactory.get_sampler(stratified_sampling_options)
 
     # Perform stratified sampling
-    stratified_sample = stratified_sampler.sample(keys_df, ["key"], target_table_df)
+    stratified_sample = stratified_sampler.sample(keys_df, keys_df_count, ["key"], target_table_df)
 
     assert (
         stratified_sample.count() <= (sample_count if sample_count > _MIN_SAMPLE_COUNT else _MIN_SAMPLE_COUNT)
@@ -173,6 +176,7 @@ def test_stratified_sampler_missing_columns_buckets():
 
 def test_stratified_sampler_negative_count(mock_spark):
     keys_df = mock_spark.createDataFrame([Row(key=1), Row(key=2), Row(key=3), Row(key=4), Row(key=5)])
+    keys_df_count = keys_df.count()
 
     target_table_df = mock_spark.createDataFrame(
         [
@@ -200,7 +204,7 @@ def test_stratified_sampler_negative_count(mock_spark):
     stratified_sampler = SamplerFactory.get_sampler(stratified_sampling_options)
 
     # Perform stratified sampling
-    stratified_sample = stratified_sampler.sample(keys_df, ["key"], target_table_df)
+    stratified_sample = stratified_sampler.sample(keys_df, keys_df_count, ["key"], target_table_df)
 
     assert (
         stratified_sample.count() <= (sample_count if sample_count > _MIN_SAMPLE_COUNT else _MIN_SAMPLE_COUNT)

@@ -28,6 +28,7 @@ class Sampler(ABC):
     def sample(
         self,
         keys_df: DataFrame,
+        keys_df_count: int,
         key_columns: list[str],
         target_table: DataFrame,
     ) -> DataFrame:
@@ -67,10 +68,13 @@ class RandomSampler(Sampler):
             )
             self._sampling_options.specifications.value = _MAX_SAMPLE_COUNT
 
-    def sample(self, keys_df: DataFrame, key_columns: list[str], target_table: DataFrame) -> DataFrame:
+    def sample(
+        self, keys_df: DataFrame, keys_df_count: int, key_columns: list[str], target_table: DataFrame
+    ) -> DataFrame:
         """
         Performs random sampling on the given DataFrame based on the specified options.
         - Validates the sampling options.
+        - Uses pre-calculated `keys_df_count` from `reconcile_output.mismatch_count` to avoid from recomputing `keys_df`.
         - If the specifications type is FRACTION, samples the DataFrame based on the fraction value.
         - If the specifications type is COUNT, calculates the fraction and samples the DataFrame accordingly,
           then limits the sample size to the specified count.
@@ -85,7 +89,7 @@ class RandomSampler(Sampler):
         if specs.type == SamplingSpecificationsType.FRACTION:
             sampled_df = keys_df.sample(fraction=specs.value, seed=self.seed)
         elif specs.type == SamplingSpecificationsType.COUNT:
-            total_count = keys_df.count()
+            total_count = keys_df_count
             sample_size = int(specs.value)
             fraction = min(1.0, sample_size / total_count)
             sampled_df = keys_df.sample(fraction=fraction, seed=self.seed).limit(sample_size)
@@ -144,7 +148,9 @@ class StratifiedSampler(Sampler):
             )
             self._sampling_options.stratified_buckets = _MAX_BUCKET_LIMIT
 
-    def sample(self, keys_df: DataFrame, key_columns: list[str], target_table: DataFrame) -> DataFrame:
+    def sample(
+        self, keys_df: DataFrame, keys_df_count: int, key_columns: list[str], target_table: DataFrame
+    ) -> DataFrame:
         """
         Performs stratified sampling on the given DataFrame based on the specified options.
         - Joins the keys_df with the target_table on the key_columns.
@@ -173,8 +179,7 @@ class StratifiedSampler(Sampler):
         ).select(*[keys_df[col] for col in key_columns], *[target_table[col] for col in non_key_stratified_columns])
 
         # Create a hash bucket column based on the stratified columns
-        hash_col = F.abs(F.hash(*[F.col(c) for c in (stratified_columns or [])]))
-        bucket_col = F.pmod(hash_col, stratified_buckets).alias("bucket")
+        bucket_col = F.pmod(F.abs(F.hash(*[F.col(c) for c in (stratified_columns or [])])), stratified_buckets)
 
         # Add the bucket column to the joined_df
         bucketed_df = joined_df.withColumn("bucket", bucket_col)
@@ -191,7 +196,7 @@ class StratifiedSampler(Sampler):
             bucket_counts = bucketed_df.groupBy("bucket").count().collect()
             total_count = sum(row['count'] for row in bucket_counts)
             fractions = {
-                row["bucket"]: min(1.0, (specs.value * row['count'] / total_count) / row['count'])
+                row["bucket"]: min(1.0, (sample_size * row['count'] / total_count) / row['count'])
                 for row in bucket_counts
             }
             sampled_df = bucketed_df.sampleBy("bucket", fractions=fractions, seed=self.seed).limit(sample_size)
