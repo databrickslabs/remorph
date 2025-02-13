@@ -116,7 +116,7 @@ This section provides a step-by-step guide to set up and start working on the pr
 
 To begin, install prerequisites:
 
-`wget` is required for remote spark test suite.
+`wget` is used for downloading tools required by remote spark test suite.
 ```shell
 brew install wget
 ```
@@ -131,8 +131,8 @@ mentioned below.
 `Python 3.10`, having a version management tool like `pyenv` gives us the flexibility to manage the python versions easily for
 future enhancements while maintaining the standards.
 
-From the project directory you can run the below command to install `pyenv` on your local machine given you don't already
-have `pyenv` installed on your local machine.
+If you don't already have `pyenv` installed on your local machine, you can run the below command from
+the project directory to install it.
 
 ```shell
 make setup_python
