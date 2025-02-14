@@ -7,8 +7,7 @@ from uuid import uuid4
 
 import attrs
 
-# see https://github.com/databrickslabs/remorph/issues/1378
-# pylint: disable=import-private-name
+from lsprotocol import types as types_module
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
@@ -23,7 +22,6 @@ from lsprotocol.types import (
     Range,
     Position,
     METHOD_TO_TYPES,
-    _SPECIAL_PROPERTIES,
     DiagnosticSeverity,
     LanguageKind,
 )
@@ -75,9 +73,19 @@ class TranspileDocumentResponse:
     jsonrpc: str = attrs.field(default="2.0")
 
 
-_SPECIAL_PROPERTIES.extend(
-    [f"{TranspileDocumentRequest.__name__}.method", f"{TranspileDocumentRequest.__name__}.jsonrpc"]
-)
+def install_special_properties():
+    is_special_property = getattr(types_module, "is_special_property")
+
+    def customized(cls: type, property_name: str) -> bool:
+        if cls is TranspileDocumentRequest and property_name in {"method", "jsonrpc"}:
+            return True
+        return is_special_property(cls, property_name)
+
+    setattr(types_module, "is_special_property", customized)
+
+
+install_special_properties()
+
 METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
     TranspileDocumentRequest,
     TranspileDocumentResponse,
