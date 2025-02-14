@@ -15,8 +15,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     coalesce,
 )
 
-_SAMPLE_ROWS = 50
-
 logger = logging.getLogger(__name__)
 
 
@@ -86,7 +84,7 @@ class SamplingQueryBuilder(QueryBuilder):
 
     def _get_with_clause(self, df: DataFrame) -> exp.Select:
         union_res = []
-        for row in df.take(_SAMPLE_ROWS):
+        for row in df.collect():
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
             column_types_dict = dict(column_types)
             row_select = [

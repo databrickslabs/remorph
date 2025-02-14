@@ -25,3 +25,13 @@ class ReconReportType(AutoName):
     SCHEMA = auto()
     ROW = auto()
     ALL = auto()
+
+
+class SamplingSpecificationsType(AutoName):
+    FRACTION = auto()
+    COUNT = auto()
+
+
+class SamplingOptionMethod(AutoName):
+    RANDOM = auto()
+    STRATIFIED = auto()
