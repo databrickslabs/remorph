@@ -7,8 +7,8 @@ from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 class TestEnvGetter(EnvGetter):
     def __init__(self, is_debug: bool = True):
-        self.is_debug = is_debug
         super().__init__()
+        self.is_debug = is_debug
 
     def _get_debug_env(self) -> dict:
         try:
