@@ -19,6 +19,7 @@ def test_valid_config():
 VALID_CONFIG: dict[str, Any] = yaml.safe_load(
     """remorph:
   version: 1
+  name: test-transpiler
   dialects:
     - snowflake
     - oracle
@@ -38,10 +39,12 @@ custom:
     [
         ("version", None, "Unsupported transpiler config version"),
         ("version", 0, "Unsupported transpiler config version"),
-        ("dialects", None, "Missing dialects entry"),
-        ("dialects", [], "Missing dialects entry"),
-        ("command_line", None, "Missing command_line entry"),
-        ("command_line", [], "Missing command_line entry"),
+        ("name", None, "Missing 'name' entry"),
+        ("name", "", "Missing 'name' entry"),
+        ("dialects", None, "Missing 'dialects' entry"),
+        ("dialects", [], "Missing 'dialects' entry"),
+        ("command_line", None, "Missing 'command_line' entry"),
+        ("command_line", [], "Missing 'command_line' entry"),
     ],
 )
 def test_invalid_config_raises_error(key, value, message):

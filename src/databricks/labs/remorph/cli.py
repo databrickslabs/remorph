@@ -15,6 +15,7 @@ from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
+from databricks.sdk.core import with_user_agent_extra
 
 from databricks.sdk import WorkspaceClient
 
@@ -73,16 +74,15 @@ def transpile(
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
-    mode: str,
 ):
     """Transpiles source dialect to databricks dialect"""
+    with_user_agent_extra("cmd", "execute-transpile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     default_config = ctx.transpile_config
     if not default_config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
-    mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler_config_path))
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
@@ -95,8 +95,6 @@ def transpile(
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
-    if mode.lower() not in {"current", "experimental"}:
-        raise_validation_exception(f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'.")
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
@@ -111,7 +109,6 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-        mode=mode,
         sdk_config=sdk_config,
     )
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
@@ -143,6 +140,7 @@ def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[s
 @remorph.command
 def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
+    with_user_agent_extra("cmd", "execute-reconcile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
@@ -157,6 +155,7 @@ def reconcile(w: WorkspaceClient):
 @remorph.command
 def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
+    with_user_agent_extra("cmd", "execute-aggregates-reconcile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
@@ -205,6 +204,7 @@ def install_assessment():
 @remorph.command()
 def install_transpile(w: WorkspaceClient):
     """Install the Remorph Transpile package"""
+    with_user_agent_extra("cmd", "install-transpile")
     installer = _installer(w)
     installer.run(module="transpile")
 
@@ -212,6 +212,7 @@ def install_transpile(w: WorkspaceClient):
 @remorph.command(is_unauthenticated=False)
 def install_reconcile(w: WorkspaceClient):
     """Install the Remorph Reconcile package"""
+    with_user_agent_extra("cmd", "install-reconcile")
     installer = _installer(w)
     installer.run(module="reconcile")
 

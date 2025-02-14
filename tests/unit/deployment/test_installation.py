@@ -49,7 +49,6 @@ def test_install_all(ws):
         skip_validation=True,
         catalog_name="remorph6",
         schema_name="transpiler6",
-        mode="current",
     )
     reconcile_config = ReconcileConfig(
         data_source="oracle",
@@ -86,7 +85,6 @@ def test_no_recon_component_installation(ws):
         skip_validation=True,
         catalog_name="remorph7",
         schema_name="transpiler7",
-        mode="current",
     )
     config = RemorphConfigs(transpile=transpile_config)
     installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, product_info, upgrades)
@@ -173,7 +171,6 @@ def test_uninstall_configs_exist(ws):
         skip_validation=True,
         catalog_name="transpiler_test1",
         schema_name="convertor_test1",
-        mode="current",
         sdk_config={"warehouse_id": "abc"},
     )
 
