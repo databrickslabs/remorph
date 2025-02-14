@@ -2,15 +2,13 @@ import os
 import json
 import logging
 
+from databricks.labs.remorph.connections.env_getter import EnvGetter
 
-class EnvGetter:
+
+class TestEnvGetter(EnvGetter):
     def __init__(self, is_debug: bool = True):
-        self.env = self._get_debug_env() if is_debug else dict(os.environ)
-
-    def get(self, key: str) -> str:
-        if key in self.env:
-            return self.env[key]
-        raise KeyError(f"not in env: {key}")
+        self.is_debug = is_debug
+        super().__init__()
 
     def _get_debug_env(self) -> dict:
         try:
@@ -22,3 +20,8 @@ class EnvGetter:
             return raw.get("ucws", {})
         except FileNotFoundError:
             return dict(os.environ)
+
+    def get(self, key: str) -> str:
+        if self.is_debug:
+            self.env = self._get_debug_env()
+        return super().get(key)
