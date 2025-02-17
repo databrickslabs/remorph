@@ -95,8 +95,8 @@ class TsqlTableDefinitionService(TableDefinitionService):
                 TC.TABLE_SCHEMA,
                 TC.TABLE_NAME,
                 STRING_AGG(KU.COLUMN_NAME,':') as PK_COLUMN_NAME
-                FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
-                JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
+                FROM {catalog_name}.INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
+                JOIN {catalog_name}.INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
                 ON TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME
                 AND TC.TABLE_NAME = KU.TABLE_NAME
                 WHERE TC.CONSTRAINT_TYPE = 'PRIMARY KEY' group by TC.TABLE_CATALOG, TC.TABLE_SCHEMA, TC.TABLE_NAME)
@@ -138,7 +138,6 @@ class TsqlTableDefinitionService(TableDefinitionService):
                 print(result["TABLE_NAME"])
                 print(result["SIZE_GB"])
                 print(result["view_definition"])
-                print("PK" + result["PK_COLUMN_NAME"])
                 table_fqn = TableFQN(
                     catalog=result["TABLE_CATALOG"], schema=result["TABLE_SCHEMA"], name=result["TABLE_NAME"]
                 )
@@ -150,6 +149,8 @@ class TsqlTableDefinitionService(TableDefinitionService):
                         name=column_info[0], data_type=column_info[1], nullable=column_info[2], comment=column_info[3]
                     )
                     field_info.append(field)
+
+                pks = result["PK_COLUMN_NAME"].split(":") if result["PK_COLUMN_NAME"] else None
                 table_definition = TableDefinition(
                     fqn=table_fqn,
                     location=result["location"],
@@ -158,7 +159,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
                     columns=field_info,
                     size_gb=result["SIZE_GB"],
                     comment=result["TABLE_COMMENT"],
-
+                    primary_keys=pks,
                 )
                 table_definitions.append(table_definition)
             print(len(table_definitions))
