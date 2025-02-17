@@ -1,3 +1,5 @@
+from typing import List
+
 from databricks.labs.remorph.discovery.connection_factory import create_connection
 from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
@@ -125,7 +127,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
         """
         return query
 
-    def get_table_definition(self, catalog_name: str) -> [TableDefinition]:
+    def get_table_definition(self, catalog_name: str) -> List[TableDefinition]:
         cursor = create_connection()
         sql = self.get_table_definition_query(catalog_name)
         result = cursor.execute(sql)
