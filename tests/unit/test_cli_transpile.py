@@ -6,6 +6,7 @@ import pytest
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.remorph.transpiler.lsp_engine import LSPEngine
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
@@ -46,9 +47,11 @@ def patch_do_transpile():
 def test_transpile_with_no_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     mock_transpile, patched_do_transpile = patch_do_transpile()
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
@@ -95,9 +98,11 @@ def test_transpile_with_no_sdk_config():
 def test_transpile_with_warehouse_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     mock_transpile, patched_do_transpile = patch_do_transpile()
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"warehouse_id": "w_id"}
@@ -145,9 +150,11 @@ def test_transpile_with_warehouse_id_in_sdk_config():
 def test_transpile_with_cluster_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     mock_transpile, patched_do_transpile = patch_do_transpile()
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         sdk_config = {"cluster_id": "c_id"}
@@ -207,11 +214,17 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
+def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
+    mock_engine = create_autospec(LSPEngine)
+    mock_engine.check_source_dialect.side_effect = lambda source_dialect: TranspileEngine.check_source_dialect(mock_engine, source_dialect)
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
+        pytest.raises(Exception, match="Invalid value for '--source-dialect'"),
+    ):
         cli.transpile(
             mock_workspace_client_cli,
-            "sqlglot",
+            "some_transpiler",
             "invalid_dialect",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -222,31 +235,11 @@ def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["oracle"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        pytest.raises(Exception, match="Invalid value for '--source-dialect'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "some_transpiler",
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-
-
 def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         pytest.raises(Exception, match="Invalid value for '--skip-validation'"),
     ):
         cli.transpile(
@@ -263,8 +256,10 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
 
 
 def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("os.path.exists", return_value=False),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         pytest.raises(Exception, match="Invalid value for '--input-source'"),
     ):
         cli.transpile(
@@ -292,8 +287,10 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
@@ -327,7 +324,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
 def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
-    input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
+    input_source = path_to_resource("lsp_transpiler", "source_stuff.sql")
     output_folder = path_to_resource("lsp_transpiler")
     error_file = ""
     skip_validation = "true"
@@ -336,7 +333,11 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),):
+    mock_engine = create_autospec(LSPEngine)
+    with (
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
+    ):
         cli.transpile(
             mock_workspace_client_cli,
             transpiler_config_path,
@@ -378,8 +379,10 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     sdk_config = {'cluster_id': 'test_cluster'}
 
     mock_transpile, patched_do_transpile = patch_do_transpile()
+    mock_engine = create_autospec(LSPEngine)
     with (
         patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),
         patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
     ):
         cli.transpile(
