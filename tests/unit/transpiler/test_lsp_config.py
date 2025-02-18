@@ -55,6 +55,7 @@ def test_invalid_config_raises_error(key, value, message):
         config["remorph"][key] = value
     with (
         patch("pathlib.PosixPath.read_text", return_value=yaml.dump(config)),
+        patch("pathlib.PosixPath.exists", return_value=True),
         pytest.raises(ValueError, match=message),
     ):
         _ = LSPEngine.from_config_path(Path("stuff"))
