@@ -26,6 +26,9 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     trim,
 )
 
+@pytest.fixture
+def expr():
+    yield parse_one("SELECT col1 FROM DUAL", read="databricks")
 
 def test_coalesce(expr):
     assert coalesce(expr, "NA", True).sql() == "SELECT COALESCE(col1, 'NA') FROM DUAL"
