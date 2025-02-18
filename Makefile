@@ -29,10 +29,10 @@ fmt:
 setup_spark_remote:
 	.github/scripts/setup_spark_remote.sh
 
-test: setup_spark_remote
+test:
 	hatch run test
 
-integration:
+integration: setup_spark_remote
 	hatch run integration
 
 coverage:
