@@ -1,6 +1,7 @@
 import io
 import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import create_autospec
 
 import pytest
@@ -21,16 +22,18 @@ def mock_databricks_config():
 
 @pytest.fixture()
 def transpile_config():
-    yield TranspileConfig(
-        transpiler_config_path="sqlglot",
-        source_dialect="snowflake",
-        input_source="input_sql",
-        output_folder="output_folder",
-        sdk_config={"cluster_id": "test_cluster"},
-        skip_validation=False,
-        catalog_name="catalog",
-        schema_name="schema",
-    )
+    with TemporaryDirectory() as tmpdirname:
+        yield TranspileConfig(
+            transpiler_config_path="sqlglot",
+            source_dialect="snowflake",
+            input_source="input_sql",
+            output_folder="output_folder",
+            error_file_path=tmpdirname+"/errors.lst",
+            sdk_config={"cluster_id": "test_cluster"},
+            skip_validation=False,
+            catalog_name="catalog",
+            schema_name="schema",
+        )
 
 
 def path_to_resource(*args: str) -> str:

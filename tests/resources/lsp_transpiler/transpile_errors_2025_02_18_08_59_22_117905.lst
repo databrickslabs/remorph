@@ -1,1 +1,0 @@
-TranspileError(code=UNSUPPORTED_LCA, kind=ANALYSIS, severity=ERROR, path='/Users/eric.vergnaud/development/remorph/tests/resources/lsp_transpiler/unsupported_lca.sql', message='LCA conversion not supported')
