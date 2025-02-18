@@ -12,5 +12,7 @@ def get_dialect(name: str) -> Dialect:
 
 
 def get_dialect_name(dialect: Dialect) -> str:
-    name = type(dialect).__name__
-    return name if name in Dialects else "universal"
+    try:
+        return Dialects(dialect).value
+    except ValueError:
+        return "universal"
