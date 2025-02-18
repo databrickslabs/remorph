@@ -11,6 +11,10 @@ def get_dialect(name: str) -> Dialect:
     raise ValueError(f"Can't instantiate dialect from {name}")
 
 
+def dialect_exists(name: str) -> bool:
+    values = {member.value for member in Dialects}
+    return name in values
+
 def get_dialect_name(dialect: Dialect) -> str:
     try:
         return Dialects(dialect).value

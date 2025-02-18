@@ -12,6 +12,7 @@ from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
+from databricks.labs.remorph.reconcile.utils import get_dialect, dialect_exists
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
@@ -171,6 +172,8 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
+    if not source_dialect or not dialect_exists(source_dialect):
+        raise_validation_exception(f"Invalid value for '--source-dialect': {source_dialect}.")
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
