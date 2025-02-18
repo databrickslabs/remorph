@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
+
 class DatabaseConnector(ABC):
     @abstractmethod
     def _connect(self) -> Engine:
