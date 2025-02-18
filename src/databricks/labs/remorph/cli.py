@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -7,14 +8,18 @@ from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
+from databricks.sdk.core import with_user_agent_extra
 
 from databricks.sdk import WorkspaceClient
 
+from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
@@ -32,6 +37,32 @@ proxy_command(remorph, "debug-estimate")
 proxy_command(remorph, "debug-bundle")
 
 
+def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
+    app_context = ApplicationContext(_verify_workspace_client(ws))
+    return WorkspaceInstaller(
+        app_context.workspace_client,
+        app_context.prompts,
+        app_context.installation,
+        app_context.install_state,
+        app_context.product_info,
+        app_context.resource_configurator,
+        app_context.workspace_installation,
+    )
+
+
+def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
+    """
+    [Private] Verifies and updates the workspace client configuration.
+    """
+
+    # Using reflection to set right value for _product_info for telemetry
+    product_info = getattr(ws.config, '_product_info')
+    if product_info[0] != "remorph":
+        setattr(ws.config, '_product_info', ('remorph', __version__))
+
+    return ws
+
+
 @remorph.command
 def transpile(
     w: WorkspaceClient,
@@ -43,16 +74,15 @@ def transpile(
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
-    mode: str,
 ):
     """Transpiles source dialect to databricks dialect"""
+    with_user_agent_extra("cmd", "execute-transpile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     default_config = ctx.transpile_config
     if not default_config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
-    mode = mode if mode else "current"  # not checking for default config as it will always be current
     engine = TranspileEngine.load_engine(Path(transpiler_config_path))
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
@@ -65,8 +95,6 @@ def transpile(
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
-    if mode.lower() not in {"current", "experimental"}:
-        raise_validation_exception(f"Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'.")
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     catalog_name = catalog_name if catalog_name else default_config.catalog_name
@@ -81,11 +109,12 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-        mode=mode,
         sdk_config=sdk_config,
     )
+    status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
-    status = do_transpile(ctx.workspace_client, engine, config)
+    for error in errors:
+        print(str(error))
 
     print(json.dumps(status))
 
@@ -111,6 +140,7 @@ def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[s
 @remorph.command
 def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
+    with_user_agent_extra("cmd", "execute-reconcile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
@@ -125,6 +155,7 @@ def reconcile(w: WorkspaceClient):
 @remorph.command
 def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
+    with_user_agent_extra("cmd", "execute-aggregates-reconcile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
     recon_runner = ReconcileRunner(
@@ -138,11 +169,11 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, transpiler: str, source_dialect: str, input_source: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    engine = TranspileEngine.load_engine(Path(transpiler))
+    engine = SqlglotEngine()
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
@@ -162,6 +193,28 @@ def configure_secrets(w: WorkspaceClient):
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
     recon_conf.prompt_and_save_connection_details()
+
+
+@remorph.command(is_unauthenticated=True)
+def install_assessment():
+    """Install the Remorph Assessment package"""
+    raise NotImplementedError("Assessment package is not available yet.")
+
+
+@remorph.command()
+def install_transpile(w: WorkspaceClient):
+    """Install the Remorph Transpile package"""
+    with_user_agent_extra("cmd", "install-transpile")
+    installer = _installer(w)
+    installer.run(module="transpile")
+
+
+@remorph.command(is_unauthenticated=False)
+def install_reconcile(w: WorkspaceClient):
+    """Install the Remorph Reconcile package"""
+    with_user_agent_extra("cmd", "install-reconcile")
+    installer = _installer(w)
+    installer.run(module="reconcile")
 
 
 if __name__ == "__main__":
