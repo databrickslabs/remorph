@@ -44,9 +44,9 @@ class RootTableAnalyzer:
             dag.add_edge(root_table, child)
 
     def _analyse_table_lineage(self, source_code: str, file_path: Path) -> Iterable[tuple[str, str]]:
-        parsed_expression, _ = parse(source_code, read=self.source_dialect, error_level=ErrorLevel.IMMEDIATE)
-        if parsed_expression is not None:
-            for expr in parsed_expression:
+        parsed = parse(source_code, read=self.source_dialect, error_level=ErrorLevel.IMMEDIATE)
+        if parsed is not None:
+            for expr in parsed:
                 child: str = str(file_path)
                 if expr is not None:
                     # TODO: fix possible issue where the file reference is lost (if we have a 'create')
