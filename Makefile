@@ -13,7 +13,6 @@ setup_python:
 
 
 dev:
-	pip install hatch
 	hatch env create
 	hatch run pip install --upgrade pip
 	hatch run pip install -e '.[test]'
