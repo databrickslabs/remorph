@@ -21,6 +21,7 @@ dependencies = [
   "pyodbc",
   "SQLAlchemy",
   "pygls>=2.0.0a2",
+  "duckdb",
 ]
 
 [project.urls]
@@ -52,7 +53,7 @@ dependencies = [
   "pytest",
   "pytest-cov>=5.0.0,<6.0.0",
   "pytest-asyncio>=0.24.0",
-    "pytest-xdist~=3.5.0",
+  "pytest-xdist~=3.5.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
