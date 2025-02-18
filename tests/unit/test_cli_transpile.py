@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
+from unittest.mock import create_autospec, patch, ANY, MagicMock
 
 import pytest
 
@@ -216,7 +216,9 @@ def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
     mock_engine = create_autospec(LSPEngine)
-    mock_engine.check_source_dialect.side_effect = lambda source_dialect: TranspileEngine.check_source_dialect(mock_engine, source_dialect)
+    mock_engine.check_source_dialect.side_effect = lambda source_dialect: TranspileEngine.check_source_dialect(
+        mock_engine, source_dialect
+    )
     with (
         patch("os.path.exists", return_value=True),
         patch("databricks.labs.remorph.transpiler.lsp_engine.LSPEngine.from_config_path", return_value=mock_engine),

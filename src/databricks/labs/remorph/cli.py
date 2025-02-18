@@ -17,7 +17,7 @@ from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.reconcile.utils import get_dialect, dialect_exists
+from databricks.labs.remorph.reconcile.utils import dialect_exists
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command

@@ -26,9 +26,11 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     trim,
 )
 
+
 @pytest.fixture
 def expr():
     yield parse_one("SELECT col1 FROM DUAL", read="databricks")
+
 
 def test_coalesce(expr):
     assert coalesce(expr, "NA", True).sql() == "SELECT COALESCE(col1, 'NA') FROM DUAL"
@@ -44,11 +46,11 @@ def test_trim(expr):
 
 
 def test_json_format():
-    expr = parse_one("SELECT col1 FROM DUAL")
+    parsed = parse_one("SELECT col1 FROM DUAL")
 
-    assert json_format(expr).sql() == "SELECT JSON_FORMAT(col1) FROM DUAL"
-    assert json_format(expr).sql(dialect="databricks") == "SELECT TO_JSON(col1) FROM DUAL"
-    assert json_format(expr).sql(dialect="snowflake") == "SELECT JSON_FORMAT(col1) FROM DUAL"
+    assert json_format(parsed).sql() == "SELECT JSON_FORMAT(col1) FROM DUAL"
+    assert json_format(parsed).sql(dialect="databricks") == "SELECT TO_JSON(col1) FROM DUAL"
+    assert json_format(parsed).sql(dialect="snowflake") == "SELECT JSON_FORMAT(col1) FROM DUAL"
 
 
 def test_sort_array(expr):

@@ -136,4 +136,3 @@ def test_with_no_input_source(mock_workspace_client):
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
         transpile(mock_workspace_client, config)
-

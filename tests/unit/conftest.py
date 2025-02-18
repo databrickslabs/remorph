@@ -28,7 +28,7 @@ def transpile_config():
             source_dialect="snowflake",
             input_source="input_sql",
             output_folder="output_folder",
-            error_file_path=tmpdirname+"/errors.lst",
+            error_file_path=tmpdirname + "/errors.lst",
             sdk_config={"cluster_id": "test_cluster"},
             skip_validation=False,
             catalog_name="catalog",
