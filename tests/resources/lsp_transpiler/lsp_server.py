@@ -7,8 +7,7 @@ from uuid import uuid4
 
 import attrs
 
-# see https://github.com/databrickslabs/remorph/issues/1378
-# pylint: disable=import-private-name
+from lsprotocol import types as types_module
 from lsprotocol.types import (
     InitializeParams,
     INITIALIZE,
@@ -23,8 +22,8 @@ from lsprotocol.types import (
     Range,
     Position,
     METHOD_TO_TYPES,
-    _SPECIAL_PROPERTIES,
     DiagnosticSeverity,
+    LanguageKind,
 )
 from pygls.lsp.server import LanguageServer
 
@@ -44,7 +43,7 @@ TRANSPILE_TO_DATABRICKS_CAPABILITY = {"id": str(uuid4()), "method": TRANSPILE_TO
 @attrs.define
 class TranspileDocumentParams:
     uri: str = attrs.field()
-    language_id: str = attrs.field()
+    language_id: LanguageKind | str = attrs.field()
 
 
 @attrs.define
@@ -60,6 +59,7 @@ class TranspileDocumentRequest:
 @attrs.define
 class TranspileDocumentResult:
     uri: str = attrs.field()
+    language_id: LanguageKind | str = attrs.field()  #
     changes: Sequence[TextEdit] = attrs.field()
     diagnostics: Sequence[Diagnostic] = attrs.field()
 
@@ -73,9 +73,19 @@ class TranspileDocumentResponse:
     jsonrpc: str = attrs.field(default="2.0")
 
 
-_SPECIAL_PROPERTIES.extend(
-    [f"{TranspileDocumentRequest.__name__}.method", f"{TranspileDocumentRequest.__name__}.jsonrpc"]
-)
+def install_special_properties():
+    is_special_property = getattr(types_module, "is_special_property")
+
+    def customized(cls: type, property_name: str) -> bool:
+        if cls is TranspileDocumentRequest and property_name in {"method", "jsonrpc"}:
+            return True
+        return is_special_property(cls, property_name)
+
+    setattr(types_module, "is_special_property", customized)
+
+
+install_special_properties()
+
 METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
     TranspileDocumentRequest,
     TranspileDocumentResponse,
@@ -100,8 +110,8 @@ class TestLspServer(LanguageServer):
 
     async def did_initialize(self, init_params: InitializeParams) -> None:
         self.initialization_options = init_params.initialization_options
-        logger.debug(f"dialect={server.dialect}")
-        logger.debug(f"whatever={server.whatever}")
+        logger.debug(f"dialect={self.dialect}")
+        logger.debug(f"whatever={self.whatever}")
         # TODO check whether the client supports dynamic registration
         registrations = [
             Registration(
@@ -117,7 +127,9 @@ class TestLspServer(LanguageServer):
         range = Range(start=Position(0, 0), end=Position(len(source_lines), len(source_lines[-1])))
         transpiled_sql, diagnostics = self._transpile(Path(params.uri).name, range, source_sql)
         changes = [TextEdit(range=range, new_text=transpiled_sql)]
-        return TranspileDocumentResult(uri=params.uri, changes=changes, diagnostics=diagnostics)
+        return TranspileDocumentResult(
+            uri=params.uri, language_id=LanguageKind.Sql, changes=changes, diagnostics=diagnostics
+        )
 
     def _transpile(self, file_name: str, lsp_range: Range, source_sql: str) -> tuple[str, list[Diagnostic]]:
         if file_name == "no_transpile.sql":
