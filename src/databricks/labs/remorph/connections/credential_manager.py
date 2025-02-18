@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging
 from typing import Protocol
+
 import yaml
 
 from databricks.labs.remorph.connections.env_getter import EnvGetter
