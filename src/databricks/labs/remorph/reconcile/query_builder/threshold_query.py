@@ -3,6 +3,7 @@ import logging
 from sqlglot import expressions as exp
 from sqlglot import select
 
+from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     anonymous,
@@ -17,7 +18,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     coalesce,
 )
 from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds
-from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,13 @@ class ThresholdQueryBuilder(QueryBuilder):
         select_clause, where = self._generate_select_where_clause(join_columns)
         from_clause, join_clause = self._generate_from_and_join_clause(join_columns)
         # for threshold comparison query the dialect is always Databricks
-        query = select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
+        query = (
+            select(*select_clause)
+            .from_(from_clause)
+            .join(join_clause)
+            .where(where)
+            .sql(dialect=get_dialect("databricks"))
+        )
         logger.info(f"Threshold Comparison query: {query}")
         return query
 
@@ -226,6 +232,6 @@ class ThresholdQueryBuilder(QueryBuilder):
         if self.user_transformations:
             thresholds_expr = self._apply_user_transformation(threshold_alias)
 
-        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.engine)
+        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self._dialect)
         logger.info(f"Threshold Query for {self.layer}: {query}")
         return query

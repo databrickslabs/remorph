@@ -7,7 +7,7 @@ import pytest
 from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
+from databricks.labs.remorph.transpiler.lsp_engine import (
     LSPEngine,
     ChangeManager,
 )
