@@ -31,6 +31,7 @@ def mock_credentials():
 def db_manager(mock_credentials):
     env = TestEnvGetter(True)
     config = create_credential_manager("remorph", env).get_credentials("mssql")
+
     # since the kv has only URL so added explicit parse rules
     base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
 

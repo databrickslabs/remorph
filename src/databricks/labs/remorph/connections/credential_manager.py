@@ -64,6 +64,10 @@ def _get_home() -> Path:
     return Path(__file__).home()
 
 
+def cred_file(product_name) -> Path:
+    return Path(f"{_get_home()}/.databricks/labs/{product_name}/.credentials.yml")
+
+
 def _load_credentials(path: Path) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
