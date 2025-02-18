@@ -2,7 +2,6 @@ import re
 
 import pytest
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
@@ -13,6 +12,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ColumnThresholds,
     Transformation,
 )
+from databricks.labs.remorph.reconcile.utils import get_dialect
 
 
 def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, table_schema):

@@ -1,10 +1,10 @@
 import logging
 
 import sqlglot.expressions as exp
-from pyspark.sql import DataFrame
 from sqlglot import select
+from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
+from databricks.labs.remorph.reconcile.utils import get_dialect_name
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
@@ -52,7 +52,7 @@ class SamplingQueryBuilder(QueryBuilder):
             for col in cols
         ]
 
-        sql_with_transforms = self.add_transformations(cols_with_alias, self.engine)
+        sql_with_transforms = self.add_transformations(cols_with_alias, self._dialect)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         if self.layer == "source":
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
@@ -69,7 +69,7 @@ class SamplingQueryBuilder(QueryBuilder):
             .select(*with_select)
             .from_("src")
             .join(join_clause)
-            .sql(dialect=self.engine)
+            .sql(dialect=self._dialect)
         )
         logger.info(f"Sampling Query for {self.layer}: {query}")
         return query
@@ -97,7 +97,7 @@ class SamplingQueryBuilder(QueryBuilder):
                 )
                 for col, value in zip(df.columns, row)
             ]
-            if get_key_from_dialect(self.engine) == "oracle":
+            if get_dialect_name(self._dialect) == "oracle":
                 union_res.append(select(*row_select).from_("dual"))
             else:
                 union_res.append(select(*row_select))

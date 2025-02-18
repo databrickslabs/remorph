@@ -8,13 +8,13 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
+from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,

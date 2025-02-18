@@ -32,7 +32,7 @@ from databricks.labs.remorph.config import (
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
+from databricks.labs.remorph.transpiler.lsp_engine import LSPConfig
 
 logger = logging.getLogger(__name__)
 

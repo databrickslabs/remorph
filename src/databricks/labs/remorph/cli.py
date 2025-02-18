@@ -15,12 +15,10 @@ from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.jvmproxy import proxy_command
+from databricks.labs.remorph.transpiler.lsp_engine import LSPEngine
 from databricks.sdk.core import with_user_agent_extra
 
 from databricks.sdk import WorkspaceClient
-
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -83,7 +81,7 @@ def transpile(
     if not default_config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, default_config.sdk_config)
-    engine = TranspileEngine.load_engine(Path(transpiler_config_path))
+    engine = LSPEngine.from_config_path(Path(transpiler_config_path))
     engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
@@ -173,14 +171,12 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    engine = SqlglotEngine()
-    engine.check_source_dialect(source_dialect)
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
 
-    lineage_generator(engine, source_dialect, input_source, output_folder)
+    lineage_generator(source_dialect, input_source, output_folder)
 
 
 @remorph.command

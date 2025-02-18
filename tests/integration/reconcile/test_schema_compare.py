@@ -1,8 +1,8 @@
 import pytest
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Schema, Table
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
+from databricks.labs.remorph.reconcile.utils import get_dialect
 
 
 def snowflake_databricks_schema():

@@ -8,26 +8,18 @@ import pytest
 
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
-from databricks.labs.lsql.core import Row
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import TranspileConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.transpiler.execute import (
-    transpile as do_transpile,
-    transpile_column_exp,
-    transpile_sql,
-)
+from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.sdk.core import Config
 
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
-
-# pylint: disable=unspecified-encoding
-
-
-def transpile(workspace_client: WorkspaceClient, engine: SqlglotEngine, config: TranspileConfig):
+def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
+    engine = create_autospec(TranspileEngine)
     return asyncio.run(do_transpile(workspace_client, engine, config))
 
 
@@ -65,7 +57,7 @@ def check_status(
 
 def check_error_lines(error_file_path: str, expected_errors: list[dict[str, str]]):
     pattern = r"TranspileError\(code=(?P<code>[^,]+), kind=(?P<kind>[^,]+), severity=(?P<severity>[^,]+), path='(?P<path>[^']+)', message='(?P<message>[^']+)('\))?"
-    with open(Path(error_file_path)) as file:
+    with open(Path(error_file_path), encoding="utf-8") as file:
         error_count = 0
         match_count = 0
         for line in file:
@@ -111,7 +103,7 @@ def test_with_dir_with_output_folder_skipping_validation(
         skip_validation=True,
     )
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
     # check the status
     check_status(status, 8, 7, 1, 2, 0, 0, error_file.name)
     # check errors
@@ -153,7 +145,7 @@ def test_with_file(input_source, error_file, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
 
     # check the status
     check_status(status, 1, 1, 0, 0, 1, 0, error_file.name)
@@ -176,7 +168,7 @@ def test_with_file_with_output_folder_skip_validation(input_source, output_folde
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
 
     # check the status
     check_status(status, 1, 1, 0, 0, 0, 0, "None")
@@ -196,7 +188,7 @@ def test_with_not_a_sql_file_skip_validation(input_source, mock_workspace_client
         'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
 
     # check the status
     check_status(status, 0, 0, 0, 0, 0, 0, "None")
@@ -216,61 +208,7 @@ def test_with_not_existing_file_skip_validation(input_source, mock_workspace_cli
             'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
             return_value=MockBackend(),
         ):
-            transpile(mock_workspace_client, SqlglotEngine(), config)
-
-
-def test_transpile_sql(mock_workspace_client):
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        source_dialect="snowflake",
-        skip_validation=False,
-        catalog_name="catalog",
-        schema_name="schema",
-    )
-    query = """select col from table;"""
-
-    with patch(
-        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(
-            rows={
-                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
-            }
-        ),
-    ):
-        transpiler_result, validation_result = transpile_sql(mock_workspace_client, config, query)
-        assert transpiler_result.transpiled_code == 'SELECT\n  col\nFROM table'
-        assert validation_result.exception_msg is None
-
-
-def test_transpile_column_exp(mock_workspace_client):
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        source_dialect="snowflake",
-        skip_validation=True,
-        catalog_name="catalog",
-        schema_name="schema",
-    )
-    query = ["case when col1 is null then 1 else 0 end", "col2 * 2", "current_timestamp()"]
-
-    with patch(
-        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(
-            rows={
-                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
-            }
-        ),
-    ):
-        result = transpile_column_exp(mock_workspace_client, config, query)
-        assert len(result) == 3
-        assert result[0][0].transpiled_code == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
-        assert result[1][0].transpiled_code == 'col2 * 2'
-        assert result[2][0].transpiled_code == 'CURRENT_TIMESTAMP()'
-        assert result[0][0].error_list == []
-        assert result[1][0].error_list == []
-        assert result[2][0].error_list == []
-        assert result[0][1] is None
-        assert result[1][1] is None
-        assert result[2][1] is None
+            transpile(mock_workspace_client, config)
 
 
 def test_with_file_with_success(input_source, mock_workspace_client):
@@ -295,7 +233,7 @@ def test_with_file_with_success(input_source, mock_workspace_client):
         ),
         patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
     ):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
         # assert the status
         check_status(status, 1, 1, 0, 0, 0, 0, "None")
 
@@ -311,7 +249,7 @@ def test_with_input_source_none(mock_workspace_client):
     )
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        transpile(mock_workspace_client, SqlglotEngine(), config)
+        transpile(mock_workspace_client, config)
 
 
 def test_parse_error_handling(input_source, error_file, mock_workspace_client):
@@ -326,7 +264,7 @@ def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
 
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
@@ -347,7 +285,7 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     )
 
     with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status, _errors = transpile(mock_workspace_client, SqlglotEngine(), config)
+        status, _errors = transpile(mock_workspace_client, config)
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
     # check errors

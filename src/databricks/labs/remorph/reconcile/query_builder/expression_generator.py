@@ -5,7 +5,7 @@ from pyspark.sql.types import DataType, NumericType
 from sqlglot import Dialect
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping
 
 

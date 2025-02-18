@@ -1,7 +1,6 @@
 import pytest
 
 from databricks.labs.remorph.intermediate.root_tables import RootTableAnalyzer
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 
 @pytest.fixture(autouse=True)
@@ -18,7 +17,7 @@ def setup_file(tmpdir):
 
 
 def test_generate_lineage(tmpdir):
-    root_table_analyzer = RootTableAnalyzer(SqlglotEngine(), "snowflake", tmpdir)
+    root_table_analyzer = RootTableAnalyzer("snowflake", tmpdir)
     dag = root_table_analyzer.generate_lineage_dag()
     roots = ["table2", "table3", "table4"]
 
@@ -31,7 +30,7 @@ def test_generate_lineage(tmpdir):
 
 
 def test_generate_lineage_sql_file(setup_file):
-    root_table_analyzer = RootTableAnalyzer(SqlglotEngine(), "snowflake", setup_file)
+    root_table_analyzer = RootTableAnalyzer("snowflake", setup_file)
     dag = root_table_analyzer.generate_lineage_dag()
     roots = ["table2", "table3", "table4"]
 

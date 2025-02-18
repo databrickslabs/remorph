@@ -14,7 +14,7 @@ from databricks.labs.remorph.config import (
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
