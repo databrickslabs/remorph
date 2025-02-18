@@ -17,6 +17,12 @@ from databricks.labs.remorph.reconcile.recon_config import (
 logger = logging.getLogger(__name__)
 
 
+def _remove_aliases(node: exp.Expression) -> exp.Expression:
+    if isinstance(node, exp.Alias):
+        return node.this
+    return node
+
+
 class AggregateQueryBuilder(QueryBuilder):
 
     def _get_mapping_col(self, col: str) -> str:
@@ -159,7 +165,7 @@ class AggregateQueryBuilder(QueryBuilder):
 
             # Group by column doesn't support alias (GROUP BY to_date(COL1, 'yyyy-MM-dd') AS col1) throws error
             group_by_col_without_alias = [
-                build_column(this=group_by_col_with_alias.sql().split(" AS ")[0].strip())
+                build_column(this=_remove_aliases(group_by_col_with_alias).sql())
                 for group_by_col_with_alias in select_group_by_cols_with_alias
                 if " AS " in group_by_col_with_alias.sql()
             ]

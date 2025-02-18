@@ -33,14 +33,14 @@ class InvalidModelForTableThreshold(ValueError):
 
 @dataclass
 class JdbcReaderOptions:
-    number_partitions: int
-    partition_column: str
-    lower_bound: str
-    upper_bound: str
+    number_partitions: int | None = None
+    partition_column: str | None = None
+    lower_bound: str | None = None
+    upper_bound: str | None = None
     fetch_size: int = 100
 
     def __post_init__(self):
-        self.partition_column = self.partition_column.lower()
+        self.partition_column = self.partition_column.lower() if self.partition_column else None
 
 
 @dataclass
@@ -226,7 +226,8 @@ class Table:
 
     def get_partition_column(self, layer: str) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
-            return {self.jdbc_reader_options.partition_column}
+            if self.jdbc_reader_options.partition_column:
+                return {self.jdbc_reader_options.partition_column}
         return set()
 
     def get_filter(self, layer: str) -> str | None:
