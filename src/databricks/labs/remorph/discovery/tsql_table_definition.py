@@ -1,6 +1,7 @@
 from typing import List
 
-from databricks.labs.remorph.discovery.connection_factory import create_connection
+from pyodbc import Cursor
+
 from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
 
@@ -108,7 +109,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
             sft.TABLE_NAME,
             tfi.location,
             tfi.TABLE_FORMAT,
-            sfv.view_definition,
+            '' as view_definition,
             column_info.DERIVED_SCHEMA,
             tfi.SIZE_GB,
             tci.TABLE_COMMENT,
@@ -116,19 +117,27 @@ class TsqlTableDefinitionService(TableDefinitionService):
         FROM
             column_info
             JOIN {catalog_name}.INFORMATION_SCHEMA.TABLES sft ON column_info.TABLE_CATALOG = sft.TABLE_CATALOG AND column_info.TABLE_SCHEMA = sft.TABLE_SCHEMA AND column_info.TABLE_NAME = sft.TABLE_NAME
-            LEFT JOIN {catalog_name}.INFORMATION_SCHEMA.VIEWS sfv ON column_info.TABLE_CATALOG = sfv.TABLE_CATALOG AND column_info.TABLE_SCHEMA = sfv.TABLE_SCHEMA AND column_info.TABLE_NAME = sfv.TABLE_NAME
             LEFT JOIN table_file_info tfi ON column_info.TABLE_SCHEMA = tfi.TABLE_SCHEMA AND column_info.TABLE_NAME = tfi.TABLE_NAME
             LEFT JOIN table_comment_info tci ON column_info.TABLE_SCHEMA = tci.TABLE_SCHEMA AND column_info.TABLE_NAME = tci.TABLE_NAME
             LEFT JOIN table_pk_info tpK ON column_info.TABLE_SCHEMA = tpK.TABLE_SCHEMA AND column_info.TABLE_NAME = tpK.TABLE_NAME
-        ORDER BY
-            sft.TABLE_CATALOG,
-            sft.TABLE_SCHEMA,
-            sft.TABLE_NAME;
+
+        UNION ALL
+        SELECT
+            sfv.TABLE_CATALOG,
+            sfv.TABLE_SCHEMA,
+            sfv.TABLE_NAME,
+            '' location,
+            '' TABLE_FORMAT,
+            sfv.view_definition,
+            '' DERIVED_SCHEMA,
+            0 SIZE_GB,
+            '' TABLE_COMMENT,
+            '' PK_COLUMN_NAME
+        FROM {catalog_name}.INFORMATION_SCHEMA.VIEWS sfv
         """
         return query
 
-    def get_table_definition(self, catalog_name: str) -> List[TableDefinition]:
-        cursor = create_connection()
+    def get_table_definition(self, catalog_name: str, cursor: Cursor) -> List[TableDefinition]:
         sql = self.get_table_definition_query(catalog_name)
         result = cursor.execute(sql)
         column_names = [column[0] for column in cursor.description]
@@ -137,20 +146,21 @@ class TsqlTableDefinitionService(TableDefinitionService):
             table_definitions = []
             for row in result:
                 result = dict(zip(column_names, row))
-                print(result["TABLE_NAME"])
-                print(result["SIZE_GB"])
-                print(result["view_definition"])
                 table_fqn = TableFQN(
                     catalog=result["TABLE_CATALOG"], schema=result["TABLE_SCHEMA"], name=result["TABLE_NAME"]
                 )
-                columns = result["DERIVED_SCHEMA"].split("‡")
+                columns = result["DERIVED_SCHEMA"].split("‡") if result["DERIVED_SCHEMA"] else None
                 field_info = []
-                for column in columns:
-                    column_info = column.split("§")
-                    field = FieldInfo(
-                        name=column_info[0], data_type=column_info[1], nullable=column_info[2], comment=column_info[3]
-                    )
-                    field_info.append(field)
+                if columns is not None:
+                    for column in columns:
+                        column_info = column.split("§")
+                        field = FieldInfo(
+                            name=column_info[0],
+                            data_type=column_info[1],
+                            nullable=column_info[2],
+                            comment=column_info[3],
+                        )
+                        field_info.append(field)
 
                 pks = result["PK_COLUMN_NAME"].split(":") if result["PK_COLUMN_NAME"] else None
                 table_definition = TableDefinition(
@@ -164,11 +174,6 @@ class TsqlTableDefinitionService(TableDefinitionService):
                     primary_keys=pks,
                 )
                 table_definitions.append(table_definition)
-            print(len(table_definitions))
             return table_definitions
         finally:
             cursor.close()
-
-
-tsql_service = TsqlTableDefinitionService()
-tsql_service.get_table_definition("labs_azure_sandbox_remorph")
