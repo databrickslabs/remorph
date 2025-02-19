@@ -1,12 +1,13 @@
+import logging
 import yaml
 import duckdb
-import logging
 
 from databricks.labs.remorph.assessments.profiler_config import PipelineConfig, Step
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
+
 
 class PipelineClass:
     def __init__(self, config: PipelineConfig, executor: DatabaseManager):
