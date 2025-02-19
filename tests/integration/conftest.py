@@ -1,14 +1,10 @@
 import os
 import logging
 from unittest.mock import patch
-from urllib.parse import urlparse
+
 import pytest
 from pyspark.sql import SparkSession
-
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.database_manager import DatabaseManager
 from databricks.labs.remorph.__about__ import __version__
-from .connections.debug_envgetter import TestEnvGetter
 
 
 logging.getLogger("tests").setLevel("DEBUG")
@@ -66,21 +62,3 @@ def mock_credentials():
         },
     ):
         yield
-
-
-@pytest.fixture(scope="module")
-def db_manager(mock_credentials):
-    env = TestEnvGetter(True)
-    config = create_credential_manager("remorph", env).get_credentials("mssql")
-
-    # since the kv has only URL so added explicit parse rules
-    base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
-
-    url_parts = urlparse(base_url)
-    server = url_parts.hostname
-    query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
-    database = query_params.get("database", "" "")
-    config['server'] = server
-    config['database'] = database
-
-    return DatabaseManager("mssql", config)

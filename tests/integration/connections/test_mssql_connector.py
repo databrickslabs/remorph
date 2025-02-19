@@ -1,4 +1,30 @@
+from urllib.parse import urlparse
+
+import pytest
+
 from databricks.labs.remorph.connections.database_manager import MSSQLConnector
+from databricks.labs.remorph.connections.credential_manager import create_credential_manager
+from databricks.labs.remorph.connections.database_manager import DatabaseManager
+
+from .debug_envgetter import TestEnvGetter
+
+
+@pytest.fixture()
+def db_manager(mock_credentials):
+    env = TestEnvGetter(True)
+    config = create_credential_manager("remorph", env).get_credentials("mssql")
+
+    # since the kv has only URL so added explicit parse rules
+    base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
+
+    url_parts = urlparse(base_url)
+    server = url_parts.hostname
+    query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
+    database = query_params.get("database", "" "")
+    config['server'] = server
+    config['database'] = database
+
+    return DatabaseManager("mssql", config)
 
 
 def test_mssql_connector_connection(db_manager):
