@@ -1,7 +1,6 @@
 import logging
 import yaml
 import duckdb
-import pandas as pd
 
 from databricks.labs.remorph.assessments.profiler_config import PipelineConfig, Step
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
@@ -35,22 +34,27 @@ class PipelineClass:
         # Save the result to SQLite
         self._save_to_db(result, step.name, str(step.mode))
 
-    def _save_to_db(self, result, step_name: str, mode: str):
+    def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         conn = duckdb.connect('pipeline_results.duckdb')
-        cursor = conn.cursor()
-        df = pd.DataFrame(result.fetchall(), columns=result.keys())
-        print(df.head(5))
+        columns = result.keys()
+        schema = ', '.join(columns)
 
+        # Handle write modes
+        if mode == 'overwrite':
+            conn.execute(f"CREATE OR REPLACE TABLE {step_name} ({schema})")
+        elif mode == 'append' and step_name not in conn.get_table_names(""):
+            conn.execute(f"CREATE TABLE {step_name} ({schema})")
 
-        # Save result to Parquet file
-        if mode == "overwrite":
-            logging.debug(f"Overwriting table: {step_name}")
-            cursor.execute(f"DROP TABLE IF EXISTS {step_name}")
-            cursor.execute(f"CREATE TABLE {step_name} AS SELECT * FROM {df}")
-        elif mode == "append":
-            logging.debug(f"Appending to table: {step_name}")
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS {step_name} AS {df} LIMIT 0")
-            cursor.execute(f"INSERT INTO {step_name} SELECT * FROM {df}")
+        # Batch insert using prepared statements
+        placeholders = ', '.join(['?' for _ in columns])
+        insert_query = f"INSERT INTO {step_name} VALUES ({placeholders})"
+
+        # Fetch and insert rows in batches
+        while True:
+            rows = result.fetchmany(batch_size)
+            if not rows:
+                break
+            conn.executemany(insert_query, rows)
 
         conn.close()
 

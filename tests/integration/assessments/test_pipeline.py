@@ -6,7 +6,7 @@ from databricks.labs.remorph.assessments.pipeline import PipelineClass
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
-from integration.connections.debug_envgetter import TestEnvGetter
+from ..connections.debug_envgetter import TestEnvGetter
 
 
 @pytest.fixture()
