@@ -32,11 +32,9 @@ def pytest_collection_modifyitems(config, items):
     if os.getenv('TEST_ENV') == 'ACCEPTANCE':
         selected_items = []
         deselected_items = []
-        # Added additional skip tests for lsp unit test when run from acceptance.yml
+        # Added only specific tests to run from acceptance.yml
         for item in items:
-            if 'tests/integration/reconcile' not in str(
-                item.fspath
-            ) and 'tests/unit/transpiler/test_lsp_engine.py' not in str(item.fspath):
+            if 'tests/integration/reconcile' not in str(item.fspath) and 'tests/unit/' not in str(item.fspath):
                 selected_items.append(item)
             else:
                 deselected_items.append(item)
