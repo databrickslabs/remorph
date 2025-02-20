@@ -41,7 +41,7 @@ class PipelineClass:
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         conn = duckdb.connect(DB_PATH)
         columns = result.keys()
-        #TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
+        # TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
         schema = ' STRING, '.join(columns) + ' STRING'
 
         # Handle write modes
