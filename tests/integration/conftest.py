@@ -23,6 +23,11 @@ def product_info():
     return "remorph", __version__
 
 
+@pytest.fixture
+def get_logger():
+    return logger
+
+
 def pytest_collection_modifyitems(config, items):
     if os.getenv('TEST_ENV') == 'ACCEPTANCE':
         selected_items = []

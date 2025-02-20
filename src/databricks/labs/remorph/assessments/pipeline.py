@@ -1,3 +1,4 @@
+from pathlib import Path
 import logging
 import yaml
 import duckdb
@@ -7,6 +8,9 @@ from databricks.labs.remorph.connections.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
+
+
+DB_PATH = Path(f"{Path(__file__).home()}/.databricks/labs/remorph/pipeline_results.duckdb")
 
 
 class PipelineClass:
@@ -28,16 +32,16 @@ class PipelineClass:
             query = file.read()
 
         # Execute the query using the database manager
-        logging.debug(f"Executing query: {query}")
+        logging.info(f"Executing query: {query}")
         result = self.executor.execute_query(query)
 
         # Save the result to SQLite
         self._save_to_db(result, step.name, str(step.mode))
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
-        conn = duckdb.connect('pipeline_results.duckdb')
+        conn = duckdb.connect(DB_PATH)
         columns = result.keys()
-        schema = ', '.join(columns)
+        schema = ' STRING, '.join(columns) + ' STRING'
 
         # Handle write modes
         if mode == 'overwrite':

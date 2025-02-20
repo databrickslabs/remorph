@@ -1,30 +1,13 @@
-from urllib.parse import urlparse
-
+import duckdb
 import pytest
-from databricks.labs.remorph.assessments.pipeline import PipelineClass
 
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.database_manager import DatabaseManager
-
-from ..connections.debug_envgetter import TestEnvGetter
+from databricks.labs.remorph.assessments.pipeline import PipelineClass, DB_PATH
+from ..connections.helpers import get_db_manager
 
 
 @pytest.fixture()
 def extractor(mock_credentials):
-    env = TestEnvGetter(True)
-    config = create_credential_manager("remorph", env).get_credentials("mssql")
-
-    # since the kv has only URL so added explicit parse rules
-    base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
-
-    url_parts = urlparse(base_url)
-    server = url_parts.hostname
-    query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
-    database = query_params.get("database", "" "")
-    config['server'] = server
-    config['database'] = database
-
-    return DatabaseManager("mssql", config)
+    return get_db_manager("remorph", "mssql")
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +16,27 @@ def pipeline_config():
     return PipelineClass.load_config_from_yaml(config_path)
 
 
-def test_run_pipeline(extractor, pipeline_config):
+def test_run_pipeline(extractor, pipeline_config, get_logger):
     pipeline = PipelineClass(config=pipeline_config, executor=extractor)
     pipeline.execute()
-    assert 1 == 1
+    assert verify_output(get_logger)
+
+
+def verify_output(get_logger):
+    conn = duckdb.connect(DB_PATH)
+    expected_tables = ["usage", "inventory"]
+    logger = get_logger()
+    for table in expected_tables:
+        try:
+            result = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+            logger.info(f"Count for {table}: {result[0]}")
+            if result[0] == 0:
+                logger.debug(f"Table {table} is empty")
+                return False
+        except duckdb.CatalogException:
+            logger.debug(f"Table {table} does not exist")
+            return False
+
+    conn.close()
+    logger.info("All expected tables exist and are not empty")
+    return True

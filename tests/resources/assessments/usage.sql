@@ -6,4 +6,4 @@ SELECT
     qs.total_worker_time,
     qs.total_elapsed_time,
     qs.total_rows
-FROM sys.dm_exec_query_stats
+FROM sys.dm_exec_query_stats as qs
