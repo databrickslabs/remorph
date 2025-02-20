@@ -1,4 +1,3 @@
-from distutils.command.config import config
 from pathlib import Path
 import duckdb
 import pytest
@@ -14,9 +13,13 @@ def extractor(mock_credentials):
 
 @pytest.fixture(scope="module")
 def pipeline_config():
-    config_path = f"{Path(__file__).parent}/../../resources/assessments/pipeline_config.yml"
-    print(config_path)
-    return PipelineClass.load_config_from_yaml(config_path)
+    prefix = Path(__file__).parent
+    config_path = f"{prefix}/../../resources/assessments/pipeline_config.yml"
+    config = PipelineClass.load_config_from_yaml(config_path)
+
+    for step in config.steps:
+        step.extract_query = f"{prefix}/../../{step.extract_query}"
+    return config
 
 
 def test_run_pipeline(extractor, pipeline_config, get_logger):
