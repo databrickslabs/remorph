@@ -35,7 +35,7 @@ class PipelineClass:
         logging.info(f"Executing query: {query}")
         result = self.executor.execute_query(query)
 
-        # Save the result to SQLite
+        # Save the result to duckdb
         self._save_to_db(result, step.name, str(step.mode))
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
