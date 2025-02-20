@@ -3,19 +3,19 @@ version: "1.0"
 steps:
   - name: inventory
     type: inventory
-    extract_query: /Users/sundar.shankar/IdeaProjects/remorph/tests/resources/assessments/inventory.sql
+    extract_query: resources/assessments/inventory.sql
     mode: overwrite
     frequency: daily
     flag: active
   - name: usage
     type: usage
-    extract_query: /Users/sundar.shankar/IdeaProjects/remorph/tests/resources/assessments/usage.sql
+    extract_query: resources/assessments/usage.sql
     mode: overwrite
     frequency: weekly
     flag: active
   - name: usage_2
     type: usage_2
-    extract_query: /Users/sundar.shankar/IdeaProjects/remorph/tests/resources/assessments/usage.sql
+    extract_query: resources/assessments/usage.sql
     mode: overwrite
     frequency: daily
     flag: inactive

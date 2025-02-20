@@ -1,3 +1,5 @@
+from distutils.command.config import config
+from pathlib import Path
 import duckdb
 import pytest
 
@@ -12,7 +14,8 @@ def extractor(mock_credentials):
 
 @pytest.fixture(scope="module")
 def pipeline_config():
-    config_path = "resources/assessments/pipeline_config.yml"
+    config_path = f"{Path(__file__).parent}/../../resources/assessments/pipeline_config.yml"
+    print(config_path)
     return PipelineClass.load_config_from_yaml(config_path)
 
 
@@ -25,7 +28,7 @@ def test_run_pipeline(extractor, pipeline_config, get_logger):
 def verify_output(get_logger):
     conn = duckdb.connect(DB_PATH)
     expected_tables = ["usage", "inventory"]
-    logger = get_logger()
+    logger = get_logger
     for table in expected_tables:
         try:
             result = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
