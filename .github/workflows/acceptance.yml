@@ -22,7 +22,7 @@ jobs:
   integration:
     if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
     environment: tool
-    runs-on: larger
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
