@@ -16,7 +16,7 @@ class PipelineClass:
     def __init__(self, config: PipelineConfig, executor: DatabaseManager):
         self.config = config
         self.executor = executor
-        self.db_path_prefix = config.extract_folder
+        self.db_path_prefix = Path(config.extract_folder)
 
     def execute(self):
         logging.info(f"Pipeline initialized with config: {self.config.name}, version: {self.config.version}")
@@ -40,7 +40,7 @@ class PipelineClass:
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
-        conn = duckdb.connect(self.db_path_prefix + DB_NAME)
+        conn = duckdb.connect(str(self.db_path_prefix) + '/' + DB_NAME)
         columns = result.keys()
         # TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
         schema = ' STRING, '.join(columns) + ' STRING'
@@ -65,10 +65,9 @@ class PipelineClass:
         conn.close()
 
     @staticmethod
-    def _create_dir(dir_path: str):
-        path = Path(dir_path)
-        if not Path(path).exists():
-            path.mkdir(parents=True, exist_ok=True)
+    def _create_dir(dir_path: Path):
+        if not Path(dir_path).exists():
+            dir_path.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def load_config_from_yaml(file_path: str) -> PipelineConfig:

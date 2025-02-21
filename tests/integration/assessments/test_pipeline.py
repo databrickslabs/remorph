@@ -29,7 +29,8 @@ def test_run_pipeline(extractor, pipeline_config, get_logger):
 
 
 def verify_output(get_logger, path):
-    conn = duckdb.connect(path + DB_NAME)
+    conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
+
     expected_tables = ["usage", "inventory"]
     logger = get_logger
     for table in expected_tables:
