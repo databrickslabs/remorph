@@ -1,17 +1,9 @@
 from pathlib import Path
-import os
 import duckdb
 import pytest
 
-from databricks.labs.remorph.assessments.pipeline import PipelineClass, DB_PATH
+from databricks.labs.remorph.assessments.pipeline import PipelineClass, DB_NAME
 from ..connections.helpers import get_db_manager
-
-
-@pytest.fixture()
-def setup():
-    dir_path = f"{Path(__file__).home()}/.databricks/labs/remorph/"
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
 
 
 @pytest.fixture()
@@ -30,14 +22,14 @@ def pipeline_config():
     return config
 
 
-def test_run_pipeline(setup, extractor, pipeline_config, get_logger):
+def test_run_pipeline(extractor, pipeline_config, get_logger):
     pipeline = PipelineClass(config=pipeline_config, executor=extractor)
     pipeline.execute()
-    assert verify_output(get_logger)
+    assert verify_output(get_logger, pipeline_config.extract_folder)
 
 
-def verify_output(get_logger):
-    conn = duckdb.connect(DB_PATH)
+def verify_output(get_logger, path):
+    conn = duckdb.connect(path + DB_NAME)
     expected_tables = ["usage", "inventory"]
     logger = get_logger
     for table in expected_tables:

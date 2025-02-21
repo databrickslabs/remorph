@@ -9,14 +9,14 @@ from databricks.labs.remorph.connections.database_manager import DatabaseManager
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
-
-DB_PATH = Path(f"{Path(__file__).home()}/.databricks/labs/remorph/pipeline_results.duckdb")
+DB_NAME = "pipeline_results.duckdb"
 
 
 class PipelineClass:
     def __init__(self, config: PipelineConfig, executor: DatabaseManager):
         self.config = config
         self.executor = executor
+        self.db_path_prefix = config.extract_folder
 
     def execute(self):
         logging.info(f"Pipeline initialized with config: {self.config.name}, version: {self.config.version}")
@@ -39,7 +39,8 @@ class PipelineClass:
         self._save_to_db(result, step.name, str(step.mode))
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
-        conn = duckdb.connect(DB_PATH)
+        self._create_dir(self.db_path_prefix)
+        conn = duckdb.connect(self.db_path_prefix + DB_NAME)
         columns = result.keys()
         # TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
         schema = ' STRING, '.join(columns) + ' STRING'
@@ -64,8 +65,16 @@ class PipelineClass:
         conn.close()
 
     @staticmethod
+    def _create_dir(dir_path: str):
+        path = Path(dir_path)
+        if not Path(path).exists():
+            path.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
     def load_config_from_yaml(file_path: str) -> PipelineConfig:
         with open(file_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
         steps = [Step(**step) for step in data['steps']]
-        return PipelineConfig(name=data['name'], version=data['version'], steps=steps)
+        return PipelineConfig(
+            name=data['name'], version=data['version'], extract_folder=data['extract_folder'], steps=steps
+        )

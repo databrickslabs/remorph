@@ -23,4 +23,5 @@ class Step:
 class PipelineConfig:
     name: str
     version: str
+    extract_folder: str
     steps: list[Step] = field(default_factory=list)
