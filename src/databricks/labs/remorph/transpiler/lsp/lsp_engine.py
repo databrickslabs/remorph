@@ -381,7 +381,8 @@ class LSPEngine(TranspileEngine):
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
             capabilities=self._client_capabilities(),
-            root_path=str(root_path),
+            root_uri=str(root_path.absolute().as_uri()),
+            workspace_folders=None, # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)
