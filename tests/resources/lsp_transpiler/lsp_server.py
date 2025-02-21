@@ -125,7 +125,6 @@ class TestLspServer(LanguageServer):
         doc = self.workspace.get_text_document(uri)
         logger.debug(f"fetch-document-uri={uri}: {doc.source}")
 
-
     def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         source_sql = self.workspace.get_text_document(params.uri).source
         source_lines = source_sql.split("\n")

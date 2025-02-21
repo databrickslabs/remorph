@@ -382,7 +382,7 @@ class LSPEngine(TranspileEngine):
         params = InitializeParams(
             capabilities=self._client_capabilities(),
             root_uri=str(root_path.absolute().as_uri()),
-            workspace_folders=None, # for now, we only support a single workspace = root_uri
+            workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)
