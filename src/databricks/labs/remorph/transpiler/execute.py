@@ -44,10 +44,10 @@ async def _process_one_file(
     error_list: list[TranspileError] = []
 
     with input_path.open("r") as f:
-        source_sql = remove_bom(f.read())
+        source_code = remove_bom(f.read())
 
     transpile_result = await _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
+        transpiler, config.source_dialect, config.target_dialect, source_code, input_path
     )
     error_list.extend(transpile_result.error_list)
 
@@ -84,7 +84,7 @@ async def _process_many_files(
 
     for file in files:
         logger.info(f"Processing file :{file}")
-        if not is_sql_file(file):
+        if not is_sql_file(file) and not is_dbt_project_file(file):
             continue
         output_file_name = output_folder / file.name
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
@@ -92,6 +92,11 @@ async def _process_many_files(
         all_errors.extend(error_list)
 
     return counter, all_errors
+
+
+def is_dbt_project_file(file: Path):
+    # it's ok to hardcode the file name here, see https://docs.getdbt.com/reference/dbt_project.yml
+    return file.name == "dbt_project.yml"
 
 
 async def _process_input_dir(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine):
