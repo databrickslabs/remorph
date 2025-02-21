@@ -120,6 +120,11 @@ class TestLspServer(LanguageServer):
         ]
         register_params = RegistrationParams(registrations)
         await self.client_register_capability_async(register_params)
+        # ensure we can fetch a workspace file
+        uri = self.workspace.root_uri + "/workspace_file.yml"
+        doc = self.workspace.get_text_document(uri)
+        logger.debug(f"fetch-document-uri={uri}: {doc.source}")
+
 
     def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         source_sql = self.workspace.get_text_document(params.uri).source
