@@ -22,7 +22,9 @@ jobs:
   integration:
     if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
     environment: tool
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
