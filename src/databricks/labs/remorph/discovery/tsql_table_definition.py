@@ -1,4 +1,4 @@
-from typing import List, Iterable
+from collections.abc import Iterable
 
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
 from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
@@ -135,7 +135,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
         """
         return query
 
-    def _get_table_definition(self, catalog_name: str) -> List[TableDefinition]:
+    def _get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
         sql = self._get_table_definition_query(catalog_name)
         cursor = self.connection
         result = cursor.execute(sql)
