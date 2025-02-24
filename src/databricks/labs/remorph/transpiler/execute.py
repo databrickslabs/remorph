@@ -164,13 +164,16 @@ async def _do_transpile(
     if config.input_source is None:
         raise InvalidInputException("Missing input source!")
     if config.input_path.is_dir():
+        logger.debug(f"Starting to process input directory: {config.input_path}")
         result = await _process_input_dir(config, validator, engine)
     elif config.input_path.is_file():
+        logger.debug(f"Starting to process input file: {config.input_path}")
         result = await _process_input_file(config, validator, engine)
     else:
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
+    logger.debug(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"No of Sql Failed while Validating: {result.validation_error_count}")
