@@ -119,9 +119,9 @@ def transpile(
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
-        print(str(error))
+        logger.error(f"Transpile error: {error}")
 
-    print(json.dumps(status))
+    logger.info(f"Finished transpilation: {status}")
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
