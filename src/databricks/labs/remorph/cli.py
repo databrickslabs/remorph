@@ -118,7 +118,7 @@ def transpile(
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
-        logger.error(f"Transpile error: {error}")
+        print(str(error))
 
     logger.info(f"Finished transpilation: {status}")
 
