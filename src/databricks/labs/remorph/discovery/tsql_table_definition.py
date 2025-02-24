@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 
 from pyodbc import Cursor
 
@@ -8,7 +8,7 @@ from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, F
 
 class TsqlTableDefinitionService(TableDefinitionService):
 
-    def get_table_definition_query(self, catalog_name: str) -> str:
+    def _get_table_definition_query(self, catalog_name: str) -> str:
         query = f"""
         WITH column_info AS (
             SELECT
@@ -137,8 +137,8 @@ class TsqlTableDefinitionService(TableDefinitionService):
         """
         return query
 
-    def get_table_definition(self, catalog_name: str, cursor: Cursor) -> List[TableDefinition]:
-        sql = self.get_table_definition_query(catalog_name)
+    def _get_table_definition(self, catalog_name: str, cursor: Cursor) -> List[TableDefinition]:
+        sql = self._get_table_definition_query(catalog_name)
         result = cursor.execute(sql)
         column_names = [column[0] for column in cursor.description]
 
