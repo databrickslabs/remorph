@@ -40,7 +40,7 @@ async def _process_one_file(
     input_path: Path,
     output_path: Path,
 ) -> tuple[int, list[TranspileError]]:
-    logger.info(f"started processing for the file ${input_path}")
+    logger.debug(f"Started processing file: {input_path}")
     error_list: list[TranspileError] = []
 
     with input_path.open("r") as f:
@@ -68,6 +68,7 @@ async def _process_one_file(
             w.write(transpile_result.transpiled_code)
             w.write("\n;\n")
 
+    logger.info(f"Processed file: {input_path} (success: {transpile_result.success_count}, errors: {len(error_list)})")
     return transpile_result.success_count, error_list
 
 
