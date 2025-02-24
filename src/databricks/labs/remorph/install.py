@@ -163,14 +163,14 @@ class TranspilerInstaller(abc.ABC):
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
         all_files = os.listdir(cls.transpilers_path())
         for file in all_files:
-            config = cls._transpiler_config(cls.transpilers_path() / file / "lib")
+            config = cls._transpiler_config(cls.transpilers_path() / file)
             if config:
                 yield config
 
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
         try:
-            return LSPConfig.load(path / "config.yml")
+            return LSPConfig.load(path / "lib" / "config.yml")
         except ValueError:
             return None
 
