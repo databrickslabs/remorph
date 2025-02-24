@@ -1,8 +1,7 @@
 from typing import List, Iterable
 
-from databricks.labs.remorph.discovery.connection_factory import create_connection
-from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
+from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 
 
 class TsqlTableDefinitionService(TableDefinitionService):
