@@ -49,7 +49,9 @@ async def _process_one_file(
     transpile_result = await _transpile(
         transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
     )
-    logger.debug("Finished transpiling file: %s (result: %r)", input_path, transpile_result)
+    # Potentially expensive, only evaluate if debug is enabled
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Finished transpiling file: {input_path} (result: {transpile_result})")
 
     error_list.extend(transpile_result.error_list)
 
@@ -57,7 +59,10 @@ async def _process_one_file(
         if validator:
             logger.debug(f"Validating transpiled code for file: {input_path}")
             validation_result = _validation(validator, config, transpile_result.transpiled_code)
-            logger.debug("Finished validating transpiled code for file: %s (result: %r)", input_path, validation_result)
+            # Potentially expensive, only evaluate if debug is enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                msg = f"Finished validating transpiled code for file: {input_path} (result: {validation_result})"
+                logger.debug(msg)
             w.write(validation_result.validated_sql)
             if validation_result.exception_msg is not None:
                 error = TranspileError(
