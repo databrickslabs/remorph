@@ -83,7 +83,7 @@ async def _process_many_files(
     all_errors: list[TranspileError] = []
 
     for file in files:
-        logger.info(f"Processing file :{file}")
+        logger.info(f"Processing file: {file}")
         if not is_sql_file(file):
             continue
         output_file_name = output_folder / file.name
@@ -176,7 +176,7 @@ async def _do_transpile(
     logger.debug(f"Transpiler results: {result}")
 
     if not config.skip_validation:
-        logger.info(f"No of Sql Failed while Validating: {result.validation_error_count}")
+        logger.info(f"SQL validation errors: {result.validation_error_count}")
 
     error_log_path: Path | None = None
     if result.error_list:
