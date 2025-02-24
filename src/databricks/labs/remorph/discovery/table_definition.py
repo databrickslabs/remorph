@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Iterable
+from typing import Any, Iterable
 
 from databricks.labs.remorph.discovery.table import TableDefinition
 
