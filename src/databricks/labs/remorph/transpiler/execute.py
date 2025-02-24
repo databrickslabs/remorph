@@ -68,7 +68,7 @@ async def _process_one_file(
             w.write(transpile_result.transpiled_code)
             w.write("\n;\n")
 
-    logger.info(f"Processed file: {input_path} (success: {transpile_result.success_count}, errors: {len(error_list)})")
+    logger.info(f"Processed file: {input_path} (errors: {len(error_list)})")
     return transpile_result.success_count, error_list
 
 
