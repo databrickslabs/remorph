@@ -133,7 +133,6 @@ async def _process_input_file(
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
 
 
-@timeit
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
 ) -> tuple[dict[str, Any], list[TranspileError]]:
