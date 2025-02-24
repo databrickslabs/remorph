@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from pathlib import Path
 
@@ -120,7 +121,7 @@ def transpile(
     for error in errors:
         print(str(error))
 
-    logger.info(f"Finished transpilation: {status}")
+    print(json.dumps(status))
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
