@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import shutil
 from collections.abc import Iterable
 from json import loads, dumps
 import logging
@@ -122,6 +123,7 @@ class TranspilerInstaller(abc.ABC):
             logger.info(f"Successfully installed {pypi_name} v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
+            return install_path
         except CalledProcessError as e:
             logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
             if current_version is not None:
@@ -160,7 +162,7 @@ class TranspilerInstaller(abc.ABC):
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
         all_files = os.listdir(cls.transpilers_path())
         for file in all_files:
-            config = cls._transpiler_config(cls.transpilers_path() / file)
+            config = cls._transpiler_config(cls.transpilers_path() / file / "lib")
             if config:
                 yield config
 
@@ -178,7 +180,10 @@ class RCTInstaller(TranspilerInstaller):
 
     @classmethod
     def install(cls):
-        cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        install_path = cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        if install_path:
+            config = TranspilerInstaller.resources_folder() / "rct" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
 
 
 class MorpheusInstaller(TranspilerInstaller):
@@ -210,6 +215,8 @@ class MorpheusInstaller(TranspilerInstaller):
             version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
             version_path = state_path / "version.json"
             version_path.write_text(dumps(version_data), "utf-8")
+            config = TranspilerInstaller.resources_folder() / "morpheus" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
             logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
