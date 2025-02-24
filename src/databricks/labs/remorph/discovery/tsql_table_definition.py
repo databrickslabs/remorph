@@ -1,7 +1,6 @@
 from typing import List, Iterable
 
-from pyodbc import Cursor
-
+from databricks.labs.remorph.discovery.connection_factory import create_connection
 from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
 
@@ -139,7 +138,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
 
     def _get_table_definition(self, catalog_name: str) -> List[TableDefinition]:
         sql = self._get_table_definition_query(catalog_name)
-        cursor: Cursor = self.connection
+        cursor = self.connection
         result = cursor.execute(sql)
         column_names = [column[0] for column in cursor.description]
 
@@ -180,7 +179,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
             cursor.close()
 
     def _get_all_catalog(self) -> Iterable[str]:
-        cursor: Cursor = self.connection
+        cursor = self.connection
         cursor.execute("""select name from sys.databases""")
         databases = [row[0] for row in cursor.fetchall()]
         return databases
