@@ -105,7 +105,7 @@ class TranspilerInstaller(abc.ABC):
         latest_version = cls.get_pypi_version(pypi_name)
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
-            return
+            return None
         logger.info(f"Installing {pypi_name} v{latest_version}")
         product_path = cls.transpilers_path() / product_name
         if current_version is not None:
@@ -130,6 +130,7 @@ class TranspilerInstaller(abc.ABC):
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
                 renamed.rename(product_path.name)
+            return None
 
     @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
