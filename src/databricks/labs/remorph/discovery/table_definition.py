@@ -11,7 +11,7 @@ class TableDefinitionService(ABC):
         self.connection = connection
 
     @abstractmethod
-    def _get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
+    def get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
         pass
 
     @abstractmethod
@@ -19,5 +19,5 @@ class TableDefinitionService(ABC):
         pass
 
     @abstractmethod
-    def _get_all_catalog(self) -> Iterable[str]:
+    def get_all_catalog(self) -> Iterable[str]:
         pass

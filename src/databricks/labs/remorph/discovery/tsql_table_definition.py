@@ -135,7 +135,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
         """
         return query
 
-    def _get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
+    def get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
         sql = self._get_table_definition_query(catalog_name)
         cursor = self.connection
         result = cursor.execute(sql)
@@ -177,7 +177,7 @@ class TsqlTableDefinitionService(TableDefinitionService):
         finally:
             cursor.close()
 
-    def _get_all_catalog(self) -> Iterable[str]:
+    def get_all_catalog(self) -> Iterable[str]:
         cursor = self.connection
         cursor.execute("""select name from sys.databases""")
         databases = [row[0] for row in cursor.fetchall()]
