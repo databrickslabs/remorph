@@ -21,6 +21,7 @@ dependencies = [
   "pyodbc",
   "SQLAlchemy",
   "pygls>=2.0.0a2",
+  "duckdb",
 ]
 
 [project.urls]
@@ -52,7 +53,7 @@ dependencies = [
   "pytest",
   "pytest-cov>=5.0.0,<6.0.0",
   "pytest-asyncio>=0.24.0",
-    "pytest-xdist~=3.5.0",
+  "pytest-xdist~=3.5.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
@@ -68,8 +69,8 @@ reconcile = "databricks.labs.remorph.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
-coverage    = "pytest --cov src tests --cov-report=html --ignore=tests/integration/connections"
-integration = "pytest --cov src tests/integration --durations 20 --ignore=tests/integration/connections"
+coverage    = "pytest --cov src tests --cov-report=html --ignore=tests/integration/connections --ignore=tests/integration/assessments"
+integration = "pytest --cov src tests/integration/reconcile --durations 20"
 fmt         = ["black .",
                "ruff  check . --fix",
                "mypy --disable-error-code 'annotation-unchecked' .",
