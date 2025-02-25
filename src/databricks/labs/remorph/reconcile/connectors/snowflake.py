@@ -61,9 +61,16 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     @property
     def get_jdbc_url(self) -> str:
+        try:
+            sf_password = self._get_secret('sfPassword')
+        except (NotFound, KeyError) as e:
+            message = "sfPassword is mandatory for jdbc connectivity with Snowflake."
+            logger.error(message)
+            raise NotFound(message) from e
+
         return (
             f"jdbc:{SnowflakeDataSource._DRIVER}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
-            f"/?user={self._get_secret('sfUser')}&password={self._get_secret('sfPassword')}"
+            f"/?user={self._get_secret('sfUser')}&password={sf_password}"
             f"&db={self._get_secret('sfDatabase')}&schema={self._get_secret('sfSchema')}"
             f"&warehouse={self._get_secret('sfWarehouse')}&role={self._get_secret('sfRole')}"
         )
