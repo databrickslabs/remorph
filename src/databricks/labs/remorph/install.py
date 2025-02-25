@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import shutil
 from collections.abc import Iterable
 from json import loads, dumps
 import logging
@@ -104,7 +105,7 @@ class TranspilerInstaller(abc.ABC):
         latest_version = cls.get_pypi_version(pypi_name)
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
-            return
+            return None
         logger.info(f"Installing {pypi_name} v{latest_version}")
         product_path = cls.transpilers_path() / product_name
         if current_version is not None:
@@ -122,12 +123,14 @@ class TranspilerInstaller(abc.ABC):
             logger.info(f"Successfully installed {pypi_name} v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
+            return install_path
         except CalledProcessError as e:
             logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
                 renamed.rename(product_path.name)
+            return None
 
     @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
@@ -167,7 +170,7 @@ class TranspilerInstaller(abc.ABC):
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
         try:
-            return LSPConfig.load(path / "config.yml")
+            return LSPConfig.load(path / "lib" / "config.yml")
         except ValueError:
             return None
 
@@ -178,7 +181,10 @@ class RCTInstaller(TranspilerInstaller):
 
     @classmethod
     def install(cls):
-        cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        install_path = cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        if install_path:
+            config = TranspilerInstaller.resources_folder() / "rct" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
 
 
 class MorpheusInstaller(TranspilerInstaller):
@@ -210,6 +216,8 @@ class MorpheusInstaller(TranspilerInstaller):
             version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
             version_path = state_path / "version.json"
             version_path.write_text(dumps(version_data), "utf-8")
+            config = TranspilerInstaller.resources_folder() / "morpheus" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
             logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
