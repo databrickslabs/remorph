@@ -32,6 +32,8 @@ const config: Config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
+  markdown: { mermaid: true },
+  themes: ['@docusaurus/theme-mermaid'],
 
   plugins: [
     async (context, options) => {
@@ -106,6 +108,9 @@ const config: Config = {
       theme: prismThemes.oneLight,
       darkTheme: prismThemes.oneDark,
     },
+    mermaid: {
+      theme: {light: 'neutral', dark: 'forest'},
+      },
     zoom: {
       selector: 'article img',
       background: {
@@ -113,8 +118,6 @@ const config: Config = {
         dark: '#F8FAFC',
       },
     },
-    markdown: { mermaid: true },
-    themes: ['@docusaurus/theme-mermaid']
   } satisfies Preset.ThemeConfig,
 };
 
