@@ -59,7 +59,7 @@ docs-serve-dev:
 	yarn --cwd docs/remorph start
 
 docs-install:
-	yarn --cwd docs/remoprh install
+	yarn --cwd docs/remorph install
 
 docs-serve: docs-build
 	yarn --cwd docs/remorph serve
