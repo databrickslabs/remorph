@@ -1,4 +1,3 @@
-
 import pytest
 from unittest.mock import Mock
 from databricks.labs.remorph.discovery.table import TableDefinition
