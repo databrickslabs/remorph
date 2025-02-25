@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import pytest
 
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.database_manager import DatabaseManager, MSSQLConnector
+from databricks.labs.remorph.connections.database_manager import DatabaseManager
 from databricks.labs.remorph.discovery.tsql_table_definition import TsqlTableDefinitionService
 from integration.connections.debug_envgetter import TestEnvGetter
 
@@ -12,18 +12,18 @@ from integration.connections.debug_envgetter import TestEnvGetter
 @pytest.fixture(scope="module")
 def mock_credentials():
     with patch(
-            'databricks.labs.remorph.connections.credential_manager._load_credentials',
-            return_value={
-                'secret_vault_type': 'env',
-                'secret_vault_name': '',
-                'mssql': {
-                    'user': 'TEST_TSQL_USER',
-                    'password': 'TEST_TSQL_PASS',
-                    'server': 'TEST_TSQL_JDBC',
-                    'database': 'TEST_TSQL_JDBC',
-                    'driver': 'ODBC Driver 18 for SQL Server',
-                },
+        'databricks.labs.remorph.connections.credential_manager._load_credentials',
+        return_value={
+            'secret_vault_type': 'env',
+            'secret_vault_name': '',
+            'mssql': {
+                'user': 'TEST_TSQL_USER',
+                'password': 'TEST_TSQL_PASS',
+                'server': 'TEST_TSQL_JDBC',
+                'database': 'TEST_TSQL_JDBC',
+                'driver': 'ODBC Driver 18 for SQL Server',
             },
+        },
     ):
         yield
 
@@ -47,9 +47,7 @@ def db_manager(mock_credentials):
 
 
 def test_mssql_connector_execute_query(db_manager):
-    tss =  TsqlTableDefinitionService(db_manager)
+    tss = TsqlTableDefinitionService(db_manager)
     catalogs = list(tss.get_all_catalog())
     result = db_manager.execute_query(catalogs[0])
     assert result is not None
-
-
