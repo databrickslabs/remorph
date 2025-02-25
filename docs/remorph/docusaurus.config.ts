@@ -106,10 +106,10 @@ const config: Config = {
     },
     prism: {
       theme: prismThemes.oneLight,
-      darkTheme: prismThemes.oneDark,
+      darkTheme: prismThemes.dracula,
     },
     mermaid: {
-      theme: {light: 'neutral', dark: 'forest'},
+      theme: {light: 'grey', dark: 'dark'},
       },
     zoom: {
       selector: 'article img',

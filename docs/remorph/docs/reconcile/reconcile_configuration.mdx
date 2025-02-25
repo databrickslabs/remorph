@@ -16,23 +16,16 @@ import CodeBlock from '@theme/CodeBlock';
 * [TABLE Config Elements](#table-config-elements)
 * [aggregates](#aggregate)
 * [jdbc_reader_options](#jdbc_reader_options)
-* [column_mapping](#column_mapping)
+* [column_mapping](#column-mapping)
 * [transformations](#transformations)
-* [column_thresholds](#column_thresholds)
-* [table_thresholds](#table_thresholds)
+* [column_thresholds](#column-thresholds)
+* [table_thresholds](#table-thresholds)
 * [filters](#filters)
-* [Key Considerations](#key-considerations)
-* [Key Considerations for Oracle JDBC Reader Options](#key-considerations-for-oracle-jdbc-reader-options)
-* [Reconciliation Example](#reconciliation-example)
-* [DataFlow Example](#dataflow-example)
 * [Aggregates Reconcile](#remorph-aggregates-reconciliation)
   * [Supported Aggregate Functions](#supported-aggregate-functions)
   * [Flow Chart](#flow-chart)
   * [Aggregate](#aggregate)
   * [TABLE Config Examples](#table-config-examples)
-  * [Key Considerations](#key-considerations)
-  * [Aggregates Reconciliation Example](#aggregates-reconciliation-json-example)
-  * [DataFlow Example](#dataflow-example)
 
 ## Types of Report Supported
 
@@ -265,7 +258,7 @@ While configuring Recon for Oracle source, the above options should be taken int
 
 [[back to top](#recon-config)]
 
-### column_mapping
+### column mapping
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -375,7 +368,7 @@ If User is looking for any specific behaviour, they can override these rules usi
 
 
 
-### column_thresholds
+### column thresholds
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -411,7 +404,7 @@ If User is looking for any specific behaviour, they can override these rules usi
 | upper_bound | string    | the upper bound of the difference between the source value and the target value                                 | required          | "5%"               |
 | type        | string    | The user must specify the column type. Supports SQLGLOT `DataType.NUMERIC_TYPES` and `DataType.TEMPORAL_TYPES`. | required          | "int"              |
 
-### table_thresholds
+### table thresholds
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -585,7 +578,7 @@ flowchart TD
 
 
 ### TABLE Config Examples:
-Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON configs.
+Please refer [TABLE Config Elements](#table-config-elements) for Class and JSON configs.
 
 <Tabs>
   <TabItem value="python" label="Python" default>
