@@ -6,6 +6,7 @@ from databricks.labs.remorph.discovery.table_definition import TableDefinitionSe
 
 class TsqlTableDefinitionService(TableDefinitionService):
 
+    # Hexadecimal value of § is U+00A7.Hexadecimal value of ‡ (double dagger) is U+2021
     def _get_table_definition_query(self, catalog_name: str) -> str:
         query = f"""
         WITH column_info AS (
