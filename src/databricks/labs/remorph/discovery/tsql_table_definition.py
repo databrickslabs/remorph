@@ -140,10 +140,9 @@ class TsqlTableDefinitionService(TableDefinitionService):
         cursor = self.connection
         result = cursor.execute(sql)
         column_names = [column[0] for column in cursor.description]
+        table_definitions = []
 
-        try:
-            table_definitions = []
-            for row in result:
+        for row in result:
                 result = dict(zip(column_names, row))
                 table_fqn = TableFQN(
                     catalog=result["TABLE_CATALOG"], schema=result["TABLE_SCHEMA"], name=result["TABLE_NAME"]
@@ -173,9 +172,8 @@ class TsqlTableDefinitionService(TableDefinitionService):
                     primary_keys=pks,
                 )
                 table_definitions.append(table_definition)
-            return table_definitions
-        finally:
-            cursor.close()
+        return table_definitions
+
 
     def get_all_catalog(self) -> Iterable[str]:
         cursor = self.connection
