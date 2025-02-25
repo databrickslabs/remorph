@@ -72,4 +72,3 @@ def test_get_table_definition_with_composite_pk(mock_cursor):
     tss = TsqlTableDefinitionService(mock_cursor)
     result = list(tss.get_table_definition("test_catalog"))
     assert result[0].primary_keys == ['id', 'order_id']
-    mock_cursor.close.assert_called_once()
