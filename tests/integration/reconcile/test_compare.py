@@ -174,7 +174,7 @@ def test_capture_mismatch_data_and_cols(mock_spark):
 
 
 def test_capture_mismatch_data_and_cols_no_mismatch(mock_spark):
-    #this is to test the behaviour of the function `capture_mismatch_data_and_columns` when there is no mismatch in the dataframes
+    # this is to test the behaviour of the function `capture_mismatch_data_and_columns` when there is no mismatch in the dataframes
     source = mock_spark.createDataFrame(
         [
             Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
