@@ -318,6 +318,8 @@ While configuring Recon for Oracle source, the above options should be taken int
 | source      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 | target      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 
+
+
 :::note
 Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
 ``` json
@@ -328,6 +330,39 @@ transformations=[Transformation(column_name)="array_col",source=sort_array_input
 1. [expression_generator.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/expression_generator.py)
 2. [sampling_query.py](https://github.com/databrickslabs/remorph/tree/main/src/databricks/labs/remorph/reconcile/query_builder/sampling_query.py).
 If User is looking for any specific behaviour, they can override these rules using [transformations](#transformations) accordingly.
+:::
+
+:::danger
+### Handling Nulls
+
+While applying transformations, make sure you handle the nulls explicitly in the transformation column.
+While Recon takes care of null handling for all the other columns (including join keys and other keys that are not included in drop_column list),
+when users introduce transformation columns, recon uses those expressions as is. So you would have to include null handling in the transformation expression itself.
+
+So if you are planning on using the below expression:
+``` sql
+cast( cast(scanout_units as decimal(38,10)) as string)
+```
+
+Use the below expression instead:
+
+``` sql
+coalesce(cast( cast(scanout_units as decimal(38,10)) as string), '_null_recon_')
+```
+
+
+### Handling Timestamp
+
+A recommended approach to dealing with timestamps is to convert them to corresponding unix epoch string values.
+
+``` python
+Transformation(
+column_name='schedule_interval_days',
+source="coalesce(cast(DATE_PART(EPOCH_SECOND, schedule_interval_days) as timestamp), '_null_recon_')",
+target='coalesce(cast(unix_timestamp(cast(schedule_interval_days as string)) as timestamp), "_null_recon_"'
+),
+```
+
 :::
 
 <table>
