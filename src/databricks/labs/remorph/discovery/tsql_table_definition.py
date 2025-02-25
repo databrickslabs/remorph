@@ -143,37 +143,36 @@ class TsqlTableDefinitionService(TableDefinitionService):
         table_definitions = []
 
         for row in result:
-                result = dict(zip(column_names, row))
-                table_fqn = TableFQN(
-                    catalog=result["TABLE_CATALOG"], schema=result["TABLE_SCHEMA"], name=result["TABLE_NAME"]
-                )
-                columns = result["DERIVED_SCHEMA"].split("‡") if result["DERIVED_SCHEMA"] else None
-                field_info = []
-                if columns is not None:
-                    for column in columns:
-                        column_info = column.split("§")
-                        field = FieldInfo(
-                            name=column_info[0],
-                            data_type=column_info[1],
-                            nullable=column_info[2],
-                            comment=column_info[3],
-                        )
-                        field_info.append(field)
+            result = dict(zip(column_names, row))
+            table_fqn = TableFQN(
+                catalog=result["TABLE_CATALOG"], schema=result["TABLE_SCHEMA"], name=result["TABLE_NAME"]
+            )
+            columns = result["DERIVED_SCHEMA"].split("‡") if result["DERIVED_SCHEMA"] else None
+            field_info = []
+            if columns is not None:
+                for column in columns:
+                    column_info = column.split("§")
+                    field = FieldInfo(
+                        name=column_info[0],
+                        data_type=column_info[1],
+                        nullable=column_info[2],
+                        comment=column_info[3],
+                    )
+                    field_info.append(field)
 
-                pks = result["PK_COLUMN_NAME"].split(":") if result["PK_COLUMN_NAME"] else None
-                table_definition = TableDefinition(
-                    fqn=table_fqn,
-                    location=result["location"],
-                    table_format=result["TABLE_FORMAT"],
-                    view_text=result["view_definition"],
-                    columns=field_info,
-                    size_gb=result["SIZE_GB"],
-                    comment=result["TABLE_COMMENT"],
-                    primary_keys=pks,
-                )
-                table_definitions.append(table_definition)
+            pks = result["PK_COLUMN_NAME"].split(":") if result["PK_COLUMN_NAME"] else None
+            table_definition = TableDefinition(
+                fqn=table_fqn,
+                location=result["location"],
+                table_format=result["TABLE_FORMAT"],
+                view_text=result["view_definition"],
+                columns=field_info,
+                size_gb=result["SIZE_GB"],
+                comment=result["TABLE_COMMENT"],
+                primary_keys=pks,
+            )
+            table_definitions.append(table_definition)
         return table_definitions
-
 
     def get_all_catalog(self) -> Iterable[str]:
         cursor = self.connection
