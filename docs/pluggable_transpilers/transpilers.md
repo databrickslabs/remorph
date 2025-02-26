@@ -41,7 +41,7 @@ remorph:
   version: 1 # mandatory, _must_ equal 1
   name: <name of the transpiler> # mandatory, can be different from the folder name
   dialects: # this section is mandatory and cannot be empty
-    - <sql dialect 1> # such as 'oracle' - it is recommended to leverage dialect names from sqlglot)
+    - <sql dialect 1> # such as 'oracle' - it is recommended to leverage existing dialect names
     - <sql dialect 2>
     - ...
     - <sql dialect _n_>
@@ -59,7 +59,7 @@ custom: # this section is optional, it is passed to the transpiler at startup
     <key 1>: <value 1> # can be pretty much anything
 ```
 
-Installing a transpiler is the responsibility of its transpiler. Databricks `remorph` installs 2 transpilers: _RCT_ (Remorph Community Transpiler) and _Morpheus_, its advanced transpiler.
+Databricks `remorph` installs the 2 transpilers it provides: _RCT_ (Remorph Community Transpiler) and _Morpheus_, its advanced transpiler. Installing 3rd party transpilers is the responsibility of their provider.
 
 When `remorph` is configured, it scans the `remorph-transpilers` directory, and collects available source dialects and corresponding transpilers, such that the user can configure them as wished.
 
