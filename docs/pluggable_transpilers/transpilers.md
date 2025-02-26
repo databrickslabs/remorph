@@ -18,9 +18,9 @@ Remorph leverages this by expecting transpilers to reside in the `.databricks` f
 &#x251C;&#x2500;.Databricks/\
 &#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;labs/\
 &#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;remorph-transpilers/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;some-transpiler/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;other-transpiler/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;my-transpiler/
+&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;morpheus/\
+&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;remorph-community-transpiler/\
+&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;some-3rd-party-transpiler/
 
 
 
@@ -59,11 +59,16 @@ custom: # this section is optional, it is passed to the transpiler at startup
     <key 1>: <value 1> # can be pretty much anything
 ```
 
-Databricks `remorph` installs the 2 transpilers it provides: _RCT_ (Remorph Community Transpiler) and _Morpheus_, its advanced transpiler. Installing 3rd party transpilers is the responsibility of their provider.
+Databricks provides 2 transpilers: _Morpheus_, its advanced transpiler, and _RCT_ (Remorph Community Transpiler).
+These transpilers are installed by `remorph` itself as part of running the `install-transpile` command, as follows:
+ - the latest _Morpheus_ is fetched from [Maven Central](https://central.sonatype.com/), and installed at `.databricks/labs/remorph-transpilers/morpheus/`.
+ - the latest _RCT_ is fetched from [PyPi](https://pypi.org/), and installed at `.databricks/labs/remorph-transpilers/remorph-community-transpiler/`.
+
+Installing 3rd party transpilers is the responsibility of their provider.
 
 When `remorph` is configured, it scans the `remorph-transpilers` directory, and collects available source dialects and corresponding transpilers, such that the user can configure them as wished.
 
-When a user runs the _transpile_ command for the first time, `remorph` sets the working directory to the configured transpiler, appends the configured environment variables, and runs the configured command line.
+When a user runs the _transpile_ command, `remorph` sets the working directory to the configured transpiler, appends the configured environment variables, and runs the configured command line.
 
 The transpiler is an LSP Server i.e. it listens to commands from _remorph_ until it is instructed to exit.
 
@@ -72,9 +77,9 @@ Manually installing a transpiler
 ---
 
 There are situations where an installer may fail: security rules preventing downloads, pre-releases...
-Following the above steps,it is straightforward to manually install a transpiler, by:
- - creating the transpiler folder in the `.databricks/labs` directory
- - creating the `lib` and `state` sub-directories
- - creating a `config.yml` file in the lib directory (see details above)
- - creating a `version.json` file in the lib directory with content like:`
+Following the above steps, it is straightforward to manually install a transpiler, by:
+ - creating the transpiler folder in the `.databricks/labs/remorph-transpilers/` directory
+ - creating the `lib` and `state` sub-folders
+ - creating a `config.yml` file in the `lib` folder (see details above)
+ - creating a `version.json` file in the `state` folder with content like:`
    ```{"version": f"v1.3.7", "date": "2025-03-17-15:02:31Z}```
