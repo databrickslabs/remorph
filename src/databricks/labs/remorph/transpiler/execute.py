@@ -40,7 +40,7 @@ async def _process_one_file(
     input_path: Path,
     output_path: Path,
 ) -> tuple[int, list[TranspileError]]:
-    logger.info(f"started processing for the file ${input_path}")
+    logger.debug(f"Started processing file: {input_path}")
     error_list: list[TranspileError] = []
 
     with input_path.open("r") as f:
@@ -49,11 +49,20 @@ async def _process_one_file(
     transpile_result = await _transpile(
         transpiler, config.source_dialect, config.target_dialect, source_code, input_path
     )
+    # Potentially expensive, only evaluate if debug is enabled
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Finished transpiling file: {input_path} (result: {transpile_result})")
+
     error_list.extend(transpile_result.error_list)
 
     with output_path.open("w") as w:
         if validator:
+            logger.debug(f"Validating transpiled code for file: {input_path}")
             validation_result = _validation(validator, config, transpile_result.transpiled_code)
+            # Potentially expensive, only evaluate if debug is enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                msg = f"Finished validating transpiled code for file: {input_path} (result: {validation_result})"
+                logger.debug(msg)
             w.write(validation_result.validated_sql)
             if validation_result.exception_msg is not None:
                 error = TranspileError(
@@ -68,6 +77,7 @@ async def _process_one_file(
             w.write(transpile_result.transpiled_code)
             w.write("\n;\n")
 
+    logger.info(f"Processed file: {input_path} (errors: {len(error_list)})")
     return transpile_result.success_count, error_list
 
 
@@ -83,7 +93,7 @@ async def _process_many_files(
     all_errors: list[TranspileError] = []
 
     for file in files:
-        logger.info(f"Processing file :{file}")
+        logger.info(f"Processing file: {file}")
         if not is_sql_file(file) and not is_dbt_project_file(file):
             continue
         output_file_name = output_folder / file.name
@@ -138,7 +148,6 @@ async def _process_input_file(
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
 
 
-@timeit
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
 ) -> tuple[dict[str, Any], list[TranspileError]]:
@@ -170,16 +179,19 @@ async def _do_transpile(
     if config.input_source is None:
         raise InvalidInputException("Missing input source!")
     if config.input_path.is_dir():
+        logger.debug(f"Starting to process input directory: {config.input_path}")
         result = await _process_input_dir(config, validator, engine)
     elif config.input_path.is_file():
+        logger.debug(f"Starting to process input file: {config.input_path}")
         result = await _process_input_file(config, validator, engine)
     else:
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
+    logger.debug(f"Transpiler results: {result}")
 
     if not config.skip_validation:
-        logger.info(f"No of Sql Failed while Validating: {result.validation_error_count}")
+        logger.info(f"SQL validation errors: {result.validation_error_count}")
 
     error_log_path: Path | None = None
     if result.error_list:
