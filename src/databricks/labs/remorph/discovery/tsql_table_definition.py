@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 
+from databricks.labs.remorph.connections.database_manager import DatabaseManager
 from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
 from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
 
@@ -138,9 +139,10 @@ class TsqlTableDefinitionService(TableDefinitionService):
 
     def get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
         sql = self._get_table_definition_query(catalog_name)
-        cursor = self.connection
-        result = cursor.execute(sql)
-        column_names = [column[0] for column in cursor.description]
+        db = self.connection
+        result = db.execute_query(sql)
+
+        column_names = [column for column in result.keys()]
         table_definitions = []
 
         for row in result:
@@ -176,7 +178,8 @@ class TsqlTableDefinitionService(TableDefinitionService):
         return table_definitions
 
     def get_all_catalog(self) -> Iterable[str]:
-        cursor = self.connection
-        cursor.execute("""select name from sys.databases""")
-        databases = [row[0] for row in cursor.fetchall()]
-        return databases
+        cursor: DatabaseManager = self.connection
+        result = cursor.connector.execute_query("""select name from sys.databases""")
+        catalogs = [row[0] for row in result]
+        print(catalogs)
+        return catalogs
