@@ -111,10 +111,9 @@ def test_compare_data_for_report_hash(mock_spark, tmp_path: Path):
 
 
 def test_capture_mismatch_data_and_cols(mock_spark):
+    # these mock dataframes are expected to contain only mismatched rows. Hence, the matching rows between source and target are removed for this test-case.
     source = mock_spark.createDataFrame(
         [
-            # this mock source dataframe is expected to contain only mismatched rows. Hence, the matching row is removed for the test-case.
-            # Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
             Row(s_suppkey=2, s_nationkey=22, s_name='supp-22', s_address='a-2', s_phone='ph-2', s_acctbal=200),
             Row(s_suppkey=3, s_nationkey=33, s_name='supp-3', s_address='a-3', s_phone='ph-3', s_acctbal=300),
             Row(s_suppkey=5, s_nationkey=55, s_name='supp-5', s_address='a-5', s_phone='ph-5', s_acctbal=400),
@@ -122,8 +121,6 @@ def test_capture_mismatch_data_and_cols(mock_spark):
     )
     target = mock_spark.createDataFrame(
         [
-            # this mock target dataframe is expected to contain only mismatched rows. Hence, the matching row is removed for the test-case.
-            # Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
             Row(s_suppkey=2, s_nationkey=22, s_name='supp-2', s_address='a-2', s_phone='ph-2', s_acctbal=2000),
             Row(s_suppkey=3, s_nationkey=33, s_name='supp-33', s_address='a-3', s_phone='ph-3', s_acctbal=300),
             Row(s_suppkey=4, s_nationkey=44, s_name='supp-4', s_address='a-4', s_phone='ph-4', s_acctbal=400),
@@ -174,7 +171,7 @@ def test_capture_mismatch_data_and_cols(mock_spark):
 
 
 def test_capture_mismatch_data_and_cols_no_mismatch(mock_spark):
-    # this is to test the behaviour of the function `capture_mismatch_data_and_columns` when there is no mismatch in the dataframes
+    # this is to test the behaviour of the function `capture_mismatch_data_and_columns` when there is no mismatch in the dataframes.
     source = mock_spark.createDataFrame(
         [
             Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
