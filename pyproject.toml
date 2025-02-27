@@ -18,6 +18,8 @@ dependencies = [
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.7.5,<0.14.0",  # TODO: Limit the LSQL version until dependencies are correct.
   "cryptography>=41.0.3",
+  "pyodbc",
+  "SQLAlchemy",
   "pygls>=2.0.0a2",
 ]
 
@@ -50,6 +52,7 @@ dependencies = [
   "pytest",
   "pytest-cov>=5.0.0,<6.0.0",
   "pytest-asyncio>=0.24.0",
+    "pytest-xdist~=3.5.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect==15.1",
@@ -65,8 +68,8 @@ reconcile = "databricks.labs.remorph.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
-coverage    = "pytest --cov src tests/unit --cov-report=html"
-integration = "pytest --cov src tests/integration --durations 20"
+coverage    = "pytest --cov src tests --cov-report=html --ignore=tests/integration/connections"
+integration = "pytest --cov src tests/integration --durations 20 --ignore=tests/integration/connections"
 fmt         = ["black .",
                "ruff  check . --fix",
                "mypy --disable-error-code 'annotation-unchecked' .",

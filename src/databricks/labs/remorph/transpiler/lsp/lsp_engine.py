@@ -13,8 +13,7 @@ from typing import Any, Literal
 import attrs
 import yaml
 
-# see https://github.com/databrickslabs/remorph/issues/1378
-# pylint: disable=import-private-name
+from lsprotocol import types as types_module
 from lsprotocol.types import (
     InitializeParams,
     ClientCapabilities,
@@ -32,7 +31,6 @@ from lsprotocol.types import (
     LanguageKind,
     Range as LSPRange,
     Position as LSPPosition,
-    _SPECIAL_PROPERTIES,
     DiagnosticSeverity,
 )
 from pygls.lsp.client import BaseLanguageClient
@@ -157,9 +155,19 @@ class TranspileDocumentResponse:
     jsonrpc: str = attrs.field(default="2.0")
 
 
-_SPECIAL_PROPERTIES.extend(
-    [f"{TranspileDocumentRequest.__name__}.method", f"{TranspileDocumentRequest.__name__}.jsonrpc"]
-)
+def install_special_properties():
+    is_special_property = getattr(types_module, "is_special_property")
+
+    def customized(cls: type, property_name: str) -> bool:
+        if cls is TranspileDocumentRequest and property_name in {"method", "jsonrpc"}:
+            return True
+        return is_special_property(cls, property_name)
+
+    setattr(types_module, "is_special_property", customized)
+
+
+install_special_properties()
+
 METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
     TranspileDocumentRequest,
     TranspileDocumentResponse,
@@ -368,12 +376,14 @@ class LSPEngine(TranspileEngine):
         for name, value in self._config.remorph.env_vars.items():
             env[name] = value
         args = self._config.remorph.command_line[1:]
+        logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
         await self._client.start_io(executable, env=env, *args)
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
             capabilities=self._client_capabilities(),
-            root_path=str(root_path),
+            root_uri=str(root_path.absolute().as_uri()),
+            workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)

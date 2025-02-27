@@ -75,18 +75,30 @@ async def test_server_has_transpile_capability(lsp_engine, transpile_config):
     await lsp_engine.shutdown()
 
 
-async def test_server_loads_document(lsp_engine, transpile_config):
-    sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
-    await lsp_engine.initialize(transpile_config)
-    lsp_engine.open_document(sample_path)
+async def read_log(marker: str):
     log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
     # need to give time to child process
     for _ in range(1, 10):
         await asyncio.sleep(0.1)
         log = log_path.read_text("utf-8")
-        if "open-document-uri" in log:
+        if marker in log:
             break
-    log = log_path.read_text("utf-8")
+    return log_path.read_text("utf-8")
+
+
+async def test_server_fetches_workspace_file(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "workspace_file.yml"))
+    await lsp_engine.initialize(transpile_config)
+    log = await read_log("fetch-document-uri")
+    assert f"fetch-document-uri={sample_path.as_uri()}" in log
+    await lsp_engine.shutdown()
+
+
+async def test_server_loads_document(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
+    await lsp_engine.initialize(transpile_config)
+    lsp_engine.open_document(sample_path)
+    log = await read_log("open-document-uri")
     assert f"open-document-uri={sample_path.as_uri()}" in log
     await lsp_engine.shutdown()
 
@@ -96,14 +108,7 @@ async def test_server_closes_document(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     lsp_engine.open_document(sample_path)
     lsp_engine.close_document(sample_path)
-    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
-    # need to give time to child process
-    for _ in range(1, 10):
-        await asyncio.sleep(0.1)
-        log = log_path.read_text("utf-8")
-        if "close-document-uri" in log:
-            break
-    log = log_path.read_text("utf-8")
+    log = await read_log("close-document-uri")
     assert f"close-document-uri={sample_path.as_uri()}" in log
     await lsp_engine.shutdown()
 
