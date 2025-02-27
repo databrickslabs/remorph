@@ -176,8 +176,6 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     filter_columns = " and ".join([column + "_match" for column in column_list])
     filter_expr = ~expr(filter_columns)
 
-    source.printSchema()
-    target.printSchema()
     logger.info(f"KEY COLUMNS: {key_columns}")
     logger.info(f"FILTER COLUMNS: {filter_expr}")
     logger.info(f"SELECT COLUMNS: {select_expr}")
