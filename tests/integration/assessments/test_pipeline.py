@@ -18,7 +18,7 @@ def pipeline_config():
     config = PipelineClass.load_config_from_yaml(config_path)
 
     for step in config.steps:
-        step.extract_query = f"{prefix}/../../{step.extract_query}"
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
     return config
 
 

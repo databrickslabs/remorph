@@ -2,6 +2,8 @@ from pathlib import Path
 import logging
 import yaml
 import duckdb
+import subprocess
+import os
 
 from databricks.labs.remorph.assessments.profiler_config import PipelineConfig, Step
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
@@ -27,8 +29,16 @@ class PipelineClass:
         logging.info("Pipeline execution completed")
 
     def _execute_step(self, step: Step):
-        logging.debug(f"Reading query from file: {step.extract_query}")
-        with open(step.extract_query, 'r', encoding='utf-8') as file:
+        if step.type == "sql":
+            self._execute_sql_step(step)
+        elif step.type == "python":
+            self._execute_python_step(step)
+        else:
+            logging.error(f"Unsupported step type: {step.type}")
+
+    def _execute_sql_step(self, step: Step):
+        logging.debug(f"Reading query from file: {step.extract_source}")
+        with open(step.extract_source, 'r', encoding='utf-8') as file:
             query = file.read()
 
         # Execute the query using the database manager
@@ -37,6 +47,17 @@ class PipelineClass:
 
         # Save the result to duckdb
         self._save_to_db(result, step.name, str(step.mode))
+
+    def _execute_python_step(self, step: Step):
+        logging.debug(f"Executing Python script: {step.extract_source}")
+        try:
+            env = {"DUCKDB_PATH": str(self.db_path_prefix / DB_NAME), "EXECUTOR_CONFIG": self.executor}
+            result = subprocess.run(
+                ["python", step.extract_source], check=True, capture_output=True, text=True, env={**env, **os.environ}
+            )
+            logging.info(f"Python script output: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Error executing Python script: {e.stderr}")
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)

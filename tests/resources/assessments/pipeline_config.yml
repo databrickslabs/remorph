@@ -3,20 +3,20 @@ version: "1.0"
 extract_folder: /tmp/extracts/
 steps:
   - name: inventory
-    type: inventory
-    extract_query: resources/assessments/inventory.sql
+    type: sql
+    extract_source: resources/assessments/inventory.sql
     mode: overwrite
     frequency: daily
     flag: active
   - name: usage
-    type: usage
-    extract_query: resources/assessments/usage.sql
+    type: sql
+    extract_source: resources/assessments/usage.sql
     mode: overwrite
     frequency: weekly
     flag: active
   - name: usage_2
-    type: usage_2
-    extract_query: resources/assessments/usage.sql
+    type: sql
+    extract_source: resources/assessments/usage.sql
     mode: overwrite
     frequency: daily
     flag: inactive
