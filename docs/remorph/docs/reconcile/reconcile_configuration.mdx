@@ -29,17 +29,17 @@ import CodeBlock from '@theme/CodeBlock';
 
 ## Types of Report Supported
 
-| report type | sample visualisation                                                             | description                                                                                                                                                                                    | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|-------------|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **schema**  | `[schema]({useBaseUrl('docs/reconcile/report_types_visualisation.mdx#schema')})` | reconcile the schema of source and target.<br />  - validate the datatype is same or compatible                                                                                                | - **schema_comparison**<br />- **schema_difference**                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **row**     | `[row]({useBaseUrl('docs/reconcile/report_types_visualisation.mdx#row')}) `      | reconcile the data only at row level(hash value of the source row is matched with the hash value of the target).Preferred when there are no join columns identified between source and target. | - **missing_in_src**(sample rows that are available in target but missing in source + sample rows in the target that don't match with the source)<br /> - **missing_in_tgt**(sample rows that are available in source but are missing in target + sample rows in the source that doesn't match with target)<br />  **NOTE**: the report won't differentiate the mismatch and missing here.                                                                                                                         |
-| **data**    | `[data]({useBaseUrl('docs/reconcile/report_types_visualisation.mdx#data')})`     | reconcile the data at row and column level- ```join_columns``` will help us to identify mismatches at each row and column level                                                                | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br /> - **missing_in_src**(sample rows that are available in target but missing in source)<br /> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br /> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br /> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br /> |
-| **all**     | `[all]({useBaseUrl('docs/reconcile/report_types_visualisation.mdx#all')})`       | this is a combination of data + schema                                                                                                                                                         | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| report type | sample visualisation                             | description                                                                                                                                                                                    | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|-------------|--------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **schema**  | [schema](docs/reconcile/dataflow_example#schema) | reconcile the schema of source and target.<br />  - validate the datatype is same or compatible                                                                                                | - **schema_comparison**<br />- **schema_difference**                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **row**     | [row](docs/reconcile/dataflow_example#row)       | reconcile the data only at row level(hash value of the source row is matched with the hash value of the target).Preferred when there are no join columns identified between source and target. | - **missing_in_src**(sample rows that are available in target but missing in source + sample rows in the target that don't match with the source)<br /> - **missing_in_tgt**(sample rows that are available in source but are missing in target + sample rows in the source that doesn't match with target)<br />  **NOTE**: the report won't differentiate the mismatch and missing here.                                                                                                                         |
+| **data**    | [data]('docs/reconcile/dataflow_example#data)    | reconcile the data at row and column level- ```join_columns``` will help us to identify mismatches at each row and column level                                                                | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br /> - **missing_in_src**(sample rows that are available in target but missing in source)<br /> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br /> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br /> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br /> |
+| **all**     | [all](docs/reconcile/dataflow_example#all)       | this is a combination of data + schema                                                                                                                                                         | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 [[back to top](#recon-config)]
 
 ## Report Type-Flow Chart
-
+---
 ```mermaid
 flowchart TD
     REPORT_TYPE --> DATA
@@ -48,16 +48,20 @@ flowchart TD
     REPORT_TYPE --> ALL
 ```
 
+---
+
 ```mermaid
 flowchart TD
     SCHEMA --> SCHEMA_VALIDATION
 ```
+---
 
 ```mermaid
 flowchart TD
     ROW --> MISSING_IN_SRC
     ROW --> MISSING_IN_TGT
 ```
+---
 
 ```mermaid
 flowchart TD
@@ -65,6 +69,7 @@ flowchart TD
    DATA --> MISSING_IN_SRC
    DATA --> MISSING_IN_TGT
 ```
+---
 
 ```mermaid
 flowchart TD
@@ -73,6 +78,7 @@ flowchart TD
     ALL --> MISSING_IN_TGT
     ALL --> SCHEMA_VALIDATION
 ```
+---
 
 [[back to top](#recon-config)]
 
