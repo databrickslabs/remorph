@@ -17,5 +17,5 @@ def test_tsql_get_catalog(extractor):
 
 def test_tsql_get_table_definition(extractor):
     tss = TsqlTableDefinitionService(extractor)
-    td = tss.get_table_definition("labs_azure_sandbox_remorph")
-    assert td is not None
+    table_def = tss.get_table_definition("labs_azure_sandbox_remorph")
+    assert table_def is not None

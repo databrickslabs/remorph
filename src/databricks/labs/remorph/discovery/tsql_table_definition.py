@@ -139,10 +139,10 @@ class TsqlTableDefinitionService(TableDefinitionService):
 
     def get_table_definition(self, catalog_name: str) -> Iterable[TableDefinition]:
         sql = self._get_table_definition_query(catalog_name)
-        db = self.connection
-        result = db.execute_query(sql)
+        tsql_connection = self.connection
+        result = tsql_connection.execute_query(sql)
 
-        column_names = [column for column in result.keys()]
+        column_names = list(result.keys())
         table_definitions = []
 
         for row in result:
