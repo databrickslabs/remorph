@@ -61,11 +61,12 @@ def initialize_tables():
                 f"{settings.REMORPH_METADATA_SCHEMA}." f"{settings.RECON_JOB_RUN_DETAILS_TABLE_NAME}",
             )
         except Exception:
-            st.error(
-                f"Please check if these "
-                f"tables are present: {settings.RECON_CONFIG_TABLE_NAME} and "
-                f"{settings.RECON_JOB_RUN_DETAILS_TABLE_NAME}"
-            )
+            st.error(f'Error creating tables. Please check if "{settings.REMORPH_METADATA_SCHEMA}" schema exists')
+            # st.error(
+            #     f"Please check if these "
+            #     f"tables are present: {settings.RECON_CONFIG_TABLE_NAME} and "
+            #     f"{settings.RECON_JOB_RUN_DETAILS_TABLE_NAME}"
+            # )
             return
     st.session_state.tables_initialized = True
 
