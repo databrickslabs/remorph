@@ -293,7 +293,7 @@ def write_data_to_file(path: Path, content: str):
 @pytest.fixture
 def input_source(tmp_path: Path):
     source_dir = tmp_path / "remorph_source"
-    safe_remove_dir(source_dir) # should never be required but harmless
+    safe_remove_dir(source_dir)  # should never be required but harmless
     make_dir(source_dir)
     # store some files
     input_dir = source_dir / "queries"
@@ -400,8 +400,8 @@ def input_source(tmp_path: Path):
     write_data_to_file(stream_1_sql_file, stream_1_sql)
     write_data_to_file(call_center_ddl_file, call_center_ddl)
     write_data_to_file(file_text, "This is a test file")
-    yield input_dir
-    safe_remove_dir(input_dir)
+    yield source_dir
+    safe_remove_dir(source_dir)
 
 
 @pytest.fixture
