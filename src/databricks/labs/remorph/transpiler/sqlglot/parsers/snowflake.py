@@ -91,7 +91,7 @@ def _parse_date_add(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
-def _parse_split_part(args: list) -> local_expression.SplitPart:
+def _parse_split_part(args: list) -> exp.SplitPart:
     if len(args) != 3:
         err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
         raise ParseError(err_msg)
@@ -107,7 +107,7 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
         part_num_if = exp.If(this=cond, true=exp.Literal.number(1), false=part_num_literal)
 
     part_num = part_num_if if part_num_if is not None else part_num_literal
-    return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
+    return exp.SplitPart(this=seq_get(args, 0), delimiter=seq_get(args, 1), part_index=part_num)
 
 
 def _div0_to_if(args: list) -> exp.If:
