@@ -54,7 +54,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileRecordCount,
     AggregateQueryOutput,
     AggregateQueryRules,
+    SamplingOptions,
 )
+from databricks.labs.remorph.reconcile.sampler import SamplerFactory
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
@@ -677,10 +679,12 @@ class Reconciliation:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
                     tgt_sampler,
+                    reconcile_output.mismatch_count,
                     reconcile_output.mismatch.mismatch_df,
                     table_conf.join_columns,
                     table_conf.source_name,
                     table_conf.target_name,
+                    table_conf.sampling_options,
                 )
 
             if reconcile_output.missing_in_src_count > 0:
@@ -716,12 +720,28 @@ class Reconciliation:
         self,
         src_sampler,
         tgt_sampler,
+        mismatch_count,
         mismatch,
         key_columns,
         src_table: str,
         tgt_table: str,
+        sampling_options: SamplingOptions,
     ):
-        df = mismatch.limit(_SAMPLE_ROWS).cache()
+
+        tgt_sampling_query = tgt_sampler.build_query_with_alias()
+
+        sampling_model_target = self._target.read_data(
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
+            table=tgt_table,
+            query=tgt_sampling_query,
+            options=None,
+        )
+
+        # Uses pre-calculated `mismatch_count` from `reconcile_output.mismatch_count` to avoid from recomputing `mismatch` for RandomSampler.
+        mismatch_sampler = SamplerFactory.get_sampler(sampling_options)
+        df = mismatch_sampler.sample(mismatch, mismatch_count, key_columns, sampling_model_target).cache()
+
         src_mismatch_sample_query = src_sampler.build_query(df)
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
