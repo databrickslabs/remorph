@@ -835,20 +835,23 @@ class Reconciliation:
         if report_type != "schema":
             source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
             target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
-            source_count = self._source.read_data(
+            source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
                 table=table_conf.source_name,
                 query=source_count_query,
                 options=None,
-            ).collect()[0]["count"]
-            target_count = self._target.read_data(
+            ).first()
+            target_count_row = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
                 query=target_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).first()
+
+            source_count = int(source_count_row[0]) if source_count_row is not None else 0
+            target_count = int(target_count_row[0]) if target_count_row is not None else 0
 
             return ReconcileRecordCount(source=int(source_count), target=int(target_count))
         return ReconcileRecordCount()
