@@ -18,7 +18,7 @@ def pipeline_config():
     config = PipelineClass.load_config_from_yaml(config_path)
 
     for step in config.steps:
-        step.extract_query = f"{prefix}/../../{step.extract_query}"
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
     return config
 
 
@@ -31,7 +31,7 @@ def test_run_pipeline(extractor, pipeline_config, get_logger):
 def verify_output(get_logger, path):
     conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
 
-    expected_tables = ["usage", "inventory"]
+    expected_tables = ["usage", "inventory", "random_data"]
     logger = get_logger
     for table in expected_tables:
         try:

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 class Step:
     name: str
     type: str | None
-    extract_query: str
+    extract_source: str
     mode: str | None
     frequency: str | None
     flag: str | None
