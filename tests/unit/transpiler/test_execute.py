@@ -117,11 +117,11 @@ def test_with_dir_with_output_folder_skipping_validation(
     # check errors
     expected_errors = [
         {
-            "path": f"{input_source!s}/query3.sql",
-            "message": f"Unsupported operation found in file {input_source!s}/query3.sql.",
+            "path": f"{input_source!s}/queries/query3.sql",
+            "message": f"Unsupported operation found in file {input_source!s}/queries/query3.sql.",
         },
-        {"path": f"{input_source!s}/query4.sql", "message": "Parsing error Start:"},
-        {"path": f"{input_source!s}/query5.sql", "message": "Token error Start:"},
+        {"path": f"{input_source!s}/queries/query4.sql", "message": "Parsing error Start:"},
+        {"path": f"{input_source!s}/queries/query5.sql", "message": "Token error Start:"},
     ]
     check_error_lines(status["error_log_file"], expected_errors)
     # check generation
@@ -133,7 +133,7 @@ def test_with_file(input_source, error_file, mock_workspace_client):
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_source / "query1.sql"),
+        input_source=str(input_source / "queries" / "query1.sql"),
         output_folder=None,
         error_file_path=str(error_file),
         sdk_config=sdk_config,
@@ -158,14 +158,14 @@ def test_with_file(input_source, error_file, mock_workspace_client):
     # check the status
     check_status(status, 1, 1, 0, 0, 1, 0, error_file.name)
     # check errors
-    expected_errors = [{"path": f"{input_source!s}/query1.sql", "message": "Mock validation error"}]
+    expected_errors = [{"path": f"{input_source!s}/queries/query1.sql", "message": "Mock validation error"}]
     check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_with_file_with_output_folder_skip_validation(input_source, output_folder, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_source / "query1.sql"),
+        input_source=str(input_source / "queries" / "query1.sql"),
         output_folder=str(output_folder),
         sdk_config=None,
         source_dialect="snowflake",
@@ -278,7 +278,7 @@ def test_with_file_with_success(input_source, mock_workspace_client):
     spark = create_autospec(DatabricksSession)
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_source / "query1.sql"),
+        input_source=str(input_source / "queries" / "query1.sql"),
         output_folder=None,
         sdk_config=sdk_config,
         source_dialect="snowflake",
@@ -317,7 +317,7 @@ def test_with_input_source_none(mock_workspace_client):
 def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_source / "query4.sql"),
+        input_source=str(input_source / "queries" / "query4.sql"),
         output_folder=None,
         error_file_path=str(error_file),
         sdk_config=None,
@@ -331,14 +331,14 @@ def test_parse_error_handling(input_source, error_file, mock_workspace_client):
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
     # check errors
-    expected_errors = [{"path": f"{input_source}/query4.sql", "message": "Parsing error Start:"}]
+    expected_errors = [{"path": f"{input_source}/queries/query4.sql", "message": "Parsing error Start:"}]
     check_error_lines(status["error_log_file"], expected_errors)
 
 
 def test_token_error_handling(input_source, error_file, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
-        input_source=str(input_source / "query5.sql"),
+        input_source=str(input_source / "queries" / "query5.sql"),
         output_folder=None,
         error_file_path=str(error_file),
         sdk_config=None,
@@ -351,5 +351,5 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     # assert the status
     check_status(status, 1, 1, 0, 1, 0, 0, error_file.name)
     # check errors
-    expected_errors = [{"path": f"{input_source}/query5.sql", "message": "Token error Start:"}]
+    expected_errors = [{"path": f"{input_source}/queries/query5.sql", "message": "Token error Start:"}]
     check_error_lines(status["error_log_file"], expected_errors)

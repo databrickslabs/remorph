@@ -376,12 +376,14 @@ class LSPEngine(TranspileEngine):
         for name, value in self._config.remorph.env_vars.items():
             env[name] = value
         args = self._config.remorph.command_line[1:]
+        logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
         await self._client.start_io(executable, env=env, *args)
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
             capabilities=self._client_capabilities(),
-            root_path=str(root_path),
+            root_uri=str(root_path.absolute().as_uri()),
+            workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)
