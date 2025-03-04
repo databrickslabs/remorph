@@ -4,6 +4,9 @@ import abc
 import asyncio
 import logging
 import os
+import selectors
+import sys
+from asyncio import Task
 from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
@@ -228,6 +231,18 @@ class _LanguageClient(BaseLanguageClient):
             return func(self, params)
 
         return wrapper
+
+    async def start_io(self, cmd: str, *args, **kwargs):
+        await super().start_io(cmd, *args, **kwargs)
+        # forward stderr
+        task = asyncio.create_task(self.pipe_stderr())
+        self._async_tasks.append(task)
+
+    async def pipe_stderr(self):
+        while not self._stop_event.is_set():
+            bytes = await self._server.stderr.readline()
+            message = bytes.decode("utf-8").strip()
+            logger.error(message)
 
 
 class ChangeManager(abc.ABC):
