@@ -31,7 +31,7 @@ def test_run_pipeline(extractor, pipeline_config, get_logger):
 def verify_output(get_logger, path):
     conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
 
-    expected_tables = ["usage", "inventory"]
+    expected_tables = ["usage", "inventory", "random_data"]
     logger = get_logger
     for table in expected_tables:
         try:

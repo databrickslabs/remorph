@@ -1,9 +1,11 @@
 from pathlib import Path
+import json
 import logging
+import subprocess
 import yaml
 import duckdb
-import subprocess
-import os
+
+from databricks.labs.remorph.connections.credential_manager import cred_file
 
 from databricks.labs.remorph.assessments.profiler_config import PipelineConfig, Step
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
@@ -50,14 +52,30 @@ class PipelineClass:
 
     def _execute_python_step(self, step: Step):
         logging.debug(f"Executing Python script: {step.extract_source}")
+        db_path = str(self.db_path_prefix / DB_NAME)
+        credential_config = str(cred_file("remorph"))
+
         try:
-            env = {"DUCKDB_PATH": str(self.db_path_prefix / DB_NAME), "EXECUTOR_CONFIG": self.executor}
             result = subprocess.run(
-                ["python", step.extract_source], check=True, capture_output=True, text=True, env={**env, **os.environ}
+                ["python", step.extract_source, "--db-path", db_path, "--credential-config-path", credential_config],
+                check=True,
+                capture_output=True,
+                text=True,
             )
-            logging.info(f"Python script output: {result.stdout}")
+
+            try:
+                output = json.loads(result.stdout)
+                if output["status"] == "success":
+                    logging.info(f"Python script completed: {output['message']}")
+                else:
+                    raise RuntimeError(f"Script reported error: {output['message']}")
+            except json.JSONDecodeError:
+                logging.info(f"Python script output: {result.stdout}")
+
         except subprocess.CalledProcessError as e:
-            logging.error(f"Error executing Python script: {e.stderr}")
+            error_msg = e.stderr
+            logging.error(f"Python script failed: {error_msg}")
+            raise RuntimeError(f"Script execution failed: {error_msg}") from e
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
