@@ -35,13 +35,10 @@ def main():
     )
     args = parser.parse_args()
 
-    try:
-        with open(args.credential_config_path, 'r', encoding='utf-8') as file:
-            config = yaml.safe_load(file)
-            assert config
-    except (yaml.YAMLError, FileNotFoundError) as e:
-        print(json.dumps({"status": "error", "message": f"Error reading config: {e}"}), file=sys.stderr)
-        sys.exit(1)
+
+    if not args.credential_config_path.endswith('.credential.yml'):
+        print(json.dumps({"status": "error", "message": f"Credential config file must have '.credential.yml' extension"}), file=sys.stderr)
+        raise ValueError("Credential config file must have '.credential.yml' extension")
 
     try:
         df = generate_random_dataset()
