@@ -3,9 +3,9 @@ import duckdb
 import argparse
 import json
 import sys
-import yaml
 import numpy as np
 from datetime import datetime, timedelta
+
 
 
 def generate_random_dataset(size=10):
@@ -34,11 +34,12 @@ def main():
         '--credential-config-path', type=str, required=True, help='Path string containing credential configuration'
     )
     args = parser.parse_args()
+    credential_file = args.credential_config_path
 
-
-    if not args.credential_config_path.endswith('.credential.yml'):
-        print(json.dumps({"status": "error", "message": f"Credential config file must have '.credential.yml' extension"}), file=sys.stderr)
-        raise ValueError("Credential config file must have '.credential.yml' extension")
+    if not credential_file.endswith('credentials.yml'):
+        msg = "Credential config file must have 'credentials.yml' extension"
+        print(json.dumps({"status": "error", "message": msg}), file=sys.stderr)
+        raise ValueError("Credential config file must have 'credentials.yml' extension")
 
     try:
         df = generate_random_dataset()
