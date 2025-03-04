@@ -46,6 +46,11 @@ TGT_TABLE = "target_supplier"
 
 
 @dataclass
+class SamplingQueries:
+    target_sampling_query: str
+
+
+@dataclass
 class HashQueries:
     source_hash_query: str
     target_hash_query: str
@@ -90,6 +95,7 @@ class QueryStore:
     threshold_queries: ThresholdQueries
     row_queries: RowQueries
     record_count_queries: RecordCountQueries
+    sampling_queries: SamplingQueries
 
 
 @pytest.fixture
@@ -105,16 +111,15 @@ def setup_metadata_table(mock_spark, report_tables_schema):
 def query_store(mock_spark):
     source_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey AS s_nationkey, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     target_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey_t AS s_nationkey, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
-    source_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON COALESCE(TRIM(src.s_nationkey), '_null_recon_') = COALESCE(TRIM(recon.s_nationkey), '_null_recon_') AND COALESCE(TRIM(src.s_suppkey), '_null_recon_') = COALESCE(TRIM(recon.s_suppkey), '_null_recon_')"
-    target_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON COALESCE(TRIM(src.s_nationkey), '_null_recon_') = COALESCE(TRIM(recon.s_nationkey), '_null_recon_') AND COALESCE(TRIM(src.s_suppkey), '_null_recon_') = COALESCE(TRIM(recon.s_suppkey), '_null_recon_')"
-    source_missing_query = "WITH recon AS (SELECT 44 AS s_nationkey, 4 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON COALESCE(TRIM(src.s_nationkey), '_null_recon_') = COALESCE(TRIM(recon.s_nationkey), '_null_recon_') AND COALESCE(TRIM(src.s_suppkey), '_null_recon_') = COALESCE(TRIM(recon.s_suppkey), '_null_recon_')"
-    target_missing_query = "WITH recon AS (SELECT 33 AS s_nationkey, 3 AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON COALESCE(TRIM(src.s_nationkey), '_null_recon_') = COALESCE(TRIM(recon.s_nationkey), '_null_recon_') AND COALESCE(TRIM(src.s_suppkey), '_null_recon_') = COALESCE(TRIM(recon.s_suppkey), '_null_recon_')"
+    source_mismatch_query = "WITH recon AS (SELECT CAST(22 AS number) AS s_nationkey, CAST(2 AS number) AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON src.s_nationkey = recon.s_nationkey AND src.s_suppkey = recon.s_suppkey"
+    target_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON src.s_nationkey = recon.s_nationkey AND src.s_suppkey = recon.s_suppkey"
+    source_missing_query = "WITH recon AS (SELECT 44 AS s_nationkey, 4 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON src.s_nationkey = recon.s_nationkey AND src.s_suppkey = recon.s_suppkey"
+    target_missing_query = "WITH recon AS (SELECT CAST(33 AS number) AS s_nationkey, CAST(3 AS number) AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '_null_recon_') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT src.s_address, src.s_name, src.s_nationkey, src.s_phone, src.s_suppkey FROM src INNER JOIN recon AS recon ON src.s_nationkey = recon.s_nationkey AND src.s_suppkey = recon.s_suppkey"
     source_threshold_query = "SELECT s_nationkey AS s_nationkey, s_suppkey AS s_suppkey, s_acctbal AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     target_threshold_query = "SELECT s_nationkey_t AS s_nationkey, s_suppkey_t AS s_suppkey, s_acctbal_t AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
     threshold_comparison_query = "SELECT COALESCE(source.s_acctbal, 0) AS s_acctbal_source, COALESCE(databricks.s_acctbal, 0) AS s_acctbal_databricks, CASE WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) = 0 THEN 'Match' WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) BETWEEN 0 AND 100 THEN 'Warning' ELSE 'Failed' END AS s_acctbal_match, source.s_nationkey AS s_nationkey_source, source.s_suppkey AS s_suppkey_source FROM source_supplier_df_threshold_vw AS source INNER JOIN target_target_supplier_df_threshold_vw AS databricks ON source.s_nationkey <=> databricks.s_nationkey AND source.s_suppkey <=> databricks.s_suppkey WHERE (1 = 1 OR 1 = 1) OR (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) <> 0"
     source_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, s_nationkey AS s_nationkey, TRIM(s_phone) AS s_phone, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     target_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, s_nationkey_t AS s_nationkey, TRIM(s_phone_t) AS s_phone, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
-
     hash_queries = HashQueries(
         source_hash_query=source_hash_query,
         target_hash_query=target_hash_query,
@@ -140,6 +145,9 @@ def query_store(mock_spark):
         source_record_count_query="SELECT COUNT(1) AS count FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
         target_record_count_query="SELECT COUNT(1) AS count FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
     )
+    sampling_queries = SamplingQueries(
+        target_sampling_query="SELECT s_address_t AS s_address, s_name AS s_name, s_nationkey_t AS s_nationkey, s_phone_t AS s_phone, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+    )
 
     return QueryStore(
         hash_queries=hash_queries,
@@ -148,18 +156,14 @@ def query_store(mock_spark):
         threshold_queries=threshold_queries,
         row_queries=row_queries,
         record_count_queries=record_count_queries,
+        sampling_queries=sampling_queries,
     )
 
 
 def test_reconcile_data_with_mismatches_and_missing(
-    mock_spark,
-    table_conf_with_opts,
-    table_schema,
-    query_store,
-    tmp_path: Path,
+    mock_spark, table_conf_with_opts, table_schema, query_store, tmp_path: Path
 ):
     src_schema, tgt_schema = table_schema
-
     source_dataframe_repository = {
         (
             CATALOG,
@@ -183,12 +187,22 @@ def test_reconcile_data_with_mismatches_and_missing(
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
     target_dataframe_repository = {
         (
             CATALOG,
             SCHEMA,
             query_store.hash_queries.target_hash_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
+                Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
+            ]
+        ),
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.sampling_queries.target_sampling_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -217,7 +231,6 @@ def test_reconcile_data_with_mismatches_and_missing(
             ]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
@@ -284,16 +297,13 @@ def test_reconcile_data_with_mismatches_and_missing(
             threshold_mismatch_count=1,
         ),
     )
-
     assert actual_data_reconcile.mismatch_count == expected_data_reconcile.mismatch_count
     assert actual_data_reconcile.missing_in_src_count == expected_data_reconcile.missing_in_src_count
     assert actual_data_reconcile.missing_in_tgt_count == expected_data_reconcile.missing_in_tgt_count
     assert actual_data_reconcile.mismatch.mismatch_columns == expected_data_reconcile.mismatch.mismatch_columns
-
     assertDataFrameEqual(actual_data_reconcile.mismatch.mismatch_df, expected_data_reconcile.mismatch.mismatch_df)
     assertDataFrameEqual(actual_data_reconcile.missing_in_src, expected_data_reconcile.missing_in_src)
     assertDataFrameEqual(actual_data_reconcile.missing_in_tgt, expected_data_reconcile.missing_in_tgt)
-
     actual_schema_reconcile = Reconciliation(
         source,
         target,
@@ -352,7 +362,6 @@ def test_reconcile_data_with_mismatches_and_missing(
     )
     assertDataFrameEqual(actual_schema_reconcile.compare_df, expected_schema_reconcile)
     assert actual_schema_reconcile.is_valid is True
-
     assertDataFrameEqual(
         actual_data_reconcile.threshold_output.threshold_df,
         mock_spark.createDataFrame(
@@ -394,7 +403,6 @@ def test_reconcile_data_without_mismatches_and_missing(
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
     target_dataframe_repository = {
         (
             CATALOG,
@@ -421,7 +429,6 @@ def test_reconcile_data_without_mismatches_and_missing(
             ]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
@@ -443,7 +450,6 @@ def test_reconcile_data_without_mismatches_and_missing(
             mock_spark,
             ReconcileMetadataConfig(),
         ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
-
     assert actual.mismatch_count == 0
     assert actual.missing_in_src_count == 0
     assert actual.missing_in_tgt_count == 0
@@ -476,7 +482,6 @@ def test_reconcile_data_with_mismatch_and_no_missing(
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
     target_dataframe_repository = {
         (
             CATALOG,
@@ -488,11 +493,20 @@ def test_reconcile_data_with_mismatch_and_no_missing(
                 Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
             ]
         ),
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.sampling_queries.target_sampling_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
+            ]
+        ),
         (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
@@ -541,14 +555,12 @@ def test_reconcile_data_with_mismatch_and_no_missing(
             mismatch_columns=["s_address", "s_phone"],
         ),
     )
-
     assert actual.mismatch_count == expected.mismatch_count
     assert actual.missing_in_src_count == expected.missing_in_src_count
     assert actual.missing_in_tgt_count == expected.missing_in_tgt_count
     assert actual.mismatch.mismatch_columns == expected.mismatch.mismatch_columns
     assert actual.missing_in_src is None
     assert actual.missing_in_tgt is None
-
     assertDataFrameEqual(actual.mismatch.mismatch_df, expected.mismatch.mismatch_df)
 
 
@@ -579,7 +591,6 @@ def test_reconcile_data_missing_and_no_mismatch(
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
     target_dataframe_repository = {
         (
             CATALOG,
@@ -596,7 +607,6 @@ def test_reconcile_data_missing_and_no_mismatch(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
@@ -630,12 +640,10 @@ def test_reconcile_data_missing_and_no_mismatch(
         ),
         mismatch=MismatchOutput(),
     )
-
     assert actual.mismatch_count == expected.mismatch_count
     assert actual.missing_in_src_count == expected.missing_in_src_count
     assert actual.missing_in_tgt_count == expected.missing_in_tgt_count
     assert actual.mismatch is None
-
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
@@ -681,12 +689,22 @@ def mock_for_report_type_data(
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
     target_dataframe_repository = {
         (
             CATALOG,
             SCHEMA,
             query_store.hash_queries.target_hash_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
+                Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
+            ]
+        ),
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.sampling_queries.target_sampling_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -704,11 +722,9 @@ def mock_for_report_type_data(
             [Row(count=3)]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
-
     reconcile_config_data = ReconcileConfig(
         data_source="databricks",
         report_type="data",
@@ -721,7 +737,6 @@ def mock_for_report_type_data(
         ),
         metadata_config=ReconcileMetadataConfig(schema="default"),
     )
-
     return table_recon, source, target, reconcile_config_data
 
 
@@ -900,11 +915,9 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
             [Row(count=3)]
         ),
     }
-
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
-
     reconcile_config_schema = ReconcileConfig(
         data_source="databricks",
         report_type="schema",
@@ -917,7 +930,6 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         ),
         metadata_config=ReconcileMetadataConfig(schema="default"),
     )
-
     return table_recon, source, target, reconcile_config_schema
 
 
@@ -1081,6 +1093,17 @@ def mock_for_report_type_all(
             CATALOG,
             SCHEMA,
             query_store.hash_queries.target_hash_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
+                Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
+            ]
+        ),
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.sampling_queries.target_sampling_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),

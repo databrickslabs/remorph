@@ -11,11 +11,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_literal,
     _get_is_string,
     build_join_clause,
-    trim,
-    coalesce,
 )
-
-_SAMPLE_ROWS = 50
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +31,22 @@ def _union_concat(
 
 
 class SamplingQueryBuilder(QueryBuilder):
+    def build_query_with_alias(self):
+        self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
+        join_columns = self.join_columns if self.join_columns else set()
+
+        cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+
+        cols_with_alias = [
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in cols
+        ]
+
+        query = select(*cols_with_alias).from_(":tbl").where(self.filter).sql(dialect=self.engine)
+
+        logger.info(f"Sampling Query with Alias for {self.layer}: {query}")
+        return query
+
     def build_query(self, df: DataFrame):
         self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
         join_columns = self.join_columns if self.join_columns else set()
@@ -76,22 +88,28 @@ class SamplingQueryBuilder(QueryBuilder):
 
     @classmethod
     def _get_join_clause(cls, key_cols: list):
-        return (
-            build_join_clause(
-                "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
-            )
-            .transform(coalesce, default="_null_recon_", is_string=True)
-            .transform(trim)
+        return build_join_clause(
+            "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
         )
 
     def _get_with_clause(self, df: DataFrame) -> exp.Select:
         union_res = []
-        for row in df.take(_SAMPLE_ROWS):
+        for row in df.collect():
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
             column_types_dict = dict(column_types)
+            orig_types_dict = {
+                schema.column_name: schema.data_type
+                for schema in self.schema
+                if schema.column_name not in self.user_transformations
+            }
             row_select = [
                 (
-                    build_literal(this=str(value), alias=col, is_string=_get_is_string(column_types_dict, col))
+                    build_literal(
+                        this=str(value),
+                        alias=col,
+                        is_string=_get_is_string(column_types_dict, col),
+                        cast=orig_types_dict.get(col),
+                    )
                     if value is not None
                     else exp.Alias(this=exp.Null(), alias=col)
                 )
