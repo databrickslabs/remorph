@@ -375,7 +375,8 @@ class LSPEngine(TranspileEngine):
         env = deepcopy(os.environ)
         for name, value in self._config.remorph.env_vars.items():
             env[name] = value
-        args = self._config.remorph.command_line[1:]
+        log_level = logging.getLevelName(logging.getLogger("databricks").level)
+        args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
         logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
         await self._client.start_io(executable, env=env, *args)
         input_path = config.input_path
