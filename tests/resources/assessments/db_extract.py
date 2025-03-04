@@ -7,7 +7,6 @@ import numpy as np
 from datetime import datetime, timedelta
 
 
-
 def generate_random_dataset(size=10):
     # Generate dates for the last 30 days
     end_date = datetime.now()
