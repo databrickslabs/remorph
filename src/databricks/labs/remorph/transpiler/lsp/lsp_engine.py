@@ -4,9 +4,6 @@ import abc
 import asyncio
 import logging
 import os
-import selectors
-import sys
-from asyncio import Task
 from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
@@ -240,8 +237,8 @@ class _LanguageClient(BaseLanguageClient):
 
     async def pipe_stderr(self):
         while not self._stop_event.is_set():
-            bytes = await self._server.stderr.readline()
-            message = bytes.decode("utf-8").strip()
+            data = await self._server.stderr.readline()
+            message = data.decode("utf-8").strip()
             logger.error(message)
 
 
