@@ -189,6 +189,9 @@ def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumen
 
 
 if __name__ == "__main__":
+    # added for testing logging of stderr output
+    sys.stderr.write("Running LSP Test Server...\n")
+    sys.stderr.flush()
     logger.debug(f"SOME_ENV={os.getenv('SOME_ENV')}")
     logger.debug(f"sys.args={sys.argv}")
     server.start_io()
