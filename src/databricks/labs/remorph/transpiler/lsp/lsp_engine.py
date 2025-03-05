@@ -229,6 +229,18 @@ class _LanguageClient(BaseLanguageClient):
 
         return wrapper
 
+    async def start_io(self, cmd: str, *args, **kwargs):
+        await super().start_io(cmd, *args, **kwargs)
+        # forward stderr
+        task = asyncio.create_task(self.pipe_stderr())
+        self._async_tasks.append(task)
+
+    async def pipe_stderr(self):
+        while not self._stop_event.is_set():
+            data = await self._server.stderr.readline()
+            message = data.decode("utf-8").strip()
+            logger.error(message)
+
 
 class ChangeManager(abc.ABC):
 
