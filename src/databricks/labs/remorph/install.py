@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import functools
 import shutil
 from collections.abc import Iterable
 from json import loads, dumps
@@ -273,10 +274,13 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
+    @functools.lru_cache(maxsize=None)
     def install_rct(cls):
         RCTInstaller.install()
 
     @classmethod
+    @classmethod
+    @functools.lru_cache(maxsize=None)
     def install_morpheus(cls):
         MorpheusInstaller.install()
 
