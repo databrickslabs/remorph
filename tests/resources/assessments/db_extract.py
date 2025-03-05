@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 import numpy as np
+import logging
 from datetime import datetime, timedelta
 
 
@@ -25,7 +26,9 @@ def generate_random_dataset(size=10):
     return pd.DataFrame(data)
 
 
-def main():
+def execute():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser(description='Generate and store random dataset in DuckDB')
     parser.add_argument('--db-path', type=str, required=True, help='Path to DuckDB database file')
@@ -37,12 +40,13 @@ def main():
 
     if not credential_file.endswith('credentials.yml'):
         msg = "Credential config file must have 'credentials.yml' extension"
+        # This is the output format expected by the pipeline.py which orchestrates the execution of this script
         print(json.dumps({"status": "error", "message": msg}), file=sys.stderr)
         raise ValueError("Credential config file must have 'credentials.yml' extension")
 
     try:
         df = generate_random_dataset()
-        print(df.columns, file=sys.stderr)
+        logger.info(f'DataFrame columns: {df.columns}')
         # Connect to DuckDB
         conn = duckdb.connect(args.db_path)
 
@@ -62,7 +66,7 @@ def main():
 
         conn.execute("INSERT INTO random_data SELECT * FROM df")
         conn.close()
-
+        # This is the output format expected by the pipeline.py which orchestrates the execution of this script
         print(json.dumps({"status": "success", "message": "Data loaded successfully"}))
 
     except Exception as e:
@@ -71,4 +75,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    execute()
