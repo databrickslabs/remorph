@@ -117,7 +117,7 @@ class DashboardDeployment:
 
     def _name_with_prefix(self, name: str) -> str:
         prefix = self._installation.product()
-        return f"{prefix.upper()} {name}"
+        return f"{prefix.upper()}_{name}".replace(" ", "_")
 
     def _handle_existing_dashboard(self, dashboard_id: str, display_name: str) -> str | None:
         dashboard = self._ws.lakeview.get(dashboard_id)

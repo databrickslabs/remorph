@@ -144,4 +144,4 @@ class JobDeployment:
 
     def _name_with_prefix(self, name: str) -> str:
         prefix = self._installation.product()
-        return f"{prefix.upper()} {name}"
+        return f"{prefix.upper()}_{name}".replace(" ", "_")
