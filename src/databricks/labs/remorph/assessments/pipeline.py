@@ -78,7 +78,6 @@ class PipelineClass:
             logging.error(f"Python script failed: {error_msg}")
             raise RuntimeError(f"Script execution failed: {error_msg}") from e
 
-
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
         conn = duckdb.connect(str(self.db_path_prefix) + '/' + DB_NAME)
