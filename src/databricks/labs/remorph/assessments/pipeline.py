@@ -82,33 +82,6 @@ class PipelineClass:
             logging.error(f"Python script failed: {error_msg}")
             raise RuntimeError(f"Script execution failed: {error_msg}") from e
 
-    def _execute_python_step(self, step: Step):
-        logging.debug(f"Executing Python script: {step.extract_source}")
-        db_path = str(self.db_path_prefix / DB_NAME)
-        credential_config = str(cred_file("remorph"))
-
-        try:
-            result = subprocess.run(
-                ["python", step.extract_source, "--db-path", db_path, "--credential-config-path", credential_config],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            try:
-                output = json.loads(result.stdout)
-                if output["status"] == "success":
-                    logging.info(f"Python script completed: {output['message']}")
-                else:
-                    raise RuntimeError(f"Script reported error: {output['message']}")
-            except json.JSONDecodeError:
-                logging.info(f"Python script output: {result.stdout}")
-
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr
-            logging.error(f"Python script failed: {error_msg}")
-            raise RuntimeError(f"Script execution failed: {error_msg}") from e
-
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
         conn = duckdb.connect(str(self.db_path_prefix) + '/' + DB_NAME)
