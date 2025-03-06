@@ -1,0 +1,10 @@
+name: "Python Failure Pipeline"
+version: "1.0"
+extract_folder: "tests/resources/assessments"
+steps:
+  - name: invalid_python_step
+    type: python
+    flag: active
+    extract_source: resources/assessments/invalid_script.py
+    mode: overwrite
+    frequency: daily
