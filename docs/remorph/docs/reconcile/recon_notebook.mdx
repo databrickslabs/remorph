@@ -1,0 +1,87 @@
+---
+sidebar_position: 2
+title: Running Reconcile on Notebook
+---
+
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+
+This page gives you a comprehensive guide on how to configure and run the Reconcile utility of Remorph on your Databricks
+workspace using Databricks notebook.
+
+## Installation
+
+Before running the Reconcile utility, you need to install the required packages. You can install the required packages
+using the following command:
+
+<Tabs>
+    <TabItem value="python" label="GitHub" default>
+        ```python
+        %pip install git+https://github.com/databrickslabs/remorph
+        dbutils.library.restartPython()
+        ```
+    </TabItem>
+    <TabItem value="shell" label="PyPi">
+        ```python
+        %pip install databricks-labs-remorph
+        dbutils.library.restartPython()
+        ```
+    </TabItem>
+</Tabs>
+
+
+## Imports
+
+Import all the necessary modules.
+
+```python
+from databricks.sdk import WorkspaceClient
+
+from databricks.labs.remorph.config import (
+    DatabaseConfig,
+    ReconcileConfig,
+    ReconcileMetadataConfig,
+    TableRecon
+)
+from databricks.labs.remorph.reconcile.recon_config import (
+    Table,
+    ColumnMapping,
+    ColumnThresholds,
+    Transformation,
+    JdbcReaderOptions,
+    Aggregate,
+    Filters
+)
+from databricks.labs.remorph.reconcile.execute import (
+    recon,
+    reconcile_aggregates
+)
+from databricks.labs.remorph.reconcile.exception import ReconciliationException
+```
+
+## Configure Reconcile Properties
+
+Class information for `ReconcileConfig`.
+
+```python
+@dataclass
+class ReconcileConfig:
+    data_source: str
+    report_type: str
+    secret_scope: str
+    database_config: DatabaseConfig
+    metadata_config: ReconcileMetadataConfig
+```
+
+## Configure Table Properties
+
+## Run Reconcile
+
+## Visualization
+
+When you [install](../installation.mdx) remorph using databricks cli, it deploys an AI/BI Dashboard on your workspace.
+This dashboard gives you a detailed report of all the reconciliation runs on your workspace. After every reconciliation run, you get a
+`recon_id`. You can use this recon_id to drill down into the details of that particular reconciliation run on the dashboard.

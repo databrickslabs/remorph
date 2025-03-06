@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 1
 title: Configuration
 ---
 import useBaseUrl from '@docusaurus/useBaseUrl';
@@ -14,14 +14,15 @@ import CodeBlock from '@theme/CodeBlock';
 * [Supported Source System](#supported-source-system)
 * [TABLE Config JSON filename](#table-config-json-filename)
 * [TABLE Config Elements](#table-config-elements)
-* [aggregates](#aggregate)
-* [jdbc_reader_options](#jdbc_reader_options)
-* [column_mapping](#column-mapping)
-* [transformations](#transformations)
-* [column_thresholds](#column-thresholds)
-* [table_thresholds](#table-thresholds)
-* [filters](#filters)
-* [Aggregates Reconcile](#remorph-aggregates-reconciliation)
+* [Aggregates](#aggregate)
+* [JDBC Reader Options](#jdbc-reader-options)
+* [Column Mapping](#column-mapping)
+* [Drop Columns](#drop-columns)
+* [Transformations](#transformations)
+* [Column Thresholds](#column-thresholds)
+* [Table Thresholds](#table-thresholds)
+* [Filters](#filters)
+* [Aggregates Reconcile](#aggregates-reconciliation)
   * [Supported Aggregate Functions](#supported-aggregate-functions)
   * [Flow Chart](#flow-chart)
   * [Aggregate](#aggregate)
@@ -92,7 +93,7 @@ flowchart TD
 
 [[back to top](#recon-config)]
 
-### TABLE Config Json filename:
+## TABLE Config Json filename:
 The config file must be named as `recon_config_[DATA_SOURCE]_[SOURCE_CATALOG_OR_SCHEMA]_[REPORT_TYPE].json` and should be placed in the remorph root directory `.remorph` within the Databricks Workspace.
 
 > The filename pattern would remain the same for all the data_sources.
@@ -153,7 +154,7 @@ Please find the `Table Recon` filename examples below for the `Snowflake`, `Orac
 
 
 
-### TABLE Config Elements:
+## TABLE Config Elements:
 
 <Tabs>
     <TabItem value="python" label="Python" default>
@@ -215,7 +216,7 @@ Please find the `Table Recon` filename examples below for the `Snowflake`, `Orac
 
 [[back to top](#recon-config)]
 
-### jdbc_reader_options
+### JDBC Reader Options
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -264,7 +265,7 @@ While configuring Recon for Oracle source, the above options should be taken int
 
 [[back to top](#recon-config)]
 
-### column mapping
+## Column Mapping
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -292,26 +293,73 @@ While configuring Recon for Oracle source, the above options should be taken int
 | source_name | string    | source column name | required          | "dept_id"       |
 | target_name | string    | target column name | required          | "department_id" |
 
+[[back to top](#recon-config)]
 
-### transformations
+
+## Drop Columns
+
+For Recon Type `all` or `data`, the `drop_columns` parameter is used to exclude columns from the reconciliation process.
+using this config, you can specify the columns that you want to exclude from the reconciliation process.
 
 <Tabs>
   <TabItem value="python" label="Python" default>
     ```python
-    @dataclass
-    class Transformation:
-        column_name: str
-        source: str
-        target: str | None = None
+    TableRecon(
+      drop_columns = ["column_name1", "column_name2"]
+      )
+    ```
+  </TabItem>
+  <TabItem value="json" label="JSON">
+    ```json
+      {
+          "drop_columns": [ "column_name1", "column_name2"]
+      }
+    ```
+  </TabItem>
+</Tabs>
+
+[[back to top](#recon-config)]
+
+
+## Transformations
+
+You can apply custom transformations to the columns using the `transformations` parameter. If applied, Reconcile
+uses these transformations to fetch the data from source and/or target before comparing them. You can write SQL
+expressions in `source` & `target` fields to apply transformations.
+
+The class detail:
+```python
+@dataclass
+class Transformation:
+    column_name: str
+    source: str
+    target: str | None = None
+
+```
+
+Syntax for applying transformations:
+
+<Tabs>
+  <TabItem value="python" label="Python" default>
+    ```python
+      Table(
+            transformations = [
+                Transformation(
+                    column_name = "unit_price",
+                    source = "coalesce(cast(cast(unit_price as decimal(38,10)) as string), '_null_recon_')",
+                    target = "coalesce(cast(format_number(cast(unit_price as decimal(38, 10)), 10) as string), '_null_recon_')"
+                )
+            ]
+      )
     ```
   </TabItem>
   <TabItem value="json" label="JSON">
     ```json
     "transformations": [
       {
-        "column_name": "<COLUMN_NAME>",
-        "source": "<TRANSFORMATION_EXPRESSION>",
-        "target": "<TRANSFORMATION_EXPRESSION>"
+        "column_name": "[COLUMN_NAME]",
+        "source": "[TRANSFORMATION_EXPRESSION]",
+        "target": "[TRANSFORMATION_EXPRESSION]"
       }
     ]
     ```
@@ -328,7 +376,7 @@ While configuring Recon for Oracle source, the above options should be taken int
 
 :::note
 Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
-``` json
+``` python
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
 ```
 `NULL` values are defaulted to `_null_recon_` using the transformation expressions in these files:
@@ -342,33 +390,51 @@ If User is looking for any specific behaviour, they can override these rules usi
 ### Handling Nulls
 
 While applying transformations, make sure you handle the nulls explicitly in the transformation column.
-While Recon takes care of null handling for all the other columns (including join keys and other keys that are not included in drop_column list),
-when users introduce transformation columns, recon uses those expressions as is. So you would have to include null handling in the transformation expression itself.
+While Reconcile takes care of null handling for all the other columns (including join keys and other keys that are not
+included in drop_column list), when users introduce transformation columns, Reconcile uses those expressions as is.
+So you would have to include null handling in the transformation expression itself.
 
 So if you are planning on using the below expression:
 ``` sql
-cast( cast(scanout_units as decimal(38,10)) as string)
+cast(cast(scanout_units as decimal(38,10)) as string)
 ```
 
 Use the below expression instead:
 
 ``` sql
-coalesce(cast( cast(scanout_units as decimal(38,10)) as string), '_null_recon_')
+coalesce(cast(cast(scanout_units as decimal(38,10)) as string), '_null_recon_')
 ```
 
 
-### Handling Timestamp
+### Handling Timestamp Columns
 
-A recommended approach to dealing with timestamps is to convert them to corresponding unix epoch string values.
+Different systems handle timestamps differently. During Reconciliation it is important that we apply necessary transformation to the timestamp columns
+on both source and target to make sure that they are reconciled correctly. A recommended approach to dealing with timestamps is to convert them to
+corresponding `unix epoch` string values. SQL Functions like `epoch_millisecond` (Snowflake), [unix_millis](https://docs.databricks.com/aws/en/sql/language-manual/functions/unix_millis#:~:text=Returns%20the%20number%20of%20milliseconds,00%3A00%3A00%20UTC%20.) (Databricks) become very handy to transform
+those timestamp values to unix epoch values. Then they can be converted to string which is safer when it comes to comparing timestamps across different systems.
 
-``` python
-Transformation(
-column_name='schedule_interval_days',
-source="coalesce(cast(DATE_PART(EPOCH_SECOND, schedule_interval_days) as timestamp), '_null_recon_')",
-target='coalesce(cast(unix_timestamp(cast(schedule_interval_days as string)) as timestamp), "_null_recon_"'
-),
-```
-
+<Tabs>
+    <TabItem value="python" label="Python" default>
+        ```python
+        Transformation(
+                column_name= 'UPDATE_TIMESTAMP',
+                source= "coalesce(cast(EXTRACT(epoch_millisecond FROM UPDATE_TIMESTAMP) as string), '_null_recon_')",
+                target= "coalesce(cast(unix_millis(UPDATE_TIMESTAMP) as string), '_null_recon_')"
+        ),
+        ```
+    </TabItem>
+    <TabItem value="json" label="JSON">
+        ```json
+        "transformations": [
+        {
+            "column_name": "UPDATE_TIMESTAMP",
+            "source": "coalesce(cast(EXTRACT(epoch_millisecond FROM UPDATE_TIMESTAMP) as string), '_null_recon_')",
+            "target": "coalesce(cast(unix_millis(UPDATE_TIMESTAMP) as string), '_null_recon_')"
+        }
+        ]
+        ```
+    </TabItem>
+</Tabs>
 :::
 
 <table>
@@ -407,9 +473,24 @@ target='coalesce(cast(unix_timestamp(cast(schedule_interval_days as string)) as 
     </tr>
 </table>
 
+:::tip
 
+If you are applying any transformation for generating the Reconciliation report, it is recommended that you run
+the queries with transformation expressions both on Source and target to ensure, they are syntactically and semantically
+giving correct result.
 
-### column thresholds
+If you need help with the exact reconciliation queries that are getting generated after you apply the transformations,
+you may search the reconciliation log with the following string:
+
+`“Hash query for [source or target]”`
+
+:::
+
+[[back to Transformations](#transformations)]
+
+[[back to top](#recon-config)]
+
+## Column Thresholds
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -445,7 +526,9 @@ target='coalesce(cast(unix_timestamp(cast(schedule_interval_days as string)) as 
 | upper_bound | string    | the upper bound of the difference between the source value and the target value                                 | required          | "5%"               |
 | type        | string    | The user must specify the column type. Supports SQLGLOT `DataType.NUMERIC_TYPES` and `DataType.TEMPORAL_TYPES`. | required          | "int"              |
 
-### table thresholds
+[[back to top](#recon-config)]
+
+## Table Thresholds
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -478,9 +561,9 @@ target='coalesce(cast(unix_timestamp(cast(schedule_interval_days as string)) as 
 | upper_bound | string    | the upper bound of the difference between the source mismatch and the target mismatch count          | required          | 5%            |
 | model       | string    | The user must specify on which table model it should be applied; for now, we support only "mismatch" | required          | int           |
 
+[[back to top](#recon-config)]
 
-
-### filters
+## Filters
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -526,14 +609,14 @@ default transformation on both source and target to get the matching hash value 
 detailed default transformations here.
 5. Always the column reference to be source column names in all the configs, except **Transformations** and **Filters**
 as these are dialect-specific SQL expressions that are applied directly in the SQL.
-6. **Transformations** and **Filters** are always should be in their respective dialect SQL expressions, and the
+6. **Transformations** and **Filters** should always be in their respective dialect SQL expressions, and the
 reconciler will not apply any logic
 on top of this.
 :::
 
 [[back to top](#recon-config)]
 
-## Remorph Aggregates Reconciliation
+## Aggregates Reconciliation
 
 Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared
 between source and target data residing on Databricks.
@@ -542,10 +625,10 @@ between source and target data residing on Databricks.
 
 | operation_name           | sample visualisation                                                                | description                                                                                                                 | key outputs  captured in the recon metrics tables                                                                                                                                                                                                 |
 |--------------------------|-------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **aggregates-reconcile** | `[data]({useBaseUrl('docs/reconcile/aggregates_reconcile_visualisation.md#data`)})` | reconciles the data for each aggregate metric `join_columns` are used to identify the mismatches at aggregated metric level | mismatch_data(sample data with mismatches captured at aggregated metric level ) missing_in_src(sample rows that are available in target but missing in source) missing_in_tgt(sample rows that are available in source but are missing in target) |
+| **aggregates-reconcile** | `[data]({useBaseUrl('docs/reconcile/aggregates_reconcile_visualisation.md#data')})` | reconciles the data for each aggregate metric `join_columns` are used to identify the mismatches at aggregated metric level | mismatch_data(sample data with mismatches captured at aggregated metric level ) missing_in_src(sample rows that are available in target but missing in source) missing_in_tgt(sample rows that are available in source but are missing in target) |
 
 
-## Supported Aggregate Functions
+### Supported Aggregate Functions
 
 
 | <a href="https://docs.databricks.com/en/sql/language-manual/sql-ref-functions-builtin.html#aggregate-functions" target="_blank"> Aggregate Functions </a> |
@@ -567,7 +650,7 @@ between source and target data residing on Databricks.
 
 [[back to top](#recon-config)]
 
-## Flow Chart
+### Flow Chart
 
 ```mermaid
 flowchart TD
@@ -582,7 +665,7 @@ flowchart TD
 [[back to top](#recon-config)]
 
 
-## aggregate
+### Aggregate
 
 <Tabs>
   <TabItem value="python" label="Python" default>
@@ -598,8 +681,8 @@ flowchart TD
     ```json
     {
         "type": "MIN",
-        "agg_columns": ["<COLUMN_NAME_3>"],
-        "group_by_columns": ["<GROUP_COLUMN_NAME>"]
+        "agg_columns": ["COLUMN_NAME_3"],
+        "group_by_columns": ["GROUP_COLUMN_NAME"]
     }
     ```
   </TabItem>
@@ -625,17 +708,17 @@ Please refer [TABLE Config Elements](#table-config-elements) for Class and JSON 
   <TabItem value="python" label="Python" default>
     ```python
     Table(
-        source_name="<SOURCE_NAME>",
-        target_name="<TARGET_NAME>",
-        join_columns=["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"],
+        source_name="SOURCE_NAME",
+        target_name="TARGET_NAME",
+        join_columns=["COLUMN_NAME_1", "COLUMN_NAME_2"],
         aggregates=[
             Aggregate(
-                agg_columns=["<COLUMN_NAME_3>"],
+                agg_columns=["COLUMN_NAME_3"],
                 type="MIN",
-                group_by_columns=["<GROUP_COLUMN_NAME>"]
+                group_by_columns=["GROUP_COLUMN_NAME"]
             ),
             Aggregate(
-                agg_columns=["<COLUMN_NAME_4>"],
+                agg_columns=["COLUMN_NAME_4"],
                 type="MAX"
             )
         ]
@@ -645,18 +728,18 @@ Please refer [TABLE Config Elements](#table-config-elements) for Class and JSON 
   <TabItem value="json" label="JSON">
     ```json
     {
-        "source_name": "<SOURCE_NAME>",
-        "target_name": "<TARGET_NAME>",
-        "join_columns": ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"],
+        "source_name": "SOURCE_NAME",
+        "target_name": "TARGET_NAME",
+        "join_columns": ["COLUMN_NAME_1", "COLUMN_NAME_2"],
         "aggregates": [
             {
                 "type": "MIN",
-                "agg_columns": ["<COLUMN_NAME_3>"],
-                "group_by_columns": ["<GROUP_COLUMN_NAME>"]
+                "agg_columns": ["COLUMN_NAME_3"],
+                "group_by_columns": ["GROUP_COLUMN_NAME"]
             },
             {
                 "type": "MAX",
-                "agg_columns": ["<COLUMN_NAME_4>"]
+                "agg_columns": ["COLUMN_NAME_4"]
             }
         ]
     }
