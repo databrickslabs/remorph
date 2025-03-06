@@ -13,7 +13,7 @@ from databricks.labs.remorph.connections.database_manager import DatabaseManager
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
-DB_NAME = "pipeline_results.duckdb"
+DB_NAME = "profiler_extract.db"
 
 
 class PipelineClass:
