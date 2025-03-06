@@ -15,11 +15,10 @@ from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
 def _get_dashboard_query(dashboard: Dashboard | None):
-    if dashboard.serialized_dashboard is None:
+    if dashboard is None:
         return "Failed to get dashboard query"
-    serialized_dashboard = json.loads(dashboard.serialized_dashboard)
+    serialized_dashboard = json.loads(str(dashboard.serialized_dashboard))
     return serialized_dashboard['datasets'][0]['query']
-
 
 
 def test_deploy_dashboard():

@@ -254,6 +254,7 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
         },
     )
 
+
 @patch("databricks.labs.remorph.install.WorkspaceInstaller.install_rct")
 @patch("databricks.labs.remorph.install.WorkspaceInstaller.install_morpheus")
 def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_rct, ws):
