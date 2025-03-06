@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import json
 import logging
 import subprocess
@@ -76,6 +77,7 @@ class PipelineClass:
             error_msg = e.stderr
             logging.error(f"Python script failed: {error_msg}")
             raise RuntimeError(f"Script execution failed: {error_msg}") from e
+
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
