@@ -55,6 +55,8 @@ async def _process_one_file(
 
     error_list.extend(transpile_result.error_list)
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     with output_path.open("w") as w:
         if validator:
             logger.debug(f"Validating transpiled code for file: {input_path}")

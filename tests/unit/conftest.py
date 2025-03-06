@@ -284,6 +284,7 @@ def safe_remove_file(file_path: Path):
 
 
 def write_data_to_file(path: Path, content: str):
+    make_dir(path.parent)
     with path.open("w") as writable:
         # added encoding to avoid UnicodeEncodeError while writing to file for token error test
         writable.write(content.encode("utf-8", "ignore").decode("utf-8"))
@@ -291,30 +292,25 @@ def write_data_to_file(path: Path, content: str):
 
 @pytest.fixture
 def input_source(tmp_path: Path):
-    input_dir = tmp_path / "remorph_source"
+    source_dir = tmp_path / "remorph_source"
+    safe_remove_dir(source_dir)  # should never be required but harmless
+    make_dir(source_dir)
+    # store some files
+    input_dir = source_dir / "queries"
     query_1_sql_file = input_dir / "query1.sql"
     query_2_sql_file = input_dir / "query2.sql"
     query_3_sql_file = input_dir / "query3.sql"
     query_4_sql_file = input_dir / "query4.sql"
     query_5_sql_file = input_dir / "query5.sql"
+    input_dir = source_dir / "streams"
     stream_1_sql_file = input_dir / "stream1.sql"
+    input_dir = source_dir / "schemas"
     call_center_ddl_file = input_dir / "call_center.ddl"
-    file_text = input_dir / "file.txt"
-    safe_remove_dir(input_dir)
-    make_dir(input_dir)
+    file_text = source_dir / "file.txt"
 
     query_1_sql = """select  i_manufact, sum(ss_ext_sales_price) ext_price from date_dim, store_sales where
     d_date_sk = ss_sold_date_sk and substr(ca_zip,1,5) <> substr(s_zip,1,5) group by i_manufact order by i_manufact
     limit 100 ;"""
-
-    call_center_ddl = """create table call_center
-        (
-            cc_call_center_sk         int                           ,
-            cc_call_center_id         varchar(16)
-        )
-
-         CLUSTER BY(cc_call_center_sk)
-         """
 
     query_2_sql = """select wswscs.d_week_seq d_week_seq1,sun_sales sun_sales1,mon_sales mon_sales1 from wswscs,
     date_dim where date_dim.d_week_seq = wswscs.d_week_seq and d_year = 2001"""
@@ -378,8 +374,6 @@ def input_source(tmp_path: Path):
      order by d_week_seq1;
      """
 
-    stream_1_sql = """CREATE STREAM unsupported_stream AS SELECT * FROM some_table;"""
-
     query_4_sql = """create table(
     col1 int
     col2 string
@@ -387,16 +381,27 @@ def input_source(tmp_path: Path):
 
     query_5_sql = """1SELECT * from ~v\ud83d' table;"""
 
+    stream_1_sql = """CREATE STREAM unsupported_stream AS SELECT * FROM some_table;"""
+
+    call_center_ddl = """create table call_center
+        (
+            cc_call_center_sk         int                           ,
+            cc_call_center_id         varchar(16)
+        )
+
+         CLUSTER BY(cc_call_center_sk)
+         """
+
     write_data_to_file(query_1_sql_file, query_1_sql)
-    write_data_to_file(call_center_ddl_file, call_center_ddl)
     write_data_to_file(query_2_sql_file, query_2_sql)
     write_data_to_file(query_3_sql_file, query_3_sql)
     write_data_to_file(query_4_sql_file, query_4_sql)
     write_data_to_file(query_5_sql_file, query_5_sql)
     write_data_to_file(stream_1_sql_file, stream_1_sql)
+    write_data_to_file(call_center_ddl_file, call_center_ddl)
     write_data_to_file(file_text, "This is a test file")
-    yield input_dir
-    safe_remove_dir(input_dir)
+    yield source_dir
+    safe_remove_dir(source_dir)
 
 
 @pytest.fixture

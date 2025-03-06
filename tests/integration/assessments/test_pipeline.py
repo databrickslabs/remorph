@@ -18,7 +18,27 @@ def pipeline_config():
     config = PipelineClass.load_config_from_yaml(config_path)
 
     for step in config.steps:
-        step.extract_query = f"{prefix}/../../{step.extract_query}"
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
+    return config
+
+
+@pytest.fixture(scope="module")
+def sql_failure_config():
+    prefix = Path(__file__).parent
+    config_path = f"{prefix}/../../resources/assessments/pipeline_config_sql_failure.yml"
+    config = PipelineClass.load_config_from_yaml(config_path)
+    for step in config.steps:
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
+    return config
+
+
+@pytest.fixture(scope="module")
+def python_failure_config():
+    prefix = Path(__file__).parent
+    config_path = f"{prefix}/../../resources/assessments/pipeline_config_python_failure.yml"
+    config = PipelineClass.load_config_from_yaml(config_path)
+    for step in config.steps:
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
     return config
 
 
@@ -28,10 +48,22 @@ def test_run_pipeline(extractor, pipeline_config, get_logger):
     assert verify_output(get_logger, pipeline_config.extract_folder)
 
 
+def test_run_sql_failure_pipeline(extractor, sql_failure_config, get_logger):
+    pipeline = PipelineClass(config=sql_failure_config, executor=extractor)
+    with pytest.raises(RuntimeError, match="SQL execution failed"):
+        pipeline.execute()
+
+
+def test_run_python_failure_pipeline(extractor, python_failure_config, get_logger):
+    pipeline = PipelineClass(config=python_failure_config, executor=extractor)
+    with pytest.raises(RuntimeError, match="Script execution failed"):
+        pipeline.execute()
+
+
 def verify_output(get_logger, path):
     conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
 
-    expected_tables = ["usage", "inventory"]
+    expected_tables = ["usage", "inventory", "random_data"]
     logger = get_logger
     for table in expected_tables:
         try:
