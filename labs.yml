@@ -2,9 +2,6 @@
 name: remorph
 description: Code Transpiler and Data Reconciliation tool for Accelerating Data onboarding to Databricks from EDW, CDW and other ETL sources.
 install:
-  min_runtime_version: 13.3
-  require_running_cluster: false
-  require_databricks_connect: true
   script: src/databricks/labs/remorph/base_install.py
 uninstall:
   script: src/databricks/labs/remorph/uninstall.py

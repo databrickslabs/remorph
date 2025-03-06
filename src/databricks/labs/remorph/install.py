@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-import functools
 import shutil
 from collections.abc import Iterable
 from json import loads, dumps
@@ -262,8 +261,6 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        self.install_rct()
-        self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
             config = self.configure(module)
@@ -274,19 +271,18 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
     def install_rct(cls):
         RCTInstaller.install()
 
     @classmethod
-    @classmethod
-    @functools.lru_cache(maxsize=None)
     def install_morpheus(cls):
         MorpheusInstaller.install()
 
     def configure(self, module: str) -> RemorphConfigs:
         match module:
             case "transpile":
+                self.install_rct()
+                self.install_morpheus()
                 logger.info("Configuring remorph `transpile`.")
                 return RemorphConfigs(self._configure_transpile(), None)
             case "reconcile":
