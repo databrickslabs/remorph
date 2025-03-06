@@ -8,11 +8,13 @@ from ..connections.helpers import get_db_manager
 def extractor(mock_credentials):
     return get_db_manager("remorph", "mssql")
 
+
 def test_tsql_get_catalog(extractor):
     tss = TsqlTableDefinitionService(extractor)
     catalogs = list(tss.get_all_catalog())
     assert catalogs is not None
     assert len(catalogs) > 0
+
 
 def test_tsql_get_table_definition(extractor):
     tss = TsqlTableDefinitionService(extractor)
