@@ -14,9 +14,12 @@ from databricks.labs.remorph.config import ReconcileMetadataConfig, ReconcileCon
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
-def _get_dashboard_query(kwargs):
-    serialized_dashboard = json.loads(kwargs['serialized_dashboard'])
+def _get_dashboard_query(dashboard: Dashboard | None):
+    if dashboard.serialized_dashboard is None:
+        return "Failed to get dashboard query"
+    serialized_dashboard = json.loads(dashboard.serialized_dashboard)
     return serialized_dashboard['datasets'][0]['query']
+
 
 
 def test_deploy_dashboard():
@@ -50,8 +53,8 @@ def test_deploy_dashboard():
         metadata_config=ReconcileMetadataConfig(),
     )
     dashboard_publisher.deploy(dashboard_folder, reconcile_config)
-    _, kwargs = ws.lakeview.create.call_args
-    query = _get_dashboard_query(kwargs)
+    _, dash = ws.lakeview.create.call_args
+    query = _get_dashboard_query(dash.get("dashboard"))
     assert query == expected_query
     assert install_state.dashboards["queries"] == dashboard.dashboard_id
 
