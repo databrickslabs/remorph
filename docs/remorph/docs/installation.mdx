@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 import useBaseUrl from '@docusaurus/useBaseUrl';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 # Installation
 
@@ -59,13 +61,36 @@ Reconcile is an automated tool designed to streamline the reconciliation process
 
 1. `Databricks CLI` - Ensure that you have the Databricks Command-Line Interface (CLI) installed on your machine. Refer to the installation instructions provided for Linux, MacOS, and Windows, available [here](https://docs.databricks.com/en/dev-tools/cli/install.html#install-or-update-the-databricks-cli).
 
+<Tabs>
+    <TabItem value="shell" label="Install Databricks CLI on Linux without brew" default>
+        ```shell
+        #!/usr/bin/env bash
+
+        #install dependencies
+        apt update && apt install -y curl sudo unzip
+
+        #install databricks cli
+        curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/v0.242.0/install.sh | sudo sh
+        ```
+    </TabItem>
+</Tabs>
+
 2. `Databricks CLI` - Configure the Databricks CLI by executing the following command with appropriate host and cluster details:
-profile_name is optional, if not given it will use the default profile.
+`profile_name` is optional, if not provided, the `DEFAULT` profile will be used.
+
 ```shell
 databricks configure --host <host> --configure-cluster --profile <profile_name>
 ```
+The Flag `--configure-cluster` gives you the prompt to select the cluster_id from the available cluster ids on your workspace.
+Alternatively you can use the environment variable `DATABRICKS_CLUSTER_ID` t set the cluster id you would want to use
+for your profile before running the `databricks configure` command.
 
-3. `Python` - Verify that your machine has Python version 3.10 or later installed to meet the required dependencies for seamless operation.
+```shell
+export DATABRICKS_CLUSTER_ID=<cluster_id>
+databricks configure --host <host> --profile <profile_name>
+```
+
+3. `Python` - Verify that your machine has Python version **3.10** or later installed to meet the required dependencies for seamless operation.
 - `Windows` - Install python from [here](https://www.python.org/downloads/). Your Windows computer will need a shell environment ([GitBash](https://www.git-scm.com/downloads) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/about))
 - `MacOS/Unix` - Use [brew](https://formulae.brew.sh/formula/python@3.10) to install python in macOS/Unix machines
 #### Installing Databricks CLI on macOS
