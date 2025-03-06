@@ -1,0 +1,10 @@
+name: "SQL Failure Pipeline"
+version: "1.0"
+extract_folder: /tmp/extracts/
+steps:
+  - name: invalid_sql_step
+    type: sql
+    flag: active
+    extract_source: resources/assessments/invalid_query.sql
+    mode: overwrite
+    frequency: daily
