@@ -52,7 +52,7 @@ class PipelineClass:
             self._save_to_db(result, step.name, str(step.mode))
         except Exception as e:
             logging.error(f"SQL execution failed: {str(e)}")
-            raise RuntimeError("SQL execution failed") from e
+            raise RuntimeError(f"SQL execution failed: {str(e)}") from e
 
     def _execute_python_step(self, step: Step):
         logging.debug(f"Executing Python script: {step.extract_source}")
