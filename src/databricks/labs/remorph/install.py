@@ -8,7 +8,7 @@ import os
 from shutil import rmtree, move
 from subprocess import run, CalledProcessError
 import sys
-from typing import Any
+from typing import Any, cast
 from urllib import request
 from urllib.error import URLError
 import webbrowser
@@ -28,7 +28,9 @@ from databricks.labs.remorph.config import (
     ReconcileConfig,
     DatabaseConfig,
     RemorphConfigs,
-    ReconcileMetadataConfig, LSPConfigOptionV1, LSPPromptMethod,
+    ReconcileMetadataConfig,
+    LSPConfigOptionV1,
+    LSPPromptMethod,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
@@ -164,19 +166,18 @@ class TranspilerInstaller(abc.ABC):
     def transpiler_config_options(cls, transpiler_name, source_dialect) -> list[LSPConfigOptionV1]:
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
-            return [] # gracefully returns an empty list, since this can only happen during testing
+            return []  # gracefully returns an empty list, since this can only happen during testing
         return config.options.get(source_dialect, config.options.get("all", []))
 
     @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
         path = cls.transpilers_path()
-        if not path.exists():
-            return []
-        all_files = os.listdir(path)
-        for file in all_files:
-            config = cls._transpiler_config(cls.transpilers_path() / file)
-            if config:
-                yield config
+        if path.exists():
+            all_files = os.listdir(path)
+            for file in all_files:
+                config = cls._transpiler_config(cls.transpilers_path() / file)
+                if config:
+                    yield config
 
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
@@ -185,7 +186,6 @@ class TranspilerInstaller(abc.ABC):
         except ValueError as e:
             logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
-
 
 
 class RCTInstaller(TranspilerInstaller):
@@ -394,19 +394,18 @@ class WorkspaceInstaller:
 
     def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any]:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
-        return { cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options }
+        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
 
     def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
         if config_option.method == LSPPromptMethod.FORCE:
             return config_option.default
-        elif config_option.method == LSPPromptMethod.CONFIRM:
+        if config_option.method == LSPPromptMethod.CONFIRM:
             return self._prompts.confirm(config_option.prompt)
-        elif config_option.method == LSPPromptMethod.QUESTION:
+        if config_option.method == LSPPromptMethod.QUESTION:
             return self._prompts.question(config_option.prompt, default=config_option.default)
-        elif config_option.method == LSPPromptMethod.CHOICE:
-            return self._prompts.choice(config_option.prompt, config_option.choices)
-        else:
-            raise ValueError(f"Unsupported prompt method: {config_option.method}")
+        if config_option.method == LSPPromptMethod.CHOICE:
+            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
+        raise ValueError(f"Unsupported prompt method: {config_option.method}")
 
     def _configure_catalog(
         self,

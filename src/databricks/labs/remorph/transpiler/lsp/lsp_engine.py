@@ -7,9 +7,8 @@ import os
 from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import attrs
 import yaml

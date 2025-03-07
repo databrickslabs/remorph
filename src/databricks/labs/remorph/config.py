@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class LSPPromptMethod(Enum):
-    FORCE = auto() # for mandatory values that are specific to a dialect
+    FORCE = auto()  # for mandatory values that are specific to a dialect
     QUESTION = auto()
     CHOICE = auto()
     CONFIRM = auto()
@@ -30,7 +30,7 @@ class LSPConfigOptionV1:
 
     @classmethod
     def parse_all(cls, data: dict[str, Any]) -> dict[str, list[LSPConfigOptionV1]]:
-        return { key: list(LSPConfigOptionV1.parse(item) for item in value) for (key, value) in data.items() }
+        return {key: list(LSPConfigOptionV1.parse(item) for item in value) for (key, value) in data.items()}
 
     @classmethod
     def parse(cls, data: Any) -> LSPConfigOptionV1:
@@ -42,10 +42,7 @@ class LSPConfigOptionV1:
         method_name: str = data.get("method", "")
         if not method_name:
             raise ValueError(f"Missing 'method' entry in {data}")
-        try:
-            method: LSPPromptMethod = cast(LSPPromptMethod, LSPPromptMethod[method_name])
-        except:
-            raise ValueError(f"Invalid transpiler config option, expecting a prompt method, got {method_name}")
+        method: LSPPromptMethod = cast(LSPPromptMethod, LSPPromptMethod[method_name])
         prompt: str = data.get("prompt", "")
         if not prompt:
             raise ValueError(f"Missing 'prompt' entry in {data}")
@@ -68,7 +65,9 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, bool | str | int | float | object | list] | None = None # need a union because blueprint doesn't support 'Any' type
+    transpiler_options: dict[str, bool | str | int | float | object | list] | None = (
+        None  # need a union because blueprint doesn't support 'Any' type
+    )
 
     @property
     def transpiler_path(self):

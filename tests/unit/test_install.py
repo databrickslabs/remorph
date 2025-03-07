@@ -5,8 +5,14 @@ from databricks.labs.blueprint.installation import MockInstallation
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import RemorphConfigs, ReconcileConfig, DatabaseConfig, ReconcileMetadataConfig, \
-    LSPConfigOptionV1, LSPPromptMethod
+from databricks.labs.remorph.config import (
+    RemorphConfigs,
+    ReconcileConfig,
+    DatabaseConfig,
+    ReconcileMetadataConfig,
+    LSPConfigOptionV1,
+    LSPPromptMethod,
+)
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
@@ -1098,6 +1104,7 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
         )
     )
 
+
 def test_runs_and_stores_confirm_config_option(ws_installer, ws):
     prompts = MockPrompts(
         {
@@ -1136,7 +1143,7 @@ def test_runs_and_stores_confirm_config_option(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    TranspilerInstaller.transpilers_path = lambda: TranspilerInstaller.resources_folder()
+    TranspilerInstaller.transpilers_path = TranspilerInstaller.resources_folder
 
     config = workspace_installer.configure(module="transpile")
 
@@ -1169,6 +1176,7 @@ def test_runs_and_stores_confirm_config_option(ws_installer, ws):
             "version": 3,
         },
     )
+
 
 def test_runs_and_stores_force_config_option(ws_installer, ws):
     prompts = MockPrompts(
@@ -1207,7 +1215,9 @@ def test_runs_and_stores_force_config_option(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    TranspilerInstaller.transpiler_config_options = lambda a, b: [ LSPConfigOptionV1(flag="-XX", method=LSPPromptMethod.FORCE, default=1254) ]
+    TranspilerInstaller.transpiler_config_options = lambda a, b: [
+        LSPConfigOptionV1(flag="-XX", method=LSPPromptMethod.FORCE, default=1254)
+    ]
 
     config = workspace_installer.configure(module="transpile")
 
@@ -1240,6 +1250,7 @@ def test_runs_and_stores_force_config_option(ws_installer, ws):
             "version": 3,
         },
     )
+
 
 def test_runs_and_stores_question_config_option(ws_installer, ws):
     prompts = MockPrompts(
@@ -1279,7 +1290,9 @@ def test_runs_and_stores_question_config_option(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    TranspilerInstaller.transpiler_config_options = lambda a, b: [ LSPConfigOptionV1(flag="-XX", method=LSPPromptMethod.QUESTION, prompt="Max number of heaps:") ]
+    TranspilerInstaller.transpiler_config_options = lambda a, b: [
+        LSPConfigOptionV1(flag="-XX", method=LSPPromptMethod.QUESTION, prompt="Max number of heaps:")
+    ]
 
     config = workspace_installer.configure(module="transpile")
 
@@ -1352,7 +1365,14 @@ def test_runs_and_stores_choice_config_option(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    TranspilerInstaller.transpiler_config_options = lambda a, b: [ LSPConfigOptionV1(flag="-currency", method=LSPPromptMethod.CHOICE, prompt="Select currency:", choices=["CHF", "EUR", "GBP", "USD"]) ]
+    TranspilerInstaller.transpiler_config_options = lambda a, b: [
+        LSPConfigOptionV1(
+            flag="-currency",
+            method=LSPPromptMethod.CHOICE,
+            prompt="Select currency:",
+            choices=["CHF", "EUR", "GBP", "USD"],
+        )
+    ]
 
     config = workspace_installer.configure(module="transpile")
 
