@@ -182,7 +182,8 @@ class TranspilerInstaller(abc.ABC):
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
         try:
             return LSPConfig.load(path / "lib" / "config.yml")
-        except ValueError:
+        except ValueError as e:
+            logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
 
 

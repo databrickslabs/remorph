@@ -24,9 +24,9 @@ class LSPPromptMethod(Enum):
 class LSPConfigOptionV1:
     flag: str
     method: LSPPromptMethod
-    prompt: str
-    choices: list[str] | None
-    default: str | None
+    prompt: str = ""
+    choices: list[str] | None = None
+    default: Any = None
 
     @classmethod
     def parse_all(cls, data: dict[str, Any]) -> dict[str, list[LSPConfigOptionV1]]:
@@ -68,7 +68,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, str] | None = None
+    transpiler_options: dict[str, bool | str | int | float | object | list] | None = None # need a union because blueprint doesn't support 'Any' type
 
     @property
     def transpiler_path(self):
