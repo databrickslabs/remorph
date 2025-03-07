@@ -261,8 +261,9 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        self.install_rct()
-        self.install_morpheus()
+        if module == "transpiler":
+            self.install_rct()
+            self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
             config = self.configure(module)
