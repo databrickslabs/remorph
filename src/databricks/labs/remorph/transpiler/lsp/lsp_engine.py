@@ -402,6 +402,7 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
+            "options": config.transpiler_options,
             "custom": self._config.custom,
         }
 
