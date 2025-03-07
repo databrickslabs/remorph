@@ -7,8 +7,9 @@ import os
 from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import attrs
 import yaml
@@ -38,7 +39,7 @@ from pygls.exceptions import FeatureRequestError
 
 from databricks.labs.blueprint.wheels import ProductInfo
 
-from databricks.labs.remorph.config import TranspileConfig, TranspileResult
+from databricks.labs.remorph.config import TranspileConfig, TranspileResult, LSPConfigOptionV1
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
@@ -84,6 +85,7 @@ class _LSPRemorphConfigV1:
 class LSPConfig:
     path: Path
     remorph: _LSPRemorphConfigV1
+    options: dict[str, list[LSPConfigOptionV1]]
     custom: dict[str, Any]
 
     @property
@@ -100,8 +102,12 @@ class LSPConfig:
         if not isinstance(remorph_data, dict):
             raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph_data}")
         remorph = _LSPRemorphConfigV1.parse(remorph_data)
+        options_data = data.get("options", {})
+        if not isinstance(options_data, dict):
+            raise ValueError(f"Invalid transpiler config, expecting an 'options' dict entry, got {options_data}")
+        options = LSPConfigOptionV1.parse_all(options_data)
         custom = data.get("custom", {})
-        return LSPConfig(path, remorph, custom)
+        return LSPConfig(path, remorph, options, custom)
 
 
 def lsp_feature(
