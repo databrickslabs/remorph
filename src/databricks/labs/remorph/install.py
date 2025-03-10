@@ -72,11 +72,14 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
-        url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-        with request.urlopen(url) as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+        try:
+            url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            with request.urlopen(url) as server:
+                text = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+        except:
+            return None
 
     @classmethod
     def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
@@ -95,10 +98,13 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_pypi_version(cls, product_name: str) -> str | None:
-        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("info", {}).get('version', None)
+        try:
+            with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+                text = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("info", {}).get('version', None)
+        except:
+            return None
 
     @classmethod
     def install_from_pypi(cls, product_name: str, pypi_name: str):
@@ -216,6 +222,8 @@ class MorpheusInstaller(TranspilerInstaller):
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
+        if latest_version is None:
+            return
         logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
         if current_version is not None:
@@ -279,7 +287,7 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        if module in {"transpiler", "all"}:
+        if module in {"transpile", "all"}:
             self.install_rct()
             self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
