@@ -1,10 +1,12 @@
 import asyncio
+import dataclasses
 import json
 import os
 from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from mypy.semanal_shared import parse_bool
 
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.labs.remorph.config import TranspileConfig
@@ -71,51 +73,48 @@ def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    transpiler_config_path: str,
-    source_dialect: str,
-    input_source: str,
-    output_folder: str | None,
-    error_file_path: str | None,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+    transpiler_config_path: str | None = None,
+    source_dialect: str | None = None,
+    input_source: str | None = None,
+    output_folder: str | None = None,
+    error_file_path: str | None = None,
+    skip_validation: str | None = None,
+    catalog_name: str | None = None,
+    schema_name: str | None = None,
 ):
     """Transpiles source dialect to databricks dialect"""
     with_user_agent_extra("cmd", "execute-transpile")
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    default_config = ctx.transpile_config
-    if not default_config:
+    config = ctx.transpile_config
+    if not config:
         raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
-    _override_workspace_client_config(ctx, default_config.sdk_config)
+    _override_workspace_client_config(ctx, config.sdk_config)
+    if transpiler_config_path:
+        config = dataclasses.replace(config,transpiler_config_path=transpiler_config_path)
     engine = TranspileEngine.load_engine(Path(transpiler_config_path))
-    engine.check_source_dialect(source_dialect)
-    if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
-    if not output_folder and default_config.output_folder:
-        output_folder = str(default_config.output_folder)
-    if not error_file_path and default_config.error_file_path:
-        error_file_path = str(default_config.error_file_path)
+    if source_dialect:
+        config = dataclasses.replace(config,source_dialect=source_dialect)
+    if input_source:
+        config = dataclasses.replace(config, input_source=input_source)
+    if output_folder:
+        config = dataclasses.replace(config, output_folder=output_folder)
+    if error_file_path:
+        config = dataclasses.replace(config, error_file_path=error_file_path)
+    if skip_validation is not None:
+        config = dataclasses.replace(config, skip_validation=parse_bool(skip_validation.capitalize()))
+    if catalog_name:
+        config = dataclasses.replace(config, catalog_name=catalog_name)
+    if schema_name:
+        config = dataclasses.replace(config, schema_name=schema_name)
+
+    engine.check_source_dialect(config.source_dialect)
+    if not config.input_source or not os.path.exists(config.input_source):
+        raise_validation_exception(f"Invalid value for '--input-source': Path '{config.input_source}' does not exist.")
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
         )
-
-    sdk_config = default_config.sdk_config if default_config.sdk_config else None
-    catalog_name = catalog_name if catalog_name else default_config.catalog_name
-    schema_name = schema_name if schema_name else default_config.schema_name
-
-    config = TranspileConfig(
-        transpiler_config_path=transpiler_config_path,
-        source_dialect=source_dialect.lower(),
-        input_source=input_source,
-        output_folder=output_folder,
-        error_file_path=error_file_path,
-        skip_validation=skip_validation.lower() == "true",  # convert to bool
-        catalog_name=catalog_name,
-        schema_name=schema_name,
-        sdk_config=sdk_config,
-    )
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
