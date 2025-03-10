@@ -90,7 +90,6 @@ def transpile(
     _override_workspace_client_config(ctx, config.sdk_config)
     if transpiler_config_path:
         config = dataclasses.replace(config,transpiler_config_path=transpiler_config_path)
-    engine = TranspileEngine.load_engine(Path(transpiler_config_path))
     if source_dialect:
         config = dataclasses.replace(config,source_dialect=source_dialect)
     if input_source:
@@ -105,7 +104,7 @@ def transpile(
         config = dataclasses.replace(config, catalog_name=catalog_name)
     if schema_name:
         config = dataclasses.replace(config, schema_name=schema_name)
-
+    engine = TranspileEngine.load_engine(Path(config.transpiler_config_path))
     engine.check_source_dialect(config.source_dialect)
     if not config.input_source or not os.path.exists(config.input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{config.input_source}' does not exist.")
