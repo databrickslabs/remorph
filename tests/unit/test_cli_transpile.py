@@ -1,15 +1,18 @@
 import asyncio
+
 from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
+from pathlib import Path
 
 import pytest
 
-
-from databricks.labs.remorph import cli
+from databricks.labs.remorph import cli, resources
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from tests.unit.conftest import path_to_resource
+
+SQLGLOT = str(Path(resources.__file__).parent / "transpilers" / "rct" / "lib" / "config.yml")
 
 
 def test_transpile_with_missing_installation():
@@ -22,7 +25,7 @@ def test_transpile_with_missing_installation():
         mock_app_context.return_value.transpile_config = None
         cli.transpile(
             workspace_client,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -52,7 +55,7 @@ def test_transpile_with_no_sdk_config():
         patch("os.path.exists", return_value=True),
     ):
         default_config = TranspileConfig(
-            transpiler_config_path="sqlglot",
+            transpiler_config_path=SQLGLOT,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -66,7 +69,7 @@ def test_transpile_with_no_sdk_config():
         mock_app_context.return_value.workspace_client = workspace_client
         cli.transpile(
             workspace_client,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -79,7 +82,7 @@ def test_transpile_with_no_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler_config_path="sqlglot",
+                transpiler_config_path=SQLGLOT,
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -102,7 +105,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
     ):
         sdk_config = {"warehouse_id": "w_id"}
         default_config = TranspileConfig(
-            transpiler_config_path="sqlglot",
+            transpiler_config_path=SQLGLOT,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -116,7 +119,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
         mock_app_context.return_value.transpile_config = default_config
         cli.transpile(
             workspace_client,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -129,7 +132,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler_config_path="sqlglot",
+                transpiler_config_path=SQLGLOT,
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -152,7 +155,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
     ):
         sdk_config = {"cluster_id": "c_id"}
         default_config = TranspileConfig(
-            transpiler_config_path="sqlglot",
+            transpiler_config_path=SQLGLOT,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -166,7 +169,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
         mock_app_context.return_value.transpile_config = default_config
         cli.transpile(
             workspace_client,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -179,7 +182,7 @@ def test_transpile_with_cluster_id_in_sdk_config():
             workspace_client,
             ANY,
             TranspileConfig(
-                transpiler_config_path="sqlglot",
+                transpiler_config_path=SQLGLOT,
                 source_dialect="snowflake",
                 input_source="/path/to/sql/file.sql",
                 output_folder="/path/to/output",
@@ -211,7 +214,7 @@ def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
     with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
         cli.transpile(
             mock_workspace_client_cli,
-            "sqlglot",
+            SQLGLOT,
             "invalid_dialect",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -233,7 +236,7 @@ def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
     ):
         cli.transpile(
             mock_workspace_client_cli,
-            "some_transpiler",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -251,7 +254,7 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
     ):
         cli.transpile(
             mock_workspace_client_cli,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -269,7 +272,7 @@ def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
     ):
         cli.transpile(
             mock_workspace_client_cli,
-            "sqlglot",
+            SQLGLOT,
             "snowflake",
             "/path/to/invalid/sql/file.sql",
             "/path/to/output",
@@ -281,7 +284,7 @@ def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
 
 
 def test_transpile_with_valid_input(mock_workspace_client_cli):
-    transpiler = "sqlglot"
+    transpiler = SQLGLOT
     source_dialect = "snowflake"
     input_source = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
@@ -311,7 +314,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mock_workspace_client_cli,
             ANY,
             TranspileConfig(
-                transpiler_config_path="sqlglot",
+                transpiler_config_path=SQLGLOT,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
@@ -329,7 +332,6 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
     source_dialect = "snowflake"
     input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
     output_folder = path_to_resource("lsp_transpiler")
-    error_file = ""
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -343,7 +345,7 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
             source_dialect,
             input_source,
             output_folder,
-            error_file,
+            None,
             skip_validation,
             catalog_name,
             schema_name,
@@ -356,7 +358,6 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
-                error_file_path=error_file,
                 sdk_config=sdk_config,
                 skip_validation=True,
                 catalog_name=catalog_name,
@@ -366,11 +367,9 @@ def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
 
 
 def test_transpile_empty_output_folder(mock_workspace_client_cli):
-    transpiler = "sqlglot"
+    transpiler = SQLGLOT
     source_dialect = "snowflake"
     input_source = "/path/to/sql/file2.sql"
-    output_folder = ""
-    error_file = ""
     skip_validation = "false"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
@@ -387,8 +386,8 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             transpiler,
             source_dialect,
             input_source,
-            output_folder,
-            error_file,
+            None,
+            None,
             skip_validation,
             catalog_name,
             schema_name,
@@ -400,8 +399,6 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
                 transpiler_config_path=transpiler,
                 source_dialect=source_dialect,
                 input_source=input_source,
-                output_folder=output_folder,
-                error_file_path=error_file,
                 sdk_config=sdk_config,
                 skip_validation=False,
                 catalog_name=catalog_name,
