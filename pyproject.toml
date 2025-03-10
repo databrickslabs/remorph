@@ -58,7 +58,6 @@ dependencies = [
   "pytest-xdist~=3.5.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
-  "databricks-connect==15.1",
   "types-pyYAML",
   "types-pytz",
   "databricks-labs-pylint~=0.4.0",
