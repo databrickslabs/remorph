@@ -10,7 +10,7 @@ from subprocess import run, CalledProcessError
 import sys
 from typing import Any
 from urllib import request
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -72,12 +72,14 @@ class TranspilerInstaller(abc.ABC):
     @classmethod
     def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
         try:
-            url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            url = (
+                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            )
             with request.urlopen(url) as server:
                 text = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("response", {}).get('docs', [{}])[0].get("v", None)
-        except:
+        except HTTPError:
             return None
 
     @classmethod
@@ -102,7 +104,7 @@ class TranspilerInstaller(abc.ABC):
                 text = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("info", {}).get('version', None)
-        except:
+        except HTTPError:
             return None
 
     @classmethod
