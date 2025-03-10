@@ -47,7 +47,7 @@ async def _process_one_file(
         source_sql = remove_bom(f.read())
 
     transpile_result = await _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
+        transpiler, cast(str, config.source_dialect), config.target_dialect, source_sql, input_path
     )
     # Potentially expensive, only evaluate if debug is enabled
     if logger.isEnabledFor(logging.DEBUG):
@@ -254,7 +254,7 @@ def transpile_sql(
     engine: TranspileEngine = SqlglotEngine()
 
     transpiler_result = asyncio.run(
-        _transpile(engine, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
+        _transpile(engine, cast(str, config.source_dialect), config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:

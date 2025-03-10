@@ -57,7 +57,7 @@ class TranspileConfig:
     __version__ = 3
 
     transpiler_config_path: str
-    source_dialect: str
+    source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
     error_file_path: str | None = None

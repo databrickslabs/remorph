@@ -8,6 +8,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
@@ -80,38 +81,84 @@ def transpile(
     catalog_name: str | None = None,
     schema_name: str | None = None,
 ):
+    ctx = ApplicationContext(w)
+    checker = _TranspileConfigChecker(ctx.transpile_config)
+    checker.use_transpiler_config_path(transpiler_config_path)
+    checker.use_source_dialect(source_dialect)
+    checker.use_input_source(input_source)
+    checker.use_output_folder(output_folder)
+    checker.use_error_file_path(error_file_path)
+    checker.use_skip_validation(skip_validation)
+    checker.use_catalog_name(catalog_name)
+    checker.use_schema_name(schema_name)
+    config, engine = checker.check()
+    _transpile(ctx, config, engine)
+
+
+class _TranspileConfigChecker:
+
+    def __init__(self, config: TranspileConfig | None):
+        if not config:
+            raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+        self._config = config
+
+    def use_transpiler_config_path(self, transpiler_config_path: str | None):
+        if transpiler_config_path:
+            self._config = dataclasses.replace(self._config, transpiler_config_path=transpiler_config_path)
+
+    def use_source_dialect(self, source_dialect: str | None):
+        if source_dialect:
+            self._config = dataclasses.replace(self._config, source_dialect=source_dialect)
+
+    def use_input_source(self, input_source: str | None):
+        if input_source:
+            self._config = dataclasses.replace(self._config, input_source=input_source)
+
+    def use_output_folder(self, output_folder: str | None):
+        if output_folder:
+            self._config = dataclasses.replace(self._config, output_folder=output_folder)
+
+    def use_error_file_path(self, error_file_path: str | None):
+        if error_file_path:
+            self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
+
+    def use_skip_validation(self, skip_validation: str | None):
+        if skip_validation is not None:
+            if skip_validation.lower() not in {"true", "false"}:
+                raise_validation_exception(
+                    f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
+                )
+            self._config = dataclasses.replace(self._config, skip_validation=skip_validation.lower() == "true")
+
+    def use_catalog_name(self, catalog_name: str | None):
+        if catalog_name:
+            self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
+
+    def use_schema_name(self, schema_name: str | None):
+        if schema_name:
+            self._config = dataclasses.replace(self._config, schema_name=schema_name)
+
+    def check(self) -> tuple[TranspileConfig, TranspileEngine]:
+        if not self._config.transpiler_config_path or not os.path.exists(self._config.transpiler_config_path):
+            raise_validation_exception(
+                f"Invalid value for '--transpiler-config-path': Path '{self._config.input_source}' does not exist."
+            )
+        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
+        engine.check_source_dialect(self._config.source_dialect)
+        if not self._config.input_source or not os.path.exists(self._config.input_source):
+            raise_validation_exception(
+                f"Invalid value for '--input-source': Path '{self._config.input_source}' does not exist."
+            )
+        # 'transpiled' will be used as output_folder if not specified
+        # 'errors.log' will be used as errors file if not specified
+        return self._config, engine
+
+
+def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
     """Transpiles source dialect to databricks dialect"""
     with_user_agent_extra("cmd", "execute-transpile")
-    ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    config = ctx.transpile_config
-    if not config:
-        raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
     _override_workspace_client_config(ctx, config.sdk_config)
-    if transpiler_config_path:
-        config = dataclasses.replace(config,transpiler_config_path=transpiler_config_path)
-    if source_dialect:
-        config = dataclasses.replace(config,source_dialect=source_dialect)
-    if input_source:
-        config = dataclasses.replace(config, input_source=input_source)
-    if output_folder:
-        config = dataclasses.replace(config, output_folder=output_folder)
-    if error_file_path:
-        config = dataclasses.replace(config, error_file_path=error_file_path)
-    if skip_validation is not None:
-        config = dataclasses.replace(config, skip_validation=skip_validation.lower()=="true")
-    if catalog_name:
-        config = dataclasses.replace(config, catalog_name=catalog_name)
-    if schema_name:
-        config = dataclasses.replace(config, schema_name=schema_name)
-    engine = TranspileEngine.load_engine(Path(config.transpiler_config_path))
-    engine.check_source_dialect(config.source_dialect)
-    if not config.input_source or not os.path.exists(config.input_source):
-        raise_validation_exception(f"Invalid value for '--input-source': Path '{config.input_source}' does not exist.")
-    if skip_validation.lower() not in {"true", "false"}:
-        raise_validation_exception(
-            f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
-        )
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:

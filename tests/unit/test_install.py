@@ -1405,3 +1405,20 @@ def test_runs_and_stores_choice_config_option(ws_installer, ws):
             "version": 3,
         },
     )
+
+
+def test_configure_transpile(ws_installer, ws):
+    installation = MockInstallation()
+    ctx = ApplicationContext(ws)
+    ctx.replace(installation=installation)
+    workspace_installer = ws_installer(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure(module="transpile")
+    print(config)
