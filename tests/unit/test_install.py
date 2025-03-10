@@ -33,9 +33,10 @@ def ws():
     )
     return w
 
+
 SET_IT_LATER = ["Set it later"]
 ALL_INSTALLED_DIALECTS_NO_LATER = ["tsql", "snowflake"]
-ALL_INSTALLED_DIALECTS = sorted(ALL_INSTALLED_DIALECTS_NO_LATER + SET_IT_LATER )
+ALL_INSTALLED_DIALECTS = sorted(ALL_INSTALLED_DIALECTS_NO_LATER + SET_IT_LATER)
 TRANSPILERS_FOR_SNOWFLAKE_NO_LATER = ["Remorph Community Transpiler", "Morpheus"]
 TRANSPILERS_FOR_SNOWFLAKE = sorted(TRANSPILERS_FOR_SNOWFLAKE_NO_LATER + SET_IT_LATER)
 PATH_TO_TRANSPILER_CONFIG = "/some/path/to/config.yml"
@@ -157,7 +158,6 @@ def test_configure_error_if_invalid_module_selected(ws):
 
 
 def test_workspace_installer_run_install_called_with_generated_config(ws_installer, ws):
-    idx = ALL_INSTALLED_DIALECTS.index("snowflake")
     prompts = MockPrompts(
         {
             r"Do you want to override the existing installation?": "no",

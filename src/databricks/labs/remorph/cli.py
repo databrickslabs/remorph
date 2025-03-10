@@ -140,7 +140,8 @@ class _TranspileConfigChecker:
             self._config = dataclasses.replace(self._config, schema_name=schema_name)
 
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
-        if not self._config.transpiler_config_path or not os.path.exists(self._config.transpiler_config_path):
+        # not using os.path.exists because it sometimes fails mysteriously...
+        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
             raise_validation_exception(
                 f"Invalid value for '--transpiler-config-path': Path '{self._config.input_source}' does not exist."
             )
