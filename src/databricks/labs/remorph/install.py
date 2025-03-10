@@ -8,7 +8,7 @@ import os
 from shutil import rmtree, move
 from subprocess import run, CalledProcessError
 import sys
-from typing import Any
+from typing import Any, cast
 from urllib import request
 from urllib.error import URLError, HTTPError
 import webbrowser
@@ -29,13 +29,14 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     RemorphConfigs,
     ReconcileMetadataConfig,
+    LSPConfigOptionV1,
+    LSPPromptMethod,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -164,16 +165,27 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def transpiler_config_path(cls, transpiler_name):
-        config = cls.all_transpiler_configs()[transpiler_name]
+        config = cls.all_transpiler_configs().get(transpiler_name, None)
+        if not config:
+            raise ValueError(f"No such transpiler: {transpiler_name}")
         return f"{config.path!s}"
 
     @classmethod
+    def transpiler_config_options(cls, transpiler_name, source_dialect) -> list[LSPConfigOptionV1]:
+        config = cls.all_transpiler_configs().get(transpiler_name, None)
+        if not config:
+            return []  # gracefully returns an empty list, since this can only happen during testing
+        return config.options.get(source_dialect, config.options.get("all", []))
+
+    @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
-        all_files = os.listdir(cls.transpilers_path())
-        for file in all_files:
-            config = cls._transpiler_config(cls.transpilers_path() / file)
-            if config:
-                yield config
+        path = cls.transpilers_path()
+        if path.exists():
+            all_files = os.listdir(path)
+            for file in all_files:
+                config = cls._transpiler_config(cls.transpilers_path() / file)
+                if config:
+                    yield config
 
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
@@ -377,6 +389,7 @@ class WorkspaceInstaller:
             transpiler_name = next(t for t in transpilers)
             logger.info(f"Remorph will use the {transpiler_name} transpiler")
         transpiler_config_path = self._transpiler_config_path(transpiler_name)
+        transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
         input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
@@ -386,12 +399,28 @@ class WorkspaceInstaller:
 
         return TranspileConfig(
             transpiler_config_path=transpiler_config_path,
+            transpiler_options=transpiler_options,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
             input_source=input_source,
             output_folder=output_folder,
             error_file_path=error_file_path,
         )
+
+    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any]:
+        config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
+        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
+
+    def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
+        if config_option.method == LSPPromptMethod.FORCE:
+            return config_option.default
+        if config_option.method == LSPPromptMethod.CONFIRM:
+            return self._prompts.confirm(config_option.prompt)
+        if config_option.method == LSPPromptMethod.QUESTION:
+            return self._prompts.question(config_option.prompt, default=config_option.default)
+        if config_option.method == LSPPromptMethod.CHOICE:
+            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
+        raise ValueError(f"Unsupported prompt method: {config_option.method}")
 
     def _configure_catalog(
         self,
