@@ -6,10 +6,8 @@ from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from mypy.semanal_shared import parse_bool
 
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
-from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
@@ -102,7 +100,7 @@ def transpile(
     if error_file_path:
         config = dataclasses.replace(config, error_file_path=error_file_path)
     if skip_validation is not None:
-        config = dataclasses.replace(config, skip_validation=parse_bool(skip_validation.capitalize()))
+        config = dataclasses.replace(config, skip_validation=skip_validation.lower()=="true")
     if catalog_name:
         config = dataclasses.replace(config, catalog_name=catalog_name)
     if schema_name:
