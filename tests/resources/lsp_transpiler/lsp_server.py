@@ -105,13 +105,20 @@ class TestLspServer(LanguageServer):
         return self.initialization_options["remorph"]["source-dialect"]
 
     @property
-    def whatever(self) -> str:
-        return self.initialization_options["custom"]["whatever"]
+    def experimental(self) -> str | None:
+        options = self.initialization_options.get("options", {}) or {}
+        return options.get("-experimental", None)
+
+    @property
+    def whatever(self) -> str | None:
+        custom = self.initialization_options.get("custom", {}) or {}
+        return custom.get("whatever", None)
 
     async def did_initialize(self, init_params: InitializeParams) -> None:
-        self.initialization_options = init_params.initialization_options
+        self.initialization_options = init_params.initialization_options or {}
         logger.debug(f"dialect={self.dialect}")
         logger.debug(f"whatever={self.whatever}")
+        logger.debug(f"experimental={self.experimental}")
         # TODO check whether the client supports dynamic registration
         registrations = [
             Registration(

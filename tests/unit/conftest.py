@@ -38,6 +38,7 @@ def mock_databricks_config():
 def transpile_config():
     yield TranspileConfig(
         transpiler_config_path="sqlglot",
+        transpiler_options={"-experimental": True},
         source_dialect="snowflake",
         input_source="input_sql",
         output_folder="output_folder",
