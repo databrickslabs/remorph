@@ -81,6 +81,7 @@ def transpile(
     catalog_name: str | None = None,
     schema_name: str | None = None,
 ):
+    """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
     checker = _TranspileConfigChecker(ctx.transpile_config)
     checker.use_transpiler_config_path(transpiler_config_path)

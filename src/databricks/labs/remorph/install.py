@@ -406,7 +406,9 @@ class WorkspaceInstaller:
             transpiler_options = self._prompt_for_transpiler_options(
                 cast(str, transpiler_name), cast(str, source_dialect)
             )
-        input_source: str | None = self._prompts.question("Enter input SQL path (directory/file)", default=install_later)
+        input_source: str | None = self._prompts.question(
+            "Enter input SQL path (directory/file)", default=install_later
+        )
         if input_source == install_later:
             input_source = None
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
@@ -427,11 +429,9 @@ class WorkspaceInstaller:
 
     def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any] | None:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
-        return (
-            {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
-            if len(config_options)
-            else None
-        )
+        if len(config_options) == 0:
+            return None
+        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
 
     def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
         if config_option.method == LSPPromptMethod.FORCE:
