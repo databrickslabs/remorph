@@ -10,7 +10,7 @@ from subprocess import run, CalledProcessError
 import sys
 from typing import Any, cast
 from urllib import request
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -72,11 +72,16 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
-        url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-        with request.urlopen(url) as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+        try:
+            url = (
+                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            )
+            with request.urlopen(url) as server:
+                text = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+        except HTTPError:
+            return None
 
     @classmethod
     def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
@@ -95,10 +100,13 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_pypi_version(cls, product_name: str) -> str | None:
-        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("info", {}).get('version', None)
+        try:
+            with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+                text = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("info", {}).get('version', None)
+        except HTTPError:
+            return None
 
     @classmethod
     def install_from_pypi(cls, product_name: str, pypi_name: str):
@@ -181,8 +189,13 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
+        if not path.is_dir() or not (path / "lib").is_dir():
+            return None
+        config_path = path / "lib" / "config.yml"
+        if not config_path.is_file():
+            return None
         try:
-            return LSPConfig.load(path / "lib" / "config.yml")
+            return LSPConfig.load(config_path)
         except ValueError as e:
             logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
@@ -210,6 +223,8 @@ class MorpheusInstaller(TranspilerInstaller):
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
+            return
+        if latest_version is None:
             return
         logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
@@ -274,7 +289,7 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        if module in {"transpiler", "all"}:
+        if module in {"transpile", "all"}:
             self.install_rct()
             self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
