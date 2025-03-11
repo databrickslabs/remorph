@@ -105,7 +105,7 @@ class _TranspileConfigChecker:
 
     def use_transpiler_config_path(self, transpiler_config_path: str | None):
         if transpiler_config_path:
-            logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'" )
+            logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
             self._config = dataclasses.replace(self._config, transpiler_config_path=transpiler_config_path)
 
     def use_source_dialect(self, source_dialect: str | None):
