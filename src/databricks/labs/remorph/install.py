@@ -392,8 +392,8 @@ class WorkspaceInstaller:
         install_later = "Set it later"
         # TODO tidy this up, logger might not display the below in console...
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        all_dialects = self._all_installed_dialects() + [install_later]
-        source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects)
+        all_dialects = [install_later] + self._all_installed_dialects()
+        source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
         if source_dialect == install_later:
             source_dialect = None
         transpiler_name = None
@@ -401,8 +401,8 @@ class WorkspaceInstaller:
         if source_dialect:
             transpilers = self._transpilers_with_dialect(source_dialect)
             if len(transpilers) > 1:
-                transpilers = transpilers + [install_later]
-                transpiler_name = self._prompts.choice("Select the transpiler:", transpilers)
+                transpilers = [install_later] + transpilers
+                transpiler_name = self._prompts.choice("Select the transpiler:", transpilers, sort=False)
                 if transpiler_name == install_later:
                     transpiler_name = None
             else:
