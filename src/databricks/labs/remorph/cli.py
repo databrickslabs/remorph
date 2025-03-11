@@ -105,22 +105,27 @@ class _TranspileConfigChecker:
 
     def use_transpiler_config_path(self, transpiler_config_path: str | None):
         if transpiler_config_path:
+            logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'" )
             self._config = dataclasses.replace(self._config, transpiler_config_path=transpiler_config_path)
 
     def use_source_dialect(self, source_dialect: str | None):
         if source_dialect:
+            logger.debug(f"Setting source_dialect to '{source_dialect}'")
             self._config = dataclasses.replace(self._config, source_dialect=source_dialect)
 
     def use_input_source(self, input_source: str | None):
         if input_source:
+            logger.debug(f"Setting input_source to '{input_source}'")
             self._config = dataclasses.replace(self._config, input_source=input_source)
 
     def use_output_folder(self, output_folder: str | None):
         if output_folder:
+            logger.debug(f"Setting output_folder to '{output_folder}'")
             self._config = dataclasses.replace(self._config, output_folder=output_folder)
 
     def use_error_file_path(self, error_file_path: str | None):
         if error_file_path:
+            logger.debug(f"Setting error_file_path to '{error_file_path}'")
             self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
 
     def use_skip_validation(self, skip_validation: str | None):
@@ -129,14 +134,17 @@ class _TranspileConfigChecker:
                 raise_validation_exception(
                     f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
                 )
+            logger.debug(f"Setting skip_validation to '{skip_validation}'")
             self._config = dataclasses.replace(self._config, skip_validation=skip_validation.lower() == "true")
 
     def use_catalog_name(self, catalog_name: str | None):
         if catalog_name:
+            logger.debug(f"Setting catalog_name to '{catalog_name}'")
             self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
 
     def use_schema_name(self, schema_name: str | None):
         if schema_name:
+            logger.debug(f"Setting schema_name to '{schema_name}'")
             self._config = dataclasses.replace(self._config, schema_name=schema_name)
 
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
