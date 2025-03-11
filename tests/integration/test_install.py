@@ -5,7 +5,10 @@ from tempfile import TemporaryFile, TemporaryDirectory
 
 import pytest
 
-from databricks.labs.remorph.install import TranspilerInstaller
+from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.remorph.config import TranspileConfig, ReconcileConfig
+from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.remorph.install import TranspilerInstaller, WorkspaceInstaller
 
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")
@@ -87,3 +90,42 @@ def check_valid_version(version: str):
             _ = int(part)
         except ValueError:
             assert False, f"{version} does not look like a valid semver"
+
+
+class _WorkspaceInstaller(WorkspaceInstaller):
+
+    def save_config(self, config: TranspileConfig | ReconcileConfig):
+        self._save_config(config)
+
+
+def test_stores_and_fetches_config(ws):
+    prompts = MockPrompts(
+        {
+            r"Open .* in the browser?": "no",
+        }
+    )
+    context = ApplicationContext(ws)
+    installer = _WorkspaceInstaller(
+        context.workspace_client,
+        prompts,
+        context.installation,
+        context.install_state,
+        context.product_info,
+        context.resource_configurator,
+        context.workspace_installation,
+    )
+    config = TranspileConfig(
+        transpiler_config_path="some_path",
+        source_dialect="some_dialect",
+        input_source="some_source",
+        output_folder="some_output",
+        error_file_path="some_file",
+        transpiler_options={"a": "1"},
+        sdk_config={"a": "1"},
+        skip_validation=True,
+        catalog_name="some_catalog",
+        schema_name="some_schema",
+    )
+    installer.save_config(config)
+    retrieved = ApplicationContext(ws).transpile_config
+    assert retrieved == config
