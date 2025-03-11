@@ -79,7 +79,11 @@ class TranspilerInstaller(abc.ABC):
             with request.urlopen(url) as server:
                 text = server.read()
             data: dict[str, Any] = loads(text)
-            return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+            response = data.get("response", {})
+            docs = response.get('docs', [{}])
+            if len(docs) < 1:
+                return None
+            return docs[0].get("v", None)
         except HTTPError:
             return None
 
