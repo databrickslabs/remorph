@@ -84,6 +84,7 @@ def transpile(
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
+    print(f"{ctx.transpile_config!s}")
     checker = _TranspileConfigChecker(ctx.transpile_config)
     checker.use_transpiler_config_path(transpiler_config_path)
     checker.use_source_dialect(source_dialect)
@@ -150,6 +151,7 @@ class _TranspileConfigChecker:
 
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
         logger.debug(f"Checking config: {self._config!s}")
+        print(f"{self._config!s}")
         # not using os.path.exists because it sometimes fails mysteriously...
         if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
             raise_validation_exception(
