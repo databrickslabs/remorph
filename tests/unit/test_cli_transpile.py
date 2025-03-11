@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from databricks.labs.remorph import cli, resources
+from databricks.labs.remorph.cli import _TranspileConfigChecker
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
@@ -430,3 +431,27 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
     captured = capsys.readouterr()
     assert "TranspileError" in captured.out
     assert "UNSUPPORTED_LCA" in captured.out
+
+def test_checker():
+    config = TranspileConfig(
+        transpiler_config_path="some_existing_path",
+        transpiler_options={"-currency": "GBP"},
+        source_dialect="snowflake",
+        input_source="/tmp/queries/snow",
+        output_folder="/tmp/queries/databricks",
+        error_file_path="/tmp/queries/errors.log",
+        catalog_name="remorph_test",
+        schema_name="transpiler_test",
+        sdk_config={"warehouse_id": "w_id"},
+    )
+    checker = _TranspileConfigChecker(config)
+    checker.use_transpiler_config_path("some_other_path")
+    checker.use_source_dialect(None)
+    checker.use_input_source(None)
+    checker.use_output_folder(None)
+    checker.use_error_file_path(None)
+    checker.use_skip_validation(None)
+    checker.use_catalog_name(None)
+    checker.use_schema_name(None)
+    assert config.source_dialect == checker._config.source_dialect
+    assert config.schema_name == checker._config.schema_name
