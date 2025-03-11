@@ -77,14 +77,20 @@ class TranspilerInstaller(abc.ABC):
             )
             with request.urlopen(url) as server:
                 text = server.read()
-            data: dict[str, Any] = loads(text)
-            response = data.get("response", {})
-            docs = response.get('docs', [{}])
-            if len(docs) < 1:
-                return None
-            return docs[0].get("v", None)
+                return cls._get_maven_version(text)
         except HTTPError:
             return None
+
+    @classmethod
+    def _get_maven_version(cls, text: str):
+        data: dict[str, Any] = loads(text)
+        response: dict[str, Any] | None = data.get("response", None)
+        if not response:
+            return None
+        docs: list[dict[str, Any]] = response.get('docs', None)
+        if not docs or len(docs) < 1:
+            return None
+        return docs[0].get("v", None)
 
     @classmethod
     def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
