@@ -103,47 +103,42 @@ class _TranspileConfigChecker:
     def __init__(self, config: TranspileConfig | None):
         if not config:
             raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
-        self._config: TranspileConfig = config
+        # workaround issue where dataclasses.replace sets fields to None instead of copying them
+        self._transpiler_config_path = config.transpiler_config_path
+        self._source_dialect = config.source_dialect
+        self._input_source = config.input_source
+        self._output_folder = config.output_folder
+        self._error_file_path = config.error_file_path
+        self._sdk_config = config.sdk_config
+        self._skip_validation = config.skip_validation
+        self._catalog_name = config.catalog_name
+        self._schema_name = config.schema_name
+        self._transpiler_options = config.transpiler_options
 
     def use_transpiler_config_path(self, transpiler_config_path: str | None):
         if transpiler_config_path:
             logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['transpiler_config_path'] = transpiler_config_path
-            self._config = TranspileConfig(**data)
+            self._transpiler_config_path = transpiler_config_path
 
     def use_source_dialect(self, source_dialect: str | None):
         if source_dialect:
             logger.debug(f"Setting source_dialect to '{source_dialect}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['source_dialect'] = source_dialect
-            self._config = TranspileConfig(**data)
+            self._source_dialect = source_dialect
 
     def use_input_source(self, input_source: str | None):
         if input_source:
             logger.debug(f"Setting input_source to '{input_source}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['input_source'] = input_source
-            self._config = TranspileConfig(**data)
+            self._input_source = input_source
 
     def use_output_folder(self, output_folder: str | None):
         if output_folder:
             logger.debug(f"Setting output_folder to '{output_folder}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['output_folder'] = output_folder
-            self._config = TranspileConfig(**data)
+            self._output_folder = output_folder
 
     def use_error_file_path(self, error_file_path: str | None):
         if error_file_path:
             logger.debug(f"Setting error_file_path to '{error_file_path}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['error_file_path'] = error_file_path
-            self._config = TranspileConfig(**data)
+            self._error_file_path = error_file_path
 
     def use_skip_validation(self, skip_validation: str | None):
         if skip_validation is not None:
@@ -152,44 +147,49 @@ class _TranspileConfigChecker:
                     f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
                 )
             logger.debug(f"Setting skip_validation to '{skip_validation}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['skip_validation'] = skip_validation.lower() == "true"
-            self._config = TranspileConfig(**data)
+            self._skip_validation = skip_validation.lower() == "true"
 
     def use_catalog_name(self, catalog_name: str | None):
         if catalog_name:
             logger.debug(f"Setting catalog_name to '{catalog_name}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['catalog_name'] = catalog_name
-            self._config = TranspileConfig(**data)
+            self._catalog_name = catalog_name
 
     def use_schema_name(self, schema_name: str | None):
         if schema_name:
             logger.debug(f"Setting schema_name to '{schema_name}'")
-            # workaround issue where dataclasses.replace sets fields to None instead of copying them
-            data = dataclasses.asdict(self._config)
-            data['schema_name'] = schema_name
-            self._config = TranspileConfig(**data)
+            self._schema_name = schema_name
+
+    def as_config(self) -> TranspileConfig:
+        # workaround ctor issue where python sets fields to None instead of copying them
+        config = TranspileConfig(transpiler_config_path=self._transpiler_config_path)
+        config.source_dialect = self._source_dialect
+        config.transpiler_options = self._transpiler_options
+        config.input_source = self._input_source
+        config.output_folder = self._output_folder
+        config.error_file_path = self._error_file_path
+        config.skip_validation = self._skip_validation
+        config.sdk_config = self._sdk_config
+        config.catalog_name = self._catalog_name
+        config.schema_name = self._schema_name
+        config.transpiler_config_path = self._transpiler_config_path
+        return config
 
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
-        logger.debug(f"Checking config: {self._config!s}")
-        print(f"{self._config!s}")
+        logger.debug(f"Checking config: {self!s}")
         # not using os.path.exists because it sometimes fails mysteriously...
-        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
+        if not self._transpiler_config_path or not Path(self._transpiler_config_path).exists():
             raise_validation_exception(
-                f"Invalid value for '--transpiler-config-path': Path '{self._config.input_source}' does not exist."
+                f"Invalid value for '--transpiler-config-path': Path '{self._transpiler_config_path}' does not exist."
             )
-        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
-        engine.check_source_dialect(self._config.source_dialect)
-        if not self._config.input_source or not os.path.exists(self._config.input_source):
+        engine = TranspileEngine.load_engine(Path(self._transpiler_config_path))
+        engine.check_source_dialect(self._source_dialect)
+        if not self._input_source or not os.path.exists(self._input_source):
             raise_validation_exception(
-                f"Invalid value for '--input-source': Path '{self._config.input_source}' does not exist."
+                f"Invalid value for '--input-source': Path '{self._input_source}' does not exist."
             )
         # 'transpiled' will be used as output_folder if not specified
         # 'errors.log' will be used as errors file if not specified
-        return self._config, engine
+        return self.as_config(), engine
 
 
 def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
