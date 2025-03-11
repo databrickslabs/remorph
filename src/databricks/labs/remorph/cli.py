@@ -95,7 +95,7 @@ def transpile(
     checker.use_catalog_name(catalog_name)
     checker.use_schema_name(schema_name)
     config, engine = checker.check()
-    _transpile(ctx, config, engine)
+    asyncio.run(_transpile(ctx, config, engine))
 
 
 class _TranspileConfigChecker:
@@ -167,17 +167,19 @@ class _TranspileConfigChecker:
         return self._config, engine
 
 
-def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
+async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
     """Transpiles source dialect to databricks dialect"""
     with_user_agent_extra("cmd", "execute-transpile")
     logger.debug(f"User: {ctx.current_user}")
     _override_workspace_client_config(ctx, config.sdk_config)
-    status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
-
-    for error in errors:
-        print(str(error))
-
-    print(json.dumps(status))
+    status, errors = await do_transpile(ctx.workspace_client, engine, config)
+    if len(errors) > 0:
+        print(f"{len(errors)} error(s) have been encountered:\n")
+        for error in errors:
+            print(f"{error}\n")
+    else:
+        print("No error\n")
+    print(f"Transpile status: {status!s}\n")
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
