@@ -137,7 +137,7 @@ class _TranspileConfigChecker:
                     f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
                 )
             logger.debug(f"Setting skip_validation to '{skip_validation}'")
-            self._config = dataclasses.replace(self._config, skip_validation=skip_validation)
+            self._config = dataclasses.replace(self._config, skip_validation=skip_validation.lower() == "true")
 
     def use_catalog_name(self, catalog_name: str | None):
         if catalog_name and catalog_name != "None":
