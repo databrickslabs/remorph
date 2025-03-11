@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 import json
 import os
+import sys
 from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
@@ -148,6 +149,7 @@ class _TranspileConfigChecker:
             self._config = dataclasses.replace(self._config, schema_name=schema_name)
 
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
+        logger.debug(f"Checking config: {self._config!s}")
         # not using os.path.exists because it sometimes fails mysteriously...
         if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
             raise_validation_exception(
@@ -279,4 +281,6 @@ def install_reconcile(w: WorkspaceClient):
 
 
 if __name__ == "__main__":
+    if "--debug" in sys.argv:
+        logger.setLevel("DEBUG")
     remorph()
