@@ -380,6 +380,11 @@ class LSPEngine(TranspileEngine):
         env = deepcopy(os.environ)
         for name, value in self._config.remorph.env_vars.items():
             env[name] = value
+        # ensure modules are searched locally before being searched in remorph
+        if "PYTHONPATH" in env.keys():
+            env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
+        else:
+            env["PYTHONPATH"] = str(self._workdir)
         args = self._config.remorph.command_line[1:]
         logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
         await self._client.start_io(executable, env=env, *args)
