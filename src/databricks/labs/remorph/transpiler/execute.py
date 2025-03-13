@@ -47,7 +47,7 @@ async def _process_one_file(
         source_sql = remove_bom(f.read())
 
     transpile_result = await _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
+        transpiler, cast(str, config.source_dialect), config.target_dialect, source_sql, input_path
     )
     # Potentially expensive, only evaluate if debug is enabled
     if logger.isEnabledFor(logging.DEBUG):
@@ -94,6 +94,7 @@ async def _process_many_files(
     counter = 0
     all_errors: list[TranspileError] = []
 
+    logger.info(f"Processing folder: {files!s}")
     for file in files:
         logger.info(f"Processing file: {file}")
         if not is_sql_file(file):
@@ -102,7 +103,7 @@ async def _process_many_files(
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
-
+    logger.info(f"Processed folder: {files!s}")
     return counter, all_errors
 
 
@@ -151,6 +152,7 @@ async def transpile(
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
+    logger.info("Done transpiling.")
     return status, errors
 
 
@@ -185,7 +187,7 @@ async def _do_transpile(
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
-    logger.debug(f"Transpiler results: {result}")
+    logger.info(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
@@ -254,7 +256,7 @@ def transpile_sql(
     engine: TranspileEngine = SqlglotEngine()
 
     transpiler_result = asyncio.run(
-        _transpile(engine, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
+        _transpile(engine, cast(str, config.source_dialect), config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:
