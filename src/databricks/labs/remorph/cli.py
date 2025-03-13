@@ -35,13 +35,6 @@ def raise_validation_exception(msg: str) -> Exception:
     raise ValueError(msg)
 
 
-proxy_command(remorph, "debug-script")
-proxy_command(remorph, "debug-me")
-proxy_command(remorph, "debug-coverage")
-proxy_command(remorph, "debug-estimate")
-proxy_command(remorph, "debug-bundle")
-
-
 def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
     app_context = ApplicationContext(_verify_workspace_client(ws))
     return WorkspaceInstaller(
