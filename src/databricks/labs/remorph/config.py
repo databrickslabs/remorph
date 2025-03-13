@@ -65,7 +65,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, any] | None = None
+    transpiler_options: dict[str, Any] | None = None
 
     @property
     def transpiler_path(self):
