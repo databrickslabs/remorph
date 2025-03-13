@@ -19,7 +19,6 @@ from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
-from databricks.labs.remorph.jvmproxy import proxy_command
 from databricks.sdk.core import with_user_agent_extra
 
 from databricks.sdk import WorkspaceClient
