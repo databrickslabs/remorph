@@ -65,12 +65,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    # need a union because blueprint doesn't support 'Any' type
-    # the order in the union is important because unmarshall stops on the first successful conversion
-    # letting bool("john") return a valid value... we want to avoid this
-    transpiler_options: dict[str, object | list | int | float | str | bool] | None = (
-        None
-    )
+    transpiler_options: dict[str, any] | None = None
 
     @property
     def transpiler_path(self):
