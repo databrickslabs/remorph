@@ -73,7 +73,7 @@ Reconcile is an automated tool designed to streamline the reconciliation process
 
 2. `Databricks Connect` - Set up the Databricks workspace configuration file by following the instructions provided [here](https://docs.databricks.com/en/dev-tools/auth/index.html#databricks-configuration-profiles). Note that Databricks labs use 'DEFAULT' as the default profile for establishing connections to Databricks.
 
-3. `Python` - Verify that your machine has Python version 3.10 or later installed to meet the required dependencies for seamless operation.
+3. `Python` - Verify that your machine has Python version 3.10 installed to meet the required dependencies for seamless operation.
    - `Windows` - Install python from [here](https://www.python.org/downloads/). Your Windows computer will need a shell environment ([GitBash](https://www.git-scm.com/downloads) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/about))
    - `MacOS/Unix` - Use [brew](https://formulae.brew.sh/formula/python@3.10) to install python in macOS/Unix machines
 #### Installing Databricks CLI on macOS
