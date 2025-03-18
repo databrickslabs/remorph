@@ -9,7 +9,7 @@ from databricks.labs.remorph.reconcile.compare import (
     reconcile_data,
 )
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     DataReconcileOutput,
     MismatchOutput,
 )

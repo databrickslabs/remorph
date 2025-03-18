@@ -7,9 +7,11 @@ from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconIntermediatePersist,
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     DataReconcileOutput,
     MismatchOutput,
+)
+from databricks.labs.remorph.reconcile.recon_config import (
     AggregateRule,
     ColumnMapping,
 )

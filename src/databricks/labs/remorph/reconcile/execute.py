@@ -44,17 +44,19 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     generate_final_reconcile_aggregate_output,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    Table,
+    AggregateQueryRules,
+    SamplingOptions,
+)
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
-    Schema,
     SchemaReconcileOutput,
-    Table,
     ThresholdOutput,
     ReconcileRecordCount,
     AggregateQueryOutput,
-    AggregateQueryRules,
-    SamplingOptions,
 )
 from databricks.labs.remorph.reconcile.sampler import SamplerFactory
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare

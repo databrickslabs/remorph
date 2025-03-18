@@ -15,10 +15,12 @@ from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSou
 from databricks.labs.remorph.reconcile.execute import Reconciliation, main
 from databricks.labs.remorph.reconcile.recon_config import (
     Aggregate,
+    AggregateRule,
+)
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     AggregateQueryOutput,
     DataReconcileOutput,
     MismatchOutput,
-    AggregateRule,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 

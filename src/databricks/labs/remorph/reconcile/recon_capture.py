@@ -9,20 +9,20 @@ from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.remorph.reconcile.recon_config import TableThresholds
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
     CleanFromVolumeException,
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
     ReconcileTableOutput,
     SchemaReconcileOutput,
     StatusOutput,
-    TableThresholds,
     ReconcileRecordCount,
     AggregateQueryOutput,
 )

@@ -29,7 +29,7 @@ from databricks.labs.remorph.reconcile.execute import (
     recon,
     generate_volume_path,
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_output_conifg import (
     DataReconcileOutput,
     MismatchOutput,
     ThresholdOutput,
