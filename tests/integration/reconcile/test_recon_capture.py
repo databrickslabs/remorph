@@ -15,7 +15,7 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     generate_final_reconcile_output,
     ReconIntermediatePersist,
 )
-from databricks.labs.remorph.reconcile.recon_output_conifg import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     MismatchOutput,
     ReconcileOutput,

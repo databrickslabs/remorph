@@ -17,7 +17,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Aggregate,
     AggregateRule,
 )
-from databricks.labs.remorph.reconcile.recon_output_conifg import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     AggregateQueryOutput,
     DataReconcileOutput,
     MismatchOutput,

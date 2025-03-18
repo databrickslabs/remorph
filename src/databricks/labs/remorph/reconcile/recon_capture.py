@@ -16,7 +16,7 @@ from databricks.labs.remorph.reconcile.exception import (
     ReadAndWriteWithVolumeException,
     CleanFromVolumeException,
 )
-from databricks.labs.remorph.reconcile.recon_output_conifg import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,

@@ -8,7 +8,7 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
 )
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.reconcile.recon_output_conifg import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     ReconcileProcessDuration,
     AggregateQueryOutput,
 )

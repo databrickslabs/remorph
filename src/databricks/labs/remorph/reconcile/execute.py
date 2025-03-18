@@ -49,7 +49,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     AggregateQueryRules,
     SamplingOptions,
 )
-from databricks.labs.remorph.reconcile.recon_output_conifg import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
