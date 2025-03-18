@@ -48,6 +48,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     AggregateQueryRules,
     SamplingOptions,
+    RECONCILE_OPERATION_NAME,
+    AGG_RECONCILE_OPERATION_NAME,
 )
 from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
@@ -67,9 +69,6 @@ from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
-
-RECONCILE_OPERATION_NAME = "reconcile"
-AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):

@@ -24,6 +24,9 @@ _SUPPORTED_AGG_TYPES: set[str] = {
     "median",
 }
 
+RECONCILE_OPERATION_NAME = "reconcile"
+AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
+
 
 class TableThresholdBoundsException(ValueError):
     """Raise the error when the bounds for table threshold are invalid"""
