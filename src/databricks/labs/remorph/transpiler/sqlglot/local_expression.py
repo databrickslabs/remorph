@@ -45,10 +45,6 @@ class TryToTimestamp(Func):
     arg_types = {"this": True, "format": False}
 
 
-class SplitPart(Func):
-    arg_types = {"this": True, "expression": False, "partNum": False}
-
-
 class StrTok(Func):
     arg_types = {"this": True, "expression": False, "partNum": False}
 
