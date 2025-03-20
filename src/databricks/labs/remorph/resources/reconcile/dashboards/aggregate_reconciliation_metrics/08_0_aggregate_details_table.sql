@@ -60,14 +60,14 @@ FROM (
                      '_',
                      'source',
                      rul.rule_info.agg_type,
-                     rul.rule_info.agg_column
+                     iff(rul.rule_info.agg_column == '*', 'all', rul.rule_info.agg_column)
              ) AS source_agg_column,
              dtl.agg_details[source_agg_column] AS source_value,
              CONCAT_WS(
                      '_',
                      'target',
                      rul.rule_info.agg_type,
-                     rul.rule_info.agg_column
+                     iff(rul.rule_info.agg_column == '*', 'all', rul.rule_info.agg_column)
              ) AS target_agg_column,
              dtl.agg_details[target_agg_column] AS target_value,
              SPLIT(rul.rule_info.group_by_columns, ',') AS rule_group_by_columns,

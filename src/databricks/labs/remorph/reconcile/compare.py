@@ -318,10 +318,11 @@ def reconcile_agg_data_per_rule(
     # Generates select columns in the format of:
     # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
 
+    rule_agg_column = "all" if rule.agg_column == "*" else rule.agg_column
     rule_select_columns = [
         ColumnMapping(
-            source_name=f"source_{rule.agg_type}_{rule.agg_column}",
-            target_name=f"target_{rule.agg_type}_{rule.agg_column}",
+            source_name=f"source_{rule.agg_type}_{rule_agg_column}",
+            target_name=f"target_{rule.agg_type}_{rule_agg_column}",
         )
     ]
 
@@ -356,7 +357,7 @@ def reconcile_agg_data_per_rule(
     )
 
     mismatch_count = 0
-    if mismatch:
+    if not mismatch.isEmpty():
         mismatch_count = mismatch.count()
 
     rule_reconcile_output = DataReconcileOutput(

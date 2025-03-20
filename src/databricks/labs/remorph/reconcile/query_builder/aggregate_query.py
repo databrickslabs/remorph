@@ -72,7 +72,8 @@ class AggregateQueryBuilder(QueryBuilder):
 
             # Create a new alias with layer, agg_type and original column name,
             # ex: source_min_pid, target_max_product_id
-            layer_agg_type_col_alias = f"{self.layer}_{agg_type}_{org_col_name}".lower()
+            col_alias = "all" if org_col_name == "*" else org_col_name
+            layer_agg_type_col_alias = f"{self.layer}_{agg_type}_{col_alias}".lower()
 
             # Get the Transformed column name without the alias
             col_name = transformed_col.sql().replace(f"AS {transformed_col.alias}", '').strip()
