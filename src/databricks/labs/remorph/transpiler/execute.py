@@ -17,7 +17,6 @@ from databricks.labs.remorph.helpers.file_utils import (
     is_sql_file,
     make_dir,
 )
-from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
@@ -179,7 +178,7 @@ async def _do_transpile(
         logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
         validator = Validator(sql_backend)
     if config.input_source is None:
-        raise InvalidInputException("Missing input source!")
+        raise ValueError("Missing input source!")
     if config.input_path.is_dir():
         logger.debug(f"Starting to process input directory: {config.input_path}")
         result = await _process_input_dir(config, validator, engine)
