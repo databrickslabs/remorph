@@ -6,7 +6,7 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.upgrades import Upgrades
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.lsql.backends import SqlBackend
+from databricks.labs.lsql.backends import SqlBackend, StatementExecutionBackend
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.config import Config
 from databricks.sdk.errors import NotFound
@@ -17,7 +17,6 @@ from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.deployment.recon import TableDeployment, JobDeployment, ReconDeployment
-from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.metastore import CatalogOperations
 
 logger = logging.getLogger(__name__)
@@ -79,7 +78,8 @@ class ApplicationContext:
 
     @cached_property
     def sql_backend(self) -> SqlBackend:
-        return db_sql.get_sql_backend(self.workspace_client)
+        # Installer to use only StatementExecutionBackend to eliminate the need for Databricks Connect
+        return StatementExecutionBackend(self.workspace_client, self.connect_config.warehouse_id)
 
     @cached_property
     def catalog_operations(self) -> CatalogOperations:
