@@ -1,0 +1,14 @@
+[Unit]
+Description=Remorph usage collection every 15 minutes
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 ~/Downloads/remorph/scheduler/usage_collector.py
+WorkingDirectory=~/Downloads/remorph/scheduler/
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
