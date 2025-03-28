@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-  "databricks-sdk>=0.29,<0.42",
+  "databricks-sdk>=0.29,<0.49",
   "standard-distutils; python_version>='3.11'",
   "sqlglot==26.1.3",
   "databricks-labs-blueprint[yaml]>=0.2.3",
