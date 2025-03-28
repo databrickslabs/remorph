@@ -238,6 +238,13 @@ Execute the below command to initialize the reconcile process.
 
 [[back to top](#table-of-contents)]
 
+
+## NOTEBOOK LINK(TRANSPILATION only)
+![remorph_transpile090.py](tests/resources/transpile/remorph_transpile090.py)
+This option is suitable for those who prefer not to follow the standard installation process but still wish to perform transpilation using Remorph with a notebook.
+Please note that this notebook is exclusively designed for the purpose of transpilation.
+
+Thank you for your attention and cooperation.
 ----
 
 # Benchmarks
