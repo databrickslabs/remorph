@@ -3,10 +3,12 @@ import logging
 from databricks.labs.remorph.assessments.pipeline import PipelineClass
 
 
-class UsageCollector():
+class UsageCollector:
+    """Executes a PipelineClass that collects usage information from a target data warehouse."""
 
-    def __init__(self, warehouse_type: str):
+    def __init__(self, warehouse_type: str, pipeline: PipelineClass):
         self.collection_type = warehouse_type
+        self.pipeline = pipeline
 
     def _validate_time_gap(self):
         """Backfills usage information if a gap in usage history is detected.
@@ -14,22 +16,11 @@ class UsageCollector():
         pass
 
     def run(self) -> str:
-        status = "COMPLETE"
-        pipeline_config = None
-        extractor = None
-        pipeline = PipelineClass(config=pipeline_config, executor=extractor)
+        try:
+            logging.info("Executing pipeline.")
+            self.pipeline.execute()
+            status = "COMPLETE"
+        except Exception as e:
+            logging.error(f"Usage collection failed: {str(e)}")
+            raise RuntimeError(f"Usage collection failed: {str(e)}") from e
         return status
-
-
-def main():
-    """Executes a PipelineClass that collects usage information from a target data warehouse."""
-    try:
-        logging.info("Starting usage collection.")
-        UsageCollector.run()
-        logging.info("Usage collection completed successfully.")
-    except Exception as e:
-        logging.error(f"An error occurred during usage collection: {e}")
-
-
-if __name__ == "__main__":
-    main()
