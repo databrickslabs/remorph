@@ -13,7 +13,7 @@ class UsageCollector:
     def _validate_time_gap(self):
         """Backfills usage information if a gap in usage history is detected.
         History gaps could be due to system errors like outages or other system errors"""
-        pass
+        raise NotImplementedError("Backfill process not yet implemented.")
 
     def run(self) -> str:
         try:
