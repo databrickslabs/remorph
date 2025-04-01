@@ -1,6 +1,6 @@
 Databricks Labs Remorph
 ---
-![Databricks Labs Remorph](docs/img/remorph-logo.svg)
+![Databricks Labs Remorph](docs/static/img/remorph-logo.svg)
 
 [![lines of code](https://tokei.rs/b1/github/databrickslabs/remorph)]([https://codecov.io/github/databrickslabs/remorph](https://github.com/databrickslabs/remorph))
 
@@ -21,7 +21,7 @@ Databricks Labs Remorph
 * [How to use Reconcile](#how-to-use-reconcile)
     * [Installation](#installation-1)
     * [Verify Installation](#verify-installation-1)
-    * [Execution Pre-Set Up](#execution-pre-set-up-1)
+    * [Execution Pre -Set Up](#execution-pre-set-up-1)
     * [Execution](#execution-1)
 * [Benchmarks](#benchmarks)
   * [Transpile](#Transpile-benchmarks)
@@ -73,18 +73,18 @@ Reconcile is an automated tool designed to streamline the reconciliation process
 
 2. `Databricks Connect` - Set up the Databricks workspace configuration file by following the instructions provided [here](https://docs.databricks.com/en/dev-tools/auth/index.html#databricks-configuration-profiles). Note that Databricks labs use 'DEFAULT' as the default profile for establishing connections to Databricks.
 
-3. `Python` - Verify that your machine has Python version 3.10 or later installed to meet the required dependencies for seamless operation.
+3. `Python` - Verify that your machine has Python version 3.10 installed to meet the required dependencies for seamless operation.
    - `Windows` - Install python from [here](https://www.python.org/downloads/). Your Windows computer will need a shell environment ([GitBash](https://www.git-scm.com/downloads) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/about))
    - `MacOS/Unix` - Use [brew](https://formulae.brew.sh/formula/python@3.10) to install python in macOS/Unix machines
 #### Installing Databricks CLI on macOS
-![macos-databricks-cli-install](docs/img/macos-databricks-cli-install.gif)
+![macos-databricks-cli-install](docs/static/img/macos-databricks-cli-install.gif)
 
 #### Install Databricks CLI via curl on Windows
-![windows-databricks-cli-install](docs/img/windows-databricks-cli-install.gif)
+![windows-databricks-cli-install](docs/static/img/windows-databricks-cli-install.gif)
 
 #### Check Python version on Windows, macOS, and Unix
 
-![check-python-version](docs/img/check-python-version.gif)
+![check-python-version](docs/static/img/check-python-version.gif)
 
 [[back to top](#table-of-contents)]
 
@@ -99,7 +99,7 @@ Upon completing the environment setup, install Remorph by executing the followin
 ```bash
 databricks labs install remorph
 ```
-![transpile install](docs/img/transpile-install.gif)
+![transpile install](docs/static/img/transpile-install.gif)
 
 [[back to top](#table-of-contents)]
 
@@ -110,7 +110,7 @@ Verify the successful installation by executing the provided command; confirmati
 ```bash
  databricks labs remorph transpile --help
  ```
-![transpile-help](docs/img/transpile-help.png)
+![transpile-help](docs/static/img/transpile-help.png)
 
 ### Execution Pre-Set Up
 1. Transpile necessitates input in the form of either a directory containing SQL files or a single SQL file.
@@ -132,7 +132,7 @@ Execute the below command to initialize the transpile process.
  databricks labs remorph transpile --transpiler-config-path <absolute-path> --input-source <absolute-path> --source-dialect <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
 
-![transpile run](docs/img/transpile-run.gif)
+![transpile run](docs/static/img/transpile-run.gif)
 
 [[back to top](#table-of-contents)]
 
@@ -147,14 +147,14 @@ Install Reconciliation with databricks labs cli.
 databricks labs install remorph
 ```
 
-![reconcile install](docs/img/recon-install.gif)
+![reconcile install](docs/static/img/recon-install.gif)
 
 ### Verify Installation
 Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
 ```bash
  databricks labs remorph reconcile --help
  ```
-![reconcile-help](docs/img/reconcile-help.png)
+![reconcile-help](docs/static/img/reconcile-help.png)
 
 ### Execution Pre-Set Up
 >1. Setup the configuration file:
@@ -178,8 +178,8 @@ eg:
 
 #### Refer to [Reconcile Configuration Guide][def] for detailed instructions and [example configurations][config]
 
-[def]: docs/recon_configurations/README.md
-[config]: docs/recon_configurations/reconcile_config_samples.md
+[def]: docs/static/recon_configurations/README.md
+[config]: docs/static/recon_configurations/reconcile_config_samples.md
 
 > 2. Setup the connection properties
 
@@ -234,7 +234,7 @@ Execute the below command to initialize the reconcile process.
 ```bash
  databricks labs remorph reconcile
 ```
-![reconcile-run](docs/img/recon-run.gif)
+![reconcile-run](docs/static/img/recon-run.gif)
 
 [[back to top](#table-of-contents)]
 
