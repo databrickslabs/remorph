@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Result, URL
+from snowflake.sqlalchemy import URL as SnowflakeURL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -57,7 +58,23 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        raise NotImplementedError("Snowflake connector not implemented")
+        # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
+        # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
+        # Query parameters are not currently supported (as of 1.7.3 release)
+        # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy#required-parameters
+        sqlalchemy_driver = "snowflake"
+        connection_string = SnowflakeURL(
+            drivername=sqlalchemy_driver,
+            account=self.config["account"],
+            user=self.config["username"],
+            password=self.config["password"],
+            database=self.config["database"],
+            schema=self.config["schema"],
+            warehouse=self.config["warehouse"],
+            role=self.config["role"],
+            timezone=self.config["timezone"]
+        )
+        return create_engine(connection_string)
 
 
 class MSSQLConnector(_BaseConnector):
@@ -87,7 +104,7 @@ class PostgresConnector(_BaseConnector):
             if key not in ["user", "password", "server", "database", "port"]:
                 query_params[key] = value
         # Build the connection string to database
-        sqlalchemy_driver = "postgresql+psycopg2"
+        sqlalchemy_driver = "postgresql"
         connection_string = URL.create(
             drivername=sqlalchemy_driver,
             username=self.config["user"],

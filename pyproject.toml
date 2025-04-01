@@ -63,6 +63,7 @@ dependencies = [
   "mypy~=1.10.0",
   "numpy==1.26.4",
   "pandas==1.4.1",
+  "snowflake-sqlalchemy>=1.7.3"
 ]
 
 [project.entry-points.databricks]
