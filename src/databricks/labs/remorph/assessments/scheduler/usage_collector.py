@@ -10,11 +10,6 @@ class UsageCollector:
         self.collection_type = warehouse_type
         self.pipeline = pipeline
 
-    def _validate_time_gap(self):
-        """Backfills usage information if a gap in usage history is detected.
-        History gaps could be due to system errors like outages or other system errors"""
-        raise NotImplementedError("Backfill process not yet implemented.")
-
     def run(self) -> str:
         try:
             logging.info("Executing pipeline.")

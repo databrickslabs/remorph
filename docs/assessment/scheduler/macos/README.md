@@ -2,12 +2,12 @@
 
 ## Installation Steps:
 
-1. Open a new Terminal window
+1. Open a new Terminal window and navigate to the remorph repository
 
 2. Copy the plist file to `~/Library/LaunchAgents/` for a user-specific task or `/Library/LaunchDaemons/` for a system-wide task:
 
-```bash 
-$ cp ~/Downloads/remorph/scheduler/macos/com.remorph.usagecollection.plist ~/Library/LaunchAgents/
+```bash
+$ cp ./src/databricks/labs/remorph/assessments/scheduler/install/macos/com.remorph.usagecollection.plist ~/Library/LaunchAgents/
 ```
 
 3. Next, load the process by executing the following command:
@@ -19,7 +19,7 @@ $ launchctl load ~/Library/LaunchAgents/com.remorph.usagecollection.plist
 4. Grant the usage collection script with execution permissions:
 
 ```bash
-$ chmod +x ~/Downloads/remorph/scheduler/usage_collector.py
+$ chmod +x ./src/databricks/labs/remorph/assessments/scheduler/usage_collector.py
 ```
 
 ## Description of the `plist` Elements

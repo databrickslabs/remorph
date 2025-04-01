@@ -2,18 +2,18 @@
 
 ## Installation Steps:
 
-1. Open a new Terminal window
+1. Open a new Terminal window and navigate to the remorph repository
 
 2. Copy the unit file to `/etc/systemd/system/`:
 
-```bash 
-$ cp ~/Downloads/remorph/scheduler/linux/remorph_usage_collection.service /etc/systemd/system/
+```bash
+$ cp ./src/databricks/labs/remorph/assessments/scheduler/install/linux/remorph_usage_collection.service /etc/systemd/system/
 ```
 
 3. Copy the timer file to `/etc/systemd/system/`:
 
-```bash 
-$ cp ~/Downloads/remorph/scheduler/linux/remorph_usage_collection.timer /etc/systemd/system/
+```bash
+$ cp ./src/databricks/labs/remorph/assessments/scheduler/install/linux/remorph_usage_collection.timer /etc/systemd/system/
 ```
 
 4. Reload the systmd process to pick up the new files:
