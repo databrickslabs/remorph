@@ -7,7 +7,7 @@ from ..connections.helpers import get_db_manager
 
 
 @pytest.fixture()
-def extractor(mock_credentials):
+def extractor():
     return get_db_manager("remorph", "postgres")
 
 
@@ -27,3 +27,4 @@ def test_usage_collector(pipeline_config, extractor):
     usage_collector = UsageCollector(warehouse_type="Postgres", pipeline=pg_pipeline)
     status = usage_collector.run()
     assert status == "COMPLETE", "Usage collector returned an unexpected status."
+
