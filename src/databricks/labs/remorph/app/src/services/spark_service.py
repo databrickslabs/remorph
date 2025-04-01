@@ -60,8 +60,9 @@ def initialize_tables():
                 create_status_table_ddl,
                 f"{settings.REMORPH_METADATA_SCHEMA}." f"{settings.RECON_JOB_RUN_DETAILS_TABLE_NAME}",
             )
-        except Exception:
+        except Exception as e:
             st.error(f'Error creating tables. Please check if "{settings.REMORPH_METADATA_SCHEMA}" schema exists')
+            st.error(f"Error: {e}") # FIXME : Remove this logging, it is for development purpose only
             # st.error(
             #     f"Please check if these "
             #     f"tables are present: {settings.RECON_CONFIG_TABLE_NAME} and "
