@@ -17,7 +17,6 @@ from databricks.labs.remorph.helpers.file_utils import (
     is_sql_file,
     make_dir,
 )
-from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
     TranspileStatus,
@@ -44,10 +43,10 @@ async def _process_one_file(
     error_list: list[TranspileError] = []
 
     with input_path.open("r") as f:
-        source_sql = remove_bom(f.read())
+        source_code = remove_bom(f.read())
 
     transpile_result = await _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_sql, input_path
+        transpiler, config.source_dialect, config.target_dialect, source_code, input_path
     )
     # Potentially expensive, only evaluate if debug is enabled
     if logger.isEnabledFor(logging.DEBUG):
@@ -96,7 +95,7 @@ async def _process_many_files(
 
     for file in files:
         logger.info(f"Processing file: {file}")
-        if not is_sql_file(file):
+        if not is_sql_file(file) and not is_dbt_project_file(file):
             continue
         output_file_name = output_folder / file.name
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
@@ -104,6 +103,11 @@ async def _process_many_files(
         all_errors.extend(error_list)
 
     return counter, all_errors
+
+
+def is_dbt_project_file(file: Path):
+    # it's ok to hardcode the file name here, see https://docs.getdbt.com/reference/dbt_project.yml
+    return file.name == "dbt_project.yml"
 
 
 async def _process_input_dir(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine):
@@ -174,7 +178,7 @@ async def _do_transpile(
         logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
         validator = Validator(sql_backend)
     if config.input_source is None:
-        raise InvalidInputException("Missing input source!")
+        raise ValueError("Missing input source!")
     if config.input_path.is_dir():
         logger.debug(f"Starting to process input directory: {config.input_path}")
         result = await _process_input_dir(config, validator, engine)

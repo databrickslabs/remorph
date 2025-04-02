@@ -44,17 +44,21 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     generate_final_reconcile_aggregate_output,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    Table,
+    AggregateQueryRules,
+    SamplingOptions,
+    RECONCILE_OPERATION_NAME,
+    AGG_RECONCILE_OPERATION_NAME,
+)
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
-    Schema,
     SchemaReconcileOutput,
-    Table,
     ThresholdOutput,
     ReconcileRecordCount,
     AggregateQueryOutput,
-    AggregateQueryRules,
-    SamplingOptions,
 )
 from databricks.labs.remorph.reconcile.sampler import SamplerFactory
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
@@ -65,9 +69,6 @@ from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
-
-RECONCILE_OPERATION_NAME = "reconcile"
-AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
