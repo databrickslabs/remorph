@@ -1,0 +1,49 @@
+INFO:pygls.feature_manager:Registered builtin feature exit
+INFO:pygls.feature_manager:Registered builtin feature initialize
+INFO:pygls.feature_manager:Registered builtin feature initialized
+INFO:pygls.feature_manager:Registered builtin feature notebookDocument/didChange
+INFO:pygls.feature_manager:Registered builtin feature notebookDocument/didClose
+INFO:pygls.feature_manager:Registered builtin feature notebookDocument/didOpen
+INFO:pygls.feature_manager:Registered builtin feature $/setTrace
+INFO:pygls.feature_manager:Registered builtin feature shutdown
+INFO:pygls.feature_manager:Registered builtin feature textDocument/didChange
+INFO:pygls.feature_manager:Registered builtin feature textDocument/didClose
+INFO:pygls.feature_manager:Registered builtin feature textDocument/didOpen
+INFO:pygls.feature_manager:Registered builtin feature window/workDoneProgress/cancel
+INFO:pygls.feature_manager:Registered builtin feature workspace/didChangeWorkspaceFolders
+INFO:pygls.feature_manager:Registered builtin feature workspace/executeCommand
+INFO:pygls.feature_manager:Registered "initialize" with options "None"
+INFO:pygls.feature_manager:Registered "textDocument/didOpen" with options "None"
+INFO:pygls.feature_manager:Registered "textDocument/didClose" with options "None"
+INFO:pygls.feature_manager:Registered "document/transpileToDatabricks" with options "None"
+DEBUG:__main__:SOME_ENV=abc
+DEBUG:__main__:sys.args=['lsp_server.py', '--stuff=12']
+INFO:pygls.server:Starting async IO server
+DEBUG:asyncio:Using selector: KqueueSelector
+DEBUG:pygls.server:Content length: 301
+DEBUG:pygls.protocol.json_rpc:Request message received.
+INFO:pygls.protocol.language_server:Language server initialized InitializeParams(capabilities=ClientCapabilities(workspace=None, text_document=None, notebook_document=None, window=None, general=None, experimental=None), process_id=None, client_info=None, locale=None, root_path='.', root_uri=None, initialization_options={'remorph': {'source-dialect': 'snowflake'}, 'custom': {'whatever': 'xyz'}}, trace=None, work_done_token=None, workspace_folders=None)
+DEBUG:pygls.protocol.language_server:Server capabilities: {"positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 2, "save": false}, "executeCommandProvider": {"commands": []}, "workspace": {"workspaceFolders": {"supported": true, "changeNotifications": true}, "fileOperations": {}}}
+INFO:pygls.protocol.json_rpc:Sending data: {"id": "d27a418d-1dbf-4279-aa39-0cfb419a208f", "jsonrpc": "2.0", "result": {"capabilities": {"positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 2, "save": false}, "executeCommandProvider": {"commands": []}, "workspace": {"workspaceFolders": {"supported": true, "changeNotifications": true}, "fileOperations": {}}}, "serverInfo": {"name": "test-lsp-server", "version": "v0.1"}}}
+DEBUG:__main__:dialect=snowflake
+DEBUG:__main__:whatever=xyz
+DEBUG:pygls.protocol.json_rpc:Sending request with id "e9005efb-b04c-43a1-8ebd-db929eb509c8": client/registerCapability RegistrationParams(registrations=[Registration(id='6006fa53-c96f-4d02-80c8-56ed086963a5', method='document/transpileToDatabricks', register_options=None)])
+INFO:pygls.protocol.json_rpc:Sending data: {"id": "e9005efb-b04c-43a1-8ebd-db929eb509c8", "params": {"registrations": [{"id": "6006fa53-c96f-4d02-80c8-56ed086963a5", "method": "document/transpileToDatabricks"}]}, "method": "client/registerCapability", "jsonrpc": "2.0"}
+DEBUG:pygls.server:Content length: 274
+DEBUG:pygls.protocol.json_rpc:Notification message received.
+DEBUG:__main__:open-document-uri=file:///Users/kushagra.parashar/IdeaProjects/remorph/tests/resources/lsp_transpiler/internal.sql
+DEBUG:pygls.server:Content length: 80
+DEBUG:pygls.protocol.json_rpc:Response message received.
+DEBUG:pygls.protocol.json_rpc:Received result for message "e9005efb-b04c-43a1-8ebd-db929eb509c8": None
+DEBUG:pygls.server:Content length: 248
+DEBUG:pygls.protocol.json_rpc:Request message received.
+INFO:pygls.protocol.json_rpc:Sending data: {"id": "a2225697-3269-426b-9b00-3ee6da142767", "jsonrpc": "2.0", "result": {"uri": "file:///Users/kushagra.parashar/IdeaProjects/remorph/tests/resources/lsp_transpiler/internal.sql", "changes": [{"range": {"start": {"line": 0, "character": 0}, "end": {"line": 2, "character": 0}}, "newText": "create table stuff(name varchar(12))\n"}], "diagnostics": [{"range": {"start": {"line": 0, "character": 0}, "end": {"line": 2, "character": 0}}, "message": "Something went wrong", "severity": 2, "code": "SOME_ERROR_CODE"}]}}
+DEBUG:pygls.server:Content length: 190
+DEBUG:pygls.protocol.json_rpc:Notification message received.
+DEBUG:__main__:close-document-uri=file:///Users/kushagra.parashar/IdeaProjects/remorph/tests/resources/lsp_transpiler/internal.sql
+DEBUG:pygls.server:Content length: 86
+DEBUG:pygls.protocol.json_rpc:Request message received.
+INFO:pygls.protocol.json_rpc:Sending data: {"id": "93f3df4c-1f36-468d-ace6-f0e11371d552", "jsonrpc": "2.0", "result": null}
+DEBUG:pygls.server:Content length: 36
+DEBUG:pygls.protocol.json_rpc:Notification message received.
+INFO:pygls.server:Shutting down the server

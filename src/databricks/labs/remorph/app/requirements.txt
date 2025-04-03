@@ -1,0 +1,11 @@
+streamlit==1.41.0
+databricks-connect==15.4.0
+streamlit-dynamic-filters
+streamlit-aggrid
+altair==5.0.0
+streamlit-dynamic-filters
+pandas~=2.2.2
+databricks-sdk~=0.41.0
+streamlit_option_menu
+python-dotenv~=1.0.1
+pandas-stubs

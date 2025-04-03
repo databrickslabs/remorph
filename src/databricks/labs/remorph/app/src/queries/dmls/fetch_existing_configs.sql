@@ -1,0 +1,1 @@
+select  * from  {REMORPH_METADATA_SCHEMA}.recon_app_config_table;
