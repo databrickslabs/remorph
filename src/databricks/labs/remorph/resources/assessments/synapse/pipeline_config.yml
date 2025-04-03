@@ -1,0 +1,83 @@
+name: synapse_assessment
+version: "1.0"
+extract_folder: "data/synapse_assessment"
+
+steps:
+  # Inventory steps
+  - name: databases
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/databases.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: tables
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/tables.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: columns
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/columns.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: views
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/views.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: routines
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/routines.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: table_definition
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/inventory/table_definition.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  # Utilization steps
+  - name: query_stats
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/utilization/query_stats.sql
+    mode: append
+    frequency: daily
+    flag: active
+
+  - name: requests
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/utilization/requests.sql
+    mode: append
+    frequency: hourly
+    flag: active
+
+  - name: service_tiers
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/utilization/service_tiers.sql
+    mode: append
+    frequency: once
+    flag: active
+
+  - name: sessions
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/utilization/sessions.sql
+    mode: append
+    frequency: daily
+    flag: active
+
+  - name: storage
+    type: sql
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/utilization/storage.sql
+    mode: append
+    frequency: daily
+    flag: active
