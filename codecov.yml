@@ -1,2 +1,12 @@
 # We may add certain file to ignore in the codecov coverage report
-ignore:
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0.5%
+    patch:
+      default:
+        target: auto
+        threshold: 0.5%
+  ignore:
