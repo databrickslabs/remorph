@@ -38,7 +38,7 @@ from pygls.exceptions import FeatureRequestError
 
 from databricks.labs.blueprint.wheels import ProductInfo
 
-from databricks.labs.remorph.config import TranspileConfig, TranspileResult
+from databricks.labs.remorph.config import TranspileConfig, TranspileResult, LSPConfigOptionV1
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
@@ -84,6 +84,7 @@ class _LSPRemorphConfigV1:
 class LSPConfig:
     path: Path
     remorph: _LSPRemorphConfigV1
+    options: dict[str, list[LSPConfigOptionV1]]
     custom: dict[str, Any]
 
     @property
@@ -100,8 +101,12 @@ class LSPConfig:
         if not isinstance(remorph_data, dict):
             raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph_data}")
         remorph = _LSPRemorphConfigV1.parse(remorph_data)
+        options_data = data.get("options", {})
+        if not isinstance(options_data, dict):
+            raise ValueError(f"Invalid transpiler config, expecting an 'options' dict entry, got {options_data}")
+        options = LSPConfigOptionV1.parse_all(options_data)
         custom = data.get("custom", {})
-        return LSPConfig(path, remorph, custom)
+        return LSPConfig(path, remorph, options, custom)
 
 
 def lsp_feature(
@@ -209,7 +214,7 @@ class _LanguageClient(BaseLanguageClient):
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
     async def _await_for_transpile_capability(self):
-        for _ in range(1, 10):
+        for _ in range(1, 100):
             if self.transpile_to_databricks_capability:
                 return
             await asyncio.sleep(0.1)
@@ -375,6 +380,11 @@ class LSPEngine(TranspileEngine):
         env = deepcopy(os.environ)
         for name, value in self._config.remorph.env_vars.items():
             env[name] = value
+        # ensure modules are searched locally before being searched in remorph
+        if "PYTHONPATH" in env.keys():
+            env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
+        else:
+            env["PYTHONPATH"] = str(self._workdir)
         log_level = logging.getLevelName(logging.getLogger("databricks").level)
         args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
         logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
@@ -397,6 +407,7 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
+            "options": config.transpiler_options,
             "custom": self._config.custom,
         }
 
