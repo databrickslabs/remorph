@@ -1,5 +1,10 @@
 from dataclasses import dataclass, field
 
+@dataclass
+class PythonConfig:
+    requirements: list = field(default_factory=list)
+    install_command: str = "pip install"
+    env_vars: dict = field(default_factory=dict)
 
 @dataclass
 class Step:
