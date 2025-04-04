@@ -65,6 +65,13 @@ def mock_credentials():
                 'database': 'TEST_TSQL_JDBC',
                 'driver': 'ODBC Driver 18 for SQL Server',
             },
+            'postgres': {
+                'user': 'TEST_PG_USER',
+                'password': 'TEST_PG_PASS',
+                'server': 'TEST_PG_JDBC',
+                'database': 'TEST_PG_DB',
+                'driver': 'PostgreSQL Unicode',
+            },
         },
     ):
         yield
