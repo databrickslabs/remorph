@@ -368,7 +368,8 @@ class WorkspaceInstaller:
             catalog_name = self._configure_catalog()
             schema_name = self._configure_schema(catalog_name, "transpile")
             self._has_necessary_access(catalog_name, schema_name)
-            runtime_config = self._configure_runtime()
+            warehouse_id = self._resource_configurator.prompt_for_warehouse_setup(TRANSPILER_WAREHOUSE_PREFIX)
+            runtime_config = {"warehouse_id": warehouse_id}
 
         config = dataclasses.replace(
             default_config,
@@ -467,18 +468,6 @@ class WorkspaceInstaller:
             catalog,
             default_schema_name,
         )
-
-    def _configure_runtime(self) -> dict[str, str]:
-        if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
-            warehouse_id = self._resource_configurator.prompt_for_warehouse_setup(TRANSPILER_WAREHOUSE_PREFIX)
-            return {"warehouse_id": warehouse_id}
-
-        if self._ws.config.cluster_id:
-            logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
-            return {"cluster_id": self._ws.config.cluster_id}
-
-        cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
-        return {"cluster_id": cluster_id}
 
     def _configure_reconcile(self) -> ReconcileConfig:
         try:

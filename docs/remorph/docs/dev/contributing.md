@@ -1,3 +1,5 @@
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Contributing
 
 ## First Principles
@@ -32,27 +34,29 @@ If you don't already have one, create a GPG key:
 
 Register your PGP key in GitHub:
  - In GitHub, select Settings from your picture at the top-right
-   - select SSH and PGP key
-     - click on New key, and paste the text content of the exported key
-   - select Emails
-     - if your databricks email is not registered, register it
-     - complete the verification before the next steps
+- select SSH and PGP key
+- click on New key, and paste the text content of the exported key
+- select Emails
+- if your databricks email is not registered, register it
+- complete the verification before the next steps
 
 Tell local git to signoff your commits using your PGP key:
 
-    - see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
-    - in short, you need to run the following commands from a terminal:
-        - git config --global --unset gpg.format
-        - gpg --list-secret-keys --keyid-format=long
-        - git config --global user.signingkey <KEY.ID.FROM.ABOVE>
-        - git config --global commit.gpgsign true
+see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
+in short, you need to run the following commands from a terminal:
+``` shell
+git config --global --unset gpg.format
+gpg --list-secret-keys --keyid-format=long
+git config --global user.signingkey <KEY.ID.FROM.ABOVE>
+git config --global commit.gpgsign true
+```
 
 Once all this is done, you can verify it's correct as follows:
-    - create a branch and use it
-    - create a file <FILENAME> with some content
-    - git add <FILENAME>
-    - git commit -m "test PGP"
-    - git verify-commit <COMMIT>
+- create a branch and use it
+- create a file `FILENAME` with some content
+- git add `FILENAME`
+- git commit -m "test PGP"
+- git verify-commit `COMMIT`
 The last command should display something like the following:
 
 `gpg: Signature made Tue Nov 26 11:34:23 2024 CET
@@ -177,7 +181,8 @@ You may download and install it from: [IntelliJ IDEA](https://www.jetbrains.com/
 
 Configure your IDE to:
  - use this Python venv path so that you work within the virtual environment when developing the project:
-![IDE Setup](docs/img/remorph_intellij.gif)
+
+<img src={useBaseUrl('img/remorph_intellij.gif')} alt="IDE" />
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:
 ```shell
@@ -208,9 +213,9 @@ Here are the example steps to submit your first contribution:
 12. `git commit -a`. Make sure to enter meaningful commit message title.
 13. `git push origin FEATURENAME`
 14. Go to GitHub UI and create PR. Alternatively, `gh pr create` (if you have [GitHub CLI](https://cli.github.com/) installed).
-    Use a meaningful pull request title because it'll appear in the release notes. Use `Resolves #NUMBER` in pull
-    request description to [automatically link it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue)
-    to an existing issue.
+Use a meaningful pull request title because it'll appear in the release notes. Use `Resolves #NUMBER` in pull
+request description to [automatically link it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue)
+to an existing issue.
 15. announce PR for the review
 
 ## Troubleshooting

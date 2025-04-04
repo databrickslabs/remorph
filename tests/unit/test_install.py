@@ -239,6 +239,7 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     config = workspace_installer.configure(module="transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -265,7 +266,12 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     )
 
 
-def test_configure_transpile_installation_no_override(ws):
+@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_rct")
+@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_morpheus")
+def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_rct, ws):
+    mock_install_rct.return_value = None
+    mock_install_morpheus.return_value = None
+
     prompts = MockPrompts(
         {
             r"Do you want to override the existing installation?": "no",
@@ -358,6 +364,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
 
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -420,6 +427,7 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
 
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -440,145 +448,6 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
             "error_file_path": "/tmp/queries/errors.log",
             "schema_name": "transpiler",
             "skip_validation": True,
-            "source_dialect": "snowflake",
-            "version": 3,
-        },
-    )
-
-
-def test_configure_transpile_installation_with_validation_and_cluster_id_in_config(ws_installer, ws):
-    prompts = MockPrompts(
-        {
-            r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
-            r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
-            r"Enter input SQL path.*": "/tmp/queries/snow",
-            r"Enter output directory.*": "/tmp/queries/databricks",
-            r"Enter error file path.*": "/tmp/queries/errors.log",
-            r"Would you like to validate.*": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Open .* in the browser?": "no",
-        }
-    )
-    installation = MockInstallation()
-    ws.config.cluster_id = "1234"
-
-    resource_configurator = create_autospec(ResourceConfigurator)
-    resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
-    resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
-
-    ctx = ApplicationContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-        resource_configurator=resource_configurator,
-        workspace_installation=create_autospec(WorkspaceInstallation),
-    )
-
-    workspace_installer = ws_installer(
-        ctx.workspace_client,
-        ctx.prompts,
-        ctx.installation,
-        ctx.install_state,
-        ctx.product_info,
-        ctx.resource_configurator,
-        ctx.workspace_installation,
-    )
-
-    config = workspace_installer.configure(module="transpile")
-
-    expected_config = RemorphConfigs(
-        transpile=TranspileConfig(
-            transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-            source_dialect="snowflake",
-            input_source="/tmp/queries/snow",
-            output_folder="/tmp/queries/databricks",
-            error_file_path="/tmp/queries/errors.log",
-            catalog_name="remorph_test",
-            schema_name="transpiler_test",
-            sdk_config={"cluster_id": "1234"},
-        )
-    )
-    assert config == expected_config
-    installation.assert_file_written(
-        "config.yml",
-        {
-            "transpiler_config_path": PATH_TO_TRANSPILER_CONFIG,
-            "catalog_name": "remorph_test",
-            "input_source": "/tmp/queries/snow",
-            "output_folder": "/tmp/queries/databricks",
-            "error_file_path": "/tmp/queries/errors.log",
-            "schema_name": "transpiler_test",
-            "sdk_config": {"cluster_id": "1234"},
-            "source_dialect": "snowflake",
-            "version": 3,
-        },
-    )
-
-
-def test_configure_transpile_installation_with_validation_and_cluster_id_from_prompt(ws_installer, ws):
-    prompts = MockPrompts(
-        {
-            r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
-            r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
-            r"Enter input SQL path.*": "/tmp/queries/snow",
-            r"Enter output directory.*": "/tmp/queries/databricks",
-            r"Enter error file path.*": "/tmp/queries/errors.log",
-            r"Would you like to validate.*": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Enter a valid cluster_id to proceed": "1234",
-            r"Open .* in the browser?": "no",
-        }
-    )
-    installation = MockInstallation()
-    ws.config.cluster_id = None
-
-    resource_configurator = create_autospec(ResourceConfigurator)
-    resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
-    resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
-
-    ctx = ApplicationContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-        resource_configurator=resource_configurator,
-        workspace_installation=create_autospec(WorkspaceInstallation),
-    )
-
-    workspace_installer = ws_installer(
-        ctx.workspace_client,
-        ctx.prompts,
-        ctx.installation,
-        ctx.install_state,
-        ctx.product_info,
-        ctx.resource_configurator,
-        ctx.workspace_installation,
-    )
-
-    config = workspace_installer.configure(module="transpile")
-
-    expected_config = RemorphConfigs(
-        transpile=TranspileConfig(
-            transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-            source_dialect="snowflake",
-            input_source="/tmp/queries/snow",
-            output_folder="/tmp/queries/databricks",
-            error_file_path="/tmp/queries/errors.log",
-            catalog_name="remorph_test",
-            schema_name="transpiler_test",
-            sdk_config={"cluster_id": "1234"},
-        )
-    )
-    assert config == expected_config
-    installation.assert_file_written(
-        "config.yml",
-        {
-            "transpiler_config_path": PATH_TO_TRANSPILER_CONFIG,
-            "catalog_name": "remorph_test",
-            "input_source": "/tmp/queries/snow",
-            "output_folder": "/tmp/queries/databricks",
-            "error_file_path": "/tmp/queries/errors.log",
-            "schema_name": "transpiler_test",
-            "sdk_config": {"cluster_id": "1234"},
             "source_dialect": "snowflake",
             "version": 3,
         },
@@ -627,6 +496,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+            transpiler_options=None,
             source_dialect="snowflake",
             input_source="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
@@ -957,6 +827,7 @@ def test_configure_all_override_installation(ws_installer, ws):
 
     expected_transpile_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -1088,6 +959,7 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
         RemorphConfigs(
             transpile=TranspileConfig(
                 transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
+                transpiler_options=None,
                 source_dialect="snowflake",
                 input_source="/tmp/queries/snow",
                 output_folder="/tmp/queries/databricks",

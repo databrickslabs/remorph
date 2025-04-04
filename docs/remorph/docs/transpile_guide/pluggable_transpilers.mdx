@@ -1,3 +1,7 @@
+---
+title: Pluggable Transpiler
+---
+
 Remorph _pluggable_ transpilers
 ---
 
@@ -14,25 +18,25 @@ This document describes how `remorph` discovers and runs transpilers.
 Although one could _in theory_ run a transpiler without access to the Databricks platform, `remorph` requires a valid Databricks install.
 Remorph leverages this by expecting transpilers to reside in the `.databricks` folder hierarchy, as follows:
 
-&#x002E;\
-&#x251C;&#x2500;.Databricks/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;labs/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;remorph-transpilers/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;morpheus/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;remorph-community-transpiler/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;some-3rd-party-transpiler/
 
-
+``` bash
+.Databricks/
+├── labs/
+│   ├── remorph-transpilers/
+│   │   ├── morpheus/
+│   │   ├── remorph-community-transpiler/
+│   │   ├── some-3rd-party-transpiler/
+```
 
 Each transpiler resides in its own dedicated sub-directory, whose name can be anything (although avoiding spaces is recommended). It itself comprises 2 folders:
-
-&#x002E;\
-&#x251C;&#x2500;.lib/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;.config.yml\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;.&lt;transpiler code&gt;\
-&#x251C;&#x2500;.state/\
-&#x2502;&nbsp;&nbsp;&nbsp;&nbsp;&#x251C;&#x2500;.version.json\
-
+``` bash
+.
+├── .lib/
+│   ├── .config.yml
+│   ├── .<transpiler code>
+├── .state/
+│   ├── .version.json
+```
 
 A transpiler `lib` subdirectory _must_ comprise a `config.yml` file that follows the following structure:
 
@@ -81,5 +85,5 @@ Following the above steps, it is straightforward to manually install a transpile
  - creating the transpiler folder in the `.databricks/labs/remorph-transpilers/` directory
  - creating the `lib` and `state` sub-folders
  - creating a `config.yml` file in the `lib` folder (see details above)
- - creating a `version.json` file in the `state` folder with content like:`
-   ```{"version": f"v1.3.7", "date": "2025-03-17-15:02:31Z}```
+ - creating a `version.json` file in the `state` folder with content like:
+```{"version": f"v1.3.7", "date": "2025-03-17-15:02:31Z}```
