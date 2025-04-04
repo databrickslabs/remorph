@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import typing
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
@@ -50,6 +51,7 @@ class LSPConfigOptionV1:
         default = data.get("default", None)
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
+JSON: typing.TypeAlias = None | bool | int | float | str | list["JSON"] | dict[str, "JSON"]
 
 @dataclass
 class TranspileConfig:
@@ -65,7 +67,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, Any] | None = None
+    transpiler_options: JSON = None
 
     @property
     def transpiler_path(self):
