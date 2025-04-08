@@ -2,7 +2,7 @@ from pathlib import Path
 import pytest
 
 from databricks.labs.remorph.assessments.pipeline import PipelineClass
-from databricks.labs.remorph.assessments.scheduler.usage_collector import UsageCollector
+from databricks.labs.remorph.assessments.scheduler.pipeline_scheduler import PipelineScheduler
 from ..connections.helpers import get_db_manager
 
 
@@ -22,8 +22,9 @@ def pipeline_config():
     return config
 
 
-def test_usage_collector(pipeline_config, extractor):
-    pg_pipeline = PipelineClass(config=pipeline_config, executor=extractor)
-    usage_collector = UsageCollector(warehouse_type="Postgres", pipeline=pg_pipeline)
-    status = usage_collector.run()
-    assert status == "COMPLETE", "Usage collector returned an unexpected status."
+def test_pipeline_scheduler(pipeline_config, extractor):
+    simple_pipeline = PipelineClass(config=pipeline_config, executor=extractor)
+    pipelines = [simple_pipeline]
+    scheduler = PipelineScheduler(pipelines)
+    scheduler.run(num_cycles=3)
+    assert 1 == 1

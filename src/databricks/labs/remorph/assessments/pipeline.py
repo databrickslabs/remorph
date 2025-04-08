@@ -28,16 +28,26 @@ class PipelineClass:
         for step in self.config.steps:
             if step.flag == "active":
                 logging.debug(f"Executing step: {step.name}")
-                self._execute_step(step)
+                self.execute_step(step)
         logging.info("Pipeline execution completed")
 
-    def _execute_step(self, step: Step):
-        if step.type == "sql":
-            self._execute_sql_step(step)
-        elif step.type == "python":
-            self._execute_python_step(step)
-        else:
-            logging.error(f"Unsupported step type: {step.type}")
+    def execute_step(self, step: Step) -> str:
+        try:
+            if step.type == "sql":
+                logging.info(f"Executing SQL step {step.name}")
+                self._execute_sql_step(step)
+                status = "COMPLETE"
+            elif step.type == "python":
+                logging.info(f"Executing Python step {step.name}")
+                self._execute_python_step(step)
+                status = "COMPLETE"
+            else:
+                logging.error(f"Unsupported step type: {step.type}")
+                raise RuntimeError(f"Unsupported step type: {step.type}")
+        except RuntimeError as e:
+            logging.error(e)
+            status = "ERROR"
+        return status
 
     def _execute_sql_step(self, step: Step):
         logging.debug(f"Reading query from file: {step.extract_source}")
@@ -86,7 +96,8 @@ class PipelineClass:
         self._create_dir(self.db_path_prefix)
         conn = duckdb.connect(str(self.db_path_prefix) + '/' + DB_NAME)
         columns = result.keys()
-        # TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
+        # TODO: Add support for figuring out data types from SQLALCHEMY
+        #  result object result.cursor.description is not reliable
         schema = ' STRING, '.join(columns) + ' STRING'
 
         # Handle write modes

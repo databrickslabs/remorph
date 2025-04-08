@@ -66,7 +66,7 @@ class SnowflakeConnector(_BaseConnector):
         connection_string = SnowflakeURL(
             drivername=sqlalchemy_driver,
             account=self.config["account"],
-            user=self.config["username"],
+            user=self.config["user"],
             password=self.config["password"],
             database=self.config["database"],
             schema=self.config["schema"],
