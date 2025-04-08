@@ -5,6 +5,7 @@ import logging
 import subprocess
 import yaml
 import duckdb
+from enum import StrEnum
 
 from databricks.labs.remorph.connections.credential_manager import cred_file
 
@@ -15,6 +16,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
 DB_NAME = "profiler_extract.db"
+
+
+class StepExecutionStatus(StrEnum):
+    COMPLETE = "COMPLETE"
+    ERROR = "ERROR"
+    SKIPPED = "SKIPPED"
 
 
 class PipelineClass:
@@ -31,22 +38,22 @@ class PipelineClass:
                 self.execute_step(step)
         logging.info("Pipeline execution completed")
 
-    def execute_step(self, step: Step) -> str:
+    def execute_step(self, step: Step) -> StrEnum:
         try:
             if step.type == "sql":
                 logging.info(f"Executing SQL step {step.name}")
                 self._execute_sql_step(step)
-                status = "COMPLETE"
+                status = StepExecutionStatus.COMPLETE
             elif step.type == "python":
                 logging.info(f"Executing Python step {step.name}")
                 self._execute_python_step(step)
-                status = "COMPLETE"
+                status = StepExecutionStatus.COMPLETE
             else:
                 logging.error(f"Unsupported step type: {step.type}")
                 raise RuntimeError(f"Unsupported step type: {step.type}")
         except RuntimeError as e:
             logging.error(e)
-            status = "ERROR"
+            status = StepExecutionStatus.ERROR
         return status
 
     def _execute_sql_step(self, step: Step):
