@@ -2,10 +2,10 @@ import time
 import logging
 from dataclasses import dataclass
 
-import duckdb
 from datetime import datetime
 from enum import StrEnum
 
+from databricks.labs.remorph.assessments.duckdb_manager import DuckDBManager
 from databricks.labs.remorph.assessments.pipeline import PipelineClass, StepExecutionStatus
 from databricks.labs.remorph.assessments.profiler_config import Step
 
@@ -40,10 +40,9 @@ class PipelineScheduler:
     """A scheduler that executes Pipeline steps according to predefined schedules."""
 
     def __init__(self, pipelines: list[PipelineClass],
-                 db_path: str = "pipeline_steps.duckdb",
                  polling_interval_secs: int = 5):
 
-        self.db_path = db_path
+        self.duckdb_connection = DuckDBManager().get_connection()
         self.polling_interval = polling_interval_secs
         self.pipelines: list[PipelineClass] = pipelines
 
@@ -53,41 +52,40 @@ class PipelineScheduler:
     def _init_db(self):
         """Initializes a DuckDB database to store pipeline step execution state."""
         logging.info("Initializing pipeline state database...")
-        with duckdb.connect(self.db_path) as conn:
-            conn.execute(query="""
-                CREATE TABLE IF NOT EXISTS pipeline_step_state (
-                    step_name TEXT PRIMARY KEY,
-                    pipeline_name TEXT,
-                    last_run TIMESTAMP,
-                    status TEXT
-                )
-            """)
+        self.duckdb_connection.execute(query="""
+            CREATE TABLE IF NOT EXISTS pipeline_step_state (
+                step_name TEXT PRIMARY KEY,
+                pipeline_name TEXT,
+                last_run TIMESTAMP,
+                status TEXT
+            )
+        """)
         logging.info("DuckDB state table is ready to go!")
 
     def _get_last_run_time(self, pipeline_name: str, step_name: str) -> (datetime | None, str | None):
         """Fetches the last execution time of a pipeline step from the database. """
-        with duckdb.connect(self.db_path) as conn:
-            full_step_name = f"{pipeline_name}__{step_name}"
-            result = conn.execute(query="SELECT last_run, status FROM pipeline_step_state WHERE step_name = ?",
-                                  parameters=[full_step_name]).fetchone()
-            if result is not None:
-                last_run_time_str = result[0]
-                return last_run_time_str, result[1]
-            else:
-                return None, None
+        full_step_name = f"{pipeline_name}__{step_name}"
+        result = self.duckdb_connection.execute(
+            query="SELECT last_run, status FROM pipeline_step_state WHERE step_name = ?",
+            parameters=[full_step_name]
+        ).fetchone()
+        if result is not None:
+            last_run_time_str = result[0]
+            return last_run_time_str, result[1]
+        else:
+            return None, None
 
     def _record_run_time(self, pipeline_name: str, step_name: str, status: str = StepExecutionStatus.COMPLETE.value):
         """Records the latest execution time of a pipeline step."""
-        with duckdb.connect(self.db_path) as conn:
-            now = datetime.now()
-            full_step_name = f"{pipeline_name}__{step_name}"
-            conn.execute(query="""
-                INSERT INTO pipeline_step_state (step_name, pipeline_name, last_run, status)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(step_name)
-                  DO UPDATE
-                  SET pipeline_name = excluded.pipeline_name, last_run = excluded.last_run, status = excluded.status
-            """, parameters=[full_step_name, pipeline_name, now, status])
+        now = datetime.now()
+        full_step_name = f"{pipeline_name}__{step_name}"
+        self.duckdb_connection.execute(query="""
+            INSERT INTO pipeline_step_state (step_name, pipeline_name, last_run, status)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(step_name)
+                DO UPDATE
+                SET pipeline_name = excluded.pipeline_name, last_run = excluded.last_run, status = excluded.status
+        """, parameters=[full_step_name, pipeline_name, now, status])
 
     def _should_run(self, pipeline_name: str, step: Step) -> bool:
         """Determines if a pipeline step should run based on its schedule."""
