@@ -60,6 +60,19 @@ class PipelineClass:
         db_path = str(self.db_path_prefix / DB_NAME)
         credential_config = str(cred_file("remorph"))
 
+        if step.dependencies:
+            logging.info(f"Installing dependencies: {', '.join(step.dependencies)}")
+            try:
+                subprocess.run(
+                    ["pip", "install"] + step.dependencies,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    )
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Failed to install dependencies: {e.stderr}")
+                raise
+
         try:
             result = subprocess.run(
                 ["python", step.extract_source, "--db-path", db_path, "--credential-config-path", credential_config],

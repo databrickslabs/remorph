@@ -21,6 +21,15 @@ def pipeline_config():
         step.extract_source = f"{prefix}/../../{step.extract_source}"
     return config
 
+@pytest.fixture(scope="module")
+def pipeline_dep_config():
+    prefix = Path(__file__).parent
+    config_path = f"{prefix}/../../resources/assessments/pipeline_config_dependency.yml"
+    config = PipelineClass.load_config_from_yaml(config_path)
+
+    for step in config.steps:
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
+    return config
 
 @pytest.fixture(scope="module")
 def sql_failure_config():
@@ -58,6 +67,11 @@ def test_run_python_failure_pipeline(extractor, python_failure_config, get_logge
     pipeline = PipelineClass(config=python_failure_config, executor=extractor)
     with pytest.raises(RuntimeError, match="Script execution failed"):
         pipeline.execute()
+
+def test_run_python_dep_pipeline(extractor, pipeline_dep_config, get_logger):
+    pipeline = PipelineClass(config=pipeline_dep_config, executor=extractor)
+    pipeline.execute()
+    assert verify_output(get_logger, pipeline_config.extract_folder)
 
 
 def verify_output(get_logger, path):
