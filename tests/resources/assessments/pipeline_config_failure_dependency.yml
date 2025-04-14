@@ -2,12 +2,6 @@ name: ExamplePipeline
 version: "1.0"
 extract_folder: /tmp/extracts/
 steps:
-  - name: inventory
-    type: sql
-    extract_source: resources/assessments/inventory.sql
-    mode: overwrite
-    frequency: daily
-    flag: active
   - name: package_status
     type: python
     extract_source: resources/assessments/db_extract_dep.py
@@ -15,7 +9,6 @@ steps:
     frequency: daily
     flag: active
     dependencies:
-      - databricks_labs_dqx
       - databricks_labs_ucx
 
 

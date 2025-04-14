@@ -32,6 +32,15 @@ def pipeline_dep_config():
         step.extract_source = f"{prefix}/../../{step.extract_source}"
     return config
 
+@pytest.fixture(scope="module")
+def pipeline_dep_failure_config():
+    prefix = Path(__file__).parent
+    config_path = f"{prefix}/../../resources/assessments/pipeline_config_failure_dependency.yml"
+    config = PipelineClass.load_config_from_yaml(config_path)
+
+    for step in config.steps:
+        step.extract_source = f"{prefix}/../../{step.extract_source}"
+    return config
 
 @pytest.fixture(scope="module")
 def sql_failure_config():
@@ -78,6 +87,14 @@ def test_run_python_dep_pipeline(extractor, pipeline_dep_config, get_logger):
     result = conn.execute("SELECT count(*) FROM package_status where status = 'Not Installed'").fetchone()
 
     assert result[0] == 0
+
+def test_run_python_dep_failure_pipeline(extractor, pipeline_dep_failure_config, get_logger):
+    pipeline = PipelineClass(config=pipeline_dep_failure_config, executor=extractor)
+    pipeline.execute()
+    conn = duckdb.connect(str(Path(pipeline_dep_failure_config.extract_folder)) + "/" + DB_NAME)
+    result = conn.execute("SELECT count(*) FROM package_status where status = 'Not Installed'").fetchone()
+
+    assert result[0] == 1
 
 
 def verify_output(get_logger, path):
