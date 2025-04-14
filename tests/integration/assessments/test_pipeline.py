@@ -75,32 +75,9 @@ def test_run_python_dep_pipeline(extractor, pipeline_dep_config, get_logger):
     pipeline = PipelineClass(config=pipeline_dep_config, executor=extractor)
     pipeline.execute()
     conn = duckdb.connect(str(Path(pipeline_dep_config.extract_folder)) + "/" + DB_NAME)
-    r = conn.execute(f"SELECT * FROM package_status").fetchall()
-    print(r)
-    result = conn.execute(f"SELECT count(*) FROM package_status where status != 'Not Installed'").fetchone()
+    result = conn.execute("SELECT count(*) FROM package_status where status = 'Not Installed'").fetchone()
 
     assert result[0] == 0
-
-
-def verify_output(get_logger, path):
-    conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
-
-    expected_tables = ["usage", "inventory", "random_data"]
-    logger = get_logger
-    for table in expected_tables:
-        try:
-            result = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
-            logger.info(f"Count for {table}: {result[0]}")
-            if result[0] == 0:
-                logger.debug(f"Table {table} is empty")
-                return False
-        except duckdb.CatalogException:
-            logger.debug(f"Table {table} does not exist")
-            return False
-
-    conn.close()
-    logger.info("All expected tables exist and are not empty")
-    return True
 
 
 def verify_output(get_logger, path):

@@ -6,6 +6,7 @@ import subprocess
 import duckdb
 import pandas as pd
 
+
 def check_specific_packages(packages):
     data = []
     for pkg in packages:
@@ -37,6 +38,7 @@ def execute():
         logger.info("Checking if all dependant libs are installed")
         packages = ['databricks_labs_dqx', 'databricks_labs_ucx']
         df = check_specific_packages(packages)
+        logger.info(f'DataFrame columns: {df.columns}')
         # Connect to DuckDB
         conn = duckdb.connect(args.db_path)
 
