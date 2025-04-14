@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import json
@@ -68,7 +69,7 @@ class PipelineClass:
                     check=True,
                     capture_output=True,
                     text=True,
-                    )
+                )
             except subprocess.CalledProcessError as e:
                 logging.error(f"Failed to install dependencies: {e.stderr}")
                 raise
@@ -83,6 +84,9 @@ class PipelineClass:
 
             try:
                 output = json.loads(result.stdout)
+                print("****************************", file=sys.stdout)
+                logger.debug(output)
+                print("****************************")
                 if output["status"] == "success":
                     logging.info(f"Python script completed: {output['message']}")
                 else:

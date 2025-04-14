@@ -3,15 +3,17 @@ import json
 import sys
 import logging
 import subprocess
+import duckdb
+import pandas as pd
 
-def check_specific_packages(packages, logger):
+def check_specific_packages(packages):
+    data = []
     for pkg in packages:
         result = subprocess.run(['pip', 'show', pkg], capture_output=True, text=True)
-        if result.returncode == 0:
-            logger.info(f"{pkg} is installed:")
-        else:
-            logger.error(f"{pkg} is NOT installed.")
-            raise ValueError(f"{pkg} is NOT installed. Please install it using pip.")
+        status = "Installed" if result.returncode == 0 else "Not Installed"
+        data.append({"Package": pkg, "Status": status})
+    return pd.DataFrame(data)
+
 
 def execute():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,8 +35,24 @@ def execute():
 
     try:
         logger.info("Checking if all dependant libs are installed")
-        check_specific_packages(['databricks_labs_dqx', 'databricks_labs_ucx'])
-        print(json.dumps({"status": "success", "message": "Data loaded successfully"}))
+        packages = ['databricks_labs_dqx', 'databricks_labs_ucx']
+        df = check_specific_packages(packages)
+        # Connect to DuckDB
+        conn = duckdb.connect(args.db_path)
+
+        # Create table with appropriate schema
+        conn.execute(
+            """
+            CREATE OR REPLACE TABLE package_status (
+                pacakge STRING,
+                status STRING,
+            )
+        """
+        )
+
+        conn.execute("INSERT INTO package_status SELECT * FROM df")
+        conn.close()
+        print(json.dumps({"status": "success", "message": "All Libraries are installed"}), file=sys.stderr)
 
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}), file=sys.stderr)

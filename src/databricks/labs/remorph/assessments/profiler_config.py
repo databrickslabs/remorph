@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+
 @dataclass
 class Step:
     name: str
@@ -17,6 +18,7 @@ class Step:
             self.flag = "active"
         if self.mode is None:
             self.mode = "append"
+
 
 @dataclass
 class PipelineConfig:
