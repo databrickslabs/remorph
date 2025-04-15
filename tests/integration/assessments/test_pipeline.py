@@ -77,7 +77,6 @@ def test_run_python_dep_failure_pipeline(extractor, pipeline_dep_failure_config,
         pipeline.execute()
 
 
-
 def verify_output(get_logger, path):
     conn = duckdb.connect(str(Path(path)) + "/" + DB_NAME)
 
