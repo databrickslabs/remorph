@@ -1,13 +1,5 @@
 from dataclasses import dataclass, field
 
-
-@dataclass
-class PythonConfig:
-    requirements: list = field(default_factory=list)
-    install_command: str = "pip install"
-    env_vars: dict = field(default_factory=dict)
-
-
 @dataclass
 class Step:
     name: str
@@ -16,6 +8,7 @@ class Step:
     mode: str | None
     frequency: str | None
     flag: str | None
+    dependencies: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.frequency is None:
