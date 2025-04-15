@@ -1,11 +1,13 @@
-import sys
 from pathlib import Path
+from subprocess import run, CalledProcessError
 
+import venv
+import tempfile
 import json
 import logging
-import subprocess
 import yaml
 import duckdb
+
 
 from databricks.labs.remorph.connections.credential_manager import cred_file
 
@@ -57,47 +59,57 @@ class PipelineClass:
             raise RuntimeError(f"SQL execution failed: {str(e)}") from e
 
     def _execute_python_step(self, step: Step):
+
         logging.debug(f"Executing Python script: {step.extract_source}")
         db_path = str(self.db_path_prefix / DB_NAME)
         credential_config = str(cred_file("remorph"))
 
-        if step.dependencies:
-            logging.info(f"Installing dependencies: {', '.join(step.dependencies)}")
+        # Create a temporary directory for the virtual environment
+        with tempfile.TemporaryDirectory() as temp_dir:
+            venv_dir = Path(temp_dir) / "venv"
+            venv.create(venv_dir, with_pip=True)
+            venv_python = venv_dir / "bin" / "python"
+            venv_pip = venv_dir / "bin" / "pip"
+
+            # Install dependencies in the virtual environment
+            if step.dependencies:
+                logging.info(f"Installing dependencies: {', '.join(step.dependencies)}")
+                try:
+                    run([str(venv_pip), "install"] + step.dependencies, check=True, capture_output=True, text=True)
+                except CalledProcessError as e:
+                    logging.error(f"Failed to install dependencies: {e.stderr}")
+                    raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
+
+            # Execute the Python script using the virtual environment's Python interpreter
             try:
-                subprocess.run(
-                    ["pip", "install"] + step.dependencies,
+                result = run(
+                    [
+                        str(venv_python),
+                        str(step.extract_source),
+                        "--db-path",
+                        db_path,
+                        "--credential-config-path",
+                        credential_config,
+                    ],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Failed to install dependencies: {e.stderr}")
-                raise
 
-        try:
-            result = subprocess.run(
-                ["python", step.extract_source, "--db-path", db_path, "--credential-config-path", credential_config],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+                try:
+                    output = json.loads(result.stdout)
+                    logger.debug(output)
+                    if output["status"] == "success":
+                        logging.info(f"Python script completed: {output['message']}")
+                    else:
+                        raise RuntimeError(f"Script reported error: {output['message']}")
+                except json.JSONDecodeError:
+                    logging.info(f"Python script output: {result.stdout}")
 
-            try:
-                output = json.loads(result.stdout)
-                print("****************************", file=sys.stdout)
-                logger.debug(output)
-                print("****************************")
-                if output["status"] == "success":
-                    logging.info(f"Python script completed: {output['message']}")
-                else:
-                    raise RuntimeError(f"Script reported error: {output['message']}")
-            except json.JSONDecodeError:
-                logging.info(f"Python script output: {result.stdout}")
-
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr
-            logging.error(f"Python script failed: {error_msg}")
-            raise RuntimeError(f"Script execution failed: {error_msg}") from e
+            except CalledProcessError as e:
+                error_msg = e.stderr
+                logging.error(f"Python script failed: {error_msg}")
+                raise RuntimeError(f"Script execution failed: {error_msg}") from e
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
