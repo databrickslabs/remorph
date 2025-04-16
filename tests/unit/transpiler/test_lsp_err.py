@@ -1,19 +1,9 @@
 import asyncio
-import sys
+import logging
 from pathlib import Path
 
-from databricks.labs.blueprint.logger import install_logger
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
-
-# this file's sole purpose is to test the LSP Engine's stderr pipe
-# it can't be ran as a unit test because pytest captures std i/o
-# so this script is a 'manual' test that can be run as required
-# it should display the following in red in the console:
-# Hello there! I'm the client!
-# 17:50:19 ERROR [d.l.r.t.lsp.lsp_engine] Running LSP Test Server...
-
-install_logger()
 
 
 async def run_lsp_server():
@@ -28,6 +18,11 @@ async def run_lsp_server():
     await asyncio.sleep(5)
 
 
-if __name__ == "__main__":
-    sys.stderr.write("Hello there! I'm the client!\n")
-    asyncio.run(run_lsp_server())
+def test_stderr_captured_as_logs(caplog) -> None:
+    # The LSP engine logs a message to stderr when it starts. We can verify that stderr is being captured by looking
+    # for that log entry.
+    with caplog.at_level(logging.ERROR):
+        asyncio.run(run_lsp_server())
+
+    expected = (LSPEngine.__module__, logging.ERROR, "Running LSP Test Server...")
+    assert expected in caplog.record_tuples
