@@ -42,7 +42,7 @@ def execute():
 
         workspace_info = workspace_instance.get_workspace_info()
 
-        if not "id" in workspace_
+        if not "id" in workspace_info:
             raise ValueError("ERROR: Missing Workspace ID for extracting Workspace Level Metrics")
         workspace_resource_id = workspace_info["id"]
         logger.info(f"workspace_resource_id  →  {workspace_resource_id}")
@@ -57,7 +57,7 @@ def execute():
         logger.info(f" exclude_dedicated_sql_pools        →  {exclude_dedicated_sql_pools}")
         logger.info(f" dedicated_sql_pools_profiling_list →  {dedicated_sql_pools_profiling_list}")
 
-        if exclude_dedicated_sql_pools  == True:
+        if exclude_dedicated_sql_pools:
             logger.info(f" exclude_dedicated_sql_pools is set to {exclude_dedicated_sql_pools}, Skipping metrics extract for Dedicated SQL pools")
         else:
             dedicated_sqlpools = workspace_instance.list_sql_pools()
@@ -66,7 +66,7 @@ def execute():
 
             logger.info(f" Pool names to extract metrics: {[entry['name'] for entry in dedicated_pools_to_profile]}")
 
-        if exclude_dedicated_sql_pools  == True:
+        if exclude_dedicated_sql_pools:
             logger.info(f" exclude_dedicated_sql_pools is set to {exclude_dedicated_sql_pools}, Skipping metrics extract for Dedicated SQL pools")
         else:
             for idx, pool in enumerate(dedicated_pools_to_profile):
