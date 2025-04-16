@@ -20,8 +20,8 @@ async def run_lsp_server():
 def test_stderr_captured_as_logs(caplog) -> None:
     # The LSP engine logs a message to stderr when it starts. We can verify that stderr is being captured and logged
     # by looking for the log entry that matches the stderr message.
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.INFO):
         asyncio.run(run_lsp_server())
 
-    expected = (LSPEngine.__module__, logging.ERROR, "Running LSP Test Server...")
+    expected = (LSPEngine.__module__, logging.INFO, "Running LSP Test Server...")
     assert expected in caplog.record_tuples
