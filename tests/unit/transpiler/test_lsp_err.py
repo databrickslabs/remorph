@@ -15,7 +15,6 @@ async def run_lsp_server():
         input_source="input_source",
     )
     await lsp_engine.initialize(config)
-    await asyncio.sleep(5)
 
 
 def test_stderr_captured_as_logs(caplog) -> None:
