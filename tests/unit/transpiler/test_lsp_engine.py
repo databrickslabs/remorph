@@ -1,5 +1,6 @@
 import asyncio
 import dataclasses
+import logging
 from pathlib import Path
 from time import sleep
 
@@ -50,10 +51,25 @@ async def test_sets_env_variables(lsp_engine, transpile_config):
     await lsp_engine.shutdown()
 
 
+async def test_passes_options(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    assert "experimental=True" in log  # see environment in lsp_transpiler/config.yml
+    await lsp_engine.shutdown()
+
+
 async def test_passes_extra_args(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "--stuff=12" in log  # see command_line in lsp_transpiler/config.yml
+    await lsp_engine.shutdown()
+
+
+async def test_passes_log_level(lsp_engine, transpile_config):
+    logging.getLogger("databricks").setLevel(logging.INFO)
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    assert "--log_level=INFO" in log  # see command_line in lsp_transpiler/config.yml
     await lsp_engine.shutdown()
 
 

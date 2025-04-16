@@ -1,5 +1,5 @@
 from pyspark.errors import PySparkException
-from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
+from databricks.labs.remorph.reconcile.recon_output_config import ReconcileOutput
 
 
 class ColumnMismatchException(Exception):
