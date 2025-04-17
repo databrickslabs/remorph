@@ -97,7 +97,7 @@ class TranspileConfig:
         return raw
 
     @classmethod
-    def v2_migrate(cls, raw: dict)-> dict:
+    def v2_migrate(cls, raw: dict) -> dict:
         del raw["mode"]
         key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
         raw["version"] = 3
