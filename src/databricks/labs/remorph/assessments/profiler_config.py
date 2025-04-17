@@ -9,6 +9,7 @@ class Step:
     mode: str | None
     frequency: str | None
     flag: str | None
+    dependencies: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.frequency is None:
