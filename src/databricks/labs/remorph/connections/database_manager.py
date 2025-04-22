@@ -8,6 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
+from snowflake.sqlalchemy import URL as SnowflakeURL
+
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
@@ -56,7 +58,23 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        raise NotImplementedError("Snowflake connector not implemented")
+        # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
+        # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
+        # Query parameters are **not** currently supported (as of 1.7.3 release)
+        # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy#required-parameters
+        sqlalchemy_driver = "snowflake"
+        connection_string = SnowflakeURL(
+            drivername=sqlalchemy_driver,
+            account=self.config["account"],
+            user=self.config["user"],
+            password=self.config["password"],
+            database=self.config["database"],
+            schema=self.config["schema"],
+            warehouse=self.config["warehouse"],
+            role=self.config["role"],
+            timezone=self.config["timezone"]
+        )
+        return create_engine(connection_string)
 
 
 class MSSQLConnector(_BaseConnector):
@@ -73,6 +91,27 @@ class MSSQLConnector(_BaseConnector):
             host=self.config['server'],
             port=self.config.get('port', 1433),
             database=self.config['database'],
+            query=query_params,
+        )
+        return create_engine(connection_string)
+
+
+class PostgresConnector(_BaseConnector):
+    def _connect(self) -> Engine:
+        # Pull out additional query params from config
+        query_params = {}
+        for key, value in self.config.items():
+            if key not in ["user", "password", "server", "database", "port"]:
+                query_params[key] = value
+        # Build the connection string to database
+        sqlalchemy_driver = "postgresql"
+        connection_string = URL.create(
+            drivername=sqlalchemy_driver,
+            username=self.config["user"],
+            password=self.config["password"],
+            host=self.config["server"],
+            port=self.config.get("port", 5432),
+            database=self.config["database"],
             query=query_params,
         )
         return create_engine(connection_string)
