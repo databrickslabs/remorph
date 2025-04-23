@@ -3,7 +3,7 @@
 set -xve
 #Repurposed from https://github.com/Yarden-zamir/install-mssql-odbc
 
-VERSION_ID="$(awk -F= '$1=="VERSION_ID"{gsub(/\"/, "", $2); print $2}' /etc/os-release)"
+VERSION_ID="$(awk -F= '$1=="VERSION_ID"{gsub(/"/, "", $2); print $2}' /etc/os-release)"
 
 declare -A known_hashes=(
   [20.04]='3edd2ff1b9e18ca3bc93f46893b755400d1f22f4fb4c077c9d5882cd60d837b8'
