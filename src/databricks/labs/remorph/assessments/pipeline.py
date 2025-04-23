@@ -5,6 +5,7 @@ import logging
 import subprocess
 import yaml
 import duckdb
+from enum import StrEnum
 
 from databricks.labs.remorph.connections.credential_manager import cred_file
 
@@ -15,6 +16,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
 DB_NAME = "profiler_extract.db"
+
+
+class StepExecutionStatus(StrEnum):
+    COMPLETE = "COMPLETE"
+    ERROR = "ERROR"
+    SKIPPED = "SKIPPED"
 
 
 class PipelineClass:
@@ -28,16 +35,26 @@ class PipelineClass:
         for step in self.config.steps:
             if step.flag == "active":
                 logging.debug(f"Executing step: {step.name}")
-                self._execute_step(step)
+                self.execute_step(step)
         logging.info("Pipeline execution completed")
 
-    def _execute_step(self, step: Step):
-        if step.type == "sql":
-            self._execute_sql_step(step)
-        elif step.type == "python":
-            self._execute_python_step(step)
-        else:
-            logging.error(f"Unsupported step type: {step.type}")
+    def execute_step(self, step: Step) -> StrEnum:
+        try:
+            if step.type == "sql":
+                logging.info(f"Executing SQL step {step.name}")
+                self._execute_sql_step(step)
+                status = StepExecutionStatus.COMPLETE
+            elif step.type == "python":
+                logging.info(f"Executing Python step {step.name}")
+                self._execute_python_step(step)
+                status = StepExecutionStatus.COMPLETE
+            else:
+                logging.error(f"Unsupported step type: {step.type}")
+                raise RuntimeError(f"Unsupported step type: {step.type}")
+        except RuntimeError as e:
+            logging.error(e)
+            status = StepExecutionStatus.ERROR
+        return status
 
     def _execute_sql_step(self, step: Step):
         logging.debug(f"Reading query from file: {step.extract_source}")
@@ -86,7 +103,8 @@ class PipelineClass:
         self._create_dir(self.db_path_prefix)
         conn = duckdb.connect(str(self.db_path_prefix) + '/' + DB_NAME)
         columns = result.keys()
-        # TODO: Add support for figuring out data types from SQLALCHEMY result object result.cursor.description is not reliable
+        # TODO: Add support for figuring out data types from SQLALCHEMY
+        #  result object result.cursor.description is not reliable
         schema = ' STRING, '.join(columns) + ' STRING'
 
         # Handle write modes

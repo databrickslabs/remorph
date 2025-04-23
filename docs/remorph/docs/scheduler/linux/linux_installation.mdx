@@ -1,0 +1,73 @@
+---
+sidebar_position: 2
+title: Linux Installation
+---
+
+# (Linux) Installing the Usage Collection Scheduler
+
+## Installation Steps:
+
+1. Open a new Terminal window and navigate to the remorph repository
+
+2. Copy the unit file to `/etc/systemd/system/`:
+
+```bash
+$ cp ./src/databricks/labs/remorph/assessments/scheduler/install/linux/remorph_usage_collection.service /etc/systemd/system/
+```
+
+3. Copy the timer file to `/etc/systemd/system/`:
+
+```bash
+$ cp ./src/databricks/labs/remorph/assessments/scheduler/install/linux/remorph_usage_collection.timer /etc/systemd/system/
+```
+
+4. Reload the systmd process to pick up the new files:
+
+```bash
+$ sudo systemctl daemon-reload
+```
+
+5. Enable the system timer
+
+```bash
+$ sudo systemctl enable remorph_usage_collection.timer
+```
+
+6. Start the system timer
+
+```bash
+$ sudo systemctl start remorph_usage_collection.timer
+```
+
+## Description of the Unit File Elements
+
+1. **Description**: A description of the service
+
+2. **After**: Ensures the service starts only after the specified system service is up (network in this case)
+
+3. **ExecStart**: Specifies the command and arguments (python3 interpreter and the script path)
+
+4. **WorkingDirectory**: The directory where the script should run
+
+5. **StandardOutput**: Redirects the standard out to the system logs
+
+6. **StandardError**: Redirects the error out to the system logs
+
+7. **Restart**: Restarts the script if the system reboots
+
+8. **User**: Runs the script as the specified user
+
+9. **WantedBy**: Ensures the service starts when the system reaches multi-user mode
+
+
+## Description of the Timer File Elements
+
+1. **Description**:  A description of the timer
+
+2. **Persistent** : Ensures the script runs after reboots
+
+3. **OnBootSec**: Ensures the script runs 1 min after bootin
+
+4. **OnUnitActiveSec**: Runs the script every 15 minutes
+
+5. **WantedBy**: Ensures the timer is activated when the system is running timers

@@ -1,0 +1,10 @@
+name: PostgresPipeline
+version: "1.0"
+extract_folder: /tmp/extracts/
+steps:
+  - name: usage
+    type: sql
+    extract_source: resources/assessments/target/postgres/usage.sql
+    mode: overwrite
+    frequency: weekly
+    flag: active
