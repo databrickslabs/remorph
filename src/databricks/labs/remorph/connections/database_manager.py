@@ -8,8 +8,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from snowflake.sqlalchemy import URL as SnowflakeURL
-
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
@@ -58,12 +56,14 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
+        import snowflake.sqlalchemy  # type: ignore
+
         # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
         # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
         # Query parameters are **not** currently supported (as of 1.7.3 release)
         # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy#required-parameters
         sqlalchemy_driver = "snowflake"
-        connection_string = SnowflakeURL(
+        connection_string = snowflake.sqlalchemy.URL(
             drivername=sqlalchemy_driver,
             account=self.config["account"],
             user=self.config["user"],
@@ -72,7 +72,7 @@ class SnowflakeConnector(_BaseConnector):
             schema=self.config["schema"],
             warehouse=self.config["warehouse"],
             role=self.config["role"],
-            timezone=self.config["timezone"]
+            timezone=self.config["timezone"],
         )
         return create_engine(connection_string)
 
