@@ -65,6 +65,17 @@ def mock_credentials():
                 'database': 'TEST_TSQL_JDBC',
                 'driver': 'ODBC Driver 18 for SQL Server',
             },
+            'snowflake': {
+                'server': 'TEST_SNOWFLAKE_JDBC',
+                'pem': 'TEST_SNOWFLAKE_PRIVATE_KEY',
+            },
+            'postgres': {
+                'user': 'TEST_PG_USER',
+                'password': 'TEST_PG_PW',
+                'server': 'TEST_PG_SERVER',
+                'database': 'TEST_PG_DB',
+                'driver': 'PostgreSQL Unicode',
+            },
         },
     ):
         yield
