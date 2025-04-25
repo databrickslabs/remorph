@@ -8,14 +8,32 @@ def get_db_manager(product_name: str, source: str) -> DatabaseManager:
     env = TestEnvGetter(True)
     config = create_credential_manager(product_name, env).get_credentials(source)
 
-    # since the kv has only URL so added explicit parse rules
-    base_url, params = config['server'].replace("jdbc:", "", 1).split(";", 1)
+    # Some JDBC connection strings separate hostname and query params
+    # by semicolons, while others use ampersands
+    if ";" in config["server"]:
+        base_url, params = config["server"].replace("jdbc:", "", 1).split(";", 1)
+    elif "?" in config["server"]:
+        base_url, params = config["server"].replace("jdbc:", "", 1).split("?", 1)
+    else:  # There are no query params
+        base_url = config["server"].replace("jdbc:", "", 1)
+        params = None
 
     url_parts = urlparse(base_url)
     server = url_parts.hostname
-    query_params = dict(param.split("=", 1) for param in params.split(";") if "=" in param)
-    database = query_params.get("database", "")
-    config['server'] = server
-    config['database'] = database
+    config["server"] = server
+
+    # Some JDBC connection strings separate params by semicolons
+    # while others separate by ampersands
+    if ";" in params:
+        query_param_sep = ";"
+    elif "&" in params:
+        query_param_sep = "&"
+    else:
+        raise ValueError("Unknown param separator in JDBC connection string.")
+    for param in params.split(query_param_sep):
+        print(param)
+        if "=" in param:
+            split_param = param.split("=", 1)
+            config[split_param[0]] = split_param[1]
 
     return DatabaseManager(source, config)

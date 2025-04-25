@@ -68,6 +68,8 @@ def mock_credentials():
             'snowflake': {
                 'server': 'TEST_SNOWFLAKE_JDBC',
                 'pem': 'TEST_SNOWFLAKE_PRIVATE_KEY',
+                'database': 'TEST_SNOWFLAKE_DB',
+                'schema': 'TEST_SNOWFLAKE_SCHEMA',
             },
             'postgres': {
                 'user': 'TEST_PG_USER',

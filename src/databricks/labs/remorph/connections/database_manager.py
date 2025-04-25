@@ -56,25 +56,30 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
+        # pylint: disable=import-outside-toplevel
         import snowflake.sqlalchemy  # type: ignore
 
         # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
         # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
-        # Query parameters are **not** currently supported (as of 1.7.3 release)
-        # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy#required-parameters
+        # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy
         sqlalchemy_driver = "snowflake"
+        account_id = self.config["server"].split(".")[0]
         connection_string = snowflake.sqlalchemy.URL(
             drivername=sqlalchemy_driver,
-            account=self.config["account"],
+            account=account_id,
             user=self.config["user"],
-            password=self.config["password"],
             database=self.config["database"],
             schema=self.config["schema"],
             warehouse=self.config["warehouse"],
-            role=self.config["role"],
-            timezone=self.config["timezone"],
         )
-        return create_engine(connection_string)
+
+        # Users can optionally specify a private key to use
+        if "pem" in self.config:
+            engine = create_engine(connection_string, connect_args={"private_key": self.config["pem"]})
+        else:
+            engine = create_engine(connection_string)
+
+        return engine
 
 
 class MSSQLConnector(_BaseConnector):
