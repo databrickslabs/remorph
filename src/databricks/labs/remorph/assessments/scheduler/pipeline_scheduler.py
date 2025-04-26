@@ -19,7 +19,7 @@ def get_hours_since_last_run(last_run_datetime: datetime) -> int:
 def get_days_since_last_run(last_run_datetime: datetime) -> int:
     elapsed_time = dt.datetime.now(dt.timezone.utc) - last_run_datetime
     elapsed_seconds = elapsed_time.total_seconds()
-    return int(divmod(elapsed_seconds, 86400)[0])
+    return elapsed_seconds // 86400
 
 
 class ScheduledFrequency(StrEnum):
