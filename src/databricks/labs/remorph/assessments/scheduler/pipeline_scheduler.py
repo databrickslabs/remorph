@@ -54,10 +54,11 @@ class PipelineScheduler:
         logging.info("Initializing pipeline state database...")
         self.duckdb_connection.execute(query="""
             CREATE TABLE IF NOT EXISTS pipeline_step_state (
-                step_name TEXT PRIMARY KEY,
+                step_name TEXT,
                 pipeline_name TEXT,
                 last_run TIMESTAMP,
-                status TEXT
+                status TEXT,
+                PRIMARY_KEY(pipeline_name, step_name)
             )
         """)
         logging.info("DuckDB state table is ready to go!")
