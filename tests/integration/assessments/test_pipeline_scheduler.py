@@ -30,7 +30,7 @@ def test_hours_since_last_run():
     date_format = "%Y-%m-%d %H:%M:%S"
     datetime_start = datetime.strptime(date_start_str, date_format)
     actual_hours = get_hours_since_last_run(datetime_start)
-    expected_hours = divmod((datetime.now() - datetime_start).total_seconds(),  3600)[0]
+    expected_hours = dt.datetime.now(dt.timezone.utc) // 3600
     assert actual_hours == expected_hours, "The calculated hours since last run does not match the expected value."
 
 
