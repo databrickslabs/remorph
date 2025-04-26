@@ -141,7 +141,7 @@ class PipelineScheduler:
                     # Possible frequencies include: "once", "daily", "weekly" (see `ScheduledFrequency` enum)
                     logging.info(f"Evaluating scheduling step '{pipeline_step.name}'.")
                     step_exec_status = self._run_step(pipeline, pipeline_step)
-                    execution_status = PollingStatus(datetime.now(), pipeline.config.name,
+                    execution_status = PollingStatus(dt.datetime.now(dt.timezone.utc), pipeline.config.name,
                                                      pipeline_step.name, step_exec_status)
                     polling_status.append(execution_status)
 
