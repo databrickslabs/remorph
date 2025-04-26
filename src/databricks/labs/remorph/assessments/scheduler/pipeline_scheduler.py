@@ -78,7 +78,7 @@ class PipelineScheduler:
 
     def _record_run_time(self, pipeline_name: str, step_name: str, status: str = StepExecutionStatus.COMPLETE.value):
         """Records the latest execution time of a pipeline step."""
-        now = datetime.now()
+        now = dt.datetime.now(dt.timezone.utc)
         full_step_name = f"{pipeline_name}__{step_name}"
         self.duckdb_connection.execute(query="""
             INSERT INTO pipeline_step_state (step_name, pipeline_name, last_run, status)
