@@ -13,7 +13,7 @@ from databricks.labs.remorph.assessments.profiler_config import Step
 def get_hours_since_last_run(last_run_datetime: datetime) -> int:
     elapsed_time = datetime.now() - last_run_datetime
     elapsed_seconds = elapsed_time.total_seconds()
-    return int(divmod(elapsed_seconds, 3600)[0])
+    return elapsed_seconds // 3600
 
 
 def get_days_since_last_run(last_run_datetime: datetime) -> int:
