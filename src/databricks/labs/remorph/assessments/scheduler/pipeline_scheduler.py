@@ -56,7 +56,7 @@ class PipelineScheduler:
             CREATE TABLE IF NOT EXISTS pipeline_step_state (
                 step_name TEXT,
                 pipeline_name TEXT,
-                last_run TIMESTAMP,
+                last_run TIMESTAMPTZ,
                 status TEXT,
                 PRIMARY_KEY(pipeline_name, step_name)
             )
