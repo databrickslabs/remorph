@@ -6,7 +6,7 @@ from .helpers import get_db_manager
 
 @pytest.fixture()
 def db_manager(mock_credentials):
-    return get_db_manager("remorph", "snowflake")
+    return get_db_manager("remorph", "postgres")
 
 
 def test_postgres_connector_connection(db_manager):
@@ -15,7 +15,7 @@ def test_postgres_connector_connection(db_manager):
 
 def test_postgres_connector_execute_query(db_manager):
     # Execute a sample query
-    query = "SELECT 'Fizz buzz"
+    query = "SELECT 'Fizz buzz' AS message"
     result = db_manager.execute_query(query)
     row = result.fetchone()
     assert row[0] == "Fizz buzz"

@@ -44,6 +44,7 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
         "mssql": MSSQLConnector,
         "tsql": MSSQLConnector,
         "synapse": MSSQLConnector,
+        "postgres": PostgresConnector,
     }
 
     connector_class = connectors.get(db_type.lower())
@@ -75,7 +76,7 @@ class SnowflakeConnector(_BaseConnector):
 
         # Users can optionally specify a private key to use
         if "pem" in self.config:
-            engine = create_engine(connection_string, connect_args={"private_key": self.config["pem"]})
+            engine = create_engine(connection_string, connect_args={"private_key": self.config["pem"].strip()})
         else:
             engine = create_engine(connection_string)
 
@@ -106,12 +107,11 @@ class PostgresConnector(_BaseConnector):
         # Pull out additional query params from config
         query_params = {}
         for key, value in self.config.items():
-            if key not in ["user", "password", "server", "database", "port"]:
+            if key not in ["user", "password", "server", "database", "port", "driver"]:
                 query_params[key] = value
         # Build the connection string to database
-        sqlalchemy_driver = "postgresql"
         connection_string = URL.create(
-            drivername=sqlalchemy_driver,
+            drivername="postgresql",
             username=self.config["user"],
             password=self.config["password"],
             host=self.config["server"],

@@ -22,19 +22,20 @@ def get_db_manager(product_name: str, source: str) -> DatabaseManager:
     server = url_parts.hostname
     config["server"] = server
 
-    # Some JDBC connection strings separate params by semicolons
-    # while others separate by ampersands
-    if ";" in params:
-        query_param_sep = ";"
-    elif "&" in params:
-        query_param_sep = "&"
-    else:
-        raise ValueError("Unknown param separator in JDBC connection string.")
+    if params:
+        # Some JDBC connection strings separate params by semicolons
+        # while others separate by ampersands
+        if ";" in params:
+            query_param_sep = ";"
+        elif "&" in params:
+            query_param_sep = "&"
+        else:
+            raise ValueError("Unknown param separator in JDBC connection string.")
 
-    for param in params.split(query_param_sep):
-        split_param = param.split("=", 1)
-        # Only pull out necessary connection params
-        if split_param[0] in {"database", "warehouse", "user"}:
-            config[split_param[0]] = split_param[1]
+        for param in params.split(query_param_sep):
+            split_param = param.split("=", 1)
+            # Only pull out necessary connection params
+            if split_param[0] in {"database", "warehouse", "user"}:
+                config[split_param[0]] = split_param[1]
 
     return DatabaseManager(source, config)

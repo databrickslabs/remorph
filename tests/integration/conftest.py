@@ -74,7 +74,7 @@ def mock_credentials():
             'postgres': {
                 'user': 'TEST_PG_USER',
                 'password': 'TEST_PG_PW',
-                'server': 'TEST_PG_SERVER',
+                'server': 'TEST_PG_JDBC',
                 'database': 'TEST_PG_DB',
                 'driver': 'PostgreSQL Unicode',
             },
