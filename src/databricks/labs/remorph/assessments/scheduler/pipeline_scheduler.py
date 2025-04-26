@@ -2,7 +2,7 @@ import time
 import logging
 from dataclasses import dataclass
 
-from datetime import datetime
+import datetime as dt
 from enum import StrEnum
 
 from databricks.labs.remorph.assessments.duckdb_manager import DuckDBManager
