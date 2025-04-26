@@ -30,10 +30,11 @@ def get_db_manager(product_name: str, source: str) -> DatabaseManager:
         query_param_sep = "&"
     else:
         raise ValueError("Unknown param separator in JDBC connection string.")
+
     for param in params.split(query_param_sep):
-        print(param)
-        if "=" in param:
-            split_param = param.split("=", 1)
+        split_param = param.split("=", 1)
+        # Only pull out necessary connection params
+        if split_param[0] in {"database", "warehouse", "user"}:
             config[split_param[0]] = split_param[1]
 
     return DatabaseManager(source, config)
