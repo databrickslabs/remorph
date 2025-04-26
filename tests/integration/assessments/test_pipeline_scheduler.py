@@ -35,9 +35,7 @@ def test_hours_since_last_run():
 
 
 def test_days_since_last_run():
-    date_start_str = "2025-04-08 10:30:00"
-    date_format = "%Y-%m-%d %H:%M:%S"
-    datetime_start = datetime.strptime(date_start_str, date_format)
+    datetime_start = dt.datetime(year=2025, month=4, day=8, hour=10, minute=30, second=0, tzinfo=dt.timezone.utc)
     actual_days = get_days_since_last_run(datetime_start)
     expected_hours = dt.datetime.now(dt.timezone.utc) // 86400
     assert actual_days == expected_days, "The calculated days since last run does not match the expected value."
