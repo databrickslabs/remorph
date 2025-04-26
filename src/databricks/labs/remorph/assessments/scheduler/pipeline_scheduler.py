@@ -71,8 +71,8 @@ class PipelineScheduler:
             parameters=[full_step_name]
         ).fetchone()
         if result is not None:
-            last_run_time_str = result[0]
-            return last_run_time_str, result[1]
+            last_run, status = result
+            return last_run, status
         else:
             return None, None
 
