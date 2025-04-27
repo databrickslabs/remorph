@@ -43,18 +43,16 @@ class PipelineClass:
             if step.type == "sql":
                 logging.info(f"Executing SQL step {step.name}")
                 self._execute_sql_step(step)
-                status = StepExecutionStatus.COMPLETE
             elif step.type == "python":
                 logging.info(f"Executing Python step {step.name}")
                 self._execute_python_step(step)
-                status = StepExecutionStatus.COMPLETE
             else:
                 logging.error(f"Unsupported step type: {step.type}")
                 raise RuntimeError(f"Unsupported step type: {step.type}")
         except RuntimeError as e:
             logging.error(e)
-            status = StepExecutionStatus.ERROR
-        return status
+            return StepExecutionStatus.ERROR
+        return StepExecutionStatus.COMPLETE
 
     def _execute_sql_step(self, step: Step):
         logging.debug(f"Reading query from file: {step.extract_source}")
