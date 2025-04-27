@@ -3,9 +3,9 @@ from pathlib import Path
 import json
 import logging
 import subprocess
+from enum import Enum
 import yaml
 import duckdb
-from enum import StrEnum
 
 from databricks.labs.remorph.connections.credential_manager import cred_file
 
@@ -18,7 +18,7 @@ logger.setLevel("INFO")
 DB_NAME = "profiler_extract.db"
 
 
-class StepExecutionStatus(StrEnum):
+class StepExecutionStatus(Enum):
     COMPLETE = "COMPLETE"
     ERROR = "ERROR"
     SKIPPED = "SKIPPED"
@@ -38,7 +38,7 @@ class PipelineClass:
                 self.execute_step(step)
         logging.info("Pipeline execution completed")
 
-    def execute_step(self, step: Step) -> StrEnum:
+    def execute_step(self, step: Step) -> Enum:
         try:
             if step.type == "sql":
                 logging.info(f"Executing SQL step {step.name}")

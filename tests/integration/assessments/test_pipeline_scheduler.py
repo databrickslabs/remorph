@@ -1,11 +1,13 @@
+import datetime as dt
 from pathlib import Path
 import pytest
 
-from datetime import datetime
-
 from databricks.labs.remorph.assessments.pipeline import PipelineClass
-from databricks.labs.remorph.assessments.scheduler.pipeline_scheduler import PipelineScheduler, \
-    get_hours_since_last_run, get_days_since_last_run
+from databricks.labs.remorph.assessments.scheduler.pipeline_scheduler import (
+    PipelineScheduler,
+    get_hours_since_last_run,
+    get_days_since_last_run,
+)
 from ..connections.helpers import get_db_manager
 
 
@@ -35,7 +37,7 @@ def test_hours_since_last_run():
 def test_days_since_last_run():
     datetime_start = dt.datetime(year=2025, month=4, day=8, hour=10, minute=30, second=0, tzinfo=dt.timezone.utc)
     actual_days = get_days_since_last_run(datetime_start)
-    expected_hours = dt.datetime.now(dt.timezone.utc) // 86400
+    expected_days = dt.datetime.now(dt.timezone.utc) // 86400
     assert actual_days == expected_days, "The calculated days since last run does not match the expected value."
 
 
