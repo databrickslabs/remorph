@@ -19,7 +19,7 @@ Although one could _in theory_ run a transpiler without access to the Databricks
 Remorph leverages this by expecting transpilers to reside in the `.databricks` folder hierarchy, as follows:
 
 
-``` bash
+```
 .Databricks/
 ├── labs/
 │   ├── remorph-transpilers/
@@ -29,7 +29,7 @@ Remorph leverages this by expecting transpilers to reside in the `.databricks` f
 ```
 
 Each transpiler resides in its own dedicated sub-directory, whose name can be anything (although avoiding spaces is recommended). It itself comprises 2 folders:
-``` bash
+```
 .
 ├── .lib/
 │   ├── .config.yml
