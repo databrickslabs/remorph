@@ -27,9 +27,9 @@ def launch_uninstaller():
             if system == "Darwin":
                 installer_path = "macos/uninstall_launch_agent.py"
             elif system == "Linux":
-                installer_path = "linux/uninstall_launch_agent.py"
+                installer_path = "linux/uninstall_service_file.py"
             elif system == "Windows":
-                installer_path = "windows/uninstall_launch_agent.py"
+                installer_path = "windows/uninstall_service_file.py"
             else:
                 raise RuntimeError(f"Unsupported operating system: {system}")
 

@@ -39,9 +39,9 @@ def launch_installer():
             if system == "Darwin":
                 installer_path = "macos/install_launch_agent.py"
             elif system == "Linux":
-                installer_path = "linux/install_launch_agent.py"
+                installer_path = "linux/install_service_file.py"
             elif system == "Windows":
-                installer_path = "windows/install_launch_agent.py"
+                installer_path = "windows/install_service_file.py"
             else:
                 raise RuntimeError(f"Unsupported operating system: {system}")
 
