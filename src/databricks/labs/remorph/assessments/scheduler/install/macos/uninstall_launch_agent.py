@@ -1,12 +1,10 @@
 import logging
-import os
 from pathlib import Path
 import subprocess
 
 
 def uninstall_launch_agent():
-    home_dir = os.getenv("HOME")
-    launch_agents_dir = home_dir / Path("Library/LaunchAgents")
+    launch_agents_dir = Path.home() / Path("Library/LaunchAgents")
     plist_path = launch_agents_dir / "com.remorph.usagecollection.plist"
 
     # Check if the profiler scheduler has been previously registered

@@ -7,12 +7,12 @@ import tempfile
 import json
 import logging
 
-PROFILER_DEPENDENCIES = []
+PROFILER_DEPENDENCIES: list[str] = []
 
 
 def launch_installer():
 
-    logging.info(f"Creating virtual environment.")
+    logging.info("Creating virtual environment.")
 
     # Build a virtual environment for launching installer
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -47,10 +47,7 @@ def launch_installer():
 
             logging.info(f"Running scheduler installer for: {system}")
             result = run(
-            [
-                str(venv_python),
-                str(installer_path)
-                ],
+                [str(venv_python), str(installer_path)],
                 check=True,
                 capture_output=True,
                 text=True,

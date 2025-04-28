@@ -10,7 +10,7 @@ import logging
 
 def launch_uninstaller():
 
-    logging.info(f"Creating virtual environment.")
+    logging.info("Creating virtual environment.")
 
     # Create a temporary directory for the virtual environment
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -29,16 +29,13 @@ def launch_uninstaller():
             elif system == "Linux":
                 installer_path = "linux/uninstall_service_file.py"
             elif system == "Windows":
-                installer_path = "windows/uninstall_service_file.py"
+                installer_path = "windows/uninstall_task_file.py"
             else:
                 raise RuntimeError(f"Unsupported operating system: {system}")
 
             logging.info(f"Running scheduler uninstaller for: {system}")
             result = run(
-            [
-                str(venv_python),
-                str(installer_path)
-                ],
+                [str(venv_python), str(installer_path)],
                 check=True,
                 capture_output=True,
                 text=True,

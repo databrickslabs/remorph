@@ -3,8 +3,8 @@ Description=Remorph usage collection service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 ~/Downloads/remorph/scheduler/usage_collector.py
-WorkingDirectory=~/Downloads/remorph/scheduler/
+ExecStart=/usr/bin/python3 $HOME/.databricks/remorph/assessments/scheduler/pipeline_scheduler.py
+WorkingDirectory=$HOME/.databricks/remorph/assessments/scheduler/
 StandardOutput=journal
 StandardError=journal
 Restart=always

@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 import subprocess
 import shutil
@@ -7,8 +6,7 @@ import shutil
 
 def install_launch_agent():
     # Ensure that the User's `LaunchAgents` dir exists
-    home_dir = os.getenv("HOME")
-    launch_agents_dir = home_dir / Path("Library/LaunchAgents")
+    launch_agents_dir = Path.home() / Path("Library/LaunchAgents")
     launch_agents_dir.mkdir(parents=True, exist_ok=True)
     plist_path = launch_agents_dir / "com.remorph.usagecollection.plist"
 
@@ -30,7 +28,7 @@ def install_launch_agent():
 
     # Register the profiler scheduler
     subprocess.run(["launchctl", "load", str(plist_path)], check=True)
-    logging.info(f"Loaded LaunchAgent com.remorph.usagecollection.plist successfully.")
+    logging.info("Loaded LaunchAgent com.remorph.usagecollection.plist successfully.")
 
 
 def main():
