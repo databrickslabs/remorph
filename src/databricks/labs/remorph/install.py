@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import shutil
+import venv
 from collections.abc import Iterable
 from json import loads, dumps
 import logging
@@ -46,13 +47,19 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
+    def install_from_pypi(cls, product_name: str, pypi_name: str):
+        installer = PypiInstaller(product_name, pypi_name)
+        return installer.install()
+
+    @classmethod
     def labs_path(cls):
         return Path.home() / ".databricks" / "labs"
 
     @classmethod
-    def transpilers_path(cls):
+    def transpilers_path(cls) -> Path:
         return cls.labs_path() / "remorph-transpilers"
 
+    # TODO remove this method
     @classmethod
     def resources_folder(cls):
         return Path(__file__).parent / "resources" / "transpilers"
@@ -69,87 +76,6 @@ class TranspilerInstaller(abc.ABC):
         if not version or not version.startswith("v"):
             return None
         return version[1:]
-
-    @classmethod
-    def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
-        try:
-            url = (
-                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-            )
-            with request.urlopen(url) as server:
-                text = server.read()
-                return cls._get_maven_version(text)
-        except HTTPError:
-            return None
-
-    @classmethod
-    def _get_maven_version(cls, text: str):
-        data: dict[str, Any] = loads(text)
-        response: dict[str, Any] | None = data.get("response", None)
-        if not response:
-            return None
-        docs: list[dict[str, Any]] = response.get('docs', None)
-        if not docs or len(docs) < 1:
-            return None
-        return docs[0].get("v", None)
-
-    @classmethod
-    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
-        group_id = group_id.replace(".", "/")
-        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
-        try:
-            path, message = request.urlretrieve(url)
-            if path:
-                move(path, str(target))
-                return 0
-            logger.error(message)
-            return -1
-        except URLError as e:
-            logger.error("While downloading from maven", exc_info=e)
-            return -1
-
-    @classmethod
-    def get_pypi_version(cls, product_name: str) -> str | None:
-        try:
-            with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-                text = server.read()
-            data: dict[str, Any] = loads(text)
-            return data.get("info", {}).get('version', None)
-        except HTTPError:
-            return None
-
-    @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str):
-        current_version = cls.get_installed_version(product_name)
-        latest_version = cls.get_pypi_version(pypi_name)
-        if current_version == latest_version:
-            logger.info(f"{pypi_name} v{latest_version} already installed")
-            return None
-        logger.info(f"Installing {pypi_name} v{latest_version}")
-        product_path = cls.transpilers_path() / product_name
-        if current_version is not None:
-            product_path.rename(f"{product_name}-saved")
-        install_path = product_path / "lib"
-        install_path.mkdir()
-        args = ["pip", "install", pypi_name, "-t", str(install_path)]
-        state_path = product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
-        version_path = state_path / "version.json"
-        try:
-            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, check=True)
-            version_path.write_text(dumps(version_data), "utf-8")
-            logger.info(f"Successfully installed {pypi_name} v{latest_version}")
-            if current_version is not None:
-                rmtree(f"{product_path!s}-saved")
-            return install_path
-        except CalledProcessError as e:
-            logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
-            if current_version is not None:
-                rmtree(str(product_path))
-                renamed = Path(f"{product_path!s}-saved")
-                renamed.rename(product_path.name)
-            return None
 
     @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
@@ -211,26 +137,192 @@ class TranspilerInstaller(abc.ABC):
             return None
 
 
-class RCTInstaller(TranspilerInstaller):
-    RCT_TRANSPILER_NAME = "remorph-community-transpiler"
-    RCT_TRANSPILER_PYPI_NAME = f"databricks-labs-{RCT_TRANSPILER_NAME}"
+class PypiInstaller(TranspilerInstaller):
 
     @classmethod
-    def install(cls):
-        install_path = cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
-        if install_path:
-            config = TranspilerInstaller.resources_folder() / "rct" / "lib" / "config.yml"
-            shutil.copyfile(str(config), str(install_path / "config.yml"))
+    def get_pypi_artifact_version(cls, product_name: str) -> str | None:
+        try:
+            with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+                text = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("info", {}).get('version', None)
+        except HTTPError:
+            return None
+
+    @classmethod
+    def download_artifact_from_pypi(cls, product_name: str, version: str, target: Path, extension="whl"):
+        suffix = "-py3-none-any.whl" if extension == "whl" else ".tar.gz" if extension == "tar" else f".{extension}"
+        filename = f"{product_name.replace('-', '_')}-{version}{suffix}"
+        url = f"https://pypi.debian.net/{product_name}/{filename}"
+        try:
+            path, message = request.urlretrieve(url)
+            if path:
+                move(path, str(target))
+                return 0
+            logger.error(message)
+            return -1
+        except URLError as e:
+            logger.error("While downloading from pypi", exc_info=e)
+            return -1
+
+    def __init__(self, product_name: str, pypi_name: str):
+        self._product_name = product_name
+        self._pypi_name = pypi_name
+
+    def install(self) -> Path | None:
+        return self._install_checking_versions()
+
+    def _install_checking_versions(self):
+        self._current_version = self.get_installed_version(self._product_name)
+        self._latest_version = self.get_pypi_artifact_version(self._pypi_name)
+        if self._current_version == self._latest_version:
+            logger.info(f"{self._pypi_name} v{self._latest_version} already installed")
+            return None
+        return self._install_latest_version()
+
+    def _install_latest_version(self):
+        # use type(self) to workaround a mock bug on class methods
+        self._product_path = type(self).transpilers_path() / self._product_name
+        backup_path = Path(f"{self._product_path!s}-saved")
+        if self._product_path.exists():
+            os.rename(self._product_path, backup_path)
+        try:
+            self._product_path.mkdir()
+            self._install_path = self._product_path / "lib"
+            self._install_path.mkdir()
+            result = self._unsafe_install_latest_version()
+            logger.info(f"Successfully installed {self._pypi_name} v{self._latest_version}")
+            if backup_path.exists():
+                rmtree(str(backup_path))
+            return result
+        except (CalledProcessError, ValueError) as e:
+            logger.info(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
+            rmtree(str(self._product_path))
+            if backup_path.exists():
+                os.rename(backup_path, self._product_path)
+
+    def _unsafe_install_latest_version(self):
+        self._create_venv()
+        self._install_from_pip()
+        return self._post_install()
+
+    def _create_venv(self):
+        self._venv = self._install_path / ".venv"
+        cwd = os.getcwd()
+        try:
+            os.chdir(self._install_path)
+            args = "python -m venv .venv"
+            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
+            self._site_packages = self._locate_site_packages()
+        finally:
+            os.chdir(cwd)
+
+    def _locate_site_packages(self):
+        # can't use sysconfig because it only works for currently running python
+        lib = self._venv / "lib"
+        for dir in os.listdir(lib):
+            if dir.startswith("python"):
+                sp = lib / dir / "site-packages"
+                if sp.exists():
+                    return sp
+        raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
+
+    def _install_from_pip(self):
+        pip = self._venv / "bin" / "pip3"
+        cwd = os.getcwd()
+        try:
+            os.chdir(self._install_path)
+            args = [str(pip), "install", self._pypi_name, "-t", self._site_packages]
+            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
+        finally:
+            os.chdir(cwd)
+
+    def _post_install(self):
+        lsp = self._site_packages / "lsp"
+        if not lsp.exists():
+            raise ValueError("Installed transpiler is missing a 'lsp' folder")
+        config = lsp / "config.yml"
+        if not config.exists():
+            raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
+        shutil.copyfile(str(config), str(self._install_path / "config.yml"))
+        server_script = lsp / "server.py"
+        install_ext = "ps1" if "win" in sys.platform else "sh"
+        install_script = f"installer.{install_ext}"
+        installer = lsp / install_script
+        if not server_script.exists() and not installer.exists():
+            raise ValueError(
+                f"Installed transpiler is missing a 'server.py' file or an {install_script} in its 'lsp' folder"
+            )
+        if server_script.exists():
+            shutil.copyfile(str(server_script), str(self._install_path / server_script.name))
+        else:
+            self._run_custom_installer(installer)
+        self._store_state()
+        return self._install_path
+
+    def _store_state(self):
+        state_path = self._product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{self._latest_version}", "date": str(datetime.now())}
+        version_path = state_path / "version.json"
+        version_path.write_text(dumps(version_data), "utf-8")
+
+    def _run_custom_installer(self, installer):
+        args = [str(installer)]
+        run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=str(self._install_path), check=True)
 
 
-class MorpheusInstaller(TranspilerInstaller):
+class JarInstaller(TranspilerInstaller):
+
+    @classmethod
+    def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+        try:
+            url = (
+                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            )
+            with request.urlopen(url) as server:
+                text = server.read()
+                return cls._extract_maven_artifact_version(text)
+        except HTTPError:
+            return None
+
+    @classmethod
+    def _extract_maven_artifact_version(cls, text: str):
+        data: dict[str, Any] = loads(text)
+        response: dict[str, Any] | None = data.get("response", None)
+        if not response:
+            return None
+        docs: list[dict[str, Any]] = response.get('docs', None)
+        if not docs or len(docs) < 1:
+            return None
+        return docs[0].get("v", None)
+
+    @classmethod
+    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+        group_id = group_id.replace(".", "/")
+        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
+        try:
+            path, message = request.urlretrieve(url)
+            if path:
+                move(path, str(target))
+                return 0
+            logger.error(message)
+            return -1
+        except URLError as e:
+            logger.error("While downloading from maven", exc_info=e)
+            return -1
+
+
+class MorpheusInstaller(JarInstaller):
     MORPHEUS_TRANSPILER_NAME = "morpheus"
     MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
 
     @classmethod
     def install(cls):
         current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
-        latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
+        latest_version = cls.get_maven_artifact_version(
+            cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME
+        )
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
@@ -313,7 +405,9 @@ class WorkspaceInstaller:
 
     @classmethod
     def install_rct(cls):
-        RCTInstaller.install()
+        local_name = "remorph-community-transpiler"
+        pypi_name = f"databricks-labs-{local_name}"
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
     def install_morpheus(cls):
