@@ -20,7 +20,7 @@ Remorph leverages this by expecting transpilers to reside in the `.databricks` f
 
 
 ```
-.Databricks/
+.databricks/
 ├── labs/
 │   ├── remorph-transpilers/
 │   │   ├── morpheus/
@@ -31,11 +31,11 @@ Remorph leverages this by expecting transpilers to reside in the `.databricks` f
 Each transpiler resides in its own dedicated sub-directory, whose name can be anything (although avoiding spaces is recommended). It itself comprises 2 folders:
 ```
 .
-├── .lib/
-│   ├── .config.yml
-│   ├── .<transpiler code>
-├── .state/
-│   ├── .version.json
+├── lib/
+│   ├── config.yml
+│   ├── <transpiler code>
+├── state/
+│   ├── version.json
 ```
 
 A transpiler `lib` subdirectory _must_ comprise a `config.yml` file that follows the following structure:
