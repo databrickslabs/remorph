@@ -4,6 +4,7 @@ import json
 import sys
 import logging
 import urllib3
+import pandas as pd
 from .profiler_functions import (
     get_synapse_workspace_settings,
     get_synapse_profiler_settings,
@@ -52,7 +53,7 @@ def execute():
         workspace_resource_id = workspace_info["id"]
         logger.info(f"workspace_resource_id  →  {workspace_resource_id}")
         metrics_df = synapse_metrics.get_workspace_level_metrics(workspace_resource_id)
-
+        insert_df_to_duckdb(metrics_df, args.db_path, "workspace_level_metrics")
         # SQL Pool Metrics
 
         exclude_dedicated_sql_pools = synapse_profiler_settings.get("exclude_dedicated_sql_pools", None)
@@ -89,18 +90,17 @@ def execute():
                 logger.info(f"{idx+1}) Pool Name: {pool_name}")
                 logger.info(f"   Resource id: {pool_resoure_id}")
 
-                step_name = "dedicated_sql_pool_metrics"
-                metrics_staging_uxpath = get_staging_linux_path(extract_group_name, True)
-
-                step_extractor = ProfilerStepPartitionExtractor(
-                    step_name, metrics_staging_uxpath, "pool_name", pool_name
-                )
-                step_extractor.extract(
-                    lambda: synapse_metrics.get_dedicated_sql_pool_metrics(pool_resoure_id), workspace_name
-                )
+                pool_metrics_df = synapse_metrics.get_dedicated_sql_pool_metrics(pool_resoure_id)
+                if idx == 0:
+                    pools_df = pool_metrics_df
+                else:
+                    pools_df = pools_df.union(pool_metrics_df)
+            
+            # Insert the combined metrics into DuckDB
+            insert_df_to_duckdb(pools_df, args.db_path, step_name)
             logger.info(">End")
 
-        # 2. Spark Pool  Metrics
+        # Spark Pool  Metrics
 
         exclude_spark_pools = synapse_profiler_settings.get("exclude_spark_pools", None)
         spark_pools_profiling_list = synapse_profiler_settings.get("spark_pools_profiling_list", None)
@@ -137,19 +137,17 @@ def execute():
                 logger.info(f"   Resource id: {pool_resoure_id}")
 
                 step_name = "spark_pool_metrics"
-                metrics_staging_uxpath = get_staging_linux_path(extract_group_name, True)
 
-                step_extractor = ProfilerStepPartitionExtractor(
-                    step_name, metrics_staging_uxpath, "pool_name", pool_name
-                )
-                step_extractor.extract(lambda: synapse_metrics.get_spark_pool_metrics(pool_resoure_id), workspace_name)
+                spark_pool_metrics_df = synapse_metrics.get_dedicated_sql_pool_metrics(pool_resoure_id)
+                if idx == 0:
+                    spark_pools_df = spark_pool_metrics_df
+                else:
+                    spark_pools_df = pools_df.union(pool_metrics_df)
+            
+            # Insert the combined metrics into DuckDB
+            insert_df_to_duckdb(pools_df, args.db_path, step_name)
             logger.info(">End")
 
-        # Connect to DuckDB
-        conn = duckdb.connect(args.db_path)
-
-        conn.execute("INSERT INTO random_data SELECT * FROM df")
-        conn.close()
         # This is the output format expected by the pipeline.py which orchestrates the execution of this script
         print(json.dumps({"status": "success", "message": "Data loaded successfully"}))
 
@@ -158,5 +156,33 @@ def execute():
         sys.exit(1)
 
 
+def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None:
+    """
+    Insert a pandas DataFrame into a DuckDB table.
+    
+    Args:
+        df (pd.DataFrame): The pandas DataFrame to insert
+        db_path (str): Path to the DuckDB database file
+        table_name (str): Name of the table to insert data into
+    """
+    try:
+        # Connect to DuckDB
+        conn = duckdb.connect(db_path)
+        
+        # Create table if it doesn't exist
+        conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df LIMIT 0")
+        
+        # Insert data
+        conn.execute(f"INSERT INTO {table_name} SELECT * FROM df")
+        
+        # Close connection
+        conn.close()
+        logging.info(f"Successfully inserted data into {table_name} table")
+    except Exception as e:
+        logging.error(f"Error inserting data into DuckDB: {str(e)}")
+        raise
+
+
 if __name__ == '__main__':
     execute()
+
