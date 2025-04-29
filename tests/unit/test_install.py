@@ -21,7 +21,8 @@ from databricks.labs.remorph.install import WorkspaceInstaller, TranspilerInstal
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
-from unit.conftest import path_to_resource
+
+from tests.unit.conftest import path_to_resource
 
 RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in ReconSourceType])
 RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReconReportType])

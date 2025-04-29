@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 from collections.abc import Callable, Sequence, Mapping
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -71,10 +70,7 @@ class _LSPRemorphConfigV1:
         dialects = data.get("dialects", [])
         if len(dialects) == 0:
             raise ValueError("Missing 'dialects' entry")
-        env_list = data.get("environment", [])
-        env_vars: dict[str, str] = {}
-        for env_var in env_list:
-            env_vars = env_vars | env_var
+        env_vars = data.get("environment", {})
         command_line = data.get("command_line", [])
         if len(command_line) == 0:
             raise ValueError("Missing 'command_line' entry")
@@ -403,9 +399,7 @@ class LSPEngine(TranspileEngine):
             await self._start_python_server_without_venv()
 
     async def _start_python_server_with_venv(self):
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
+        env: dict[str, str] = os.environ | self._config.remorph.env_vars
         # ensure modules are searched within venv
         if "PYTHONPATH" in env.keys():
             del env["PYTHONPATH"]
@@ -423,9 +417,7 @@ class LSPEngine(TranspileEngine):
         await self._launch_executable(executable, env)
 
     async def _start_python_server_without_venv(self):
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
+        env: dict[str, str] = os.environ | self._config.remorph.env_vars
         # ensure modules are searched locally before being searched in remorph
         if "PYTHONPATH" in env.keys():
             env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
@@ -435,9 +427,7 @@ class LSPEngine(TranspileEngine):
         await self._launch_executable(executable, env)
 
     async def _start_other_server(self):
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
+        env: dict[str, str] = os.environ | self._config.remorph.env_vars
         # ensure modules are searched within venv
         del env["PYTHONPATH"]
         del env["VIRTUAL_ENV"]
