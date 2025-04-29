@@ -185,10 +185,10 @@ class PypiInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
+        self._product_path.mkdir()
+        self._install_path = self._product_path / "lib"
+        self._install_path.mkdir()
         try:
-            self._product_path.mkdir()
-            self._install_path = self._product_path / "lib"
-            self._install_path.mkdir()
             result = self._unsafe_install_latest_version()
             logger.info(f"Successfully installed {self._pypi_name} v{self._latest_version}")
             if backup_path.exists():
@@ -199,6 +199,7 @@ class PypiInstaller(TranspilerInstaller):
             rmtree(str(self._product_path))
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
+            return None
 
     def _unsafe_install_latest_version(self):
         self._create_venv()
@@ -220,11 +221,11 @@ class PypiInstaller(TranspilerInstaller):
     def _locate_site_packages(self):
         # can't use sysconfig because it only works for currently running python
         lib = self._venv / "lib"
-        for dir in os.listdir(lib):
-            if dir.startswith("python"):
-                sp = lib / dir / "site-packages"
-                if sp.exists():
-                    return sp
+        for dir_ in os.listdir(lib):
+            if dir_.startswith("python"):
+                packages = lib / dir_ / "site-packages"
+                if packages.exists():
+                    return packages
         raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
 
     def _install_from_pip(self):

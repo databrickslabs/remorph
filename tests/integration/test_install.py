@@ -14,8 +14,8 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")
-def test_gets_installed_remorph_version():
-    version = TranspilerInstaller.get_installed_version("remorph", False)
+def test_gets_installed_remorph_version(patched_transpiler_installer):
+    version = patched_transpiler_installer.get_installed_version("remorph", False)
     check_valid_version(version)
 
 
@@ -76,10 +76,11 @@ def patched_transpiler_installer():
             target = target / "config.yml"
             source = resources_folder / transpiler / "lib" / "config.yml"
             shutil.copyfile(str(source), str(target))
-
         transpilers_path = TranspilerInstaller.transpilers_path
         TranspilerInstaller.transpilers_path = lambda: folder
         yield TranspilerInstaller
+        # couldn't find a way to avoid the below mypy error, any solution is welcome
+        # pylint: disable=redefined-variable-type
         TranspilerInstaller.transpilers_path = transpilers_path
 
 
@@ -135,6 +136,7 @@ class PatchedPypiInstaller(PypiInstaller):
             / "wheel"
             / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
         )
+        assert sample_wheel.exists()
         pip = self._venv / "bin" / "pip3"
         cwd = os.getcwd()
         try:
@@ -148,6 +150,8 @@ class PatchedPypiInstaller(PypiInstaller):
 async def test_installs_and_runs_rct(patched_transpiler_installer):
     with patch(
         "databricks.labs.remorph.install.PypiInstaller",
+        # couldn't find a way to NOT use a lambda, any solution is welcome
+        # pylint: disable=unnecessary-lambda
         side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name),
     ):
         patched_transpiler_installer.install_from_pypi("rct", "databricks-labs-remorph-community-transpiler")
@@ -180,5 +184,5 @@ async def test_installs_and_runs_rct(patched_transpiler_installer):
                 sql_code = "select * from employees"
                 result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
                 await lsp_engine.shutdown()
-                transpiled = " ".join(s.trim() for s in result.transpiled_code.lower().split("\n"))
+                transpiled = " ".join(s.strip() for s in result.transpiled_code.lower().split("\n"))
                 assert transpiled == sql_code
