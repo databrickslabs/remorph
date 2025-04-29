@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterator, Literal, Optional, List
+from typing import Any, Dict, Optional, List
 
-import mlflow
-from pyspark.sql.types import StringType
-from pyspark.sql.functions import col, udf
 
-from langchain.chains import ConversationChain
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.documents import Document
 from databricks_langchain import ChatDatabricks
-from databricks import agents
 
 from databricks.labs.remorph.agents.code_explainer.parser import SqlParser
 
@@ -24,13 +19,11 @@ class SQLExplainer:
         self.format_flag = format_flag
 
         """Initialize the SQL Explainer Chain"""
-        self.llm = ChatDatabricks(
-            endpoint=self.endpoint_name,
-            extra_params={"temperature": 0.0}
-        )
+        self.llm = ChatDatabricks(endpoint=self.endpoint_name, extra_params={"temperature": 0.0})
 
         # Create the prompt template
-        self.prompt_template = ChatPromptTemplate.from_template("""
+        self.prompt_template = ChatPromptTemplate.from_template(
+            """
         Analyze the following SQL code segment and explain its purpose and functionality:
 
         ```sql
@@ -46,7 +39,8 @@ class SQLExplainer:
         6. Identify if there's any potential migration challenges to convert this SQL to Databricks DBSQL.
 
         {format_instructions}
-        """)
+        """
+        )
 
         # Create the LLM chain
         # self.llm_chain = ConversationChain(
@@ -55,8 +49,7 @@ class SQLExplainer:
         #     memory = ConversationBufferMemory()
         # )
 
-        self.llm_chain = self.prompt_template |  self.llm
-
+        self.llm_chain = self.prompt_template | self.llm
 
     def format_output(self) -> Optional[StructuredOutputParser]:
         """Format the output from the LLM into a structured format"""
@@ -103,7 +96,7 @@ class SQLExplainer:
             key_tables_schema,
             sql_functions_schema,
             performance_considerations_schema,
-            migration_challenges_schema
+            migration_challenges_schema,
         ]
 
         # Create the output parser
@@ -121,7 +114,8 @@ class SQLExplainer:
         result = dict()
         # Run the chain
         response = (
-            self.llm_chain.invoke({"sql_segment": sql_segment, "format_instructions": format_instructions}) if self.format_flag
+            self.llm_chain.invoke({"sql_segment": sql_segment, "format_instructions": format_instructions})
+            if self.format_flag
             else self.llm_chain.invoke({"sql_segment": sql_segment, "format_instructions": ""})
         )
 
