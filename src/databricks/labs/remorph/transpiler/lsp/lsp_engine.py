@@ -439,7 +439,7 @@ class LSPEngine(TranspileEngine):
         log_level = logging.getLevelName(logging.getLogger("databricks").level)
         args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
         logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
-        await self._client.start_io(str(executable), *args)
+        await self._client.start_io(str(executable), env=env, *args)
 
     def _client_capabilities(self):
         return ClientCapabilities()  # TODO do we need to refine this ?
