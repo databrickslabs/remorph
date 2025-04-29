@@ -4,7 +4,6 @@ from databricks.labs.remorph.assessments.configure_assessment import (
     create_assessment_configurator,
     ConfigureSqlServerAssessment,
     ConfigureSynapseAssessment,
-    PROFILER_SOURCE_SYSTEM
 )
 
 
@@ -58,11 +57,9 @@ def test_configure_synapse_credentials(tmp_path):
             r"Enter Azure client ID": "test-client-id",
             r"Enter Azure tenant ID": "test-tenant-id",
             r"Enter Azure client secret": "test-client-secret",
-            r"Select authentication type": sorted([
-                "sql_authentication",
-                "ad_passwd_authentication",
-                "spn_authentication"
-            ]).index("sql_authentication"),
+            r"Select authentication type": sorted(
+                ["sql_authentication", "ad_passwd_authentication", "spn_authentication"]
+            ).index("sql_authentication"),
             r"Enter fetch size": "1000",
             r"Enter login timeout \(seconds\)": "30",
             r"Exclude serverless SQL pool from profiling\?": "no",
@@ -106,8 +103,8 @@ def test_configure_synapse_credentials(tmp_path):
                 'exclude_spark_pools': False,
                 'exclude_monitoring_metrics': False,
                 'redact_sql_pools_sql_text': False,
-            }
-        }
+            },
+        },
     }
 
     with open(file, 'r', encoding='utf-8') as file:
@@ -118,30 +115,22 @@ def test_configure_synapse_credentials(tmp_path):
 
 def test_create_assessment_configurator():
     prompts = MockPrompts({})
-    
+
     # Test SQL Server configurator
     sql_server_configurator = create_assessment_configurator(
-        source_system="mssql",
-        product_name="remorph",
-        prompts=prompts
+        source_system="mssql", product_name="remorph", prompts=prompts
     )
     assert isinstance(sql_server_configurator, ConfigureSqlServerAssessment)
-    
+
     # Test Synapse configurator
     synapse_configurator = create_assessment_configurator(
-        source_system="synapse",
-        product_name="remorph",
-        prompts=prompts
+        source_system="synapse", product_name="remorph", prompts=prompts
     )
     assert isinstance(synapse_configurator, ConfigureSynapseAssessment)
-    
+
     # Test invalid source system
     try:
-        create_assessment_configurator(
-            source_system="invalid",
-            product_name="remorph",
-            prompts=prompts
-        )
+        create_assessment_configurator(source_system="invalid", product_name="remorph", prompts=prompts)
         assert False, "Expected ValueError for invalid source system"
     except ValueError as e:
         assert str(e) == "Unsupported source system: invalid"

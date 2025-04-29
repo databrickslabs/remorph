@@ -91,8 +91,8 @@ def mock_credentials():
                     'exclude_spark_pools': False,
                     'exclude_monitoring_metrics': False,
                     'redact_sql_pools_sql_text': False,
-                }
-            }
+                },
+            },
         },
     ):
         yield

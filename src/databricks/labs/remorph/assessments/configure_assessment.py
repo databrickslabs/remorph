@@ -1,8 +1,7 @@
+from abc import ABC, abstractmethod
 import logging
 import shutil
 import yaml
-from abc import ABC, abstractmethod
-from typing import Optional
 
 from databricks.labs.blueprint.tui import Prompts
 
@@ -28,7 +27,6 @@ class AssessmentConfigurator(ABC):
 
     @abstractmethod
     def _configure_credentials(self) -> str:
-        """Configure credentials for the specific source system."""
         pass
 
     @staticmethod
@@ -47,7 +45,7 @@ class AssessmentConfigurator(ABC):
             logger.error(f"Failed to connect to the source system: {e}")
             raise SystemExit("Connection validation failed. Exiting...") from e
 
-    def run(self, cred_manager: Optional[CredentialManager] = None):
+    def run(self, cred_manager: CredentialManager):
         """Run the assessment configuration process."""
         logger.info(f"Welcome to the {self._product_name} Assessment Configuration")
         source = self._configure_credentials()
@@ -63,7 +61,7 @@ class ConfigureSqlServerAssessment(AssessmentConfigurator):
     def _configure_credentials(self) -> str:
         cred_file = self._credential_file
         source = "mssql"
-        
+
         logger.info(
             "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
             "from environment variables fall back to plain text if not variable is not found\n",
@@ -104,7 +102,7 @@ class ConfigureSynapseAssessment(AssessmentConfigurator):
     def _configure_credentials(self) -> str:
         cred_file = self._credential_file
         source = "synapse"
-        
+
         logger.info(
             "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
             "from environment variables fall back to plain text if not variable is not found\n",
@@ -135,10 +133,9 @@ class ConfigureSynapseAssessment(AssessmentConfigurator):
         # JDBC Settings
         logger.info("Please select JDBC authentication type:")
         auth_type = self.prompts.choice(
-            "Select authentication type",
-            ["sql_authentication", "ad_passwd_authentication", "spn_authentication"]
+            "Select authentication type", ["sql_authentication", "ad_passwd_authentication", "spn_authentication"]
         )
-        
+
         synapse_jdbc = {
             "auth_type": auth_type,
             "fetch_size": self.prompts.question("Enter fetch size", default="1000"),
@@ -162,8 +159,8 @@ class ConfigureSynapseAssessment(AssessmentConfigurator):
                 "workspace": synapse_workspace,
                 "azure_api_access": azure_api_access,
                 "jdbc": synapse_jdbc,
-                "profiler": synapse_profiler
-            }
+                "profiler": synapse_profiler,
+            },
         }
 
         if cred_file.exists():
@@ -179,18 +176,15 @@ class ConfigureSynapseAssessment(AssessmentConfigurator):
 
 
 def create_assessment_configurator(
-    source_system: str,
-    product_name: str,
-    prompts: Prompts,
-    credential_file=None
+    source_system: str, product_name: str, prompts: Prompts, credential_file=None
 ) -> AssessmentConfigurator:
     """Factory function to create the appropriate assessment configurator."""
     configurators = {
         "mssql": ConfigureSqlServerAssessment,
         "synapse": ConfigureSynapseAssessment,
     }
-    
+
     if source_system not in configurators:
         raise ValueError(f"Unsupported source system: {source_system}")
-        
+
     return configurators[source_system](product_name, prompts, credential_file)
