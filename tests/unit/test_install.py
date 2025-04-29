@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -20,6 +21,7 @@ from databricks.labs.remorph.install import WorkspaceInstaller, TranspilerInstal
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
+from unit.conftest import path_to_resource
 
 RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in ReconSourceType])
 RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReconReportType])
@@ -1007,7 +1009,7 @@ def test_runs_and_stores_confirm_config_option(ws_installer, ws):
         ctx.workspace_installation,
     )
 
-    TranspilerInstaller.transpilers_path = TranspilerInstaller.resources_folder
+    TranspilerInstaller.transpilers_path = lambda: Path(path_to_resource("transpiler_configs"))
 
     config = workspace_installer.configure(module="transpile")
 

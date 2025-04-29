@@ -7,8 +7,10 @@ from tempfile import TemporaryDirectory, NamedTemporaryFile
 from unittest.mock import patch
 
 import pytest
+from databricks.labs.remorph.config import TranspileConfig
 
 from databricks.labs.remorph.install import TranspilerInstaller, JarInstaller, PypiInstaller
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")
@@ -125,7 +127,14 @@ def check_valid_version(version: str):
 class PatchedPypiInstaller(PypiInstaller):
 
     def _install_from_pip(self):
-        sample_wheel = Path(__file__).parent.parent / "resources" / "transpiler_configs" / "rct" / "wheel" / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
+        sample_wheel = (
+            Path(__file__).parent.parent
+            / "resources"
+            / "transpiler_configs"
+            / "rct"
+            / "wheel"
+            / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
+        )
         pip = self._venv / "bin" / "pip3"
         cwd = os.getcwd()
         try:
@@ -135,13 +144,41 @@ class PatchedPypiInstaller(PypiInstaller):
         finally:
             os.chdir(cwd)
 
-def test_installs_and_runs_rct(patched_transpiler_installer):
-    with patch("databricks.labs.remorph.install.PypiInstaller", side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name)):
+
+async def test_installs_and_runs_rct(patched_transpiler_installer):
+    with patch(
+        "databricks.labs.remorph.install.PypiInstaller",
+        side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name),
+    ):
         patched_transpiler_installer.install_from_pypi("rct", "databricks-labs-remorph-community-transpiler")
+        # check file-level installation
         rct = patched_transpiler_installer.transpilers_path() / "rct"
-        config = rct / "lib" / "config.yml"
-        assert config.exists()
-        server = rct / "lib" / "server.py"
-        assert server.exists()
-        version = rct / "state" / "version.json"
-        assert version.exists()
+        config_path = rct / "lib" / "config.yml"
+        assert config_path.exists()
+        main_path = rct / "lib" / "main.py"
+        assert main_path.exists()
+        version_path = rct / "state" / "version.json"
+        assert version_path.exists()
+        # check execution
+        lsp_engine = LSPEngine.from_config_path(config_path)
+        with TemporaryDirectory() as input_source:
+            with TemporaryDirectory() as output_folder:
+                transpile_config = TranspileConfig(
+                    transpiler_config_path=str(config_path),
+                    transpiler_options={"-experimental": True},
+                    source_dialect="snowflake",
+                    input_source=input_source,
+                    output_folder=output_folder,
+                    sdk_config={"cluster_id": "test_cluster"},
+                    skip_validation=False,
+                    catalog_name="catalog",
+                    schema_name="schema",
+                )
+                await lsp_engine.initialize(transpile_config)
+                dialect = transpile_config.source_dialect
+                input_file = Path(input_source) / "some_query.sql"
+                sql_code = "select * from employees"
+                result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
+                await lsp_engine.shutdown()
+                transpiled = " ".join(s.trim() for s in result.transpiled_code.lower().split("\n"))
+                assert transpiled == sql_code

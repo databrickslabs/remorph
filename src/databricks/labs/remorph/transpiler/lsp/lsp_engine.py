@@ -4,7 +4,8 @@ import abc
 import asyncio
 import logging
 import os
-from collections.abc import Callable, Sequence
+import sys
+from collections.abc import Callable, Sequence, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -376,19 +377,7 @@ class LSPEngine(TranspileEngine):
             os.chdir(cwd)
 
     async def _do_initialize(self, config: TranspileConfig) -> None:
-        executable = self._config.remorph.command_line[0]
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
-        # ensure modules are searched locally before being searched in remorph
-        if "PYTHONPATH" in env.keys():
-            env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
-        else:
-            env["PYTHONPATH"] = str(self._workdir)
-        log_level = logging.getLevelName(logging.getLogger("databricks").level)
-        args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
-        logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
-        await self._client.start_io(executable, env=env, *args)
+        await self._start_server()
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
@@ -398,6 +387,69 @@ class LSPEngine(TranspileEngine):
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)
+
+    async def _start_server(self):
+        executable = self._config.remorph.command_line[0]
+        if executable in {"python", "python3"}:
+            await self._start_python_server()
+        else:
+            await self._start_other_server()
+
+    async def _start_python_server(self):
+        has_venv = (self._workdir / ".venv").exists()
+        if has_venv:
+            await self._start_python_server_with_venv()
+        else:
+            await self._start_python_server_without_venv()
+
+    async def _start_python_server_with_venv(self):
+        env = deepcopy(os.environ)
+        for name, value in self._config.remorph.env_vars.items():
+            env[name] = value
+        # ensure modules are searched within venv
+        if "PYTHONPATH" in env.keys():
+            del env["PYTHONPATH"]
+        if "VIRTUAL_ENV" in env.keys():
+            del env["VIRTUAL_ENV"]
+        if "VIRTUAL_ENV_PROMPT" in env.keys():
+            del env["VIRTUAL_ENV_PROMPT"]
+        path = self._workdir / ".venv" / "bin"
+        if "PATH" in env.keys():
+            env["PATH"] = str(path) + os.pathsep + env["PATH"]
+        else:
+            env["PATH"] = str(path)
+        extension = ".exe" if sys.platform == "win32" else ""
+        executable = path / f"python3{extension}"
+        await self._launch_executable(executable, env)
+
+    async def _start_python_server_without_venv(self):
+        env = deepcopy(os.environ)
+        for name, value in self._config.remorph.env_vars.items():
+            env[name] = value
+        # ensure modules are searched locally before being searched in remorph
+        if "PYTHONPATH" in env.keys():
+            env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
+        else:
+            env["PYTHONPATH"] = str(self._workdir)
+        executable = Path(self._config.remorph.command_line[0])
+        await self._launch_executable(executable, env)
+
+    async def _start_other_server(self):
+        env = deepcopy(os.environ)
+        for name, value in self._config.remorph.env_vars.items():
+            env[name] = value
+        # ensure modules are searched within venv
+        del env["PYTHONPATH"]
+        del env["VIRTUAL_ENV"]
+        del env["VIRTUAL_ENV_PROMPT"]
+        executable = Path(self._config.remorph.command_line[0])
+        await self._launch_executable(executable, env)
+
+    async def _launch_executable(self, executable: Path, env: Mapping):
+        log_level = logging.getLevelName(logging.getLogger("databricks").level)
+        args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
+        logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
+        await self._client.start_io(str(executable), *args)
 
     def _client_capabilities(self):
         return ClientCapabilities()  # TODO do we need to refine this ?

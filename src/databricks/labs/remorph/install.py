@@ -1,7 +1,6 @@
 import abc
 import dataclasses
 import shutil
-import venv
 from collections.abc import Iterable
 from json import loads, dumps
 import logging
@@ -211,8 +210,9 @@ class PypiInstaller(TranspilerInstaller):
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
-            args = "python -m venv .venv"
-            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
+            # for some reason this requires shell=True, so pass full cmd line
+            cmd_line = "python -m venv .venv"
+            run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
             self._site_packages = self._locate_site_packages()
         finally:
             os.chdir(cwd)
@@ -245,18 +245,18 @@ class PypiInstaller(TranspilerInstaller):
         if not config.exists():
             raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
         shutil.copyfile(str(config), str(self._install_path / "config.yml"))
-        server_script = lsp / "server.py"
-        install_ext = "ps1" if "win" in sys.platform else "sh"
+        main_script = lsp / "main.py"
+        install_ext = "ps1" if sys.platform == "win32" else "sh"
         install_script = f"installer.{install_ext}"
         installer = lsp / install_script
-        if not server_script.exists() and not installer.exists():
+        if not main_script.exists() and not installer.exists():
             raise ValueError(
                 f"Installed transpiler is missing a 'server.py' file or an {install_script} in its 'lsp' folder"
             )
-        if server_script.exists():
-            shutil.copyfile(str(server_script), str(self._install_path / server_script.name))
-        else:
+        if installer.exists():
             self._run_custom_installer(installer)
+        else:
+            shutil.copyfile(str(main_script), str(self._install_path / main_script.name))
         self._store_state()
         return self._install_path
 
