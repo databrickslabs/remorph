@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 from databricks.labs.remorph.config import TranspileConfig
 
-from databricks.labs.remorph.install import TranspilerInstaller, JarInstaller, PypiInstaller
+from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
@@ -20,14 +20,14 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
 
 
 def test_gets_maven_artifact_version():
-    version = JarInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
+    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
     check_valid_version(version)
 
 
 def test_downloads_from_maven():
     with NamedTemporaryFile() as target:
         path = Path(target.name)
-        result = JarInstaller.download_from_maven(
+        result = MavenInstaller.download_from_maven(
             "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
         )
         assert result == 0
@@ -127,6 +127,10 @@ def check_valid_version(version: str):
 
 class PatchedPypiInstaller(PypiInstaller):
 
+    @classmethod
+    def get_pypi_artifact_version(cls, product_name: str):
+        return "0.0.1"
+
     def _install_from_pip(self):
         sample_wheel = (
             Path(__file__).parent.parent
@@ -181,8 +185,71 @@ async def test_installs_and_runs_rct(patched_transpiler_installer):
                 await lsp_engine.initialize(transpile_config)
                 dialect = transpile_config.source_dialect
                 input_file = Path(input_source) / "some_query.sql"
-                sql_code = "select * from employees"
+                sql_code = "select * from employees;"
                 result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
                 await lsp_engine.shutdown()
                 transpiled = " ".join(s.strip() for s in result.transpiled_code.lower().split("\n"))
+                assert transpiled == sql_code
+
+
+class PatchedMavenInstaller(MavenInstaller):
+
+    @classmethod
+    def get_maven_artifact_version(cls, group_id: str, artifact_id: str):
+        return "0.2.0"
+
+    @classmethod
+    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+        sample_jar = (
+            Path(__file__).parent.parent
+            / "resources"
+            / "transpiler_configs"
+            / "morpheus"
+            / "jar"
+            / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+        )
+        assert sample_jar.exists()
+        shutil.copyfile(sample_jar, target)
+        return 0
+
+
+async def test_installs_and_runs_morpheus(patched_transpiler_installer):
+    with patch(
+        "databricks.labs.remorph.install.MavenInstaller",
+        # couldn't find a way to NOT use a lambda, any solution is welcome
+        # pylint: disable=unnecessary-lambda
+        side_effect=lambda product_name, group_id, artifact_id: PatchedMavenInstaller(
+            product_name, group_id, artifact_id
+        ),
+    ):
+        patched_transpiler_installer.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp")
+        # check file-level installation
+        morpheus = patched_transpiler_installer.transpilers_path() / "morpheus"
+        config_path = morpheus / "lib" / "config.yml"
+        assert config_path.exists()
+        main_path = morpheus / "lib" / "morpheus-lsp.jar"
+        assert main_path.exists()
+        version_path = morpheus / "state" / "version.json"
+        assert version_path.exists()
+        # check execution
+        lsp_engine = LSPEngine.from_config_path(config_path)
+        with TemporaryDirectory() as input_source:
+            with TemporaryDirectory() as output_folder:
+                transpile_config = TranspileConfig(
+                    transpiler_config_path=str(config_path),
+                    source_dialect="snowflake",
+                    input_source=input_source,
+                    output_folder=output_folder,
+                    sdk_config={"cluster_id": "test_cluster"},
+                    skip_validation=False,
+                    catalog_name="catalog",
+                    schema_name="schema",
+                )
+                await lsp_engine.initialize(transpile_config)
+                dialect = transpile_config.source_dialect
+                input_file = Path(input_source) / "some_query.sql"
+                sql_code = "select * from employees;"
+                result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
+                await lsp_engine.shutdown()
+                transpiled = " ".join(s.strip() for s in result.transpiled_code.lower().split("\n")).replace(";;", ";")
                 assert transpiled == sql_code

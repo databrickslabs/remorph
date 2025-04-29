@@ -14,6 +14,7 @@ from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime
 from pathlib import Path
+from zipfile import ZipFile
 
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
@@ -51,17 +52,17 @@ class TranspilerInstaller(abc.ABC):
         return installer.install()
 
     @classmethod
+    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str):
+        installer = MavenInstaller(product_name, group_id, artifact_id)
+        return installer.install()
+
+    @classmethod
     def labs_path(cls):
         return Path.home() / ".databricks" / "labs"
 
     @classmethod
     def transpilers_path(cls) -> Path:
         return cls.labs_path() / "remorph-transpilers"
-
-    # TODO remove this method
-    @classmethod
-    def resources_folder(cls):
-        return Path(__file__).parent / "resources" / "transpilers"
 
     @classmethod
     def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
@@ -172,14 +173,17 @@ class PypiInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self):
-        self._current_version = self.get_installed_version(self._product_name)
         self._latest_version = self.get_pypi_artifact_version(self._pypi_name)
+        if self._latest_version is None:
+            return None
+        self._current_version = self.get_installed_version(self._product_name)
         if self._current_version == self._latest_version:
             logger.info(f"{self._pypi_name} v{self._latest_version} already installed")
             return None
         return self._install_latest_version()
 
     def _install_latest_version(self):
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
@@ -273,7 +277,7 @@ class PypiInstaller(TranspilerInstaller):
         run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=str(self._install_path), check=True)
 
 
-class JarInstaller(TranspilerInstaller):
+class MavenInstaller(TranspilerInstaller):
 
     @classmethod
     def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
@@ -313,52 +317,94 @@ class JarInstaller(TranspilerInstaller):
             logger.error("While downloading from maven", exc_info=e)
             return -1
 
+    def __init__(self, product_name: str, group_id: str, artifact_id: str):
+        self._product_name = product_name
+        self._group_id = group_id
+        self._artifact_id = artifact_id
 
-class MorpheusInstaller(JarInstaller):
-    MORPHEUS_TRANSPILER_NAME = "morpheus"
-    MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
+    def install(self):
+        self._install_checking_versions()
 
-    @classmethod
-    def install(cls):
-        current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
-        latest_version = cls.get_maven_artifact_version(
-            cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME
+    def _install_checking_versions(self):
+        self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
+        if self._latest_version is None:
+            return None
+        self._current_version = self.get_installed_version(self._product_name)
+        if self._current_version == self._latest_version:
+            logger.info(f"Databricks {self._product_name} transpiler v{self._latest_version} already installed")
+            return None
+        return self._install_latest_version()
+
+    def _install_latest_version(self):
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
+        # use type(self) to workaround a mock bug on class methods
+        self._product_path = type(self).transpilers_path() / self._product_name
+        backup_path = Path(f"{self._product_path!s}-saved")
+        if self._product_path.exists():
+            os.rename(self._product_path, backup_path)
+        self._product_path.mkdir()
+        self._install_path = self._product_path / "lib"
+        self._install_path.mkdir()
+        try:
+            result = self._unsafe_install_latest_version()
+            logger.info(f"Successfully installed {self._product_name} v{self._latest_version}")
+            if backup_path.exists():
+                rmtree(str(backup_path))
+            return result
+        except (CalledProcessError, ValueError) as e:
+            logger.info(f"Failed to install {self._product_name} v{self._latest_version}", exc_info=e)
+            rmtree(str(self._product_path))
+            if backup_path.exists():
+                os.rename(backup_path, self._product_path)
+            return None
+
+    def _unsafe_install_latest_version(self):
+        jar_file_path = self._install_path / f"{self._artifact_id}.jar"
+        return_code = self.download_from_maven(
+            self._group_id,
+            self._artifact_id,
+            self._latest_version,
+            jar_file_path,
         )
-        if current_version == latest_version:
-            logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
-            return
-        if latest_version is None:
-            return
-        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
-        product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
-        if current_version is not None:
-            product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
-        install_path = product_path / "lib"
-        install_path.mkdir()
-        return_code = cls.download_from_maven(
-            cls.MORPHEUS_TRANSPILER_GROUP_NAME,
-            cls.MORPHEUS_TRANSPILER_NAME,
-            latest_version,
-            install_path / f"{cls.MORPHEUS_TRANSPILER_NAME}.jar",
-        )
-        if return_code == 0:
-            state_path = product_path / "state"
-            state_path.mkdir()
-            version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
-            version_path = state_path / "version.json"
-            version_path.write_text(dumps(version_data), "utf-8")
-            config = TranspilerInstaller.resources_folder() / "morpheus" / "lib" / "config.yml"
-            shutil.copyfile(str(config), str(install_path / "config.yml"))
-            logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
-            if current_version is not None:
-                rmtree(f"{product_path!s}-saved")
-        else:
-            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
-            if current_version is not None:
-                rmtree(str(product_path))
-                renamed = Path(f"{product_path!s}-saved")
-                renamed.rename(product_path.name)
+        if return_code != 0:
+            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
+            return None
+        # extract lsp resources from jar
+        with ZipFile(jar_file_path) as zip_file:
+            names = [name for name in zip_file.namelist() if name.startswith("lsp/")]
+            for name in names:
+                zip_file.extract(name, self._install_path)
+                # move file to 'lib' dir
+                if not name.endswith("/"):
+                    name = name.split("/")[1]
+                    shutil.move(self._install_path / "lsp" / name, self._install_path / name)
+                    if name.endswith(".sh"):
+                        cmd = f"chmod 777 {(self._install_path / name)!s}"
+                        run(cmd, stdout=sys.stdout, stderr=sys.stdin, shell=True, check=True)
 
+            # drop the 'lsp' folder created by zip extract
+            shutil.rmtree(self._install_path / "lsp")
+        return self._post_install()
+
+    def _post_install(self):
+        install_ext = "ps1" if sys.platform == "win32" else "sh"
+        install_script = f"install.{install_ext}"
+        install_path = self._install_path / install_script
+        if install_path.exists():
+            self._run_custom_installer(install_path)
+        self._store_state()
+        return self._install_path
+
+    def _store_state(self):
+        state_path = self._product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{self._latest_version}", "date": str(datetime.now())}
+        version_path = state_path / "version.json"
+        version_path.write_text(dumps(version_data), "utf-8")
+
+    def _run_custom_installer(self, installer: Path):
+        completed = run(str(installer), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=str(self._install_path), shell=True)
+        completed.check_returncode()
 
 class WorkspaceInstaller:
     def __init__(
@@ -412,7 +458,10 @@ class WorkspaceInstaller:
 
     @classmethod
     def install_morpheus(cls):
-        MorpheusInstaller.install()
+        product_name = "morpheus"
+        group_id = "com.databricks.labs"
+        artifact_id = product_name
+        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
 
     def configure(self, module: str) -> RemorphConfigs:
         match module:

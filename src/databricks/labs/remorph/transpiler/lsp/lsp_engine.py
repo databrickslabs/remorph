@@ -429,9 +429,12 @@ class LSPEngine(TranspileEngine):
     async def _start_other_server(self):
         env: dict[str, str] = os.environ | self._config.remorph.env_vars
         # ensure modules are searched within venv
-        del env["PYTHONPATH"]
-        del env["VIRTUAL_ENV"]
-        del env["VIRTUAL_ENV_PROMPT"]
+        if "PYTHONPATH" in env.keys():
+            del env["PYTHONPATH"]
+        if "VIRTUAL_ENV" in env.keys():
+            del env["VIRTUAL_ENV"]
+        if "VIRTUAL_ENV_PROMPT" in env.keys():
+            del env["VIRTUAL_ENV_PROMPT"]
         executable = Path(self._config.remorph.command_line[0])
         await self._launch_executable(executable, env)
 
