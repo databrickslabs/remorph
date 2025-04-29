@@ -59,15 +59,18 @@ class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
         # pylint: disable=import-outside-toplevel
         import snowflake.sqlalchemy  # type: ignore
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import serialization
 
         # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
         # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
         # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy
         sqlalchemy_driver = "snowflake"
-        account_id = self.config["server"].split(".")[0]
+        url_parts = self.config["server"].split(".")
+        parsed_url = f"{url_parts[0]}.{url_parts[1]}.{url_parts[2]}"
         connection_string = snowflake.sqlalchemy.URL(
             drivername=sqlalchemy_driver,
-            account=account_id,
+            account=parsed_url,
             user=self.config["user"],
             database=self.config["database"],
             schema=self.config["schema"],
@@ -75,8 +78,17 @@ class SnowflakeConnector(_BaseConnector):
         )
 
         # Users can optionally specify a private key to use
-        if "pem" in self.config:
-            engine = create_engine(connection_string, connect_args={"private_key": self.config["pem"].strip()})
+        if "private_key_path" in self.config:
+            logging.info("Reading private key from filesystem path.")
+            with open(self.config["private_key_path"], "rb") as key:
+                p_key = serialization.load_pem_private_key(key.read(), password=None, backend=default_backend())
+            key_bytes = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+            engine = create_engine(connection_string, connect_args={"private_key": key_bytes})
         else:
             engine = create_engine(connection_string)
 
