@@ -50,10 +50,10 @@ remorph:
     - ...
     - <sql dialect _n_>
   environment: # this section is optional, variables are set prior to launching the transpiler
-    - <name 1>: <value 1>
-    - <name 2>: <value 2>
-    - ...
-    - <name _n_>: <value _n_>
+    <name 1>: <value 1>
+    <name 2>: <value 2>
+    ...
+    <name _n_>: <value _n_>
   command_line: # this section is mandatory and cannot be empty, it is used to launch the transpiler
     - <executable> # such as 'java', or 'python'
     - <argument 1> # such as '-jar'
