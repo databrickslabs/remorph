@@ -69,13 +69,45 @@ def launch_installer():
             raise RuntimeError(f"Installation script failed: {error_msg}") from e
 
 
+def is_systemd_installed() -> bool:
+    """
+    Validates if systemd is installed on the host.
+    Returns:
+        bool - True if systemd is installed
+               False if systemd not found on the system
+    """
+    try:
+        run(
+            ["systemctl", "-version"],
+            capture_output=True,
+            check=True
+        )
+        return True
+    except CalledProcessError as cpe:
+        logging.error(f"Systemd not found on the system: {cpe}")
+        return False
+
+
+def validate_prerequisites():
+    """
+    Validates that the prerequisites for installing the profiler scheduler
+    are met.
+    1. The user must be using a Mac, Linux, or Windows OS
+    2. Python 3.11+ must be installed
+    """
+    system_info = platform.system().lower()
+    if platform.system().lower() not in {"darwin", "linux", "windows"}:
+        raise RuntimeError("Unsupported operating system detected.")
+    python_version_info = [int(v) for v in platform.python_version().split(".")]
+    if python_version_info[0] != 3 or python_version_info[1] < 11:
+        raise RuntimeError("Python version must be >= Python 3.11")
+    if system_info == "darwin" and not is_systemd_installed():
+        raise RuntimeError("Systemd is required.")
+
+
 def main():
-    # Prerequisites:
-    # The user has already cloned the remorph project and is executing the `install.py` script
-    # So we can skip cloning the remorph project
-    # The user must be using a Mac, Linux, or Windows OS
-    # Python 3.11+ must be installed
-    logging.info("Installing the remorph EDW profiler...\n")
+    logging.info("Installing the remorph profiler scheduler...\n")
+    validate_prerequisites()
     launch_installer()
     logging.info("Installation complete.")
 
