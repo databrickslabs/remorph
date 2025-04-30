@@ -322,8 +322,8 @@ class MavenInstaller(TranspilerInstaller):
         try:
             path, message = request.urlretrieve(url)
             if path:
-                if path != str(target):
-                    move(path, str(target))
+                logger.info(f"Downloaded {path}, moving it to {target!s}")
+                move(path, str(target))
                 return 0
             logger.error(message)
             return -1

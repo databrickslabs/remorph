@@ -25,8 +25,10 @@ def test_gets_maven_artifact_version():
 
 
 def test_downloads_from_maven():
-    with NamedTemporaryFile() as target:
+    with NamedTemporaryFile(suffix=".jar") as target:
         path = Path(target.name)
+        if path.exists(): # happens on windows
+            path.unlink()
         result = MavenInstaller.download_from_maven(
             "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
         )
