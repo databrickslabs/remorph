@@ -165,9 +165,9 @@ jobs:
           echo "No file produced in tests-reports/"
           exit 1
 
-  end-to-end-macos:
+  end-to-end:
 
-    runs-on: [macOS, X64]
+    runs-on: [ubuntu-latest, windows-server-2022-latest]
 
     steps:
     - name: Checkout
