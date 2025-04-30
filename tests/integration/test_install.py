@@ -43,8 +43,10 @@ def test_gets_pypi_artifact_version():
 
 
 def test_downloads_tar_from_pypi():
-    with NamedTemporaryFile() as target:
+    with NamedTemporaryFile(suffix=".tar") as target:
         path = Path(target.name)
+        if path.exists(): # happens on windows
+            path.unlink()
         result = PypiInstaller.download_artifact_from_pypi(
             "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
         )
@@ -54,8 +56,10 @@ def test_downloads_tar_from_pypi():
 
 
 def test_downloads_whl_from_pypi():
-    with NamedTemporaryFile() as target:
+    with NamedTemporaryFile(suffix=".whl") as target:
         path = Path(target.name)
+        if path.exists():  # happens on windows
+            path.unlink()
         result = PypiInstaller.download_artifact_from_pypi(
             "databricks-labs-remorph-community-transpiler", "0.0.1", path
         )
