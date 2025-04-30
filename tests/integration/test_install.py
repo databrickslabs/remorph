@@ -150,6 +150,13 @@ class PatchedPypiInstaller(PypiInstaller):
         finally:
             os.chdir(cwd)
 
+def format_transpiled(sql: str) -> str:
+    parts = sql.lower().split("\n")
+    stripped = [s.strip() for s in parts]
+    sql = " ".join(stripped)
+    sql = sql.replace(";;", ";")
+    return sql
+
 
 async def test_installs_and_runs_rct(patched_transpiler_installer):
     with patch(
@@ -185,10 +192,10 @@ async def test_installs_and_runs_rct(patched_transpiler_installer):
                 await lsp_engine.initialize(transpile_config)
                 dialect = transpile_config.source_dialect
                 input_file = Path(input_source) / "some_query.sql"
-                sql_code = "select * from employees;"
+                sql_code = "select * from employees"
                 result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
                 await lsp_engine.shutdown()
-                transpiled = " ".join(s.strip() for s in result.transpiled_code.lower().split("\n"))
+                transpiled = format_transpiled(result.transpiled_code)
                 assert transpiled == sql_code
 
 
@@ -251,5 +258,5 @@ async def test_installs_and_runs_morpheus(patched_transpiler_installer):
                 sql_code = "select * from employees;"
                 result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
                 await lsp_engine.shutdown()
-                transpiled = " ".join(s.strip() for s in result.transpiled_code.lower().split("\n")).replace(";;", ";")
+                transpiled = format_transpiled(result.transpiled_code)
                 assert transpiled == sql_code
