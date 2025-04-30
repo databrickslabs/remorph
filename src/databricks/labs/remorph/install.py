@@ -226,9 +226,7 @@ class PypiInstaller(TranspilerInstaller):
         # can't use sysconfig because it only works for currently running python
         if sys.platform == "win32":
             return self._locate_site_packages_windows()
-        else:
-            return self._locate_site_packages_linux_or_macos()
-
+        return self._locate_site_packages_linux_or_macos()
 
     def _locate_site_packages_windows(self):
         packages = self._venv / "Lib" / "site-packages"
