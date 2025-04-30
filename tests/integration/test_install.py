@@ -150,6 +150,7 @@ class PatchedPypiInstaller(PypiInstaller):
         finally:
             os.chdir(cwd)
 
+
 def format_transpiled(sql: str) -> str:
     parts = sql.lower().split("\n")
     stripped = [s.strip() for s in parts]
