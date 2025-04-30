@@ -67,7 +67,8 @@ def _upgrade_reconcile_workflow(app_context: ApplicationContext):
     if app_context.recon_config:
         logger.info("Upgrading reconcile workflow")
         wheels = app_context.product_info.wheels(app_context.workspace_client)
-        wheel_path = f"/Workspace{wheels.upload_to_wsfs()}"
+        with wheels as wheel_builder:
+            wheel_path = f"/Workspace{wheel_builder.upload_to_wsfs()}"
         app_context.job_deployment.deploy_recon_job(RECON_JOB_NAME, app_context.recon_config, wheel_path)
         logger.debug("Upgraded reconcile workflow")
 

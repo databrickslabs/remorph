@@ -7,10 +7,11 @@ from pathlib import Path
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 
-from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
+from databricks.labs.remorph.assessments.configure_assessment import (
+    create_assessment_configurator,
+    PROFILER_SOURCE_SYSTEM,
+)
 from databricks.labs.remorph.config import TranspileConfig
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
@@ -221,9 +222,15 @@ def configure_secrets(w: WorkspaceClient):
 def install_assessment():
     """Install the Remorph Assessment package"""
     prompts = Prompts()
-    credential = create_credential_manager("remorph", EnvGetter())
-    assessment = ConfigureAssessment(product_name="remorph", prompts=prompts)
-    assessment.run(cred_manager=credential)
+
+    # Prompt for source system
+    source_system = str(
+        prompts.choice("Please select the source system you want to configure", PROFILER_SOURCE_SYSTEM)
+    ).lower()
+
+    # Create appropriate assessment configurator
+    assessment = create_assessment_configurator(source_system=source_system, product_name="remorph", prompts=prompts)
+    assessment.run()
 
 
 @remorph.command()
