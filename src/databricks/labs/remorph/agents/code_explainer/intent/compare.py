@@ -6,7 +6,7 @@ from databricks_langchain import ChatDatabricks  # type: ignore
 from langchain.prompts import ChatPromptTemplate
 
 
-class CompareIntent(object):
+class CompareIntent:
     def __init__(
         self,
         source_intent: dict[str, Any],

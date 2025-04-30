@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from langchain_core.documents import Document
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers.language import LanguageParser
 
 
-class SqlParser(object):
+class SqlParser:
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.loader = GenericLoader.from_filesystem(self.file_path, parser=LanguageParser("sql"))
@@ -16,7 +16,7 @@ class SqlParser(object):
         """Parse the SQL code into list of Documents"""
         try:
             return self.loader.load()
-        except Exception as e:
+        except ValueError as e:
             print(f"Error loading SQL file: {e}")
             return None
 

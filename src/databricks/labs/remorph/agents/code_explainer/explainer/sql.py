@@ -19,7 +19,7 @@ class SQLExplainer:
         self.endpoint_name = endpoint_name
         self.format_flag = format_flag
 
-        """Initialize the SQL Explainer Chain"""
+        # Initialize the SQL Explainer Chain
         self.llm = ChatDatabricks(endpoint=self.endpoint_name, extra_params={"temperature": 0.0})
 
         # Create the prompt template
@@ -80,7 +80,7 @@ class SQLExplainer:
                         Extract the Output as comma separated python list each having a tuple of function name and its purpose.",
         )
 
-        performance_considerations_schema = ResponseSchema(
+        perf_considerations_schema = ResponseSchema(
             name="performance_considerations",
             description="Identify if there's any potential performance considerations and suggest optimization techniques.",
         )
@@ -96,7 +96,7 @@ class SQLExplainer:
             sql_flow_schema,
             key_tables_schema,
             sql_functions_schema,
-            performance_considerations_schema,
+            perf_considerations_schema,
             migration_challenges_schema,
         ]
 
@@ -115,7 +115,7 @@ class SQLExplainer:
         output_parser = self.format_output()
         format_instructions = output_parser.get_format_instructions()
 
-        result = dict()
+        result = {}
         # Run the chain
         response = (
             self.llm_chain.invoke({"sql_segment": sql_segment, "format_instructions": format_instructions})

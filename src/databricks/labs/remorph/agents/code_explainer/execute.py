@@ -25,7 +25,7 @@ def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, fo
 
     explainer = SQLExplainer(endpoint_name="databricks-llama-4-maverick", format_flag=format_flag)
     source_explanations = explainer.explain_documents(source_documents)
-    target_explanations = explainer.explain_documents(target_documents) if target_documents else None
+    target_explanations = explainer.explain_documents(target_documents) if target_documents else []
 
     if source_explanations:
         print("****" * 50)
