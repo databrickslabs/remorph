@@ -178,8 +178,11 @@ jobs:
             labels: linux-ubuntu-latest
           - group: databrickslabs-protected-runner-group
             labels: windows-server-2022-latest
-          - [macOS, X64]
-    runs-on: ${{ matrix.runner }}
+          - group: ' '
+            labels: [macOS, X64]
+    runs-on:
+      group: ${{ matrix.runner.group }}
+      labels: ${{ matrix.runner.labels }}
 
     steps:
       - name: Checkout
