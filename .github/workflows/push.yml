@@ -170,23 +170,26 @@ jobs:
           echo "No file produced in tests-reports/"
           exit 1
 
-#  end-to-end:
-#    strategy:
-#      matrix:
-#        runner:
-#          - group: databrickslabs-protected-runner-group
-#            labels: linux-ubuntu-latest
-#          - group: databrickslabs-protected-runner-group
-#            labels: windows-server-2022-latest
-#
-#    runs-on:
-#      group: ${{ matrix.runner.group }}
-#      labels: ${{ matrix.runner.labels }}
-#
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
+  end-to-end:
+    strategy:
+      matrix:
+        platform: [linux, windows, macos]
+        include:
+        - platform: linux 
+          group: databrickslabs-protected-runner-group
+          labels: linux-ubuntu-latest
+        - platform: windows 
+          group: databrickslabs-protected-runner-group
+          labels: windows-server-2022-latest
+
+    runs-on:
+      group: ${{ matrix.group }}
+      labels: ${{ matrix.labels }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
 #      - name: Install Python
 #        uses: actions/setup-python@v5
 #        with:
