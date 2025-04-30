@@ -168,7 +168,7 @@ jobs:
   end-to-end:
 
     runs-on:
-      group: ${{ matrix.group }}
+      group: databrickslabs-protected-runner-group
       labels: ${{ matrix.labels }}
 
     strategy:
@@ -176,10 +176,8 @@ jobs:
         platform: [linux, windows, macos]
         include:
         - platform: linux 
-          group: databrickslabs-protected-runner-group
           labels: linux-ubuntu-latest
         - platform: windows 
-          group: databrickslabs-protected-runner-group
           labels: windows-server-2022-latest
 
     steps:
