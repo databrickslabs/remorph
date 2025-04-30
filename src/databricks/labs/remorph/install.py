@@ -224,6 +224,19 @@ class PypiInstaller(TranspilerInstaller):
 
     def _locate_site_packages(self):
         # can't use sysconfig because it only works for currently running python
+        if sys.platform == "win32":
+            return self._locate_site_packages_windows()
+        else:
+            return self._locate_site_packages_linux_or_macos()
+
+
+    def _locate_site_packages_windows(self):
+        packages = self._venv / "Lib" / "site-packages"
+        if packages.exists():
+            return packages
+        raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
+
+    def _locate_site_packages_linux_or_macos(self):
         lib = self._venv / "lib"
         for dir_ in os.listdir(lib):
             if dir_.startswith("python"):
