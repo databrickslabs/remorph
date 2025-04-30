@@ -171,7 +171,7 @@ jobs:
 
     strategy:
       matrix:
-        runner: [ubuntu-latest, windows-server-2022-latest]
+        runner: [larger, windows-server-2022-latest]
 
     steps:
     - name: Checkout
@@ -184,7 +184,12 @@ jobs:
         cache-dependency-path: '**/pyproject.toml'
         python-version: 3.10.x
 
-    - name: Install hatch
+    - name: Install hatch (Windows)
+      if: ${{ matrix.runner == 'windows-server-2022-latest' }}
+      run: pip install hatch=="$env:HATCH_VERSION"
+
+    - name: Install hatch (Non-Windows)
+      if: ${{ matrix.runner != 'windows-server-2022-latest' }}
       run: pip install hatch==$HATCH_VERSION
 
     - name: Install Databricks CLI
