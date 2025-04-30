@@ -8,8 +8,10 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.connections.credential_manager import (
     cred_file as creds,
     CredentialManager,
+    create_credential_manager,
 )
 from databricks.labs.remorph.connections.database_manager import DatabaseManager
+from databricks.labs.remorph.connections.env_getter import EnvGetter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -45,12 +47,13 @@ class AssessmentConfigurator(ABC):
             logger.error(f"Failed to connect to the source system: {e}")
             raise SystemExit("Connection validation failed. Exiting...") from e
 
-    def run(self, cred_manager: CredentialManager | None = None):
+    def run(self):
         """Run the assessment configuration process."""
         logger.info(f"Welcome to the {self._product_name} Assessment Configuration")
         source = self._configure_credentials()
         logger.info(f"{source.capitalize()} details and credentials received.")
         if self.prompts.confirm(f"Do you want to test the connection to {source}?"):
+            cred_manager = create_credential_manager("remorph", EnvGetter())
             if cred_manager:
                 self._test_connection(source, cred_manager)
         logger.info(f"{source.capitalize()} Assessment Configuration Completed")
