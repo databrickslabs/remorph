@@ -5,7 +5,6 @@ import asyncio
 import logging
 import os
 from collections.abc import Callable, Sequence
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -70,10 +69,7 @@ class _LSPRemorphConfigV1:
         dialects = data.get("dialects", [])
         if len(dialects) == 0:
             raise ValueError("Missing 'dialects' entry")
-        env_list = data.get("environment", [])
-        env_vars: dict[str, str] = {}
-        for env_var in env_list:
-            env_vars = env_vars | env_var
+        env_vars = data.get("environment", {})
         command_line = data.get("command_line", [])
         if len(command_line) == 0:
             raise ValueError("Missing 'command_line' entry")
@@ -377,9 +373,7 @@ class LSPEngine(TranspileEngine):
 
     async def _do_initialize(self, config: TranspileConfig) -> None:
         executable = self._config.remorph.command_line[0]
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
+        env: dict[str, str] = os.environ | self._config.remorph.env_vars
         # ensure modules are searched locally before being searched in remorph
         if "PYTHONPATH" in env.keys():
             env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
