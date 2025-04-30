@@ -322,7 +322,8 @@ class MavenInstaller(TranspilerInstaller):
         try:
             path, message = request.urlretrieve(url)
             if path:
-                move(path, str(target))
+                if path != str(target):
+                    move(path, str(target))
                 return 0
             logger.error(message)
             return -1
