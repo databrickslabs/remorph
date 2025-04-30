@@ -169,7 +169,7 @@ jobs:
 
     runs-on:
       group: databrickslabs-protected-runner-group
-      labels: ${{ matrix.labels }}
+      labels: "${{ matrix.labels }}"
 
     strategy:
       matrix:
