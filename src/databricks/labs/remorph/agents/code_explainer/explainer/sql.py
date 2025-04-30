@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List
 
 
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.documents import Document
-from databricks_langchain import ChatDatabricks
+from databricks_langchain import ChatDatabricks  # type: ignore
 
+from databricks.labs.remorph.agents.exceptions import RemorphAgentException
 from databricks.labs.remorph.agents.code_explainer.parser import SqlParser
 
 
@@ -51,7 +52,7 @@ class SQLExplainer:
 
         self.llm_chain = self.prompt_template | self.llm
 
-    def format_output(self) -> Optional[StructuredOutputParser]:
+    def format_output(self) -> StructuredOutputParser:
         """Format the output from the LLM into a structured format"""
         # Define the response schema
         sql_type_schema = ResponseSchema(
@@ -100,7 +101,10 @@ class SQLExplainer:
         ]
 
         # Create the output parser
-        output_parser = StructuredOutputParser.from_response_schemas(response_schema)
+        try:
+            output_parser = StructuredOutputParser.from_response_schemas(response_schema)
+        except Exception as e:
+            raise RemorphAgentException("Response formatter failed to load.") from e
 
         return output_parser
 
@@ -140,4 +144,6 @@ class SQLExplainer:
         """Parse and explain all SQL segments in a file"""
         parser = SqlParser(file_path=sql_file_path)
         docs = parser.parse()
+        if not docs:
+            raise ValueError(f"Parsing failed for the SQL Code Segment: {sql_file_path}")
         return self.explain_documents(docs)

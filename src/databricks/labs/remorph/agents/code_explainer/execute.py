@@ -1,15 +1,23 @@
 import pprint
+import logging
 
 from databricks.labs.remorph.agents.code_explainer.parser import SqlParser
 from databricks.labs.remorph.agents.code_explainer.explainer import SQLExplainer
 from databricks.labs.remorph.agents.code_explainer.intent import CompareIntent
 
+logger = logging.getLogger(__name__)
 
-def _run(source_doc: str, target_doc: str = None, compare_intent: bool = False, format: bool = False) -> None:
+
+def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, format: bool = False) -> None:
     """Run the SQL Explainer"""
     # Set the experiment
 
     source_documents = SqlParser(source_doc).parse()
+
+    if not source_documents:
+        logger.warning("No code found in the source document.")
+        print("[WARN]::No code found in the source document.")
+        return
 
     target_documents = SqlParser(target_doc).parse() if compare_intent else None
 
@@ -19,28 +27,31 @@ def _run(source_doc: str, target_doc: str = None, compare_intent: bool = False, 
     source_explanations = explainer.explain_documents(source_documents)
     target_explanations = explainer.explain_documents(target_documents) if target_documents else None
 
-    print("****" * 50)
-    print("Source SQL Code Explanation:")
-    pprint.pprint(source_explanations[0].get('explanation', "__NOT_FOUND__"))
+    if source_explanations:
+        print("****" * 50)
+        print("Source SQL Code Explanation:")
+        pprint.pprint(source_explanations[0].get('explanation', "__NOT_FOUND__"))
 
     if not target_documents:
         return
 
-    print("****" * 50)
-    print("Target SQL Code Explanation:")
-    pprint.pprint(target_explanations[0].get('explanation', "__NOT_FOUND__"))
+    if target_explanations:
+        print("****" * 50)
+        print("Target SQL Code Explanation:")
+        pprint.pprint(target_explanations[0].get('explanation', "__NOT_FOUND__"))
 
-    print("****" * 50)
-    print("Comparing Code intent of Source SQL and converted ")
+    if source_explanations and target_explanations:
+        print("****" * 50)
+        print("Comparing Code intent of Source SQL and converted ")
 
-    compare_intent = CompareIntent(
-        source_intent=source_explanations[0].get('explanation', {}),
-        target_intent=target_explanations[0].get('explanation', {}),
-        endpoint_name="databricks-claude-3-7-sonnet",
-    )
+        intent_compare = CompareIntent(
+            source_intent=source_explanations[0].get('explanation', {}),
+            target_intent=target_explanations[0].get('explanation', {}),
+            endpoint_name="databricks-claude-3-7-sonnet",
+        )
 
-    print("****" * 50)
-    print(compare_intent.compare())
+        print("****" * 50)
+        print(intent_compare.compare())
 
 
 def intent(source_doc: str):

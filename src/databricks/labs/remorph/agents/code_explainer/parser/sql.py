@@ -14,7 +14,11 @@ class SqlParser(object):
 
     def parse(self) -> Optional[List[Document]]:
         """Parse the SQL code into list of Documents"""
-        return self.loader.load()
+        try:
+            return self.loader.load()
+        except Exception as e:
+            print(f"Error loading SQL file: {e}")
+            return None
 
     def lazy_parse(self) -> Optional[Iterator[Document]]:
         """Parse the SQL code into Documents. Yields one Document at a time."""

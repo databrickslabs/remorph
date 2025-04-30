@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict
 
 
-from databricks_langchain import ChatDatabricks
+from databricks_langchain import ChatDatabricks  # type: ignore
 from langchain.prompts import ChatPromptTemplate
 
 
