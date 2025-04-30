@@ -65,6 +65,34 @@ def mock_credentials():
                 'database': 'TEST_TSQL_JDBC',
                 'driver': 'ODBC Driver 18 for SQL Server',
             },
+            'synapse': {
+                'workspace': {
+                    'name': 'test-workspace',
+                    'dedicated_sql_endpoint': 'test-dedicated-endpoint',
+                    'serverless_sql_endpoint': 'test-serverless-endpoint',
+                    'sql_user': 'test-user',
+                    'sql_password': 'test-password',
+                    'tz_info': 'UTC',
+                },
+                'azure_api_access': {
+                    'development_endpoint': 'test-dev-endpoint',
+                    'azure_client_id': 'test-client-id',
+                    'azure_tenant_id': 'test-tenant-id',
+                    'azure_client_secret': 'test-client-secret',
+                },
+                'jdbc': {
+                    'auth_type': 'sql_authentication',
+                    'fetch_size': '1000',
+                    'login_timeout': '30',
+                },
+                'profiler': {
+                    'exclude_serverless_sql_pool': False,
+                    'exclude_dedicated_sql_pools': False,
+                    'exclude_spark_pools': False,
+                    'exclude_monitoring_metrics': False,
+                    'redact_sql_pools_sql_text': False,
+                },
+            },
         },
     ):
         yield
