@@ -178,8 +178,7 @@ jobs:
             labels: linux-ubuntu-latest
           - group: databrickslabs-protected-runner-group
             labels: windows-server-2022-latest
-          - group: ' '
-            labels: [macOS, X64]
+
     runs-on:
       group: ${{ matrix.runner.group }}
       labels: ${{ matrix.runner.labels }}
