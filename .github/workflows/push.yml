@@ -167,7 +167,11 @@ jobs:
 
   end-to-end:
 
-    runs-on: [ubuntu-latest, windows-server-2022-latest]
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, windows-server-2022-latest]
 
     steps:
     - name: Checkout
