@@ -8,7 +8,7 @@ from databricks.labs.remorph.agents.code_explainer.intent import CompareIntent
 logger = logging.getLogger(__name__)
 
 
-def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, format: bool = False) -> None:
+def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, format_flag: bool = False) -> None:
     """Run the SQL Explainer"""
     # Set the experiment
 
@@ -23,7 +23,7 @@ def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, fo
 
     # print("Number of documents: ", len(docs))
 
-    explainer = SQLExplainer(endpoint_name="databricks-llama-4-maverick", format_flag=format)
+    explainer = SQLExplainer(endpoint_name="databricks-llama-4-maverick", format_flag=format_flag)
     source_explanations = explainer.explain_documents(source_documents)
     target_explanations = explainer.explain_documents(target_documents) if target_documents else None
 
@@ -55,8 +55,8 @@ def _run(source_doc: str, target_doc: str = '', compare_intent: bool = False, fo
 
 
 def intent(source_doc: str):
-    _run(source_doc=source_doc, compare_intent=False, format=False)
+    _run(source_doc=source_doc, compare_intent=False, format_flag=False)
 
 
 def match_intent(source_doc: str, target_doc: str):
-    _run(source_doc=source_doc, target_doc=target_doc, compare_intent=True, format=True)
+    _run(source_doc=source_doc, target_doc=target_doc, compare_intent=True, format_flag=True)

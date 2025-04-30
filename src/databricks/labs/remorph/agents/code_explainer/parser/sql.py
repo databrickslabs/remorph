@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, Optional, List
+from typing import Iterator
 
 from langchain_core.documents import Document
 from langchain_community.document_loaders.generic import GenericLoader
@@ -12,7 +12,7 @@ class SqlParser(object):
         self.file_path = file_path
         self.loader = GenericLoader.from_filesystem(self.file_path, parser=LanguageParser("sql"))
 
-    def parse(self) -> Optional[List[Document]]:
+    def parse(self) -> list[Document] | None:
         """Parse the SQL code into list of Documents"""
         try:
             return self.loader.load()
@@ -20,6 +20,6 @@ class SqlParser(object):
             print(f"Error loading SQL file: {e}")
             return None
 
-    def lazy_parse(self) -> Optional[Iterator[Document]]:
+    def lazy_parse(self) -> Iterator[Document] | None:
         """Parse the SQL code into Documents. Yields one Document at a time."""
         return self.loader.lazy_load()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 from langchain.prompts import ChatPromptTemplate
@@ -108,7 +108,7 @@ class SQLExplainer:
 
         return output_parser
 
-    def explain_document(self, doc: Document) -> Dict[str, Any]:
+    def explain_document(self, doc: Document) -> dict[str, Any]:
         """Explain a single SQL document"""
         sql_segment = doc.page_content
 
@@ -132,7 +132,7 @@ class SQLExplainer:
 
         return result
 
-    def explain_documents(self, docs: List[Document]) -> List[Dict[str, Any]]:
+    def explain_documents(self, docs: list[Document]) -> list[dict[str, Any]]:
         """Explain multiple SQL documents"""
         results = []
         for doc in docs:
@@ -140,7 +140,7 @@ class SQLExplainer:
             results.append(result)
         return results
 
-    def batch_explain(self, sql_file_path: str) -> List[Dict[str, Any]]:
+    def batch_explain(self, sql_file_path: str) -> list[dict[str, Any]]:
         """Parse and explain all SQL segments in a file"""
         parser = SqlParser(file_path=sql_file_path)
         docs = parser.parse()

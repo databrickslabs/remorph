@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 
 from databricks_langchain import ChatDatabricks  # type: ignore
@@ -9,8 +9,8 @@ from langchain.prompts import ChatPromptTemplate
 class CompareIntent(object):
     def __init__(
         self,
-        source_intent: Dict[str, Any],
-        target_intent: Dict[str, Any],
+        source_intent: dict[str, Any],
+        target_intent: dict[str, Any],
         endpoint_name: str = "databricks-llama-4-maverick",
     ):
         self.source_intent = source_intent
