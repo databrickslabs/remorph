@@ -25,16 +25,15 @@ def test_gets_maven_artifact_version():
 
 
 def test_downloads_from_maven():
-    with NamedTemporaryFile(suffix=".jar") as target:
-        path = Path(target.name)
-        if path.exists():  # happens on windows
-            path.unlink()
-        result = MavenInstaller.download_from_maven(
-            "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
-        )
-        assert result == 0
-        assert path.exists()
-        assert path.stat().st_size == 5_684
+    with TemporaryDirectory() as parent:
+        with NamedTemporaryFile(dir=parent, suffix=".jar") as target:
+            path = Path(target.name)
+            result = MavenInstaller.download_from_maven(
+                "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
+            )
+            assert result == 0
+            assert path.exists()
+            assert path.stat().st_size == 5_684
 
 
 def test_gets_pypi_artifact_version():
@@ -43,29 +42,27 @@ def test_gets_pypi_artifact_version():
 
 
 def test_downloads_tar_from_pypi():
-    with NamedTemporaryFile(suffix=".tar") as target:
-        path = Path(target.name)
-        if path.exists(): # happens on windows
-            path.unlink()
-        result = PypiInstaller.download_artifact_from_pypi(
-            "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
-        )
-        assert result == 0
-        assert path.exists()
-        assert path.stat().st_size == 41_656
+    with TemporaryDirectory() as parent:
+        with NamedTemporaryFile(dir=parent, suffix=".tar") as target:
+            path = Path(target.name)
+            result = PypiInstaller.download_artifact_from_pypi(
+                "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
+            )
+            assert result == 0
+            assert path.exists()
+            assert path.stat().st_size == 41_656
 
 
 def test_downloads_whl_from_pypi():
-    with NamedTemporaryFile(suffix=".whl") as target:
-        path = Path(target.name)
-        if path.exists():  # happens on windows
-            path.unlink()
-        result = PypiInstaller.download_artifact_from_pypi(
-            "databricks-labs-remorph-community-transpiler", "0.0.1", path
-        )
-        assert result == 0
-        assert path.exists()
-        assert path.stat().st_size == 35_270
+    with TemporaryDirectory() as parent:
+        with NamedTemporaryFile(dir=parent, suffix=".whl") as target:
+            path = Path(target.name)
+            result = PypiInstaller.download_artifact_from_pypi(
+                "databricks-labs-remorph-community-transpiler", "0.0.1", path
+            )
+            assert result == 0
+            assert path.exists()
+            assert path.stat().st_size == 35_270
 
 
 @pytest.fixture()
