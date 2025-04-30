@@ -403,8 +403,17 @@ class MavenInstaller(TranspilerInstaller):
         version_path.write_text(dumps(version_data), "utf-8")
 
     def _run_custom_installer(self, installer: Path):
-        completed = run(str(installer), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=str(self._install_path), shell=True)
+        completed = run(
+            str(installer),
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            cwd=str(self._install_path),
+            shell=True,
+            check=False,
+        )
         completed.check_returncode()
+
 
 class WorkspaceInstaller:
     def __init__(
