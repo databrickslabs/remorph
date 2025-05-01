@@ -1,7 +1,6 @@
 import os
 import shutil
 from pathlib import Path
-from tempfile import TemporaryFile
 
 import pytest
 
@@ -19,8 +18,8 @@ def test_gets_maven_version():
     check_valid_version(version)
 
 
-def test_downloads_from_maven():
-    path = Path(str(TemporaryFile()))
+def test_downloads_from_maven(tmp_path):
+    path = tmp_path / "test-download.pom"
     result = TranspilerInstaller.download_from_maven(
         "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
     )
