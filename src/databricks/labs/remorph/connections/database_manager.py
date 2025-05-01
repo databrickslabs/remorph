@@ -44,7 +44,6 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
         "mssql": MSSQLConnector,
         "tsql": MSSQLConnector,
         "synapse": MSSQLConnector,
-        "postgres": PostgresConnector,
     }
 
     connector_class = connectors.get(db_type.lower())
@@ -109,26 +108,6 @@ class MSSQLConnector(_BaseConnector):
             host=self.config['server'],
             port=self.config.get('port', 1433),
             database=self.config['database'],
-            query=query_params,
-        )
-        return create_engine(connection_string)
-
-
-class PostgresConnector(_BaseConnector):
-    def _connect(self) -> Engine:
-        # Pull out additional query params from config
-        query_params = {}
-        for key, value in self.config.items():
-            if key not in ["user", "password", "server", "database", "port", "driver"]:
-                query_params[key] = value
-        # Build the connection string to database
-        connection_string = URL.create(
-            drivername="postgresql",
-            username=self.config["user"],
-            password=self.config["password"],
-            host=self.config["server"],
-            port=self.config.get("port", 5432),
-            database=self.config["database"],
             query=query_params,
         )
         return create_engine(connection_string)
