@@ -28,7 +28,7 @@ def test_is_sql_file():
 
 
 def test_make_dir(tmp_path):
-    new_dir_path = tmp_path.join("new_dir")
+    new_dir_path = tmp_path / "new_dir"
 
     # Ensure the directory does not exist
     assert not os.path.exists(new_dir_path)
