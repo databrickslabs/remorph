@@ -9,7 +9,6 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.exception import InvalidSnowflakePemPrivateKey
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
@@ -80,11 +79,8 @@ class SnowflakeConnector(_BaseConnector):
         # Users can optionally specify a private key to use
         conn_args = {}
         if "pem_private_key" in self.config:
-            try:
-                private_key_bytes = SnowflakeDataSource.get_private_key(self.config["pem_private_key"])
-                conn_args = {"private_key": private_key_bytes}
-            except InvalidSnowflakePemPrivateKey as e:
-                logger.error(f"Could not load Snowflake private key: {e}")
+            private_key_bytes = SnowflakeDataSource.get_private_key(self.config["pem_private_key"])
+            conn_args = {"private_key": private_key_bytes}
 
         return create_engine(connection_string, connect_args=conn_args)
 
