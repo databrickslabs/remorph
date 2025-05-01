@@ -27,7 +27,7 @@ def test_is_sql_file():
     assert is_sql_file("test") is False
 
 
-def test_make_dir(tmp_path):
+def test_make_dir(tmp_path: Path) -> None:
     new_dir_path = tmp_path / "new_dir"
 
     # Ensure the directory does not exist

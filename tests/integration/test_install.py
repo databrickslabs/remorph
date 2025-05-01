@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ def test_gets_maven_version():
     check_valid_version(version)
 
 
-def test_downloads_from_maven(tmp_path):
+def test_downloads_from_maven(tmp_path: Path) -> None:
     path = tmp_path / "test-download.pom"
     result = TranspilerInstaller.download_from_maven(
         "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
@@ -29,7 +30,7 @@ def test_downloads_from_maven(tmp_path):
 
 
 @pytest.fixture()
-def mock_transpiler_folder(tmp_path):
+def mock_transpiler_folder(tmp_path: Path) -> Iterable[Path]:
     for transpiler in ("rct", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir()
