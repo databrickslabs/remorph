@@ -33,9 +33,9 @@ def test_downloads_from_maven():
 def mock_transpiler_folder(tmp_path):
     for transpiler in ("rct", "morpheus"):
         target = tmp_path / transpiler
-        target.mkdir(exist_ok=True)
+        target.mkdir()
         target = target / "lib"
-        target.mkdir(exist_ok=True)
+        target.mkdir()
         target = target / "config.yml"
         source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
         shutil.copyfile(str(source), str(target))
