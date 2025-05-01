@@ -39,7 +39,7 @@ def mock_transpiler_folder(tmp_path: Path) -> Iterable[Path]:
         target = target / "config.yml"
         source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
         shutil.copyfile(source, target)
-        yield tmp_path
+    yield tmp_path
 
 
 def test_lists_all_transpiler_names(mock_transpiler_folder):
