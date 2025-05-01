@@ -38,7 +38,7 @@ def mock_transpiler_folder(tmp_path):
         target.mkdir()
         target = target / "config.yml"
         source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
-        shutil.copyfile(str(source), str(target))
+        shutil.copyfile(source, target)
         yield tmp_path
 
 
