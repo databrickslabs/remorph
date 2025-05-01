@@ -8,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.exception import InvalidSnowflakePemPrivateKey
+
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
@@ -58,8 +61,6 @@ class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
         # pylint: disable=import-outside-toplevel
         import snowflake.sqlalchemy  # type: ignore
-        from cryptography.hazmat.backends import default_backend
-        from cryptography.hazmat.primitives import serialization
 
         # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
         # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
@@ -77,21 +78,15 @@ class SnowflakeConnector(_BaseConnector):
         )
 
         # Users can optionally specify a private key to use
-        if "private_key_path" in self.config:
-            logging.info("Reading private key from filesystem path.")
-            with open(self.config["private_key_path"], "rb") as key:
-                p_key = serialization.load_pem_private_key(key.read(), password=None, backend=default_backend())
-            key_bytes = p_key.private_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
+        conn_args = {}
+        if "pem_private_key" in self.config:
+            try:
+                private_key_bytes = SnowflakeDataSource.get_private_key(self.config["pem_private_key"])
+                conn_args = {"private_key": private_key_bytes}
+            except InvalidSnowflakePemPrivateKey as e:
+                logger.error(f"Could not load Snowflake private key: {e}")
 
-            engine = create_engine(connection_string, connect_args={"private_key": key_bytes})
-        else:
-            engine = create_engine(connection_string)
-
-        return engine
+        return create_engine(connection_string, connect_args=conn_args)
 
 
 class MSSQLConnector(_BaseConnector):
