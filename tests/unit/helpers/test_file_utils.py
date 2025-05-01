@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -28,18 +27,17 @@ def test_is_sql_file():
     assert is_sql_file("test") is False
 
 
-def test_make_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        new_dir_path = temp_dir.join("new_dir")
+def test_make_dir(tmp_path):
+    new_dir_path = tmp_path.join("new_dir")
 
-        # Ensure the directory does not exist
-        assert os.path.exists(new_dir_path) is False
+    # Ensure the directory does not exist
+    assert os.path.exists(new_dir_path) is False
 
-        # Call the function to create the directory
-        make_dir(new_dir_path)
+    # Call the function to create the directory
+    make_dir(new_dir_path)
 
-        # Check if the directory now exists
-        assert os.path.exists(new_dir_path) is True
+    # Check if the directory now exists
+    assert os.path.exists(new_dir_path) is True
 
 
 def safe_remove_file(file_path: Path):

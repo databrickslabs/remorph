@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from tempfile import TemporaryFile, TemporaryDirectory
+from tempfile import TemporaryFile
 
 import pytest
 
@@ -30,19 +30,16 @@ def test_downloads_from_maven():
 
 
 @pytest.fixture()
-def mock_transpiler_folder():
-    with TemporaryDirectory() as tmpdir:
-        folder = Path(tmpdir)
-        folder.mkdir(exist_ok=True)
-        for transpiler in ("rct", "morpheus"):
-            target = folder / transpiler
-            target.mkdir(exist_ok=True)
-            target = target / "lib"
-            target.mkdir(exist_ok=True)
-            target = target / "config.yml"
-            source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
-            shutil.copyfile(str(source), str(target))
-        yield folder
+def mock_transpiler_folder(tmp_path):
+    for transpiler in ("rct", "morpheus"):
+        target = tmp_path / transpiler
+        target.mkdir(exist_ok=True)
+        target = target / "lib"
+        target.mkdir(exist_ok=True)
+        target = target / "config.yml"
+        source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
+        shutil.copyfile(str(source), str(target))
+        yield tmp_path
 
 
 def test_lists_all_transpiler_names(mock_transpiler_folder):
