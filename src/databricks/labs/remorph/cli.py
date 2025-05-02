@@ -138,6 +138,10 @@ def transpile(
     for error in errors:
         print(str(error))
 
+    # Convert status to list format for table template
+    # Table Template in labs.yml requires the status to be list of dicts Do not change this
+    if isinstance(status, dict):
+        status = [status]
     print(json.dumps(status))
 
 

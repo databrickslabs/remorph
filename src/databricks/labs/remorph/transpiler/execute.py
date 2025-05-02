@@ -151,7 +151,7 @@ async def _process_input_file(
 
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -160,7 +160,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[list[dict[str, Any]], list[TranspileError]]:
+) -> tuple[dict[str, Any], list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -204,19 +204,15 @@ async def _do_transpile(
         with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
 
-    # Table Template in labs.yml requires the status to be list of dicts Do not change this
-    status = []
-    status.append(
-        {
-            "total_files_processed": len(result.file_list),
-            "total_queries_processed": result.no_of_transpiled_queries,
-            "analysis_error_count": result.analysis_error_count,
-            "parsing_error_count": result.parsing_error_count,
-            "validation_error_count": result.validation_error_count,
-            "generation_error_count": result.generation_error_count,
-            "error_log_file": str(error_log_path),
-        }
-    )
+    status = {
+        "total_files_processed": len(result.file_list),
+        "total_queries_processed": result.no_of_transpiled_queries,
+        "analysis_error_count": result.analysis_error_count,
+        "parsing_error_count": result.parsing_error_count,
+        "validation_error_count": result.validation_error_count,
+        "generation_error_count": result.generation_error_count,
+        "error_log_file": str(error_log_path),
+    }
 
     return status, result.error_list
 
