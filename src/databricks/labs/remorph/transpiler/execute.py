@@ -160,7 +160,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[list[dict[str, Any]], list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -204,15 +204,17 @@ async def _do_transpile(
         with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
 
-    status = {
-        "total_files_processed": len(result.file_list),
-        "total_queries_processed": result.no_of_transpiled_queries,
-        "analysis_error_count": result.analysis_error_count,
-        "parsing_error_count": result.parsing_error_count,
-        "validation_error_count": result.validation_error_count,
-        "generation_error_count": result.generation_error_count,
-        "error_log_file": str(error_log_path),
-    }
+    # Table Template in labs.yml requires the status to be list of dicts Do not change this
+    status = []
+    status.append(
+        {
+            "total_files_processed": len(result.file_list),
+            "total_queries_processed": result.no_of_queries,
+            "no_of_sql_failed_while_parsing": result.parse_error_count,
+            "no_of_sql_failed_while_validating": result.validate_error_count,
+            "error_log_file": str(error_log_path),
+        }
+    )
 
     return status, result.error_list
 
