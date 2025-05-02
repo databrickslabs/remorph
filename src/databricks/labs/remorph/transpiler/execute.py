@@ -151,7 +151,7 @@ async def _process_input_file(
 
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[list[dict[str, Any]], list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -209,9 +209,11 @@ async def _do_transpile(
     status.append(
         {
             "total_files_processed": len(result.file_list),
-            "total_queries_processed": result.no_of_queries,
-            "no_of_sql_failed_while_parsing": result.parse_error_count,
-            "no_of_sql_failed_while_validating": result.validate_error_count,
+            "total_queries_processed": result.no_of_transpiled_queries,
+            "analysis_error_count": result.analysis_error_count,
+            "parsing_error_count": result.parsing_error_count,
+            "validation_error_count": result.validation_error_count,
+            "generation_error_count": result.generation_error_count,
             "error_log_file": str(error_log_path),
         }
     )
