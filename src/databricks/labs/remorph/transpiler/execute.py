@@ -217,8 +217,6 @@ async def _do_transpile(
         "generation_error_count": result.generation_error_count,
         "error_log_file": str(error_log_path),
     }
-    logger.info("**********result.file_list")
-    logger.info(result.file_list)
 
     return status, result.error_list
 
