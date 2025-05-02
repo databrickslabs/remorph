@@ -193,7 +193,6 @@ async def _do_transpile(
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
-    
 
     error_log_path: Path | None = None
     if result.error_list:
@@ -204,7 +203,6 @@ async def _do_transpile(
             error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
         with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
-        
 
     status = {
         "total_files_processed": len(result.file_list),
