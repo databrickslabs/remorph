@@ -194,8 +194,6 @@ async def _do_transpile(
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
     
-    logger.info("**********result.file_list")
-    logger.info(result.file_list)
 
     error_log_path: Path | None = None
     if result.error_list:
