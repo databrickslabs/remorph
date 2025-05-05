@@ -8,6 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
@@ -56,7 +58,31 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        raise NotImplementedError("Snowflake connector not implemented")
+        # pylint: disable=import-outside-toplevel
+        import snowflake.sqlalchemy  # type: ignore
+
+        # Snowflake does not follow a traditional SQL Alchemy connection string URL; they have their own.
+        # e.g.,   connection_string = (f"snowflake://{user}:{pw}@{account}")
+        # https://docs.snowflake.com/en/developer-guide/python-connector/sqlalchemy
+        sqlalchemy_driver = "snowflake"
+        url_parts = self.config["server"].split(".")
+        parsed_url = f"{url_parts[0]}.{url_parts[1]}.{url_parts[2]}"
+        connection_string = snowflake.sqlalchemy.URL(
+            drivername=sqlalchemy_driver,
+            account=parsed_url,
+            user=self.config["user"],
+            database=self.config["database"],
+            schema=self.config["schema"],
+            warehouse=self.config["warehouse"],
+        )
+
+        # Users can optionally specify a private key to use
+        conn_args = {}
+        if "pem_private_key" in self.config:
+            private_key_bytes = SnowflakeDataSource.get_private_key(self.config["pem_private_key"])
+            conn_args = {"private_key": private_key_bytes}
+
+        return create_engine(connection_string, connect_args=conn_args)
 
 
 class MSSQLConnector(_BaseConnector):
