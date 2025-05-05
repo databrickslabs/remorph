@@ -3,7 +3,7 @@ import shutil
 import sys
 from pathlib import Path
 from subprocess import run
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
@@ -42,26 +42,24 @@ def test_gets_pypi_artifact_version():
 
 def test_downloads_tar_from_pypi():
     with TemporaryDirectory() as parent:
-        with NamedTemporaryFile(dir=parent, suffix=".tar") as target:
-            path = Path(target.name)
-            result = PypiInstaller.download_artifact_from_pypi(
-                "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
-            )
-            assert result == 0
-            assert path.exists()
-            assert path.stat().st_size == 41_656
+        path = Path(parent) / "archive.tar"
+        result = PypiInstaller.download_artifact_from_pypi(
+            "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
+        )
+        assert result == 0
+        assert path.exists()
+        assert path.stat().st_size == 41_656
 
 
 def test_downloads_whl_from_pypi():
     with TemporaryDirectory() as parent:
-        with NamedTemporaryFile(dir=parent, suffix=".whl") as target:
-            path = Path(target.name)
-            result = PypiInstaller.download_artifact_from_pypi(
-                "databricks-labs-remorph-community-transpiler", "0.0.1", path
-            )
-            assert result == 0
-            assert path.exists()
-            assert path.stat().st_size == 35_270
+        path = Path(parent) / "package.whl"
+        result = PypiInstaller.download_artifact_from_pypi(
+            "databricks-labs-remorph-community-transpiler", "0.0.1", path
+        )
+        assert result == 0
+        assert path.exists()
+        assert path.stat().st_size == 35_270
 
 
 @pytest.fixture()
@@ -209,7 +207,7 @@ class PatchedMavenInstaller(MavenInstaller):
         return "0.2.0"
 
     @classmethod
-    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
         sample_jar = (
             Path(__file__).parent.parent
             / "resources"

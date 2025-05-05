@@ -155,12 +155,12 @@ class PypiInstaller(TranspilerInstaller):
         filename = f"{product_name.replace('-', '_')}-{version}{suffix}"
         url = f"https://pypi.debian.net/{product_name}/{filename}"
         try:
-            path, message = request.urlretrieve(url)
-            if path:
+            path, _ = request.urlretrieve(url)
+            logger.info(f"Successfully downloaded {path}")
+            if not target.exists():
+                logger.info(f"Moving {path} to {target!s}")
                 move(path, str(target))
-                return 0
-            logger.error(message)
-            return -1
+            return 0
         except URLError as e:
             logger.error("While downloading from pypi", exc_info=e)
             return -1
@@ -314,18 +314,16 @@ class MavenInstaller(TranspilerInstaller):
         return docs[0].get("v", None)
 
     @classmethod
-    def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
         group_id = group_id.replace(".", "/")
         url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
         try:
-            path, headers = request.urlretrieve(url)
-            if path:
-                logger.info(f"Downloaded {path}, moving it to {target!s}")
-                if not target.exists():
-                    move(path, str(target))
-                return 0
-            logger.error(headers)
-            return -1
+            path, _ = request.urlretrieve(url)
+            logger.info(f"Successfully downloaded {path}")
+            if not target.exists():
+                logger.info(f"Moving {path} to {target!s}")
+                move(path, str(target))
+            return 0
         except URLError as e:
             logger.error("While downloading from maven", exc_info=e)
             return -1
@@ -373,7 +371,7 @@ class MavenInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self):
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
-        return_code = self.download_from_maven(
+        return_code = self.download_artifact_from_maven(
             self._group_id,
             self._artifact_id,
             self._latest_version,
