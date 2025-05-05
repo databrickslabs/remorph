@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
@@ -63,21 +64,18 @@ def test_downloads_whl_from_pypi():
 
 
 @pytest.fixture()
-def patched_transpiler_installer():
+def patched_transpiler_installer(tmp_path: Path):
     resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
-    with TemporaryDirectory() as tmpdir:
-        folder = Path(tmpdir)
-        folder.mkdir(exist_ok=True)
-        for transpiler in ("rct", "morpheus"):
-            target = folder / transpiler
-            target.mkdir(exist_ok=True)
-            target = target / "lib"
-            target.mkdir(exist_ok=True)
-            target = target / "config.yml"
-            source = resources_folder / transpiler / "lib" / "config.yml"
-            shutil.copyfile(str(source), str(target))
+    for transpiler in ("rct", "morpheus"):
+        target = tmp_path / transpiler
+        target.mkdir(exist_ok=True)
+        target = target / "lib"
+        target.mkdir(exist_ok=True)
+        target = target / "config.yml"
+        source = resources_folder / transpiler / "lib" / "config.yml"
+        shutil.copyfile(str(source), str(target))
         transpilers_path = TranspilerInstaller.transpilers_path
-        TranspilerInstaller.transpilers_path = lambda: folder
+        TranspilerInstaller.transpilers_path = lambda: tmp_path
         yield TranspilerInstaller
         # couldn't find a way to avoid the below mypy error, any solution is welcome
         # pylint: disable=redefined-variable-type
