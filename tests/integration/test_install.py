@@ -147,8 +147,12 @@ class PatchedPypiInstaller(PypiInstaller):
             os.chdir(self._install_path)
             command = pip.relative_to(self._install_path)
             target = self._site_packages.relative_to(self._install_path)
-            args = f"{command!s} install {sample_wheel!s} -t {target!s}"
-            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+            if sys.platform == "win32":
+                args = f"{command!s} install {sample_wheel!s} -t {target!s}"
+                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+            else:
+                args = f"'{command!s}' install '{sample_wheel!s}' -t '{target!s}'"
+                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
             completed.check_returncode()
         finally:
             os.chdir(cwd)
