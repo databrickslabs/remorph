@@ -318,12 +318,13 @@ class MavenInstaller(TranspilerInstaller):
         group_id = group_id.replace(".", "/")
         url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
         try:
-            path, message = request.urlretrieve(url)
+            path, headers = request.urlretrieve(url)
             if path:
                 logger.info(f"Downloaded {path}, moving it to {target!s}")
-                move(path, str(target))
+                if not target.exists():
+                    move(path, str(target))
                 return 0
-            logger.error(message)
+            logger.error(headers)
             return -1
         except URLError as e:
             logger.error("While downloading from maven", exc_info=e)
