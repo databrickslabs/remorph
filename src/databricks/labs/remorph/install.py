@@ -244,7 +244,7 @@ class PypiInstaller(TranspilerInstaller):
         raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
 
     def _install_from_pip(self):
-        pip = self._venv / "bin" / "pip3"
+        pip = self._locate_pip()
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
@@ -252,6 +252,9 @@ class PypiInstaller(TranspilerInstaller):
             run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
         finally:
             os.chdir(cwd)
+
+    def _locate_pip(self):
+        return self._venv / "Scripts" / "pip3.exe" if sys.platform == "win32" else self._venv / "bin" / "pip3"
 
     def _post_install(self):
         lsp = self._site_packages / "lsp"

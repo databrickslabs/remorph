@@ -141,12 +141,15 @@ class PatchedPypiInstaller(PypiInstaller):
             / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
         )
         assert sample_wheel.exists()
-        pip = self._venv / "bin" / "pip3"
+        pip = self._locate_pip()
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
-            args = f"'{pip!s}' install '{sample_wheel!s}' -t '{self._site_packages!s}'"
-            run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
+            command = pip.relative_to(self._install_path)
+            target = self._site_packages.relative_to(self._install_path)
+            args = f"{command!s} install {sample_wheel!s} -t {target!s}"
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+            completed.check_returncode()
         finally:
             os.chdir(cwd)
 

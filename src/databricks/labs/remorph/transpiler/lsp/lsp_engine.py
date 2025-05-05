@@ -407,13 +407,13 @@ class LSPEngine(TranspileEngine):
             del env["VIRTUAL_ENV"]
         if "VIRTUAL_ENV_PROMPT" in env.keys():
             del env["VIRTUAL_ENV_PROMPT"]
-        path = self._workdir / ".venv" / "bin"
+        path = self._workdir / ".venv" / "Scripts" if sys.platform == "win32" else self._workdir / ".venv" / "bin"
         if "PATH" in env.keys():
             env["PATH"] = str(path) + os.pathsep + env["PATH"]
         else:
             env["PATH"] = str(path)
-        extension = ".exe" if sys.platform == "win32" else ""
-        executable = path / f"python3{extension}"
+        python = "python.exe" if sys.platform == "win32" else "python3"
+        executable = path / python
         await self._launch_executable(executable, env)
 
     async def _start_python_server_without_venv(self):
