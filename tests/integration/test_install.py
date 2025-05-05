@@ -1,7 +1,6 @@
 import os
 import shutil
 import sys
-from collections.abc import Iterable
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
@@ -74,12 +73,8 @@ def patched_transpiler_installer(tmp_path: Path):
         target = target / "config.yml"
         source = resources_folder / transpiler / "lib" / "config.yml"
         shutil.copyfile(str(source), str(target))
-        transpilers_path = TranspilerInstaller.transpilers_path
-        TranspilerInstaller.transpilers_path = lambda: tmp_path
+    with patch.object(TranspilerInstaller, "transpilers_path", return_value=tmp_path):
         yield TranspilerInstaller
-        # couldn't find a way to avoid the below mypy error, any solution is welcome
-        # pylint: disable=redefined-variable-type
-        TranspilerInstaller.transpilers_path = transpilers_path
 
 
 def test_lists_all_transpiler_names(patched_transpiler_installer):
