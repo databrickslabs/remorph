@@ -189,7 +189,7 @@ async def _do_transpile(
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
-    logger.info(f"Transpiler results: {result}")
+    logger.debug(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
@@ -213,7 +213,7 @@ async def _do_transpile(
         "generation_error_count": result.generation_error_count,
         "error_log_file": str(error_log_path),
     }
-
+    logger.info(f"Transpiler Status: {status}")
     return status, result.error_list
 
 
