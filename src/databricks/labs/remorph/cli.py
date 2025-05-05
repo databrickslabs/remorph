@@ -137,9 +137,10 @@ def transpile(
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
-        print(str(error))
+        logger.error(f"Error Transpiling: {str(error)}")
 
-    print(json.dumps(status))
+    # Table Template in labs.yml requires the status to be list of dicts Do not change this
+    print(json.dumps([status]))
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
