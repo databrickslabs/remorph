@@ -221,7 +221,6 @@ class PatchedMavenInstaller(MavenInstaller):
         return 0
 
 
-@pytest.mark.skip(reason="Troubleshooting")
 async def test_installs_and_runs_morpheus(patched_transpiler_installer):
     with patch(
         "databricks.labs.remorph.install.MavenInstaller",
