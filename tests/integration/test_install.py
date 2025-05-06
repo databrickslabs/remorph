@@ -125,13 +125,16 @@ class PatchedPypiInstaller(PypiInstaller):
         return "0.0.1"
 
     def _install_from_pip(self):
+        wheel_file = "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl" \
+            if self._product_name == "rct" \
+            else "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
         sample_wheel = (
             Path(__file__).parent.parent
             / "resources"
             / "transpiler_configs"
-            / "rct"
+            / self._product_name
             / "wheel"
-            / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
+            / wheel_file
         )
         assert sample_wheel.exists()
         pip = self._locate_pip()
@@ -182,6 +185,46 @@ async def test_installs_and_runs_rct(patched_transpiler_installer):
                 transpile_config = TranspileConfig(
                     transpiler_config_path=str(config_path),
                     transpiler_options={"-experimental": True},
+                    source_dialect="snowflake",
+                    input_source=input_source,
+                    output_folder=output_folder,
+                    sdk_config={"cluster_id": "test_cluster"},
+                    skip_validation=False,
+                    catalog_name="catalog",
+                    schema_name="schema",
+                )
+                await lsp_engine.initialize(transpile_config)
+                dialect = transpile_config.source_dialect
+                input_file = Path(input_source) / "some_query.sql"
+                sql_code = "select * from employees"
+                result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
+                await lsp_engine.shutdown()
+                transpiled = format_transpiled(result.transpiled_code)
+                assert transpiled == sql_code
+
+
+async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
+    with patch(
+        "databricks.labs.remorph.install.PypiInstaller",
+        # couldn't find a way to NOT use a lambda, any solution is welcome
+        # pylint: disable=unnecessary-lambda
+        side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name),
+    ):
+        patched_transpiler_installer.install_from_pypi("bladerunner", "databricks-labs-bladerunner")
+        # check file-level installation
+        bladerunner = patched_transpiler_installer.transpilers_path() / "bladerunner"
+        config_path = bladerunner / "lib" / "config.yml"
+        assert config_path.exists()
+        main_path = bladerunner / "lib" / "main.py"
+        assert main_path.exists()
+        version_path = bladerunner / "state" / "version.json"
+        assert version_path.exists()
+        # check execution
+        lsp_engine = LSPEngine.from_config_path(config_path)
+        with TemporaryDirectory() as input_source:
+            with TemporaryDirectory() as output_folder:
+                transpile_config = TranspileConfig(
+                    transpiler_config_path=str(config_path),
                     source_dialect="snowflake",
                     input_source=input_source,
                     output_folder=output_folder,
