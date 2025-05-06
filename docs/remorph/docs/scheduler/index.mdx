@@ -1,0 +1,36 @@
+---
+sidebar_position: 1
+---
+
+# Installing the Profiler Scheduler
+
+## What is the profiler scheduler?
+
+- The profiler scheduler collects usage and performance metrics from a source warehouse
+- It leverages built-in scheduling components of the host operating system to execute usage collection queries
+
+## Why is profiler scheduler needed?
+
+- Some data warehouses do not preserve query history for longer than a few days or are limited to only a few rows. As an example, Amazon Redshift only preserves usage history for around 2-5 days
+- Having adequate usage history is critical in providing an _accurate_ Total Cost of Ownership (TCO) estimate
+- Having too little history could produce an inaccurate representation of data warehouse query patterns and system utilization
+
+## Supported operating systems
+
+The usage collection scheduler can be installed on the following operating systems:
+
+1. MacOS
+2. Linux
+3. Windows
+
+## Local vs. Remote Deployments
+
+The usage collection scheduler can be executed in the following deployments:
+
+1. **Local scheduler** - Scheduler is installed on a local laptop or workstation, provided that the local system can connect to a bastion host and forward connectivity to the data warehouse
+2. **Remote scheduler** - Scheduler is installed directly on a bastion host in a separate subnet or a compute instance deployed within the data warehouse's subnet
+
+
+## Automatic restart
+
+The usage collection scheduler utilizes the host operating system to run as a background process. As a result, the process will automatically resume processing after a system restart; no intervention is needed during a host system restart. The scheduler will automatically detect usage history gaps and proactively backfill when possible.

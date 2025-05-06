@@ -1,0 +1,62 @@
+---
+sidebar_position: 1
+title: MacOS Installation
+---
+
+# (MacOS) Installing the Profiler Scheduler
+
+## Prerequisites
+
+The following requirements must be met before running the profiler scheduler installer:
+1. Python 3.10 (or higher)
+2. `launchd`
+3. Super user access to a Terminal window
+4. Cloned copy of the `remorph` project
+
+## Running the installer
+
+The installer will create and a new launch agent using the built-in `launchctl` command. The installer will create 1 new plist files:
+
+- **com.remorph.usagecollection.plist** - A plist file that describes the remorph profiler as a system service (see **Description of the `plist` elements** section below)
+
+### Installation steps:
+
+1. Open a new Terminal window and navigate to the scheduler directory:
+
+```bash
+$ cd $HOME/.databricks/labs/remorph/assessments/scheduler/install/
+```
+
+2. Run the installer script:
+
+```bash
+$ sudo ./install.py
+```
+
+### Un-installation steps:
+
+1. Open a new Terminal window and navigate to the scheduler directory:
+
+```bash
+$ cd $HOME/.databricks/labs/remorph/assessments/scheduler/install/
+```
+
+2. Run the uninstaller script:
+
+```bash
+$ sudo ./uninstall.py
+```
+
+## Description of the `plist` elements
+
+1. **Label**: A unique identifier for the job
+
+2. **ProgramArguments**: Specifies the command and arguments (python3 interpreter and the script path)
+
+3. **StartInterval**: Runs the script every 900 seconds (15 minutes)
+
+4. **RunAtLoad**: Ensures the script runs immediately after loading
+
+5. **StandardOutPath**: Logs output for debugging
+
+6. **StandardErrorPath**: Logs errors to for debugging

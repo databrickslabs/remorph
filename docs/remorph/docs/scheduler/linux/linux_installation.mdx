@@ -1,0 +1,83 @@
+---
+sidebar_position: 2
+title: Linux Installation
+---
+
+# (Linux) Installing the Profiler Scheduler
+
+## Prerequisites
+
+The following requirements must be met before running the profiler scheduler installer:
+1. Python 3.10 (or higher)
+2. systemd
+3. Super user access to a Terminal window
+4. Cloned copy of the `remorph` project
+
+## Running the installer
+
+The installer will create and schedule a new system service using the built-in `systemctl` command. The installer will create 2 new system files:
+
+- **remorph_usage_collection.service** - A unit file that describes the remorph profiler as a system service (see **Description of the Unit File Elements** section below)
+- **remorph_usage_collection.timer** - A timer file for executing the usage collection service
+
+### Installation steps:
+
+1. Open a new Terminal window and navigate to the scheduler directory:
+
+```bash
+$ cd $HOME/.databricks/labs/remorph/assessments/scheduler/install/
+```
+
+2. Run the installer script:
+
+```bash
+$ sudo ./install.py
+```
+
+### Un-installation steps:
+
+1. Open a new Terminal window and navigate to the scheduler directory:
+
+```bash
+$ cd $HOME/.databricks/labs/remorph/assessments/scheduler/install/
+```
+
+2. Run the uninstaller script:
+
+```bash
+$ sudo ./uninstall.py
+```
+
+## Description of the unit file elements
+
+
+1. **Description**: A description of the service
+
+2. **After**: Ensures the service starts only after the specified system service is up (network in this case)
+
+3. **ExecStart**: Specifies the command and arguments (python3 interpreter and the script path)
+
+4. **WorkingDirectory**: The directory where the script should run
+
+5. **StandardOutput**: Redirects the standard out to the system logs
+
+6. **StandardError**: Redirects the error out to the system logs
+
+7. **Restart**: Restarts the script if the system reboots
+
+8. **User**: Runs the script as the specified user
+
+9. **WantedBy**: Ensures the service starts when the system reaches multi-user mode
+
+
+## Description of the timer file elements
+
+1. **Description**:  A description of the timer
+
+2. **Persistent** : Ensures the script runs after reboots
+
+3. **OnBootSec**: Ensures the script runs 1 min after bootin
+
+4. **OnUnitActiveSec**: Runs the script every 15 minutes
+
+5. **WantedBy**: Ensures the timer is activated when the system is running timers
