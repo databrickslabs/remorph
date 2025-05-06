@@ -249,7 +249,7 @@ class _LanguageClient(BaseLanguageClient):
             # Although information may arrive via stderr, it's generally informational in nature and doesn't necessarily
             # represent an error.
             logger.info(message)
-            if not message.endswith('\n'):
+            if not data.endswith(b"\n"):
                 break
 
 
