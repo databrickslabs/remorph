@@ -257,7 +257,7 @@ class PatchedMavenInstaller(MavenInstaller):
 
 
 async def test_installs_and_runs_morpheus(patched_transpiler_installer):
-    with patch( "databricks.labs.remorph.install.MavenInstaller", PatchedMavenInstaller):
+    with patch("databricks.labs.remorph.install.MavenInstaller", PatchedMavenInstaller):
         patched_transpiler_installer.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp")
         # check file-level installation
         morpheus = patched_transpiler_installer.transpilers_path() / "morpheus"
