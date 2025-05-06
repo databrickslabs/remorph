@@ -165,12 +165,7 @@ def format_transpiled(sql: str) -> str:
 
 
 async def test_installs_and_runs_rct(patched_transpiler_installer):
-    with patch(
-        "databricks.labs.remorph.install.PypiInstaller",
-        # couldn't find a way to NOT use a lambda, any solution is welcome
-        # pylint: disable=unnecessary-lambda
-        side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name),
-    ):
+    with patch("databricks.labs.remorph.install.PypiInstaller", PatchedPypiInstaller):
         patched_transpiler_installer.install_from_pypi("rct", "databricks-labs-remorph-community-transpiler")
         # check file-level installation
         rct = patched_transpiler_installer.transpilers_path() / "rct"
@@ -206,12 +201,7 @@ async def test_installs_and_runs_rct(patched_transpiler_installer):
 
 
 async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
-    with patch(
-        "databricks.labs.remorph.install.PypiInstaller",
-        # couldn't find a way to NOT use a lambda, any solution is welcome
-        # pylint: disable=unnecessary-lambda
-        side_effect=lambda product_name, pypi_name: PatchedPypiInstaller(product_name, pypi_name),
-    ):
+    with patch("databricks.labs.remorph.install.PypiInstaller", PatchedPypiInstaller):
         patched_transpiler_installer.install_from_pypi("bladerunner", "databricks-labs-bladerunner")
         # check file-level installation
         bladerunner = patched_transpiler_installer.transpilers_path() / "bladerunner"
@@ -267,14 +257,7 @@ class PatchedMavenInstaller(MavenInstaller):
 
 
 async def test_installs_and_runs_morpheus(patched_transpiler_installer):
-    with patch(
-        "databricks.labs.remorph.install.MavenInstaller",
-        # couldn't find a way to NOT use a lambda, any solution is welcome
-        # pylint: disable=unnecessary-lambda
-        side_effect=lambda product_name, group_id, artifact_id: PatchedMavenInstaller(
-            product_name, group_id, artifact_id
-        ),
-    ):
+    with patch( "databricks.labs.remorph.install.MavenInstaller", PatchedMavenInstaller):
         patched_transpiler_installer.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp")
         # check file-level installation
         morpheus = patched_transpiler_installer.transpilers_path() / "morpheus"
