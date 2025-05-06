@@ -236,9 +236,13 @@ class _LanguageClient(BaseLanguageClient):
         task = asyncio.create_task(self.pipe_stderr())
         self._async_tasks.append(task)
 
-    async def pipe_stderr(self):
+    async def pipe_stderr(self) -> None:
+        server = self._server
+        assert server is not None
+        stderr = server.stderr
+        assert stderr is not None
         while not self._stop_event.is_set():
-            data = await self._server.stderr.readline()
+            data: bytes = await stderr.readline()
             if not data:
                 return
             message = data.decode("utf-8").strip()
