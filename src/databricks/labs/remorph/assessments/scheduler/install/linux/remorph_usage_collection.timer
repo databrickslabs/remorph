@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for remorph usage collection service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Unit=remorph_usage_collection.service
+
+[Install]
+WantedBy=multi-user.target
