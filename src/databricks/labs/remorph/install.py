@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import enum
 import shutil
 from collections.abc import Iterable
 from json import loads, dumps
@@ -44,6 +45,11 @@ logger = logging.getLogger(__name__)
 TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 
 
+class MavenProvider(enum.Enum):
+    MAVEN_CENTRAL = "MAVEN_CENTRAL"
+    GITHUB_PACKAGES = "GITHUB_PACKAGES"
+
+
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
@@ -52,8 +58,8 @@ class TranspilerInstaller(abc.ABC):
         return installer.install()
 
     @classmethod
-    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str):
-        installer = MavenInstaller(product_name, group_id, artifact_id)
+    def install_from_maven(cls, product_name: str, provider: MavenProvider, group_id: str, artifact_id: str):
+        installer = MavenInstaller(product_name, provider, group_id, artifact_id)
         return installer.install()
 
     @classmethod
@@ -302,19 +308,21 @@ class PypiInstaller(TranspilerInstaller):
 class MavenInstaller(TranspilerInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+    def get_artifact_version(cls, provider: MavenProvider, group_id: str, artifact_id: str) -> str | None:
         try:
             url = (
                 f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            ) if provider is MavenProvider.MAVEN_CENTRAL else (
+                f"https://api.github.com/orgs/databrickslabs/packages/maven/{group_id}.{artifact_id}/versions"
             )
             with request.urlopen(url) as server:
                 text = server.read()
-                return cls._extract_maven_artifact_version(text)
+                return cls._extract_artifact_version(text)
         except HTTPError:
             return None
 
     @classmethod
-    def _extract_maven_artifact_version(cls, text: str):
+    def _extract_artifact_version(cls, text: str):
         data: dict[str, Any] = loads(text)
         response: dict[str, Any] | None = data.get("response", None)
         if not response:
@@ -325,7 +333,9 @@ class MavenInstaller(TranspilerInstaller):
         return docs[0].get("v", None)
 
     @classmethod
-    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact(
+        cls, provider: MavenProvider, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"
+    ):
         group_id = group_id.replace(".", "/")
         url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
         try:
@@ -339,8 +349,9 @@ class MavenInstaller(TranspilerInstaller):
             logger.error("While downloading from maven", exc_info=e)
             return -1
 
-    def __init__(self, product_name: str, group_id: str, artifact_id: str):
+    def __init__(self, product_name: str, provider: MavenProvider, group_id: str, artifact_id: str):
         self._product_name = product_name
+        self._provider = provider
         self._group_id = group_id
         self._artifact_id = artifact_id
 
@@ -348,7 +359,7 @@ class MavenInstaller(TranspilerInstaller):
         self._install_checking_versions()
 
     def _install_checking_versions(self):
-        self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
+        self._latest_version = self.get_artifact_version(self._provider, self._group_id, self._artifact_id)
         if self._latest_version is None:
             return None
         self._current_version = self.get_installed_version(self._product_name)
@@ -382,7 +393,8 @@ class MavenInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self):
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
-        return_code = self.download_artifact_from_maven(
+        return_code = self.download_artifact(
+            self._provider,
             self._group_id,
             self._artifact_id,
             self._latest_version,
@@ -505,7 +517,7 @@ class WorkspaceInstaller:
         product_name = "morpheus"
         group_id = "com.databricks.labs"
         artifact_id = product_name
-        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
+        TranspilerInstaller.install_from_maven(product_name, MavenProvider.GITHUB_PACKAGES, group_id, artifact_id)
 
     @classmethod
     def get_java_version(cls) -> int | None:

@@ -9,7 +9,13 @@ from unittest.mock import patch
 import pytest
 from databricks.labs.remorph.config import TranspileConfig
 
-from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
+from databricks.labs.remorph.install import (
+    TranspilerInstaller,
+    PypiInstaller,
+    MavenInstaller,
+    WorkspaceInstaller,
+    MavenProvider,
+)
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
@@ -20,15 +26,31 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
 
 
 def test_gets_maven_artifact_version():
-    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
+    version = MavenInstaller.get_artifact_version(MavenProvider.MAVEN_CENTRAL, "com.databricks", "databricks-connect")
+    check_valid_version(version)
+
+
+def test_gets_gh_packages_artifact_version():
+    version = MavenInstaller.get_artifact_version(MavenProvider.GITHUB_PACKAGES, "com.databricks.labs", "mosaic")
     check_valid_version(version)
 
 
 def test_downloads_from_maven():
     with TemporaryDirectory() as parent:
         path = Path(parent) / "pom.xml"
-        result = MavenInstaller.download_artifact_from_maven(
-            "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
+        result = MavenInstaller.download_artifact(
+            MavenProvider.MAVEN_CENTRAL, "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
+        )
+        assert result == 0
+        assert path.exists()
+        assert path.stat().st_size == 5_684
+
+
+def test_downloads_from_gh_packages():
+    with TemporaryDirectory() as parent:
+        path = Path(parent) / "pom.xml"
+        result = MavenInstaller.download_artifact(
+            MavenProvider.GITHUB_PACKAGES, "com.databricks.labs", "mosaic", "0.2.0", path, extension="pom"
         )
         assert result == 0
         assert path.exists()
@@ -238,11 +260,11 @@ async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
 class PatchedMavenInstaller(MavenInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str):
+    def get_artifact_version(cls, provider: MavenProvider, group_id: str, artifact_id: str):
         return "0.2.0"
 
     @classmethod
-    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact(cls, provider: MavenProvider, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
         sample_jar = (
             Path(__file__).parent.parent
             / "resources"
