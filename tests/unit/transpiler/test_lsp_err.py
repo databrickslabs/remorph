@@ -23,5 +23,5 @@ def test_stderr_captured_as_logs(caplog) -> None:
     with caplog.at_level(logging.INFO):
         asyncio.run(run_lsp_server())
 
-    expected = (LSPEngine.__module__, logging.INFO, "Running LSP Test Server...")
+    expected = (LSPEngine.__module__, logging.INFO, "Running LSP Test Server\u2026")
     assert expected in caplog.record_tuples
