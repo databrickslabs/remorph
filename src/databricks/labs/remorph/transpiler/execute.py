@@ -42,6 +42,16 @@ async def _process_one_file(
     logger.debug(f"Started processing file: {input_path}")
     error_list: list[TranspileError] = []
 
+    if not config.source_dialect:
+        error = TranspileError(
+            code="no-source-dialect-specified",
+            kind=ErrorKind.INTERNAL,
+            severity=ErrorSeverity.ERROR,
+            path=input_path,
+            message="No source dialect specified",
+        )
+        return 0, [error]
+
     with input_path.open("r") as f:
         source_code = remove_bom(f.read())
 
@@ -215,7 +225,7 @@ async def _do_transpile(
         "generation_error_count": result.generation_error_count,
         "error_log_file": str(error_log_path),
     }
-
+    logger.debug(f"Transpiler Status: {status}")
     return status, result.error_list
 
 

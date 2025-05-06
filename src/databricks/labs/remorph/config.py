@@ -51,7 +51,9 @@ class LSPConfigOptionV1:
         default = data.get("default", None)
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
+
 JSON: typing.TypeAlias = None | bool | int | float | str | list["JSON"] | dict[str, "JSON"]
+
 
 @dataclass
 class TranspileConfig:
@@ -90,6 +92,20 @@ class TranspileConfig:
     @property
     def target_dialect(self):
         return "databricks"
+
+    @classmethod
+    def v1_migrate(cls, raw: dict) -> dict:
+        raw["version"] = 2
+        return raw
+
+    @classmethod
+    def v2_migrate(cls, raw: dict) -> dict:
+        del raw["mode"]
+        key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
+        raw["version"] = 3
+        raw["error_file_path"] = "error_log.txt"
+        raw["transpiler_config_path"] = "remorph_transpiler_config.yml"
+        return {key_mapping.get(key, key): value for key, value in raw.items()}
 
 
 @dataclass

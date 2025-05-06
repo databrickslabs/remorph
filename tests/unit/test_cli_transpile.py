@@ -407,7 +407,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
 
 
-def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
+def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client_cli):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
@@ -416,17 +416,19 @@ def test_transpile_prints_errors(capsys, tmp_path, mock_workspace_client_cli):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    cli.transpile(
-        mock_workspace_client_cli,
-        transpiler_config_path,
-        source_dialect,
-        input_source,
-        output_folder,
-        error_file,
-        skip_validation,
-        catalog_name,
-        schema_name,
-    )
-    captured = capsys.readouterr()
-    assert "TranspileError" in captured.out
-    assert "UNSUPPORTED_LCA" in captured.out
+
+    with caplog.at_level("ERROR"):
+        cli.transpile(
+            mock_workspace_client_cli,
+            transpiler_config_path,
+            source_dialect,
+            input_source,
+            output_folder,
+            error_file,
+            skip_validation,
+            catalog_name,
+            schema_name,
+        )
+
+    assert any("TranspileError" in record.message for record in caplog.records)
+    assert any("UNSUPPORTED_LCA" in record.message for record in caplog.records)

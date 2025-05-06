@@ -1,6 +1,8 @@
 import asyncio
 import dataclasses
+import json
 import os
+import time
 import sys
 from pathlib import Path
 
@@ -21,6 +23,7 @@ from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.sdk.core import with_user_agent_extra
+from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
 
 from databricks.sdk import WorkspaceClient
 
@@ -46,6 +49,29 @@ def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
         app_context.resource_configurator,
         app_context.workspace_installation,
     )
+
+
+def _create_warehouse(ws: WorkspaceClient) -> str:
+
+    dbsql = ws.warehouses.create_and_wait(
+        name=f"remorph-warehouse-{time.time_ns()}",
+        warehouse_type=CreateWarehouseRequestWarehouseType.PRO,
+        cluster_size="Small",  # Adjust size as needed
+        auto_stop_mins=30,  # Auto-stop after 30 minutes of inactivity
+        enable_serverless_compute=True,
+        max_num_clusters=1,
+    )
+
+    if dbsql.id is None:
+        raise RuntimeError(f"Failed to create warehouse {dbsql.name}")
+
+    logger.info(f"Created warehouse with id: {dbsql.id}")
+    return dbsql.id
+
+
+def _remove_warehouse(ws: WorkspaceClient, warehouse_id: str):
+    ws.warehouses.delete(warehouse_id)
+    logger.info(f"Removed warehouse post installation with id: {warehouse_id}")
 
 
 def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
@@ -164,13 +190,11 @@ async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: T
     logger.debug(f"User: {ctx.current_user}")
     _override_workspace_client_config(ctx, config.sdk_config)
     status, errors = await do_transpile(ctx.workspace_client, engine, config)
-    if len(errors) > 0:
-        print(f"{len(errors)} error(s) have been encountered:\n")
-        for error in errors:
-            print(f"{error}\n")
-    else:
-        print("No error\n")
-    print(f"Transpile status: {status!s}\n")
+    for error in errors:
+        logger.error(f"Error Transpiling: {str(error)}")
+
+    # Table Template in labs.yml requires the status to be list of dicts Do not change this
+    print(json.dumps([status]))
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
@@ -270,8 +294,11 @@ def install_transpile(w: WorkspaceClient):
 def install_reconcile(w: WorkspaceClient):
     """Install the Remorph Reconcile package"""
     with_user_agent_extra("cmd", "install-reconcile")
+    dbsql_id = _create_warehouse(w)
+    w.config.warehouse_id = dbsql_id
     installer = _installer(w)
     installer.run(module="reconcile")
+    _remove_warehouse(w, dbsql_id)
 
 
 if __name__ == "__main__":
