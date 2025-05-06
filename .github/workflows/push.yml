@@ -195,6 +195,13 @@ jobs:
     - name: Install Databricks CLI
       uses: databricks/setup-cli@main
 
+    - name: Install JRE 11 (for Morpheus)
+      uses: actions/setup-java@v4
+      with:
+        distribution: zulu
+        java-package: jre
+        java-version: 11
+
     - name: Run install tests
       run: hatch run test-install
 

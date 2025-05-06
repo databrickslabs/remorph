@@ -400,7 +400,7 @@ class MavenInstaller(TranspilerInstaller):
                 if not name.endswith("/"):
                     name = name.split("/")[1]
                     shutil.move(self._install_path / "lsp" / name, self._install_path / name)
-                    if name.endswith(".sh"):
+                    if name.endswith(".sh") and sys.platform != "win32":
                         cmd = f"chmod 777 {(self._install_path / name)!s}"
                         run(cmd, stdout=sys.stdout, stderr=sys.stdin, shell=True, check=True)
 
