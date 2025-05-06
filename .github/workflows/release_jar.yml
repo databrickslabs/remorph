@@ -1,0 +1,46 @@
+name: Download Maven Package and Upload to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag of the release to upload asset to'
+        required: true
+      artifact_version:
+        description: 'Version of the Maven artifact to download (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  fetch-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ secrets.GH_USERNAME }}</username>
+                <password>${{ secrets.GH_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Download Maven package from GitHub Packages
+        run: |
+          mvn dependency:get \
+            -DrepoUrl=https://maven.pkg.github.com/databrickslabs/morpheus \
+            -Dartifact=com.databricks.labs:databricks-morph-plugin:${{ github.event.inputs.artifact_version }} \
+            -Ddest=./databricks-morph-plugin-${{ github.event.inputs.artifact_version }}.jar
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          files: ./databricks-morph-plugin-${{ github.event.inputs.artifact_version }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
