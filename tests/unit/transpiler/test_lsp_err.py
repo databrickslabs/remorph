@@ -8,7 +8,7 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 async def run_lsp_server():
     config_path = Path(__file__).parent.parent.parent / "resources" / "lsp_transpiler" / "lsp_config.yml"
-    lsp_engine = LSPEngine.from_config_path(Path(config_path))
+    lsp_engine = LSPEngine.from_config_path(config_path)
     config = TranspileConfig(
         transpiler_config_path="transpiler_config_path",
         source_dialect="source_dialect",
