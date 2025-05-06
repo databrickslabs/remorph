@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 from databricks.labs.remorph.config import TranspileConfig
 
-from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller
+from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
@@ -304,3 +304,7 @@ async def test_installs_and_runs_morpheus(patched_transpiler_installer):
                 await lsp_engine.shutdown()
                 transpiled = format_transpiled(result.transpiled_code)
                 assert transpiled == sql_code
+
+def test_java_version():
+    version = WorkspaceInstaller.get_java_version()
+    assert(version >= 110)

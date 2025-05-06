@@ -471,6 +471,7 @@ class WorkspaceInstaller:
     ) -> RemorphConfigs:
         if module in {"transpile", "all"}:
             self.install_rct()
+            self.install_bladerunner()
             self.install_morpheus()
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
@@ -488,11 +489,43 @@ class WorkspaceInstaller:
         TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
+    def install_bladerunner(cls):
+        local_name = "bladerunner"
+        pypi_name = f"databricks-labs-{local_name}"
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
+
+    @classmethod
     def install_morpheus(cls):
+        java_version = cls.get_java_version()
+        if java_version < 110:
+            logger.warning("This software requires Java 11 or above. Please install Java and re-run 'install-transpile'.")
+            return
         product_name = "morpheus"
         group_id = "com.databricks.labs"
         artifact_id = product_name
         TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
+
+    @classmethod
+    def get_java_version(cls) -> int | None:
+        completed = run(["java", "-version"], shell=False, capture_output=True, check=False)
+        try:
+            completed.check_returncode()
+        except:
+            return None
+        result = completed.stderr.decode("utf-8")
+        start = result.find(" version ")
+        if start < 0:
+            return None
+        start = result.find('"', start + 1)
+        if start < 0:
+            return None
+        end = result.find('"', start  + 1)
+        if end < 0:
+            return None
+        version = result[start+1:end]
+        parts = version.split('.')
+        return int(parts[0]+parts[1])
+
 
     def configure(self, module: str) -> RemorphConfigs:
         match module:
