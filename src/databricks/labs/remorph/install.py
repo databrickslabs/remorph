@@ -498,7 +498,9 @@ class WorkspaceInstaller:
     def install_morpheus(cls):
         java_version = cls.get_java_version()
         if java_version < 110:
-            logger.warning("This software requires Java 11 or above. Please install Java and re-run 'install-transpile'.")
+            logger.warning(
+                "This software requires Java 11 or above. Please install Java and re-run 'install-transpile'."
+            )
             return
         product_name = "morpheus"
         group_id = "com.databricks.labs"
@@ -510,7 +512,7 @@ class WorkspaceInstaller:
         completed = run(["java", "-version"], shell=False, capture_output=True, check=False)
         try:
             completed.check_returncode()
-        except:
+        except CalledProcessError:
             return None
         result = completed.stderr.decode("utf-8")
         start = result.find(" version ")
@@ -519,13 +521,12 @@ class WorkspaceInstaller:
         start = result.find('"', start + 1)
         if start < 0:
             return None
-        end = result.find('"', start  + 1)
+        end = result.find('"', start + 1)
         if end < 0:
             return None
-        version = result[start+1:end]
+        version = result[start + 1 : end]
         parts = version.split('.')
-        return int(parts[0]+parts[1])
-
+        return int(parts[0] + parts[1])
 
     def configure(self, module: str) -> RemorphConfigs:
         match module:

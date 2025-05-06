@@ -125,9 +125,11 @@ class PatchedPypiInstaller(PypiInstaller):
         return "0.0.1"
 
     def _install_from_pip(self):
-        wheel_file = "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl" \
-            if self._product_name == "rct" \
+        wheel_file = (
+            "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
+            if self._product_name == "rct"
             else "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
+        )
         sample_wheel = (
             Path(__file__).parent.parent
             / "resources"
@@ -305,6 +307,7 @@ async def test_installs_and_runs_morpheus(patched_transpiler_installer):
                 transpiled = format_transpiled(result.transpiled_code)
                 assert transpiled == sql_code
 
+
 def test_java_version():
     version = WorkspaceInstaller.get_java_version()
-    assert(version >= 110)
+    assert version >= 110
