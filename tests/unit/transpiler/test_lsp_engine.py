@@ -3,8 +3,8 @@ import dataclasses
 import logging
 from pathlib import Path
 from time import sleep
-
 import pytest
+
 from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
@@ -13,6 +13,7 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
     ChangeManager,
 )
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
+
 from tests.unit.conftest import path_to_resource
 
 
