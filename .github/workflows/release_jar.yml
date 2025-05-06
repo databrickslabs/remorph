@@ -1,13 +1,16 @@
 name: Download Maven Package and Upload to Release
 
 on:
-  push:
-    branches:
-      - main
-      - feature/publish-morph-plugin
-
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to use for the workflow'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - feature/publish-morph-plugin
       release_tag:
         description: 'Tag of the release to upload asset to'
         required: true
