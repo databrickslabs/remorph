@@ -213,7 +213,7 @@ async def _do_transpile(
         "generation_error_count": result.generation_error_count,
         "error_log_file": str(error_log_path),
     }
-
+    logger.debug(f"Transpiler Status: {status}")
     return status, result.error_list
 
 
