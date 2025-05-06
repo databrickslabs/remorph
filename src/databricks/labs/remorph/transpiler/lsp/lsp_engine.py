@@ -245,7 +245,9 @@ class _LanguageClient(BaseLanguageClient):
             data: bytes = await stderr.readline()
             if not data:
                 return
-            message = data.decode("utf-8").strip()
+            # Invalid UTF-8 isn't great, but we can at least log it with the replacement character rather dropping it
+            # silently or triggering an exception.
+            message = data.decode("utf-8", errors="replace").strip()
             # Although information may arrive via stderr, it's generally informational in nature and doesn't necessarily
             # represent an error.
             logger.info(message)
