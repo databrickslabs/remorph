@@ -1,6 +1,11 @@
 name: Download Maven Package and Upload to Release
 
 on:
+  push:
+    branches:
+      - main
+      - feature/publish-morph-plugin
+
   workflow_dispatch:
     inputs:
       release_tag:
