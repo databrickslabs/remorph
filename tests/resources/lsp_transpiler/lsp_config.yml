@@ -4,7 +4,7 @@ remorph:
   dialects:
     - snowflake
   environment:
-    - SOME_ENV: abc
+    SOME_ENV: abc
   command_line:
     - python
     - lsp_server.py
