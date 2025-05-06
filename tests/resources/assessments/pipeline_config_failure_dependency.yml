@@ -9,6 +9,6 @@ steps:
     frequency: daily
     flag: active
     dependencies:
-      - databricks_labs_ucx
+      - databricks_labs_ucx=0.1.0
 
 

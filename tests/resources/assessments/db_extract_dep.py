@@ -40,20 +40,20 @@ def execute():
         df = check_specific_packages(packages)
         logger.info(f'DataFrame columns: {df.columns}')
         # Connect to DuckDB
-        conn = duckdb.connect(args.db_path)
+        with duckdb.connect(args.db_path) as conn:
 
-        # Create table with appropriate schema
-        conn.execute(
+            # Create table with appropriate schema
+            conn.execute(
+                """
+                CREATE OR REPLACE TABLE package_status (
+                    package STRING,
+                    status STRING,
+                )
             """
-            CREATE OR REPLACE TABLE package_status (
-                pacakge STRING,
-                status STRING,
             )
-        """
-        )
 
-        conn.execute("INSERT INTO package_status SELECT * FROM df")
-        conn.close()
+            conn.execute("INSERT INTO package_status SELECT package, status FROM df")
+            conn.close()
         print(json.dumps({"status": "success", "message": "All Libraries are installed"}), file=sys.stderr)
 
     except Exception as e:
