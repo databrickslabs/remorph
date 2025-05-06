@@ -1,6 +1,11 @@
 name: Download Maven Package and Upload to Release
 
 on:
+  push:
+    branches:
+      - main
+      - feature/publish-morph-plugin
+
   workflow_dispatch:
     inputs:
       branch:
@@ -15,8 +20,9 @@ on:
         description: 'Tag of the release to upload asset to'
         required: true
       artifact_version:
-        description: 'Version of the Maven artifact to download (e.g., 1.0.0)'
+        description: 'Version of the Maven artifact to download (e.g., 1.0.0). Use "latest" to get the most recent version.'
         required: true
+        default: 'latest'
 
 jobs:
   fetch-and-upload:
@@ -38,17 +44,30 @@ jobs:
           </settings>
           EOF
 
+      - name: Get latest version if needed
+        id: get_version
+        run: |
+          if [ "${{ github.event.inputs.artifact_version }}" = "latest" ]; then
+            # Fetch the latest version from Maven metadata
+            LATEST_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout \
+              -DrepoUrl=https://maven.pkg.github.com/databrickslabs/morpheus \
+              -Dartifact=com.databricks.labs:databricks-morph-plugin:LATEST)
+            echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.artifact_version }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download Maven package from GitHub Packages
         run: |
           mvn dependency:get \
             -DrepoUrl=https://maven.pkg.github.com/databrickslabs/morpheus \
-            -Dartifact=com.databricks.labs:databricks-morph-plugin:${{ github.event.inputs.artifact_version }} \
-            -Ddest=./databricks-morph-plugin-${{ github.event.inputs.artifact_version }}.jar
+            -Dartifact=com.databricks.labs:databricks-morph-plugin:${{ steps.get_version.outputs.version }} \
+            -Ddest=./databricks-morph-plugin-${{ steps.get_version.outputs.version }}.jar
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag }}
-          files: ./databricks-morph-plugin-${{ github.event.inputs.artifact_version }}.jar
+          files: ./databricks-morph-plugin-${{ steps.get_version.outputs.version }}.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
