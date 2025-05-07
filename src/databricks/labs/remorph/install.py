@@ -279,7 +279,7 @@ class PypiInstaller(TranspilerInstaller):
         installer = lsp / install_script
         if not main_script.exists() and not installer.exists():
             raise ValueError(
-                f"Installed transpiler is missing a 'server.py' file or an {install_script} in its 'lsp' folder"
+                f"Installed transpiler is missing a 'main.py' file or an {install_script} in its 'lsp' folder"
             )
         if installer.exists():
             self._run_custom_installer(installer)
