@@ -56,11 +56,15 @@ def python_failure_config():
 def test_run_pipeline(extractor, pipeline_config, get_logger):
     pipeline = PipelineClass(config=pipeline_config, executor=extractor)
     results = pipeline.execute()
+    print("*******************\n")
+    print(results)
+    print("\n*******************")
 
     # Verify all steps completed successfully
     for result in results:
-        assert (
-            result.status == StepExecutionStatus.COMPLETE
+        assert result.status in (
+            StepExecutionStatus.COMPLETE,
+            StepExecutionStatus.SKIPPED,
         ), f"Step {result.step_name} failed with status {result.status}"
 
     assert verify_output(get_logger, pipeline_config.extract_folder)

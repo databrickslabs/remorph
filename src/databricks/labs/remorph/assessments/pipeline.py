@@ -135,7 +135,7 @@ class PipelineClass:
 
                 try:
                     output = json.loads(result.stdout)
-                    if output["status"] == StepExecutionStatus.COMPLETE:
+                    if output["status"] == "success":
                         logging.info(f"Python script completed: {output['message']}")
                     else:
                         raise RuntimeError(f"Script reported error: {output['message']}")
