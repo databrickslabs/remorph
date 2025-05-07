@@ -40,7 +40,7 @@ async def test_stderr_captured_as_logs(caplog) -> None:
 
 @pytest.mark.asyncio
 async def test_stderr_non_utf8_captured(caplog) -> None:
-    """Verify that ourput from the LSP engine on stderr is captured even if it doesn't decode as UTF-8."""
+    """Verify that output from the LSP engine on stderr is captured even if it doesn't decode as UTF-8."""
     with caplog.at_level(logging.INFO):
         async with run_lsp_server() as lsp_engine:
             assert lsp_engine.is_alive
