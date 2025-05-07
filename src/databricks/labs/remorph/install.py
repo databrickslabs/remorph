@@ -284,7 +284,7 @@ class PypiInstaller(TranspilerInstaller):
         if installer.exists():
             self._run_custom_installer(installer)
         else:
-            shutil.copyfile(str(main_script), str(self._install_path / main_script.name))
+            shutil.copyfile(main_script, self._install_path / main_script.name)
         self._store_state()
         return self._install_path
 
