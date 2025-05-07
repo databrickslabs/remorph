@@ -201,7 +201,7 @@ class PypiInstaller(TranspilerInstaller):
             return result
         except (CalledProcessError, ValueError) as e:
             logger.info(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
-            rmtree(str(self._product_path))
+            rmtree(self._product_path)
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
