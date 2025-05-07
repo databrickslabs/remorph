@@ -19,8 +19,8 @@ Although one could _in theory_ run a transpiler without access to the Databricks
 Remorph leverages this by expecting transpilers to reside in the `.databricks` folder hierarchy, as follows:
 
 
-``` bash
-.Databricks/
+```
+.databricks/
 ├── labs/
 │   ├── remorph-transpilers/
 │   │   ├── morpheus/
@@ -29,13 +29,13 @@ Remorph leverages this by expecting transpilers to reside in the `.databricks` f
 ```
 
 Each transpiler resides in its own dedicated sub-directory, whose name can be anything (although avoiding spaces is recommended). It itself comprises 2 folders:
-``` bash
+```
 .
-├── .lib/
-│   ├── .config.yml
-│   ├── .<transpiler code>
-├── .state/
-│   ├── .version.json
+├── lib/
+│   ├── config.yml
+│   ├── <transpiler code>
+├── state/
+│   ├── version.json
 ```
 
 A transpiler `lib` subdirectory _must_ comprise a `config.yml` file that follows the following structure:
@@ -86,4 +86,6 @@ Following the above steps, it is straightforward to manually install a transpile
  - creating the `lib` and `state` sub-folders
  - creating a `config.yml` file in the `lib` folder (see details above)
  - creating a `version.json` file in the `state` folder with content like:
-```{"version": f"v1.3.7", "date": "2025-03-17-15:02:31Z}```
+   ```json
+   {"version": "v1.3.7", "date": "2025-03-17-15:02:31Z"}
+   ```

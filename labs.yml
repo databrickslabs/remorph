@@ -35,8 +35,8 @@ commands:
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
 
     table_template: |-
-      total_files_processed\ttotal_queries_processed\tno_of_sql_failed_while_parsing\tno_of_sql_failed_while_validating\terror_log_file
-      {{range .}}{{.total_files_processed}}\t{{.total_queries_processed}}\t{{.no_of_sql_failed_while_parsing}}\t{{.no_of_sql_failed_while_validating}}\t{{.error_log_file}}
+      total_files_processed\ttotal_queries_processed\tanalysis_error_count\tparsing_error_count\tvalidation_error_count\tgeneration_error_count\terror_log_file
+      {{range .}}{{.total_files_processed}}\t{{.total_queries_processed}}\t{{.analysis_error_count}}\t{{.parsing_error_count}}\t{{.validation_error_count}}\t{{.generation_error_count}}\t{{.error_log_file}}
       {{end}}
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
