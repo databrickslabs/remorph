@@ -272,7 +272,7 @@ class PypiInstaller(TranspilerInstaller):
         config = lsp / "config.yml"
         if not config.exists():
             raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
-        shutil.copyfile(str(config), str(self._install_path / "config.yml"))
+        shutil.copyfile(config, self._install_path / "config.yml")
         main_script = lsp / "main.py"
         install_ext = "ps1" if sys.platform == "win32" else "sh"
         install_script = f"installer.{install_ext}"
