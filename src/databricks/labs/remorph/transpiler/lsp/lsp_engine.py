@@ -230,6 +230,31 @@ class _LanguageClient(BaseLanguageClient):
 
         return wrapper
 
+    async def start_io(self, cmd: str, *args, **kwargs):
+        await super().start_io(cmd, *args, **kwargs)
+        # forward stderr
+        task = asyncio.create_task(self.pipe_stderr())
+        self._async_tasks.append(task)
+
+    async def pipe_stderr(self) -> None:
+        server = self._server
+        assert server is not None
+        stderr = server.stderr
+        assert stderr is not None
+        while not self._stop_event.is_set():
+            data: bytes = await stderr.readline()
+            if not data:
+                return
+            # Invalid UTF-8 isn't great, but we can at least log it with the replacement character rather
+            # than dropping it silently or triggering an exception.
+            message = data.decode("utf-8", errors="replace").strip()
+            # Although information may arrive via stderr, it's generally informational in nature and doesn't
+            # necessarily represent an error
+            # TODO: analyze message and log it accordingly (info/war/error...).
+            logger.info(message)
+            if not data.endswith(b"\n"):
+                break
+
 
 class ChangeManager(abc.ABC):
 
