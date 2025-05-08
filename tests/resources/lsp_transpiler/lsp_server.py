@@ -196,6 +196,11 @@ def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumen
 
 
 if __name__ == "__main__":
+    # added for testing logging of stderr output
+    sys.stderr.write("Running LSP Test Server\u2026\n")
+    sys.stderr.flush()
+    sys.stderr.buffer.write(b"Some bytes that are invalid UTF-8: [\xc0\xc0]\n")
+    sys.stderr.buffer.flush()
     logger.debug(f"SOME_ENV={os.getenv('SOME_ENV')}")
     logger.debug(f"sys.args={sys.argv}")
     server.start_io()
