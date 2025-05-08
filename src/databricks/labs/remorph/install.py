@@ -197,7 +197,7 @@ class PypiInstaller(TranspilerInstaller):
             result = self._unsafe_install_latest_version()
             logger.info(f"Successfully installed {self._pypi_name} v{self._latest_version}")
             if backup_path.exists():
-                rmtree(str(backup_path))
+                rmtree(backup_path)
             return result
         except (CalledProcessError, ValueError) as e:
             logger.info(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
