@@ -185,11 +185,11 @@ jobs:
         python-version: 3.10.x
 
     - name: Install hatch (Windows)
-      if: ${{ matrix.runner.os == 'Windows' }}
+      if: ${{ matrix.runner == 'windows-server-2022-latest' }}
       run: pip install hatch=="$env:HATCH_VERSION"
 
     - name: Install hatch (Non-Windows)
-      if: ${{ matrix.runner.os != 'Windows' }}
+      if: ${{ matrix.runner != 'windows-server-2022-latest' }}
       run: pip install hatch==$HATCH_VERSION
 
     - name: Install Databricks CLI
