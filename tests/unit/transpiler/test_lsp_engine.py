@@ -82,7 +82,7 @@ async def test_receives_client_info(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     product_info = ProductInfo.from_class(type(lsp_engine))
-    expected_client_info = f"client_info={product_info.product_name}/{product_info.version}]"
+    expected_client_info = f"client-info={product_info.product_name()}/{product_info.version()}"
     assert expected_client_info in log
     await lsp_engine.shutdown()
 
