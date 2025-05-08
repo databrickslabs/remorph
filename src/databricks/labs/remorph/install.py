@@ -12,7 +12,7 @@ from typing import Any, cast
 from urllib import request
 from urllib.error import URLError, HTTPError
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -293,7 +293,7 @@ class PypiInstaller(TranspilerInstaller):
     def _store_state(self) -> None:
         state_path = self._product_path / "state"
         state_path.mkdir()
-        version_data = {"version": f"v{self._latest_version}", "date": str(datetime.now())}
+        version_data = {"version": f"v{self._latest_version}", "date": datetime.now(timezone.utc).isoformat()}
         version_path = state_path / "version.json"
         version_path.write_text(dumps(version_data), "utf-8")
 
