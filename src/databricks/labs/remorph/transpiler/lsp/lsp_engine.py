@@ -205,8 +205,9 @@ class _LanguageClient(BaseLanguageClient):
 
     async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         if self.stopped:
-            raise RuntimeError("Client has been stopped.")
-        await self.await_for_transpile_capability()
+            raise IllegalStateException("Client has been stopped.")
+        if not self.transpile_to_databricks_capability:
+            raise IllegalStateException("Client has not yet registered its transpile capability.")
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
     async def await_for_transpile_capability(self):
