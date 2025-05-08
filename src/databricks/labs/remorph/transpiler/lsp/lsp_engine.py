@@ -206,10 +206,10 @@ class _LanguageClient(BaseLanguageClient):
     async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         if self.stopped:
             raise RuntimeError("Client has been stopped.")
-        await self._await_for_transpile_capability()
+        await self.await_for_transpile_capability()
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
-    async def _await_for_transpile_capability(self):
+    async def await_for_transpile_capability(self):
         for _ in range(1, 100):
             if self.transpile_to_databricks_capability:
                 return
@@ -391,6 +391,7 @@ class LSPEngine(TranspileEngine):
         try:
             os.chdir(self._workdir)
             await self._do_initialize(config)
+            await self._client.await_for_transpile_capability()
         # it is good practice to catch broad exceptions raised by launching a child process
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("LSP initialization failed", exc_info=e)
