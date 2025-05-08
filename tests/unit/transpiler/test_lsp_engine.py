@@ -5,14 +5,12 @@ from pathlib import Path
 from time import sleep
 
 import pytest
-from lsprotocol.types import TextEdit, Range, Position
+from lsprotocol.types import Position, Range, TextEdit
 
+from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
-    LSPEngine,
-    ChangeManager,
-)
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import ChangeManager, LSPEngine
+from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity, TranspileError
 from tests.unit.conftest import path_to_resource
 
 
@@ -78,6 +76,14 @@ async def test_receives_config(lsp_engine, transpile_config):
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "dialect=snowflake" in log
     await lsp_engine.shutdown()
+
+
+async def test_receives_client_info(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    product_info = ProductInfo.from_class(type(lsp_engine))
+    expected_client_info = f"client_info={product_info.product_name}/{product_info.version}]"
+    assert expected_client_info in log
 
 
 async def test_server_has_transpile_capability(lsp_engine, transpile_config):
