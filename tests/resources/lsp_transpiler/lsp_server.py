@@ -116,6 +116,8 @@ class TestLspServer(LanguageServer):
         client_info = init_params.client_info
         if client_info:
             logger.debug(f"client-info={client_info.name}/{client_info.version}")
+        if init_params.process_id:
+            logger.debug(f"client-process-id={init_params.process_id}")
         logger.debug(f"dialect={self.dialect}")
         logger.debug(f"whatever={self.whatever}")
         logger.debug(f"experimental={self.experimental}")

@@ -414,6 +414,7 @@ class LSPEngine(TranspileEngine):
         params = InitializeParams(
             capabilities=self._client_capabilities(),
             client_info=ClientInfo(name=self._client.name, version=self._client.version),
+            process_id=os.getpid(),
             root_uri=str(root_path.absolute().as_uri()),
             workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
