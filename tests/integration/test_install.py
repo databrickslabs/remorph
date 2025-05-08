@@ -72,7 +72,7 @@ def patched_transpiler_installer(tmp_path: Path):
         target.mkdir(exist_ok=True)
         target = target / "config.yml"
         source = resources_folder / transpiler / "lib" / "config.yml"
-        shutil.copyfile(str(source), str(target))
+        shutil.copyfile(source, target)
     with patch.object(TranspilerInstaller, "transpilers_path", return_value=tmp_path):
         yield TranspilerInstaller
 

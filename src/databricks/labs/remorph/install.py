@@ -216,8 +216,10 @@ class PypiInstaller(TranspilerInstaller):
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
+            # using the venv module doesn't work (maybe it's not possible to create a venv from a venv ?)
+            # so falling back to something that works
             # for some reason this requires shell=True, so pass full cmd line
-            cmd_line = "python -m venv .venv"
+            cmd_line = f"{sys.executable} -m venv .venv"
             run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
             self._site_packages = self._locate_site_packages()
         finally:
