@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from collections.abc import Sequence
@@ -6,29 +7,25 @@ from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
-
 from lsprotocol import types as types_module
 from lsprotocol.types import (
-    InitializeParams,
     INITIALIZE,
-    RegistrationParams,
-    Registration,
-    TextEdit,
-    Diagnostic,
-    TEXT_DOCUMENT_DID_OPEN,
-    DidOpenTextDocumentParams,
-    TEXT_DOCUMENT_DID_CLOSE,
-    DidCloseTextDocumentParams,
-    Range,
-    Position,
     METHOD_TO_TYPES,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    Diagnostic,
     DiagnosticSeverity,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    InitializeParams,
     LanguageKind,
+    Position,
+    Range,
+    Registration,
+    RegistrationParams,
+    TextEdit,
 )
 from pygls.lsp.server import LanguageServer
-
-import logging
-
 
 logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.DEBUG)
 
@@ -116,6 +113,9 @@ class TestLspServer(LanguageServer):
 
     async def did_initialize(self, init_params: InitializeParams) -> None:
         self.initialization_options = init_params.initialization_options or {}
+        client_info = init_params.client_info
+        if client_info:
+            logger.debug(f"client-info={client_info.name}/{client_info.version}")
         logger.debug(f"dialect={self.dialect}")
         logger.debug(f"whatever={self.whatever}")
         logger.debug(f"experimental={self.experimental}")
