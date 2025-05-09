@@ -204,6 +204,18 @@ class _LanguageClient(BaseLanguageClient):
             logger.debug(f"Unknown capability: {registration.method}")
 
     async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
+        """Transpile a document to Databricks SQL.
+
+        The caller is responsible for ensuring that the LSP server is capable of handling this request.
+
+        Args:
+            params: The parameters for the transpile request to forward to the LSP server.
+        Returns:
+            The result of the transpile request, from the LSP server.
+        Raises:
+            IllegalStateException: If the client has been stopped or the server hasn't (yet) signalled that it is
+                capable of transpiling documents to Databricks SQL.
+        """
         if self.stopped:
             raise IllegalStateException("Client has been stopped.")
         if not self.transpile_to_databricks_capability:
