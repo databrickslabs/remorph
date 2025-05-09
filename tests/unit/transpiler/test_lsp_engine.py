@@ -21,11 +21,9 @@ from tests.unit.conftest import path_to_resource
 async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
     config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     engine = LSPEngine.from_config_path(Path(config_path))
-    try:
-        yield engine
-    finally:
-        if engine.is_alive:
-            await engine.shutdown()
+    yield engine
+    if engine.is_alive:
+        await engine.shutdown()
 
 
 async def test_initializes_lsp_server(lsp_engine, transpile_config):
