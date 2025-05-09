@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+COLUMN_PLACEHOLDER = "{}"
 
 class AutoName(Enum):
     """
