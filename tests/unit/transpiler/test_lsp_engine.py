@@ -82,11 +82,6 @@ async def test_receives_config(lsp_engine, transpile_config):
 
 async def test_server_has_transpile_capability(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
-    # need to give time to child process and client listener
-    for _ in range(1, 10):
-        await asyncio.sleep(0.1)
-        if lsp_engine.server_has_transpile_capability:
-            break
     assert lsp_engine.server_has_transpile_capability
     await lsp_engine.shutdown()
 
