@@ -210,14 +210,6 @@ class _LanguageClient(BaseLanguageClient):
             raise IllegalStateException("Client has not yet registered its transpile capability.")
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
-    async def await_for_transpile_capability(self):
-        for _ in range(1, 100):
-            if self.transpile_to_databricks_capability:
-                return
-            await asyncio.sleep(0.1)
-        if not self.transpile_to_databricks_capability:
-            raise FeatureRequestError(f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability")
-
     # can't use @client.feature because it requires a global instance
     def _register_lsp_features(self):
         for name, options, func in _LSP_FEATURES:
@@ -392,7 +384,7 @@ class LSPEngine(TranspileEngine):
         try:
             os.chdir(self._workdir)
             await self._do_initialize(config)
-            await self._client.await_for_transpile_capability()
+            await self._await_for_transpile_capability()
         # it is good practice to catch broad exceptions raised by launching a child process
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("LSP initialization failed", exc_info=e)
@@ -431,6 +423,15 @@ class LSPEngine(TranspileEngine):
             "options": config.transpiler_options,
             "custom": self._config.custom,
         }
+
+    async def _await_for_transpile_capability(self):
+        for _ in range(1, 100):
+            if self._client.transpile_to_databricks_capability:
+                return
+            await asyncio.sleep(0.1)
+        if not self._client.transpile_to_databricks_capability:
+            msg = f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability"
+            raise FeatureRequestError(msg)
 
     async def shutdown(self):
         await self._client.shutdown_async(None)
