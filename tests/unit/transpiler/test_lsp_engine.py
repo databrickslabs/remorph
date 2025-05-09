@@ -159,6 +159,7 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
         ("a\nb\nc\n", [TextEdit(Range(Position(0, 0), Position(1, 1)), "x")], "x\nc\n"),
         ("abc", [TextEdit(Range(Position(0, 1), Position(0, 2)), "x")], "axc"),
         ("abc\ndef\nghi", [TextEdit(Range(Position(0, 2), Position(2, 1)), "x\ny")], "abx\nyhi"),
+        ("abbcccdddd", [TextEdit(Range(Position(0, 0), Position(1, 0)), "1\n22\n333\n4444\n")], "1\n22\n333\n4444\n"),
     ],
 )
 def test_change_mgr_replaces_text(source, changes, expected):
