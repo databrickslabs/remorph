@@ -38,7 +38,7 @@ class Validator:
             config.schema_name,
         )
         if is_valid:
-            result = sql_text + "\n;\n"
+            result = sql_text
             if exception_type is not None:
                 exception_msg = f"[{exception_type.upper()}]: {exception_msg}"
         else:
