@@ -315,11 +315,13 @@ class ChangeManager(abc.ABC):
 
     @classmethod
     def _is_full_document_change(cls, lines: list[str], change: TextEdit) -> bool:
+        # A range's end is exclusive. Therefore full document range goes from (0, 0) to (l, 0) where l is the number
+        # of lines in the document.
         return (
-            change.range.start.line <= 0
-            and change.range.start.character <= 0
-            and change.range.end.line >= len(lines) - 1
-            and change.range.end.character >= len(lines[-1])
+            change.range.start.line == 0
+            and change.range.start.character == 0
+            and change.range.end.line >= len(lines)
+            and change.range.end.character >= 0
         )
 
 
