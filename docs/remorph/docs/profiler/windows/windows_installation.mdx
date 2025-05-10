@@ -1,0 +1,59 @@
+---
+sidebar_position: 1
+title: Windows Installation
+---
+
+# (Windows) Installing the Usage Collection Scheduler
+
+## Prerequisites
+
+The following requirements must be met before running the profiler scheduler installer:
+1. Python 3.10 (or higher)
+3. Administrator access to the Windows Task Manager
+4. Cloned copy of the `remorph` project
+
+## Running the installer
+
+The installer will create and register a new Windows system task:
+
+- **usage_collection_task.xml** - A task file that describes the remorph profiler as a system service (see **Description of the task file elements** section below)
+
+### Installation steps:
+
+1. Open a new CMD window and navigate to the scheduler directory:
+
+```bash
+> cd $HOME\\.databricks\\labs\\remorph\\assessments\\scheduler\\install\\
+```
+
+2. Run the installer script:
+
+```bash
+> python3 install.py
+```
+
+### Un-installation steps:
+
+1. Open a new CMD window and navigate to the scheduler directory:
+
+```bash
+> cd $HOME\\.databricks\\labs\\remorph\\assessments\\scheduler\\install\\
+```
+
+2. Run the uninstaller script:
+
+```bash
+> python3 uninstall.py
+```
+
+## Description of the task file elements
+
+1. **Triggers**: Specifies the frequency for when the profiler should run
+
+2. **StartBoundary**: Defines the initial start time of the profiler scheduler
+
+3. **Principals**: Defines under who's identity the task will execute and with what privileges
+
+4. **Settings**: Specifies the profiler behavior during common system conditions
+
+5. **Actions**: Defines how to execute the profiler program
