@@ -236,10 +236,11 @@ class MorpheusInstaller(TranspilerInstaller):
     def install(cls) -> None:
         current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
+        if latest_version is None:
+            logger.warning(f"Could not determine the latest version of Databricks Morpheus transpiler ({cls.MORPHEUS_TRANSPILER_GROUP_NAME}:{cls.MORPHEUS_TRANSPILER_NAME})")
+            return
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
-            return
-        if latest_version is None:
             return
         logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
