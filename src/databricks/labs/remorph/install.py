@@ -130,7 +130,7 @@ class TranspilerInstaller(abc.ABC):
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
             return None
-        logger.info(f"Installing {pypi_name} v{latest_version}")
+        logger.debug(f"Installing {pypi_name} v{latest_version}")
         product_path = cls.transpilers_path() / product_name
         if current_version is not None:
             product_path.rename(f"{product_name}-saved")
@@ -242,7 +242,7 @@ class MorpheusInstaller(TranspilerInstaller):
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
-        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
+        logger.debug(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
         if current_version is not None:
             product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
