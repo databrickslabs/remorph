@@ -79,7 +79,8 @@ class TranspilerInstaller(abc.ABC):
             with request.urlopen(url) as server:
                 text = server.read()
                 return cls._get_maven_version(text)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
             return None
 
     @classmethod
