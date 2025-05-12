@@ -19,7 +19,9 @@ env:
 
 jobs:
   test-python:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +46,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   integration-python:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,7 +79,9 @@ jobs:
 
 
   fmt-python:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,7 +105,9 @@ jobs:
           git diff --exit-code
 
   python-no-pylint-disable:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize')
     steps:
       - name: Checkout
@@ -119,7 +127,9 @@ jobs:
           fi
 
   coverage-tests-with-make:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: databrickslabs-protected-runner-group
+      labels: linux-ubuntu-latest
     env:
       INPUT_DIR_PARENT: .
       OUTPUT_DIR: ./test-reports
