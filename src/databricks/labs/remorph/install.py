@@ -112,14 +112,14 @@ class TranspilerInstaller(abc.ABC):
     def get_pypi_version(cls, product_name: str) -> str | None:
         try:
             with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-                text = server.read()
+                text: bytes = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("info", {}).get('version', None)
         except HTTPError:
             return None
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str):
+    def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
         current_version = cls.get_installed_version(product_name)
         latest_version = cls.get_pypi_version(pypi_name)
         if current_version == latest_version:
