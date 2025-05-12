@@ -123,6 +123,9 @@ class TranspilerInstaller(abc.ABC):
     def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
         current_version = cls.get_installed_version(product_name)
         latest_version = cls.get_pypi_version(pypi_name)
+        if latest_version is None:
+            logger.warning(f"Could not determine the latest version of {pypi_name}")
+            return None
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
             return None
