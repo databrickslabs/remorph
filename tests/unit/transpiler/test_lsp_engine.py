@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import logging
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from time import sleep
@@ -80,7 +81,13 @@ async def test_receives_client_info(lsp_engine, transpile_config):
     product_info = ProductInfo.from_class(type(lsp_engine))
     expected_client_info = f"client-info={product_info.product_name()}/{product_info.version()}"
     assert expected_client_info in log
-    await lsp_engine.shutdown()
+
+
+async def test_receives_process_id(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    expected_process_id = f"client-process-id={os.getpid()}"
+    assert expected_process_id in log
 
 
 async def test_server_has_transpile_capability(lsp_engine, transpile_config):
