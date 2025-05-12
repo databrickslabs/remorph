@@ -1,3 +1,10 @@
+import pandas as pd
+import duckdb
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 def get_synapse_workspace_settings():
     """
     Returns Synapse Workspace Settings
@@ -171,3 +178,30 @@ def trim_sql_comments(input_sql):
 
 # Register the udf
 trim_sql_comments_udf = udf(lambda x: trim_sql_comments(x))
+
+
+def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str ) -> None:
+    """
+    Insert a pandas DataFrame into a DuckDB table.
+
+    Args:
+        df (pd.DataFrame): The pandas DataFrame to insert
+        db_path (str): Path to the DuckDB database file
+        table_name (str): Name of the table to insert data into
+    """
+    try:
+        # Connect to DuckDB
+        conn = duckdb.connect(db_path)
+
+        # Create table if it doesn't exist
+        conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df LIMIT 0")
+
+        # Insert data
+        conn.execute(f"INSERT INTO {table_name} SELECT * FROM df")
+
+        # Close connection
+        conn.close()
+        logging.info(f"Successfully inserted data into {table_name} table")
+    except Exception as e:
+        logging.error(f"Error inserting data into DuckDB: {str(e)}")
+        raise

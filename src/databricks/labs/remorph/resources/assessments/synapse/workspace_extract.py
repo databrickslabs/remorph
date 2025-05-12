@@ -10,6 +10,7 @@ from .profiler_functions import (
     get_synapse_profiler_settings,
     get_synapse_artifacts_client,
     get_azure_metrics_query_client,
+    insert_df_to_duckdb,
 )
 from .profiler_classes import SynapseWorkspace, SynapseMetrics
 
@@ -133,33 +134,6 @@ def execute():
     except Exception as e:
         print(json.dumps({"status": "error", "message": str(e)}), file=sys.stderr)
         sys.exit(1)
-
-
-def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None:
-    """
-    Insert a pandas DataFrame into a DuckDB table.
-    
-    Args:
-        df (pd.DataFrame): The pandas DataFrame to insert
-        db_path (str): Path to the DuckDB database file
-        table_name (str): Name of the table to insert data into
-    """
-    try:
-        # Connect to DuckDB
-        conn = duckdb.connect(db_path)
-        
-        # Create table if it doesn't exist
-        conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df LIMIT 0")
-        
-        # Insert data
-        conn.execute(f"INSERT INTO {table_name} SELECT * FROM df")
-        
-        # Close connection
-        conn.close()
-        logging.info(f"Successfully inserted data into {table_name} table")
-    except Exception as e:
-        logging.error(f"Error inserting data into DuckDB: {str(e)}")
-        raise
 
 
 if __name__ == '__main__':
