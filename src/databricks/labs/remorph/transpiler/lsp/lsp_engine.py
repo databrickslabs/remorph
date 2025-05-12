@@ -198,18 +198,23 @@ class _LanguageClient(BaseLanguageClient):
             logger.debug(f"Unknown capability: {registration.method}")
 
     async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
-        if self.stopped:
-            raise RuntimeError("Client has been stopped.")
-        await self._await_for_transpile_capability()
-        return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
+        """Transpile a document to Databricks SQL.
 
-    async def _await_for_transpile_capability(self):
-        for _ in range(1, 100):
-            if self.transpile_to_databricks_capability:
-                return
-            await asyncio.sleep(0.1)
+        The caller is responsible for ensuring that the LSP server is capable of handling this request.
+
+        Args:
+            params: The parameters for the transpile request to forward to the LSP server.
+        Returns:
+            The result of the transpile request, from the LSP server.
+        Raises:
+            IllegalStateException: If the client has been stopped or the server hasn't (yet) signalled that it is
+                capable of transpiling documents to Databricks SQL.
+        """
+        if self.stopped:
+            raise IllegalStateException("Client has been stopped.")
         if not self.transpile_to_databricks_capability:
-            raise FeatureRequestError(f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability")
+            raise IllegalStateException("Client has not yet registered its transpile capability.")
+        return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
     # can't use @client.feature because it requires a global instance
     def _register_lsp_features(self):
@@ -309,11 +314,13 @@ class ChangeManager(abc.ABC):
 
     @classmethod
     def _is_full_document_change(cls, lines: list[str], change: TextEdit) -> bool:
+        # A range's end is exclusive. Therefore full document range goes from (0, 0) to (l, 0) where l is the number
+        # of lines in the document.
         return (
-            change.range.start.line <= 0
-            and change.range.start.character <= 0
-            and change.range.end.line >= len(lines) - 1
-            and change.range.end.character >= len(lines[-1])
+            change.range.start.line == 0
+            and change.range.start.character == 0
+            and change.range.end.line >= len(lines)
+            and change.range.end.character >= 0
         )
 
 
@@ -392,6 +399,7 @@ class LSPEngine(TranspileEngine):
         try:
             os.chdir(self._workdir)
             await self._do_initialize(config)
+            await self._await_for_transpile_capability()
         # it is good practice to catch broad exceptions raised by launching a child process
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("LSP initialization failed", exc_info=e)
@@ -432,6 +440,15 @@ class LSPEngine(TranspileEngine):
             "options": config.transpiler_options,
             "custom": self._config.custom,
         }
+
+    async def _await_for_transpile_capability(self):
+        for _ in range(1, 100):
+            if self._client.transpile_to_databricks_capability:
+                return
+            await asyncio.sleep(0.1)
+        if not self._client.transpile_to_databricks_capability:
+            msg = f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability"
+            raise FeatureRequestError(msg)
 
     async def shutdown(self):
         await self._client.shutdown_async(None)
