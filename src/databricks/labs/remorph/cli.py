@@ -4,15 +4,21 @@ import os
 import time
 from pathlib import Path
 
+from databricks.sdk.core import with_user_agent_extra
+from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
+from databricks.sdk import WorkspaceClient
+
 from databricks.labs.blueprint.cli import App
+from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.entrypoint import get_logger
+
+from databricks.labs.bladespector.analyzer import Analyzer
 
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.install import WorkspaceInstaller
@@ -20,13 +26,10 @@ from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 from databricks.labs.remorph.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
-from databricks.sdk.core import with_user_agent_extra
-from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
-
-from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -244,6 +247,18 @@ def install_reconcile(w: WorkspaceClient):
     installer = _installer(w)
     installer.run(module="reconcile")
     _remove_warehouse(w, dbsql_id)
+
+
+@remorph.command()
+def analyze(w: WorkspaceClient):
+    """Run the Analyzer"""
+    with_user_agent_extra("cmd", "analyze")
+    ctx = ApplicationContext(w)
+    prompts = ctx.prompts
+    output_folder = prompts.question("Enter path to output results folder")
+    input_folder = prompts.question("Enter path to input sources folder")
+    source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
+    Analyzer.analyze(Path(input_folder), Path(output_folder), source_tech)
 
 
 if __name__ == "__main__":
