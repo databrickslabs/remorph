@@ -126,6 +126,7 @@ class TranspilerInstaller(abc.ABC):
         latest_version = cls.get_pypi_version(pypi_name)
         if latest_version is None:
             logger.warning(f"Could not determine the latest version of {pypi_name}")
+            logger.error(f"Failed to install transpiler: {product_name}")
             return None
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
@@ -149,7 +150,7 @@ class TranspilerInstaller(abc.ABC):
                 rmtree(f"{product_path!s}-saved")
             return install_path
         except CalledProcessError as e:
-            logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
+            logger.error(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
@@ -238,6 +239,7 @@ class MorpheusInstaller(TranspilerInstaller):
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
         if latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks Morpheus transpiler ({cls.MORPHEUS_TRANSPILER_GROUP_NAME}:{cls.MORPHEUS_TRANSPILER_NAME})")
+            logger.error(f"Failed to install transpiler: Databricks Morpheus transpiler")
             return
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
@@ -266,7 +268,7 @@ class MorpheusInstaller(TranspilerInstaller):
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
         else:
-            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
+            logger.error(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
