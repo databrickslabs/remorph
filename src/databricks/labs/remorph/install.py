@@ -232,7 +232,7 @@ class MorpheusInstaller(TranspilerInstaller):
     MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
 
     @classmethod
-    def install(cls):
+    def install(cls) -> None:
         current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
         if current_version == latest_version:
