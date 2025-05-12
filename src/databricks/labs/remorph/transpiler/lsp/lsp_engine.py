@@ -11,41 +11,36 @@ from typing import Any, Literal
 
 import attrs
 import yaml
-
 from lsprotocol import types as types_module
 from lsprotocol.types import (
-    InitializeParams,
-    ClientCapabilities,
-    InitializeResult,
     CLIENT_REGISTER_CAPABILITY,
-    RegistrationParams,
-    Registration,
-    TextEdit,
-    Diagnostic,
-    DidOpenTextDocumentParams,
-    TextDocumentItem,
-    DidCloseTextDocumentParams,
-    TextDocumentIdentifier,
     METHOD_TO_TYPES,
-    LanguageKind,
-    Range as LSPRange,
-    Position as LSPPosition,
+    ClientCapabilities,
+    ClientInfo,
+    Diagnostic,
     DiagnosticSeverity,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    InitializeParams,
+    InitializeResult,
+    LanguageKind,
 )
-from pygls.lsp.client import BaseLanguageClient
+from lsprotocol.types import Position as LSPPosition
+from lsprotocol.types import Range as LSPRange
+from lsprotocol.types import Registration, RegistrationParams, TextDocumentIdentifier, TextDocumentItem, TextEdit
 from pygls.exceptions import FeatureRequestError
+from pygls.lsp.client import BaseLanguageClient
 
 from databricks.labs.blueprint.wheels import ProductInfo
-
-from databricks.labs.remorph.config import TranspileConfig, TranspileResult, LSPConfigOptionV1
+from databricks.labs.remorph.config import LSPConfigOptionV1, TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
-    TranspileError,
+    CodePosition,
+    CodeRange,
     ErrorKind,
     ErrorSeverity,
-    CodeRange,
-    CodePosition,
+    TranspileError,
 )
 
 logger = logging.getLogger(__name__)
@@ -180,9 +175,8 @@ METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
 # subclass BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
 
-    def __init__(self):
-        version = ProductInfo.from_class(type(self)).version()
-        super().__init__("Remorph", version)
+    def __init__(self, name: str, version: str) -> None:
+        super().__init__(name, version)
         self._transpile_to_databricks_capability: Registration | None = None
         self._register_lsp_features()
 
@@ -377,10 +371,17 @@ class LSPEngine(TranspileEngine):
         config = LSPConfig.load(config_path)
         return LSPEngine(config_path.parent, config)
 
-    def __init__(self, workdir: Path, config: LSPConfig):
+    @classmethod
+    def client_metadata(cls) -> tuple[str, str]:
+        """Obtain the name and version for this LSP client, respectively in a tuple."""
+        product_info = ProductInfo.from_class(cls)
+        return product_info.product_name(), product_info.version()
+
+    def __init__(self, workdir: Path, config: LSPConfig) -> None:
         self._workdir = workdir
         self._config = config
-        self._client = _LanguageClient()
+        name, version = self.client_metadata()
+        self._client = _LanguageClient(name, version)
         self._init_response: InitializeResult | None = None
 
     @property
@@ -420,6 +421,7 @@ class LSPEngine(TranspileEngine):
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
             capabilities=self._client_capabilities(),
+            client_info=ClientInfo(name=self._client.name, version=self._client.version),
             root_uri=str(root_path.absolute().as_uri()),
             workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
