@@ -115,7 +115,8 @@ class TranspilerInstaller(abc.ABC):
                 text: bytes = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("info", {}).get('version', None)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching PyPI metadata: {product_name}", exc_info=e)
             return None
 
     @classmethod
