@@ -49,11 +49,15 @@ def ws_installer():
         # TODO the below methods currently raise a 404 because the artifacts don't exist yet
         # TODO remove this once they are available !!!
         @classmethod
-        def install_rct(cls):
+        def install_rct(cls, artifact: Path | None = None):
             pass
 
         @classmethod
-        def install_morpheus(cls):
+        def install_bladerunner(cls, artifact: Path | None = None):
+            pass
+
+        @classmethod
+        def install_morpheus(cls, artifact: Path | None = None):
             pass
 
         def _all_installed_dialects(self):
