@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import re
 import shutil
 from collections.abc import Iterable
 from json import loads, dumps
@@ -151,7 +152,17 @@ class WheelInstaller(TranspilerInstaller):
 
     @classmethod
     def get_local_artifact_version(cls, artifact: Path) -> str | None:
-        pass
+        match = re.search(r"[_-](\d+(?:[.\-_]\w*\d+)+)", artifact.stem)
+        if not match:
+            return None
+        group = match.group(0)
+        if not group:
+            return None
+        if group.startswith('-'):
+            group = group[1:]
+        if group.endswith("-py3"):
+            group = group[:-4]
+        return group
 
     @classmethod
     def download_artifact_from_pypi(cls, product_name: str, version: str, target: Path, extension="whl") -> int:
@@ -195,7 +206,7 @@ class WheelInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir()
+        self._product_path.mkdir(parents=True)
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
@@ -213,7 +224,7 @@ class WheelInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self) -> Path | None:
         self._create_venv()
-        self._install_from_pip()
+        self._install_with_pip()
         self._copy_lsp_resources()
         return self._post_install()
 
@@ -252,19 +263,28 @@ class WheelInstaller(TranspilerInstaller):
                     return packages
         raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
 
-    def _install_from_pip(self) -> None:
+    def _install_with_pip(self) -> None:
         pip = self._locate_pip()
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
             pip = pip.relative_to(self._install_path)
             target = self._site_packages.relative_to(self._install_path)
-            if sys.platform == "win32":
-                args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+            # the way to call pip from python is highly sensitive to os and source type
+            if self._artifact:
+                if sys.platform == "win32":
+                    args = f"{pip!s} install {self._artifact!s} -t {target!s}"
+                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+                else:
+                    args = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
+                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
             else:
-                args = [f"'{pip}'", "install", self._pypi_name, "-t", f"'{target}'"]
-                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+                if sys.platform == "win32":
+                    args = [str(pip), "install", self._pypi_name, "-t", str(target)]
+                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+                else:
+                    args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
+                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
             # checking return code later makes debugging easier
             completed.check_returncode()
         finally:
@@ -277,7 +297,7 @@ class WheelInstaller(TranspilerInstaller):
         lsp = self._site_packages / "lsp"
         if not lsp.exists():
             raise ValueError("Installed transpiler is missing a 'lsp' folder")
-        shutil.copytree(lsp, self._install_path)
+        shutil.copytree(lsp, self._install_path, dirs_exist_ok=True)
 
     def _post_install(self) -> Path | None:
         config = self._install_path / "config.yml"
