@@ -8,6 +8,8 @@ uninstall:
 entrypoint: src/databricks/labs/remorph/cli.py
 min_python: 3.10
 commands:
+  - name: analyze
+    description: Analyze source code from existing technology
   - name: transpile
     description: Transpile SQL script to Databricks SQL
     flags:
