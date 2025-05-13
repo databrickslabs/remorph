@@ -47,13 +47,13 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
-        installer = PypiInstaller(product_name, pypi_name)
+    def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
+        installer = WheelInstaller(product_name, pypi_name, artifact)
         return installer.install()
 
     @classmethod
-    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str) -> Path | None:
-        installer = MavenInstaller(product_name, group_id, artifact_id)
+    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None) -> Path | None:
+        installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
         return installer.install()
 
     @classmethod
@@ -137,10 +137,10 @@ class TranspilerInstaller(abc.ABC):
             return None
 
 
-class PypiInstaller(TranspilerInstaller):
+class WheelInstaller(TranspilerInstaller):
 
     @classmethod
-    def get_pypi_artifact_version(cls, product_name: str) -> str | None:
+    def get_latest_artifact_version_from_pypi(cls, product_name: str) -> str | None:
         try:
             with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
                 text = server.read()
@@ -148,6 +148,10 @@ class PypiInstaller(TranspilerInstaller):
             return data.get("info", {}).get('version', None)
         except HTTPError:
             return None
+
+    @classmethod
+    def get_local_artifact_version(cls, artifact: Path) -> str | None:
+        pass
 
     @classmethod
     def download_artifact_from_pypi(cls, product_name: str, version: str, target: Path, extension="whl") -> int:
@@ -165,15 +169,16 @@ class PypiInstaller(TranspilerInstaller):
             logger.error("While downloading from pypi", exc_info=e)
             return -1
 
-    def __init__(self, product_name: str, pypi_name: str):
+    def __init__(self, product_name: str, pypi_name: str, artifact: Path | None = None):
         self._product_name = product_name
         self._pypi_name = pypi_name
+        self._artifact = artifact
 
     def install(self) -> Path | None:
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        latest_version = self.get_pypi_artifact_version(self._pypi_name)
+        latest_version = self.get_local_artifact_version(self._artifact) if self._artifact else self.get_latest_artifact_version_from_pypi(self._pypi_name)
         if latest_version is None:
             return None
         self._latest_version: str = latest_version
@@ -340,10 +345,11 @@ class MavenInstaller(TranspilerInstaller):
             logger.error("While downloading from maven", exc_info=e)
             return -1
 
-    def __init__(self, product_name: str, group_id: str, artifact_id: str):
+    def __init__(self, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None):
         self._product_name = product_name
         self._group_id = group_id
         self._artifact_id = artifact_id
+        self._artifact = artifact
 
     def install(self) -> Path | None:
         return self._install_checking_versions()
@@ -471,8 +477,11 @@ class WorkspaceInstaller:
         self,
         module: str,
         config: RemorphConfigs | None = None,
+        artifact: str | None = None
     ) -> RemorphConfigs:
-        if module in {"transpile", "all"}:
+        if module == "transpile" and artifact:
+            self.install_artifact(artifact)
+        elif module in {"transpile", "all"}:
             self.install_rct()
             self.install_bladerunner()
             self.install_morpheus()
@@ -486,19 +495,19 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
-    def install_rct(cls):
+    def install_rct(cls, artifact: Path | None = None):
         local_name = "remorph-community-transpiler"
         pypi_name = f"databricks-labs-{local_name}"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
     @classmethod
-    def install_bladerunner(cls):
+    def install_bladerunner(cls, artifact: Path | None = None):
         local_name = "bladerunner"
         pypi_name = f"databricks-bb-plugin"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
     @classmethod
-    def install_morpheus(cls):
+    def install_morpheus(cls, artifact: Path | None = None):
         java_version = cls.get_java_version()
         if java_version < 110:
             logger.warning(
@@ -508,7 +517,20 @@ class WorkspaceInstaller:
         product_name = "morpheus-lsp"
         group_id = "com.databricks.labs"
         artifact_id = product_name
-        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
+        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id, artifact)
+
+    @classmethod
+    def install_artifact(cls, artifact: str):
+        path = Path(artifact)
+        if not path.exists():
+            logger.error(f"Could not locate actifact {artifact}")
+            return
+        if "morpheus-lsp" in path.name:
+            cls.install_morpheus(path)
+        elif "databricks-bb-plugin" in path.name:
+            cls.install_bladerunner(path)
+        elif "remorph-community-transpiler" in path.name:
+            cls.install_rct(path)
 
     @classmethod
     def get_java_version(cls) -> int | None:

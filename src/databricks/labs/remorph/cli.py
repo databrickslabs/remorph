@@ -228,11 +228,11 @@ def install_assessment():
 
 
 @remorph.command()
-def install_transpile(w: WorkspaceClient):
-    """Install the Remorph Transpile package"""
+def install_transpile(w: WorkspaceClient, artifact: str | None = None):
+    """Install the Remorph Transpilers"""
     with_user_agent_extra("cmd", "install-transpile")
     installer = _installer(w)
-    installer.run(module="transpile")
+    installer.run(module="transpile", artifact=artifact)
 
 
 @remorph.command(is_unauthenticated=False)

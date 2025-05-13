@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 from databricks.labs.remorph.config import TranspileConfig
 
-from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
+from databricks.labs.remorph.install import TranspilerInstaller, WheelInstaller, MavenInstaller, WorkspaceInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
@@ -36,14 +36,14 @@ def test_downloads_from_maven():
 
 
 def test_gets_pypi_artifact_version():
-    version = PypiInstaller.get_pypi_artifact_version("databricks-labs-remorph")
+    version = WheelInstaller.get_latest_artifact_version_from_pypi("databricks-labs-remorph")
     check_valid_version(version)
 
 
 def test_downloads_tar_from_pypi():
     with TemporaryDirectory() as parent:
         path = Path(parent) / "archive.tar"
-        result = PypiInstaller.download_artifact_from_pypi(
+        result = WheelInstaller.download_artifact_from_pypi(
             "databricks-labs-remorph-community-transpiler", "0.0.1", path, extension="tar"
         )
         assert result == 0
@@ -54,7 +54,7 @@ def test_downloads_tar_from_pypi():
 def test_downloads_whl_from_pypi():
     with TemporaryDirectory() as parent:
         path = Path(parent) / "package.whl"
-        result = PypiInstaller.download_artifact_from_pypi(
+        result = WheelInstaller.download_artifact_from_pypi(
             "databricks-labs-remorph-community-transpiler", "0.0.1", path
         )
         assert result == 0
@@ -118,10 +118,10 @@ def check_valid_version(version: str):
             assert False, f"{version} does not look like a valid semver"
 
 
-class PatchedPypiInstaller(PypiInstaller):
+class PatchedPypiInstaller(WheelInstaller):
 
     @classmethod
-    def get_pypi_artifact_version(cls, product_name: str):
+    def get_latest_artifact_version_from_pypi(cls, product_name: str):
         return "0.0.1"
 
     def _install_from_pip(self):
