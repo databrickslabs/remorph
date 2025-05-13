@@ -279,14 +279,14 @@ class WheelInstaller(TranspilerInstaller):
             # the way to call pip from python is highly sensitive to os and source type
             if self._artifact:
                 if sys.platform == "win32":
-                    args = f"{pip!s} install {self._artifact!s} -t {target!s}"
+                    command = f"{pip!s} install {self._artifact!s} -t {target!s}"
                     completed = run(
-                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
+                        command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
                     )
                 else:
-                    args = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
+                    command = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
                     completed = run(
-                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
+                        command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
                     )
             else:
                 if sys.platform == "win32":
@@ -545,7 +545,7 @@ class WorkspaceInstaller:
     @classmethod
     def install_morpheus(cls, artifact: Path | None = None):
         java_version = cls.get_java_version()
-        if java_version < 110:
+        if java_version is None or java_version < 110:
             logger.warning(
                 "This software requires Java 11 or above. Please install Java and re-run 'install-transpile'."
             )
