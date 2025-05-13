@@ -79,6 +79,20 @@ class TranspilerInstaller(abc.ABC):
         return version[1:]
 
     @classmethod
+    def get_local_artifact_version(cls, artifact: Path) -> str | None:
+        match = re.search(r"[_-](\d+(?:[.\-_]\w*\d+)+)", artifact.stem)
+        if not match:
+            return None
+        group = match.group(0)
+        if not group:
+            return None
+        if group.startswith('-'):
+            group = group[1:]
+        if group.endswith("-py3"):
+            group = group[:-4]
+        return group
+
+    @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
         all_configs = cls._all_transpiler_configs()
         return {config.name: config for config in all_configs}
@@ -149,20 +163,6 @@ class WheelInstaller(TranspilerInstaller):
             return data.get("info", {}).get('version', None)
         except HTTPError:
             return None
-
-    @classmethod
-    def get_local_artifact_version(cls, artifact: Path) -> str | None:
-        match = re.search(r"[_-](\d+(?:[.\-_]\w*\d+)+)", artifact.stem)
-        if not match:
-            return None
-        group = match.group(0)
-        if not group:
-            return None
-        if group.startswith('-'):
-            group = group[1:]
-        if group.endswith("-py3"):
-            group = group[:-4]
-        return group
 
     @classmethod
     def download_artifact_from_pypi(cls, product_name: str, version: str, target: Path, extension="whl") -> int:
@@ -326,7 +326,7 @@ class WheelInstaller(TranspilerInstaller):
 class MavenInstaller(TranspilerInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+    def get_latest_artifact_version_from_maven(cls, group_id: str, artifact_id: str) -> str | None:
         try:
             url = (
                 f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
@@ -375,7 +375,7 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
+        self._latest_version = self.get_local_artifact_version(self._artifact) if self._artifact else self.get_latest_artifact_version_from_maven(self._group_id, self._artifact_id)
         if self._latest_version is None:
             return None
         self._current_version = self.get_installed_version(self._product_name)
@@ -391,7 +391,7 @@ class MavenInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir()
+        self._product_path.mkdir(parents=True)
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
@@ -409,15 +409,18 @@ class MavenInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self) -> Path | None:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
-        return_code = self.download_artifact_from_maven(
-            self._group_id,
-            self._artifact_id,
-            str(self._latest_version),
-            jar_file_path,
-        )
-        if return_code != 0:
-            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
-            return None
+        if self._artifact:
+            shutil.copyfile(self._artifact, jar_file_path)
+        else:
+            return_code = self.download_artifact_from_maven(
+                self._group_id,
+                self._artifact_id,
+                str(self._latest_version),
+                jar_file_path,
+            )
+            if return_code != 0:
+                logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
+                return None
         self._copy_lsp_resources(jar_file_path)
         return self._post_install()
 

@@ -20,7 +20,7 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
 
 
 def test_gets_maven_artifact_version():
-    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
+    version = MavenInstaller.get_latest_artifact_version_from_maven("com.databricks", "databricks-connect")
     check_valid_version(version)
 
 
@@ -164,7 +164,7 @@ async def test_installs_and_runs_local_rct():
 
 async def test_installs_and_runs_local_bladerunner():
     artifact = Path(__file__).parent.parent / "resources" / "transpiler_configs" / "bladerunner" / "wheel" / "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner")
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
     # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
@@ -198,8 +198,7 @@ async def test_installs_and_runs_local_bladerunner():
 
 
 async def test_installs_and_runs_morpheus(patched_transpiler_installer):
-    artifact = Path(
-        __file__).parent.parent / "resources" / "transpiler_configs" / "morpheus" / "jar" / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+    artifact = Path(__file__).parent.parent / "resources" / "transpiler_configs" / "morpheus" / "jar" / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
     TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
