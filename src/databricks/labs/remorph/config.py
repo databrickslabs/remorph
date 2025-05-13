@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import typing
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
@@ -51,13 +52,16 @@ class LSPConfigOptionV1:
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
 
+JSON: typing.TypeAlias = None | bool | int | float | str | list["JSON"] | dict[str, "JSON"]
+
+
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 3
 
     transpiler_config_path: str
-    source_dialect: str
+    source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
     error_file_path: str | None = None
@@ -65,9 +69,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, bool | str | int | float | object | list] | None = (
-        None  # need a union because blueprint doesn't support 'Any' type
-    )
+    transpiler_options: JSON = None
 
     @property
     def transpiler_path(self):

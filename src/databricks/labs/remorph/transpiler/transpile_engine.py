@@ -39,7 +39,7 @@ class TranspileEngine(abc.ABC):
     @abc.abstractmethod
     def supported_dialects(self) -> list[str]: ...
 
-    def check_source_dialect(self, source_dialect: str) -> None:
+    def check_source_dialect(self, source_dialect: str | None) -> None:
         if source_dialect not in self.supported_dialects:
             raise ValueError(
                 f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {self.supported_dialects}."
