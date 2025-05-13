@@ -8,11 +8,8 @@ PROFILER_SCHEDULER_TASK_NAME = "Remorph Usage Collection"
 def is_task_scheduled():
     try:
         logging.info("Checking if task exists.")
-        result = run(["SCHTASKS", "/QUERY", "/TN", PROFILER_SCHEDULER_TASK_NAME], check=True, text=True)
-        if result.returncode >= 0:
-            return True
-        else:
-            return False
+        run(["SCHTASKS", "/QUERY", "/TN", PROFILER_SCHEDULER_TASK_NAME], check=True, text=True)
+        return True
     except CalledProcessError as e:
         error_msg = e.stderr
         logging.error(f"Failed to query scheduled usage collection task: {error_msg}")

@@ -7,16 +7,10 @@ import logging
 
 def launch_uninstaller():
 
-    logging.info("Creating virtual environment.")
-
     try:
         # Detect the host operating system and execute the appropriate script
         system = platform.system()
-        if system == "Darwin":
-            uninstaller_path = "macos/uninstall_launch_agent.py"
-        elif system == "Linux":
-            uninstaller_path = "linux/uninstall_service_file.py"
-        elif system == "Windows":
+        if system == "Windows":
             uninstaller_path = "windows\\uninstall_task_file.py"
         else:
             raise RuntimeError(f"Unsupported operating system: {system}")
