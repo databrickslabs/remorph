@@ -209,6 +209,7 @@ class PypiInstaller(TranspilerInstaller):
     def _unsafe_install_latest_version(self) -> Path | None:
         self._create_venv()
         self._install_from_pip()
+        self._copy_lsp_resources()
         return self._post_install()
 
     def _create_venv(self) -> None:
@@ -267,26 +268,21 @@ class PypiInstaller(TranspilerInstaller):
     def _locate_pip(self) -> Path:
         return self._venv / "Scripts" / "pip3.exe" if sys.platform == "win32" else self._venv / "bin" / "pip3"
 
-    def _post_install(self) -> Path | None:
+    def _copy_lsp_resources(self):
         lsp = self._site_packages / "lsp"
         if not lsp.exists():
             raise ValueError("Installed transpiler is missing a 'lsp' folder")
-        config = lsp / "config.yml"
+        shutil.copytree(lsp, self._install_path)
+
+    def _post_install(self) -> Path | None:
+        config = self._install_path / "config.yml"
         if not config.exists():
             raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
-        shutil.copyfile(config, self._install_path / "config.yml")
-        main_script = lsp / "main.py"
         install_ext = "ps1" if sys.platform == "win32" else "sh"
         install_script = f"installer.{install_ext}"
-        installer = lsp / install_script
-        if not main_script.exists() and not installer.exists():
-            raise ValueError(
-                f"Installed transpiler is missing a 'main.py' file or an {install_script} in its 'lsp' folder"
-            )
+        installer = self._install_path / install_script
         if installer.exists():
             self._run_custom_installer(installer)
-        else:
-            shutil.copyfile(main_script, self._install_path / main_script.name)
         self._store_state()
         return self._install_path
 
@@ -396,7 +392,10 @@ class MavenInstaller(TranspilerInstaller):
         if return_code != 0:
             logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
             return None
-        # extract lsp resources from jar
+        self._copy_lsp_resources(jar_file_path)
+        return self._post_install()
+
+    def _copy_lsp_resources(self, jar_file_path: Path):
         with ZipFile(jar_file_path) as zip_file:
             names = [name for name in zip_file.namelist() if name.startswith("lsp/")]
             for name in names:
@@ -411,7 +410,6 @@ class MavenInstaller(TranspilerInstaller):
 
             # drop the 'lsp' folder created by zip extract
             shutil.rmtree(self._install_path / "lsp")
-        return self._post_install()
 
     def _post_install(self) -> Path:
         install_ext = "ps1" if sys.platform == "win32" else "sh"
@@ -496,7 +494,7 @@ class WorkspaceInstaller:
     @classmethod
     def install_bladerunner(cls):
         local_name = "bladerunner"
-        pypi_name = f"databricks-labs-{local_name}"
+        pypi_name = f"databricks-bb-plugin"
         TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
@@ -507,7 +505,7 @@ class WorkspaceInstaller:
                 "This software requires Java 11 or above. Please install Java and re-run 'install-transpile'."
             )
             return
-        product_name = "morpheus"
+        product_name = "morpheus-lsp"
         group_id = "com.databricks.labs"
         artifact_id = product_name
         TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
