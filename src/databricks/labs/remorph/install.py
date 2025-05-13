@@ -53,7 +53,9 @@ class TranspilerInstaller(abc.ABC):
         return installer.install()
 
     @classmethod
-    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None) -> Path | None:
+    def install_from_maven(
+        cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None
+    ) -> Path | None:
         installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
         return installer.install()
 
@@ -189,7 +191,11 @@ class WheelInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        latest_version = self.get_local_artifact_version(self._artifact) if self._artifact else self.get_latest_artifact_version_from_pypi(self._pypi_name)
+        latest_version = (
+            self.get_local_artifact_version(self._artifact)
+            if self._artifact
+            else self.get_latest_artifact_version_from_pypi(self._pypi_name)
+        )
         if latest_version is None:
             return None
         self._latest_version: str = latest_version
@@ -274,17 +280,25 @@ class WheelInstaller(TranspilerInstaller):
             if self._artifact:
                 if sys.platform == "win32":
                     args = f"{pip!s} install {self._artifact!s} -t {target!s}"
-                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+                    completed = run(
+                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
+                    )
                 else:
                     args = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
-                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+                    completed = run(
+                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
+                    )
             else:
                 if sys.platform == "win32":
                     args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+                    completed = run(
+                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
+                    )
                 else:
                     args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
-                    completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+                    completed = run(
+                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
+                    )
             # checking return code later makes debugging easier
             completed.check_returncode()
         finally:
@@ -375,7 +389,11 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        self._latest_version = self.get_local_artifact_version(self._artifact) if self._artifact else self.get_latest_artifact_version_from_maven(self._group_id, self._artifact_id)
+        self._latest_version = (
+            self.get_local_artifact_version(self._artifact)
+            if self._artifact
+            else self.get_latest_artifact_version_from_maven(self._group_id, self._artifact_id)
+        )
         if self._latest_version is None:
             return None
         self._current_version = self.get_installed_version(self._product_name)
@@ -496,12 +514,7 @@ class WorkspaceInstaller:
             msg = "WorkspaceInstaller is not supposed to be executed in Databricks Runtime"
             raise SystemExit(msg)
 
-    def run(
-        self,
-        module: str,
-        config: RemorphConfigs | None = None,
-        artifact: str | None = None
-    ) -> RemorphConfigs:
+    def run(self, module: str, config: RemorphConfigs | None = None, artifact: str | None = None) -> RemorphConfigs:
         if module == "transpile" and artifact:
             self.install_artifact(artifact)
         elif module in {"transpile", "all"}:
@@ -526,7 +539,7 @@ class WorkspaceInstaller:
     @classmethod
     def install_bladerunner(cls, artifact: Path | None = None):
         local_name = "bladerunner"
-        pypi_name = f"databricks-bb-plugin"
+        pypi_name = "databricks-bb-plugin"
         TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
     @classmethod
