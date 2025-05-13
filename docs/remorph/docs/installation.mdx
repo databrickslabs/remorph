@@ -17,6 +17,7 @@ Databricks Labs Remorph
 ## [Table of Contents](#table-of-contents)
 
 * [Remorph](#remorph)
+* [Analyze](#analyze)
 * [Transpile](#transpile)
 * [Reconcile](#reconcile)
 * [Environment Setup](#environment-setup)
@@ -28,6 +29,12 @@ Databricks Labs Remorph
 Remorph stands as a comprehensive toolkit meticulously crafted to facilitate seamless migrations to Databricks.
 This suite of tools is dedicated to simplifying and optimizing the entire migration process, offering two distinctive functionalities – Transpile and Reconcile. Whether you are navigating code translation or resolving potential conflicts, Remorph ensures a smooth journey for any migration project. With Remorph as your trusted ally,
 the migration experience becomes not only efficient but also well-managed, setting the stage for a successful transition to the Databricks platform.
+
+## Analyze
+Analyze is a functionality designed to analyze source code (SQL and workflows) from various technologies and provide insights on the migration:
+- feature gaps
+- workflow complexity
+- schema complexity
 
 ## Transpile
 Transpile is a self-contained SQL parser, transpiler, and validator designed to interpret a diverse range of SQL inputs and generate syntactically and semantically correct SQL in the Databricks SQL dialect. This tool serves as an automated solution, named Transpile, specifically crafted for migrating and translating SQL scripts from various sources to the Databricks SQL format. Currently, it exclusively supports Snowflake as a source platform, leveraging the open-source SQLglot.
