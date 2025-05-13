@@ -270,39 +270,50 @@ class WheelInstaller(TranspilerInstaller):
         raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
 
     def _install_with_pip(self) -> None:
-        pip = self._locate_pip()
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
-            pip = pip.relative_to(self._install_path)
-            target = self._site_packages.relative_to(self._install_path)
             # the way to call pip from python is highly sensitive to os and source type
             if self._artifact:
-                if sys.platform == "win32":
-                    command = f"{pip!s} install {self._artifact!s} -t {target!s}"
-                    completed = run(
-                        command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
-                    )
-                else:
-                    command = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
-                    completed = run(
-                        command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
-                    )
+                self._install_local_artifact()
             else:
-                if sys.platform == "win32":
-                    args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-                    completed = run(
-                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
-                    )
-                else:
-                    args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
-                    completed = run(
-                        args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
-                    )
-            # checking return code later makes debugging easier
-            completed.check_returncode()
+                self._install_remote_artifact()
         finally:
             os.chdir(cwd)
+
+    def _install_local_artifact(self) -> None:
+        pip = self._locate_pip()
+        pip = pip.relative_to(self._install_path)
+        target = self._site_packages.relative_to(self._install_path)
+        if sys.platform == "win32":
+            command = f"{pip!s} install {self._artifact!s} -t {target!s}"
+            completed = run(
+                command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
+            )
+        else:
+            command = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
+            completed = run(
+                command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
+            )
+        # checking return code later makes debugging easier
+        completed.check_returncode()
+
+    def _install_remote_artifact(self) -> None:
+        pip = self._locate_pip()
+        pip = pip.relative_to(self._install_path)
+        target = self._site_packages.relative_to(self._install_path)
+        if sys.platform == "win32":
+            args = [str(pip), "install", self._pypi_name, "-t", str(target)]
+            completed = run(
+                args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
+            )
+        else:
+            args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
+            completed = run(
+                args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
+            )
+        # checking return code later makes debugging easier
+        completed.check_returncode()
 
     def _locate_pip(self) -> Path:
         return self._venv / "Scripts" / "pip3.exe" if sys.platform == "win32" else self._venv / "bin" / "pip3"
