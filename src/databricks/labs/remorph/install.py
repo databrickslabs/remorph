@@ -287,14 +287,10 @@ class WheelInstaller(TranspilerInstaller):
         target = self._site_packages.relative_to(self._install_path)
         if sys.platform == "win32":
             command = f"{pip!s} install {self._artifact!s} -t {target!s}"
-            completed = run(
-                command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
-            )
+            completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
         else:
             command = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
-            completed = run(
-                command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
-            )
+            completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
         # checking return code later makes debugging easier
         completed.check_returncode()
 
@@ -304,14 +300,10 @@ class WheelInstaller(TranspilerInstaller):
         target = self._site_packages.relative_to(self._install_path)
         if sys.platform == "win32":
             args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-            completed = run(
-                args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False
-            )
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
         else:
             args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
-            completed = run(
-                args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False
-            )
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
         # checking return code later makes debugging easier
         completed.check_returncode()
 
