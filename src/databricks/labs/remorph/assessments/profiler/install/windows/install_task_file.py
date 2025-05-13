@@ -9,7 +9,7 @@ def install_task_file():
     logging.info("Copying task file to Downloads folder.")
     downloads_path = Path.home() / "Downloads"
     task_def_path = downloads_path / "usage_collection_task.xml"
-    shutil.copy2("usage_collection_task.xml", downloads_path)
+    shutil.copy2("usausge_collection_task.xml", downloads_path)
 
     # Import the task definition, force overwrite if exists
     logging.info("Importing task from task file.")
@@ -17,7 +17,7 @@ def install_task_file():
 
 
 def main():
-    logging.info("Installing Windows scheduler components...\n")
+    logging.info("Installing Windows profiler components...\n")
     install_task_file()
     logging.info("Installation complete.")
 

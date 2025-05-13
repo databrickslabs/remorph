@@ -45,7 +45,7 @@ def launch_installer():
             else:
                 raise RuntimeError(f"Unsupported operating system: {system}")
 
-            logging.info(f"Running scheduler installer for: {system}")
+            logging.info(f"Running profiler installer for: {system}")
             result = run(
                 [str(venv_python), str(installer_path)],
                 check=True,
@@ -84,9 +84,25 @@ def is_systemd_installed() -> bool:
         return False
 
 
+def is_task_scheduler_installed() -> bool:
+    """
+    Validates if schtasks is installed on the host.
+    Returns:
+        bool - True if schtasks is installed
+               False if schtasks not found on the system
+    """
+    try:
+        # check is we can display the manual page for `schtasks`
+        run(["schtasks", "/?"], capture_output=True, check=True)
+        return True
+    except CalledProcessError as cpe:
+        logging.error(f"Schtasks not found on the system: {cpe}")
+        return False
+
+
 def validate_prerequisites():
     """
-    Validates that the prerequisites for installing the profiler scheduler
+    Validates that the prerequisites for installing the profiler
     are met.
     1. The user must be using a Mac, Linux, or Windows OS
     2. Python 3.10+ must be installed
@@ -98,7 +114,9 @@ def validate_prerequisites():
     if python_version_info[0] != 3 or python_version_info[1] < 10:
         raise RuntimeError("Python version must be >= Python 3.10")
     if system_info == "darwin" and not is_systemd_installed():
-        raise RuntimeError("Systemd is required.")
+        raise RuntimeError("Systemd is required to install the remorph profiler.")
+    elif system_info == "windows" and not is_task_scheduler_installed():
+        raise RuntimeError("Schtasks is required to install the remorph profiler.")
 
 
 def main():

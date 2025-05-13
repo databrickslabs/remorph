@@ -13,17 +13,17 @@ def install_service_file():
     shutil.copy2("linux/remorph_usage_collection.service", unit_file_path)
     shutil.copy2("linux/remorph_usage_collection.timer", timer_file_path)
 
-    # Ensure that the pipeline scheduler exits
+    # Ensure that the pipeline profiler exits
     scheduler_path = Path(__file__).parent.parent.parent / "pipeline_scheduler.py"
     if not scheduler_path.exists():
-        raise FileNotFoundError(f"Could not find the profiler scheduler: {scheduler_path}")
+        raise FileNotFoundError(f"Could not find the profiler profiler: {scheduler_path}")
 
     # Reload the `systemd` process to pick up the new files
     logging.info("Reloading systemd.")
     subprocess.run(["sudo", "systemctl", "daemon-reload"], check=False)
 
     # Enable the system timer
-    logging.info("Enabling profiler scheduler.")
+    logging.info("Enabling profiler profiler.")
     subprocess.run(["sudo", "systemctl", "enable", "remorph_usage_collection.timer"], check=False)
 
     # Start the system timer
@@ -32,7 +32,7 @@ def install_service_file():
 
 
 def main():
-    logging.info("Installing Linux scheduler components...\n")
+    logging.info("Installing Linux profiler components...\n")
     install_service_file()
     logging.info("Installation complete.")
 

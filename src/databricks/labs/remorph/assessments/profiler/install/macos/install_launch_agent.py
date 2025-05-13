@@ -10,12 +10,12 @@ def install_launch_agent():
     launch_agents_dir.mkdir(parents=True, exist_ok=True)
     plist_path = launch_agents_dir / "com.remorph.usagecollection.plist"
 
-    # Ensure that the scheduler script exits
+    # Ensure that the profiler script exits
     scheduler_path = Path(__file__).parent.parent.parent / "pipeline_scheduler.py"
     if not scheduler_path.exists():
-        raise FileNotFoundError(f"Could not find the profiler scheduler: {scheduler_path}")
+        raise FileNotFoundError(f"Could not find the profiler profiler: {scheduler_path}")
 
-    # Check if the profiler scheduler has been previously registered
+    # Check if the profiler profiler has been previously registered
     if plist_path.exists():
         logging.info("Plist exists already. Unloading.")
         subprocess.run(["launchctl", "unload", str(plist_path)], check=False)
@@ -24,13 +24,13 @@ def install_launch_agent():
         # copy the plist file to the launch agents dir
         shutil.copy2("com.remorph.usagecollection.plist", plist_path)
 
-    # Register the profiler scheduler
+    # Register the profiler profiler
     subprocess.run(["launchctl", "load", str(plist_path)], check=True)
     logging.info("Loaded LaunchAgent com.remorph.usagecollection.plist successfully.")
 
 
 def main():
-    logging.info("Installing macOS scheduler components...\n")
+    logging.info("Installing macOS profiler components...\n")
     install_launch_agent()
     logging.info("Installation complete.")
 

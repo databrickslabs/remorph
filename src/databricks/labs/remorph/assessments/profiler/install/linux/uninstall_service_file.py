@@ -10,7 +10,7 @@ def uninstall_service_file():
     subprocess.run(["sudo", "systemctl", "stop", "remorph_usage_collection.timer"], check=False)
 
     # Disbale the system timer
-    logging.info("Disabling profiler scheduler.")
+    logging.info("Disabling profiler profiler.")
     subprocess.run(["sudo", "systemctl", "disable", "remorph_usage_collection.timer"], check=False)
 
     # Remove the unit file and timer file
@@ -22,7 +22,7 @@ def uninstall_service_file():
 
 
 def main():
-    logging.info("Uninstalling Linux scheduler components...\n")
+    logging.info("Uninstalling Linux profiler components...\n")
     uninstall_service_file()
     logging.info("Uninstallation complete.")
 
