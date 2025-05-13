@@ -257,6 +257,7 @@ def analyze(w: WorkspaceClient):
     output_folder = prompts.question("Enter path to output results folder")
     input_folder = prompts.question("Enter path to input sources folder")
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
+     with_user_agent_extra("analyzer_source_tech", source_tech)
     Analyzer.analyze(Path(input_folder), Path(output_folder), source_tech)
 
 
