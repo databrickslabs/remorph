@@ -1,42 +1,62 @@
 import platform
 from subprocess import run, CalledProcessError
+from pathlib import Path
 
-import json
 import logging
+import getpass
+
+
+USAGE_COLLECTION_TASK_NAME = "Remorph Usage Collection"
+
+
+def schedule_windows_task():
+    """
+    Schedules the profiler usage collection task to execute using schtasks.
+    """
+    pipeline_scheduler_path = f"{Path.cwd().parent}\\pipeline_scheduler.py"
+    usage_collection_command = f"python {pipeline_scheduler_path}"
+    logging.info(f"Scheduling usage collection task: {usage_collection_command}")
+    try:
+        run(
+            [
+                "SCHTASKS",
+                "/CREATE",
+                "/TN",
+                USAGE_COLLECTION_TASK_NAME,
+                "/TR",
+                usage_collection_command,
+                "/SC",
+                "MINUTE",
+                "/MO",
+                "15",  # TODO: Make this configurable
+                "/RL",
+                "HIGHEST",
+                "/F",
+                "/RU",
+                getpass.getuser(),
+            ],
+            check=True,
+            text=True,
+        )
+    except CalledProcessError as e:
+        error_msg = e.stderr
+        raise RuntimeError(f"Failed to schedule the usage collection task for Windows: {error_msg}") from e
 
 
 def launch_installer():
-
-    try:
-        # Detect the host operating system and execute the appropriate script
-        system = platform.system()
-        if system == "Windows":
-            installer_path = "windows\\install_task_file.py"
-        else:
-            raise RuntimeError(f"Unsupported operating system: {system}")
-
-        logging.info(f"Running profiler installer for: {system}")
-        result = run(
-            ["python", installer_path],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-
+    """
+    Schedules usage collection task using the hosts system scheduler.
+    """
+    system = platform.system()
+    logging.info(f"Running profiler installer for: {system}")
+    if system == "Windows":
         try:
-            output = json.loads(result.stdout)
-            logging.debug(output)
-            if output["status"] == "success":
-                logging.info(f"Python script completed: {output['message']}")
-            else:
-                raise RuntimeError(f"Script reported error: {output['message']}")
-        except json.JSONDecodeError:
-            logging.error(f"Python script output: {result.stdout}")
-
-    except CalledProcessError as e:
-        error_msg = e.stderr
-        logging.error(f"Installation script failed: {error_msg}")
-        raise RuntimeError(f"Installation script failed: {error_msg}") from e
+            schedule_windows_task()
+        except RuntimeError as e:
+            logging.error(f"Failed to schedule the usage collection task for Windows: {e}")
+            raise RuntimeError(f"Failed to schedule the usage collection task for Windows: {e}") from e
+    else:
+        raise RuntimeError(f"Unsupported operating system: {system}")
 
 
 def is_systemd_installed() -> bool:
@@ -56,13 +76,13 @@ def is_systemd_installed() -> bool:
 
 def is_task_scheduler_installed() -> bool:
     """
-    Validates if schtasks is installed on the host.
+    Validates if the schtasks command is installed on the host.
     Returns:
         bool - True if schtasks is installed
                False if schtasks not found on the system
     """
     try:
-        # check is we can display the manual page for `schtasks`
+        # Check if the manual page for `schtasks` can be displayed
         run(["SCHTASKS", "/?"], capture_output=True, check=True)
         return True
     except CalledProcessError as cpe:
@@ -70,10 +90,9 @@ def is_task_scheduler_installed() -> bool:
         return False
 
 
-def validate_prerequisites():
+def validate_system_requirements():
     """
-    Validates that the prerequisites for installing the profiler
-    are met.
+    Validates the system requirements for installing the profiler are met:
     1. The user must be using a Mac, Linux, or Windows OS
     2. Python 3.10+ must be installed
     3. System scheduler must be callable, e.g. systemd, launchmd, schtasks
@@ -88,15 +107,13 @@ def validate_prerequisites():
     if python_version_info[0] != 3 or python_version_info[1] < 10:
         raise RuntimeError("Python version must be >= Python 3.10")
     logging.info("Checking system scheduler.")
-    if system_info == "darwin" and not is_systemd_installed():
-        raise RuntimeError("Systemd is required to install the remorph profiler.")
     if system_info == "windows" and not is_task_scheduler_installed():
         raise RuntimeError("Schtasks is required to install the remorph profiler.")
 
 
 def main():
     logging.info("Installing the remorph profiler...\n")
-    validate_prerequisites()
+    validate_system_requirements()
     launch_installer()
     logging.info("Installation complete.")
 
