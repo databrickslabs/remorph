@@ -190,7 +190,7 @@ class PypiInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir()
+        self._product_path.mkdir(parents=True)
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
@@ -365,7 +365,7 @@ class MavenInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir()
+        self._product_path.mkdir(parents=True)
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
@@ -494,7 +494,7 @@ class WorkspaceInstaller:
     @classmethod
     def install_bladerunner(cls):
         local_name = "bladerunner"
-        pypi_name = f"databricks-bb-plugin"
+        pypi_name = "databricks-bb-plugin"
         TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
