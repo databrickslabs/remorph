@@ -272,7 +272,7 @@ class PypiInstaller(TranspilerInstaller):
         lsp = self._site_packages / "lsp"
         if not lsp.exists():
             raise ValueError("Installed transpiler is missing a 'lsp' folder")
-        shutil.copytree(lsp, self._install_path)
+        shutil.copytree(lsp, self._install_path, dirs_exist_ok=True)
 
     def _post_install(self) -> Path | None:
         config = self._install_path / "config.yml"
