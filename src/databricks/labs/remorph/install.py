@@ -543,7 +543,7 @@ class WorkspaceInstaller:
     def install_bladerunner(cls, artifact: Path | None = None):
         local_name = "bladerunner"
         pypi_name = "databricks-bb-plugin"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
     def install_morpheus(cls, artifact: Path | None = None):
