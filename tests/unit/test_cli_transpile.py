@@ -12,7 +12,6 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
 from tests.unit.conftest import path_to_resource
 
 TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
@@ -329,7 +328,6 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
         caplog.at_level("ERROR"),
         patch("databricks.labs.remorph.contexts.application.ApplicationContext.prompts", new_callable=lambda: prompts),
         patch("databricks.labs.remorph.install.TranspilerInstaller.all_dialects", return_value=[source_dialect]),
-
     ):
         cli.transpile(
             mock_workspace_client,
