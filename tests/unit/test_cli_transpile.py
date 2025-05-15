@@ -17,6 +17,7 @@ from tests.unit.conftest import path_to_resource
 TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
 RCT_CONFIG_PATH = str(TRANSPILERS_PATH / "rct" / "lib" / "config.yml")
 
+assert os.path.exists(RCT_CONFIG_PATH), f"RCT_CONFIG_PATH is not valid: {RCT_CONFIG_PATH}"
 
 def test_transpile_with_missing_installation():
     with (
