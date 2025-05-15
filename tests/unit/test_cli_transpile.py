@@ -1,31 +1,34 @@
-import asyncio
+import dataclasses
+import os.path
 
-from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
+from unittest.mock import create_autospec, patch, ANY, MagicMock
 from pathlib import Path
 
 import pytest
 
+from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli, resources
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from tests.unit.conftest import path_to_resource
 
-SQLGLOT = str(Path(resources.__file__).parent / "transpilers" / "rct" / "lib" / "config.yml")
+TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
+RCT_CONFIG_PATH = str(TRANSPILERS_PATH / "rct" / "lib" / "config.yml")
 
 
 def test_transpile_with_missing_installation():
-    workspace_client = create_autospec(WorkspaceClient)
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         pytest.raises(SystemExit),
     ):
+        workspace_client = create_autospec(WorkspaceClient)
         mock_app_context.return_value.workspace_client = workspace_client
         mock_app_context.return_value.transpile_config = None
         cli.transpile(
             workspace_client,
-            SQLGLOT,
+            RCT_CONFIG_PATH,
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -36,26 +39,30 @@ def test_transpile_with_missing_installation():
         )
 
 
-def patch_do_transpile():
+@pytest.fixture
+def mock_cli_for_transpile(mock_workspace_client):
     mock_transpile = MagicMock(return_value=({}, []))
 
-    @asyncio.coroutine
-    def patched_do_transpile(*args, **kwargs):
+    async def do_transpile(*args, **kwargs):
         return mock_transpile(*args, **kwargs)
 
-    return mock_transpile, patched_do_transpile
-
-
-def test_transpile_with_no_sdk_config():
-    workspace_client = create_autospec(WorkspaceClient)
-    mock_transpile, patched_do_transpile = patch_do_transpile()
+    prompts = MockPrompts(
+        {
+            "Do you want to use the experimental.*": "no",
+            "Enter output directory": "/path/to/output/folder",
+            "Select the source dialect.*": "8",  # snowflake
+            "Select the transpiler.*": "1",  # RCT
+        }
+    )
+    mock_app_context = create_autospec(ApplicationContext)
     with (
-        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
-        patch("os.path.exists", return_value=True),
+        patch("os.path.exists", side_effect=lambda path: path != "invalid_path"),
+        patch("databricks.labs.remorph.install.TranspilerInstaller.transpilers_path", return_value=TRANSPILERS_PATH),
+        patch("databricks.labs.remorph.cli.do_transpile", new=do_transpile),
+        patch("databricks.labs.remorph.cli.ApplicationContext", mock_app_context),
     ):
         default_config = TranspileConfig(
-            transpiler_config_path=SQLGLOT,
+            transpiler_config_path=RCT_CONFIG_PATH,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -65,47 +72,53 @@ def test_transpile_with_no_sdk_config():
             catalog_name="my_catalog",
             schema_name="my_schema",
         )
-        mock_app_context.return_value.transpile_config = default_config
-        mock_app_context.return_value.workspace_client = workspace_client
-        cli.transpile(
-            workspace_client,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-        mock_transpile.assert_called_once_with(
-            workspace_client,
-            ANY,
-            TranspileConfig(
-                transpiler_config_path=SQLGLOT,
-                source_dialect="snowflake",
-                input_source="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
-                error_file_path="/path/to/errors.log",
-                sdk_config=None,
-                skip_validation=True,
-                catalog_name="my_catalog",
-                schema_name="my_schema",
-            ),
-        )
+        mock_app_context.return_value.workspace_client = mock_workspace_client
+        mock_app_context.return_value.prompts = prompts
+
+        def set_default_config(config: TranspileConfig):
+            mock_app_context.return_value.transpile_config = config
+
+        set_default_config(default_config)
+        yield mock_workspace_client, default_config, set_default_config, mock_transpile
+        set_default_config(default_config)
 
 
-def test_transpile_with_warehouse_id_in_sdk_config():
-    workspace_client = create_autospec(WorkspaceClient)
-    mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (
-        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
-    ):
-        sdk_config = {"warehouse_id": "w_id"}
-        default_config = TranspileConfig(
-            transpiler_config_path=SQLGLOT,
+def test_transpile_with_no_sdk_config(mock_cli_for_transpile):
+    ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
+    set_cfg(dataclasses.replace(cfg, sdk_config=None))
+    cli.transpile(
+        ws,
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            error_file_path="/path/to/errors.log",
+            sdk_config=None,
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            transpiler_options={'-experimental': False},
+        ),
+    )
+
+
+def test_transpile_with_warehouse_id_in_sdk_config(mock_cli_for_transpile):
+    ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
+    sdk_config = {"warehouse_id": "w_id"}
+    set_cfg(dataclasses.replace(cfg, sdk_config=sdk_config))
+    cli.transpile(
+        ws,
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -114,48 +127,23 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-        )
-        mock_app_context.return_value.workspace_client = workspace_client
-        mock_app_context.return_value.transpile_config = default_config
-        cli.transpile(
-            workspace_client,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-        mock_transpile.assert_called_once_with(
-            workspace_client,
-            ANY,
-            TranspileConfig(
-                transpiler_config_path=SQLGLOT,
-                source_dialect="snowflake",
-                input_source="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
-                error_file_path="/path/to/errors.log",
-                sdk_config=sdk_config,
-                skip_validation=True,
-                catalog_name="my_catalog",
-                schema_name="my_schema",
-            ),
-        )
+            transpiler_options={'-experimental': False},
+        ),
+    )
 
 
-def test_transpile_with_cluster_id_in_sdk_config():
-    workspace_client = create_autospec(WorkspaceClient)
-    mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (
-        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
-    ):
-        sdk_config = {"cluster_id": "c_id"}
-        default_config = TranspileConfig(
-            transpiler_config_path=SQLGLOT,
+def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile):
+    ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
+    sdk_config = {"cluster_id": "c_id"}
+    set_cfg(dataclasses.replace(cfg, sdk_config=sdk_config))
+    cli.transpile(
+        ws,
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -164,270 +152,189 @@ def test_transpile_with_cluster_id_in_sdk_config():
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-        )
-        mock_app_context.return_value.workspace_client = workspace_client
-        mock_app_context.return_value.transpile_config = default_config
+            transpiler_options={'-experimental': False},
+        ),
+    )
+
+
+def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
+    cli.transpile(
+        ws,
+        transpiler_config_path="invalid_path",
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            error_file_path="/path/to/errors.log",
+            sdk_config=None,
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            transpiler_options={'-experimental': False},
+        ),
+    )
+
+
+def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
+    cli.transpile(
+        ws,
+        source_dialect="invalid_dialect",
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
+            source_dialect="snowflake",
+            input_source="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            error_file_path="/path/to/errors.log",
+            sdk_config=None,
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            transpiler_options={'-experimental': False},
+        ),
+    )
+
+
+def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
+    with (pytest.raises(Exception, match="Invalid value for '--skip-validation'"),):
         cli.transpile(
-            workspace_client,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-        mock_transpile.assert_called_once_with(
-            workspace_client,
-            ANY,
-            TranspileConfig(
-                transpiler_config_path=SQLGLOT,
-                source_dialect="snowflake",
-                input_source="/path/to/sql/file.sql",
-                output_folder="/path/to/output",
-                error_file_path="/path/to/errors.log",
-                sdk_config=sdk_config,
-                skip_validation=True,
-                catalog_name="my_catalog",
-                schema_name="my_schema",
-            ),
+            ws,
+            skip_validation="invalid_value",
         )
 
 
-def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Invalid value for '--transpiler-config-path'"):
+def test_transpile_with_invalid_input_source(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
+    with (pytest.raises(Exception, match="Invalid value for '--input-source'"),):
         cli.transpile(
-            mock_workspace_client_cli,
-            "sqlglot2",
-            "invalid_dialect",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
+            ws,
+            input_source="invalid_path",
         )
 
 
-def test_transpile_with_invalid_sqlglot_dialect(mock_workspace_client_cli):
-    with pytest.raises(Exception, match="Invalid value for '--source-dialect'"):
+def test_transpile_with_valid_inputs(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
+    transpiler = RCT_CONFIG_PATH
+    source_dialect = "oracle"
+    input_source = "/other/path/to/sql/file.sql"
+    output_folder = "/other/path/to/output"
+    error_file = "/other/path/to/errors.log"
+    skip_validation = "false"
+    catalog_name = "other_catalog"
+    schema_name = "other_schema"
+    cli.transpile(
+        ws,
+        transpiler,
+        source_dialect,
+        input_source,
+        output_folder,
+        error_file,
+        skip_validation,
+        catalog_name,
+        schema_name,
+    )
+    do_transpile.assert_called_once_with(
+        ws,
+        ANY,
+        TranspileConfig(
+            transpiler_config_path=RCT_CONFIG_PATH,
+            source_dialect=source_dialect,
+            input_source=input_source,
+            output_folder=output_folder,
+            error_file_path=error_file,
+            sdk_config=None,
+            skip_validation=False,
+            catalog_name=catalog_name,
+            schema_name=schema_name,
+            transpiler_options={"-experimental": False},
+        ),
+    )
+
+
+def test_transpile_with_real_inputs(mock_cli_for_transpile):
+    ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
+    with patch("os.path.exists", os.path.exists):
+        transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+        source_dialect = "snowflake"
+        input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
+        output_folder = path_to_resource("lsp_transpiler")
+        error_file_path = path_to_resource("lsp_transpiler", "error.log")
+        skip_validation = "true"
+        catalog_name = "my_catalog"
+        schema_name = "my_schema"
         cli.transpile(
-            mock_workspace_client_cli,
-            SQLGLOT,
-            "invalid_dialect",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
+            ws,
+            transpiler_config_path=transpiler_config_path,
+            source_dialect=source_dialect,
+            input_source=input_source,
+            output_folder=output_folder,
+            error_file_path=error_file_path,
+            skip_validation=skip_validation,
+            catalog_name=catalog_name,
+            schema_name=schema_name,
         )
-
-
-def test_transpile_with_invalid_transpiler_dialect(mock_workspace_client_cli):
-    engine = create_autospec(TranspileEngine)
-    type(engine).supported_dialects = PropertyMock(return_value=["oracle"])
-    engine.check_source_dialect = lambda dialect: TranspileEngine.check_source_dialect(engine, dialect)
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.transpiler.transpile_engine.TranspileEngine.load_engine", return_value=engine),
-        pytest.raises(Exception, match="Invalid value for '--source-dialect'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-
-
-def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Invalid value for '--skip-validation'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "invalid_value",
-            "my_catalog",
-            "my_schema",
-        )
-
-
-def test_transpile_with_invalid_input_source(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=False),
-        pytest.raises(Exception, match="Invalid value for '--input-source'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            SQLGLOT,
-            "snowflake",
-            "/path/to/invalid/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
-        )
-
-
-def test_transpile_with_valid_input(mock_workspace_client_cli):
-    transpiler = SQLGLOT
-    source_dialect = "snowflake"
-    input_source = "/path/to/sql/file.sql"
-    output_folder = "/path/to/output"
-    error_file = "/path/to/errors.log"
-    skip_validation = "true"
-    catalog_name = "my_catalog"
-    schema_name = "my_schema"
-    sdk_config = {'cluster_id': 'test_cluster'}
-
-    mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            transpiler,
-            source_dialect,
-            input_source,
-            output_folder,
-            error_file,
-            skip_validation,
-            catalog_name,
-            schema_name,
-        )
-        mock_transpile.assert_called_once_with(
-            mock_workspace_client_cli,
-            ANY,
-            TranspileConfig(
-                transpiler_config_path=SQLGLOT,
-                source_dialect=source_dialect,
-                input_source=input_source,
-                output_folder=output_folder,
-                error_file_path=error_file,
-                sdk_config=sdk_config,
-                skip_validation=True,
-                catalog_name=catalog_name,
-                schema_name=schema_name,
-            ),
-        )
-
-
-def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
-    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
-    source_dialect = "snowflake"
-    input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
-    output_folder = path_to_resource("lsp_transpiler")
-    skip_validation = "true"
-    catalog_name = "my_catalog"
-    schema_name = "my_schema"
-    sdk_config = {'cluster_id': 'test_cluster'}
-
-    mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),):
-        cli.transpile(
-            mock_workspace_client_cli,
-            transpiler_config_path,
-            source_dialect,
-            input_source,
-            output_folder,
-            None,
-            skip_validation,
-            catalog_name,
-            schema_name,
-        )
-        mock_transpile.assert_called_once_with(
-            mock_workspace_client_cli,
+        do_transpile.assert_called_once_with(
+            ws,
             ANY,
             TranspileConfig(
                 transpiler_config_path=transpiler_config_path,
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
-                sdk_config=sdk_config,
+                error_file_path=error_file_path,
+                sdk_config=None,
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
+                transpiler_options={"-experimental": False},
             ),
         )
 
 
-def test_transpile_empty_output_folder(mock_workspace_client_cli):
-    transpiler = SQLGLOT
-    source_dialect = "snowflake"
-    input_source = "/path/to/sql/file2.sql"
-    skip_validation = "false"
-    catalog_name = "my_catalog"
-    schema_name = "my_schema"
-
-    sdk_config = {'cluster_id': 'test_cluster'}
-
-    mock_transpile, patched_do_transpile = patch_do_transpile()
-    with (
-        patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            transpiler,
-            source_dialect,
-            input_source,
-            None,
-            None,
-            skip_validation,
-            catalog_name,
-            schema_name,
-        )
-        mock_transpile.assert_called_once_with(
-            mock_workspace_client_cli,
-            ANY,
-            TranspileConfig(
-                transpiler_config_path=transpiler,
-                source_dialect=source_dialect,
-                input_source=input_source,
-                sdk_config=sdk_config,
-                skip_validation=False,
-                catalog_name=catalog_name,
-                schema_name=schema_name,
-            ),
-        )
+def test_transpile_with_no_output_folder(mock_cli_for_transpile):
+    ws, cfg, set_cfg, _do_transpile = mock_cli_for_transpile
+    set_cfg(dataclasses.replace(cfg, output_folder=None))
+    cli.transpile(ws)
 
 
-def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client_cli):
+def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
     output_folder = str(tmp_path)
-    error_file = None
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-
-    with caplog.at_level("ERROR"):
+    prompts = MockPrompts(
+        {
+            "Do you want to use the experimental.*": "no",
+            "Enter error file path.*": "errors.log",
+        }
+    )
+    with (
+        caplog.at_level("ERROR"),
+        patch("databricks.labs.remorph.contexts.application.ApplicationContext.prompts", new_callable=lambda: prompts),
+    ):
         cli.transpile(
-            mock_workspace_client_cli,
-            transpiler_config_path,
-            source_dialect,
-            input_source,
-            output_folder,
-            error_file,
-            skip_validation,
-            catalog_name,
-            schema_name,
+            mock_workspace_client,
+            transpiler_config_path=transpiler_config_path,
+            source_dialect=source_dialect,
+            input_source=input_source,
+            output_folder=output_folder,
+            skip_validation=skip_validation,
+            catalog_name=catalog_name,
+            schema_name=schema_name,
         )
 
     assert any("TranspileError" in record.message for record in caplog.records)

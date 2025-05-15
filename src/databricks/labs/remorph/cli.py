@@ -92,14 +92,14 @@ def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    transpiler_config_path: str,
-    source_dialect: str,
-    input_source: str,
-    output_folder: str | None,
-    error_file_path: str | None,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+    transpiler_config_path: str | None = None,
+    source_dialect: str | None = None,
+    input_source: str | None = None,
+    output_folder: str | None = None,
+    error_file_path: str | None = None,
+    skip_validation: str | None = None,
+    catalog_name: str | None = None,
+    schema_name: str | None = None,
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
@@ -145,8 +145,11 @@ class _TranspileConfigChecker:
             source_dialect = None
         if not source_dialect:
             source_dialect = self._config.source_dialect
+        all_dialects = sorted(TranspilerInstaller.all_dialects())
+        if source_dialect and source_dialect not in all_dialects:
+            logger.error(f"'{source_dialect}' is not a supported dialect. Selecting a supported one...")
+            source_dialect = None
         if not source_dialect:
-            all_dialects = sorted(TranspilerInstaller.all_dialects())
             source_dialect = self._prompts.choice("Select the source dialect:", all_dialects)
         if not source_dialect:
             raise_validation_exception("Missing '--source-dialect'")
@@ -154,15 +157,22 @@ class _TranspileConfigChecker:
         self._config = dataclasses.replace(self._config, source_dialect=source_dialect)
 
     def check_transpiler_config_path(self, transpiler_config_path: str | None):
-        transpiler_names = TranspilerInstaller.transpilers_with_dialect(cast(str, self._config.source_dialect))
-        valid_paths = set(TranspilerInstaller.transpiler_config_path(name) for name in transpiler_names)
         if transpiler_config_path == "None":
             transpiler_config_path = None
         if not transpiler_config_path:
             transpiler_config_path = self._config.transpiler_config_path
-        if transpiler_config_path not in valid_paths:
-            if transpiler_config_path:
-                logger.error(f"The configured transpiler does not support dialect '{self._config.source_dialect}.")
+        # we allow pointing to a loose transpiler config (i.e. not installed under .databricks)
+        if transpiler_config_path:
+            if not os.path.exists(transpiler_config_path):
+                logger.error(f"The transpiler configuration does not exist '{transpiler_config_path}'.")
+                transpiler_config_path = None
+        if transpiler_config_path:
+            config = LSPConfig.load(Path(transpiler_config_path))
+            if self._config.source_dialect not in config.remorph.dialects:
+                logger.error(f"The configured transpiler does not support dialect '{self._config.source_dialect}'.")
+                transpiler_config_path = None
+        if not transpiler_config_path:
+            transpiler_names = TranspilerInstaller.transpilers_with_dialect(cast(str, self._config.source_dialect))
             if len(transpiler_names) > 1:
                 transpiler_name = self._prompts.choice("Select the transpiler:", list(transpiler_names))
             else:
@@ -236,7 +246,7 @@ class _TranspileConfigChecker:
         self._config = dataclasses.replace(self._config, skip_validation=skip_validation)
 
     def check_catalog_name(self, catalog_name: str | None):
-        if not self._config.skip_validation:
+        if self._config.skip_validation:
             return
         if catalog_name == "None":
             catalog_name = None
@@ -250,7 +260,7 @@ class _TranspileConfigChecker:
         self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
 
     def check_schema_name(self, schema_name: str | None):
-        if not self._config.skip_validation:
+        if self._config.skip_validation:
             return
         if schema_name == "None":
             schema_name = None
