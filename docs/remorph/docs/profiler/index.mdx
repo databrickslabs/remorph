@@ -2,14 +2,12 @@
 sidebar_position: 1
 ---
 
-# Installing the Profiler Scheduler
+## What is the Remorph Profiler?
 
-## What is the profiler scheduler?
-
-- The profiler scheduler collects usage and performance metrics from a source warehouse
+- The profiler collects usage and performance metrics from a source warehouse
 - It leverages built-in scheduling components of the host operating system to execute usage collection queries
 
-## Why is profiler scheduler needed?
+## Why is the profiler usage collection needed?
 
 - Some data warehouses do not preserve query history for longer than a few days or are limited to only a few rows. As an example, Amazon Redshift only preserves usage history for around 2-5 days
 - Having adequate usage history is critical in providing an _accurate_ Total Cost of Ownership (TCO) estimate
@@ -17,20 +15,16 @@ sidebar_position: 1
 
 ## Supported operating systems
 
-The usage collection scheduler can be installed on the following operating systems:
+The profiler usage collection can be installed on the following operating systems:
 
 1. MacOS
 2. Linux
-3. Windows
+3. [Windows](./windows/windows_installation.mdx)
 
-## Local vs. Remote Deployments
+## How often does the profiler run?
 
-The usage collection scheduler can be executed in the following deployments:
-
-1. **Local scheduler** - Scheduler is installed on a local laptop or workstation, provided that the local system can connect to a bastion host and forward connectivity to the data warehouse
-2. **Remote scheduler** - Scheduler is installed directly on a bastion host in a separate subnet or a compute instance deployed within the data warehouse's subnet
-
+The profiler system task is scheduled to run every 15 minutes. When running, the system task checks the local state to see if usage collection has been run for the day and if there are any gaps in the usage history that should be reconciled.
 
 ## Automatic restart
 
-The usage collection scheduler utilizes the host operating system to run as a background process. As a result, the process will automatically resume processing after a system restart; no intervention is needed during a host system restart. The scheduler will automatically detect usage history gaps and proactively backfill when possible.
+The profiler usage collection service utilizes the host operating system to run as a background process. As a result, the process will automatically resume processing after a system restart; no intervention is needed during a host system restart. The profiler will automatically detect usage history gaps and proactively backfill when possible.
