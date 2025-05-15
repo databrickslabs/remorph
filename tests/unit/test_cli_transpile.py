@@ -313,12 +313,8 @@ def test_transpile_with_no_output_folder(mock_cli_for_transpile):
 
 def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
-    assert os.path.exists(transpiler_config_path), f"Invalid lsp config {transpiler_config_path}"
-    config = LSPConfig.load(Path(transpiler_config_path))
     source_dialect = "snowflake"
-    assert source_dialect in config.remorph.dialects, f"Unsupported dialect {source_dialect}, {config.remorph.dialects}"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
-    assert os.path.exists(input_source), f"Invalid input source {input_source}"
     output_folder = str(tmp_path)
     skip_validation = "true"
     catalog_name = "my_catalog"
@@ -332,6 +328,8 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     with (
         caplog.at_level("ERROR"),
         patch("databricks.labs.remorph.contexts.application.ApplicationContext.prompts", new_callable=lambda: prompts),
+        patch("databricks.labs.remorph.install.TranspilerInstaller.all_dialects", return_value=[source_dialect]),
+
     ):
         cli.transpile(
             mock_workspace_client,
