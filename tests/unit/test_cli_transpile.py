@@ -311,8 +311,10 @@ def test_transpile_with_no_output_folder(mock_cli_for_transpile):
 
 def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    assert os.path.exists(transpiler_config_path), f"Invalid lsp config {transpiler_config_path}"
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
+    assert os.path.exists(transpiler_config_path), f"Invalid input source {input_source}"
     output_folder = str(tmp_path)
     skip_validation = "true"
     catalog_name = "my_catalog"
