@@ -236,7 +236,7 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
     """
 
     # Using reflection to set right value for _product_info for telemetry
-    product_info = getattr(workspace_client.config, '_product_info')
+    product_info = getattr(workspace_client.config, '_product_info', (None, None))
     if product_info[0] != "remorph":
         setattr(workspace_client.config, '_product_info', ('remorph', __version__))
 
