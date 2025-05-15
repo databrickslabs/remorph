@@ -38,7 +38,9 @@ class PollingStatus:
 
 
 class PipelineScheduler:
-    """A profiler that executes Pipeline steps according to predefined schedules."""
+    """
+    Executes a Pipeline's steps according to predefined Step schedules.
+    """
 
     def __init__(self, pipelines: list[PipelineClass], polling_interval_secs: int = 5):
 
@@ -59,11 +61,11 @@ class PipelineScheduler:
                 pipeline_name TEXT,
                 last_run TIMESTAMPTZ,
                 status TEXT,
-                (pipeline_name, step_name) PRIMARY KEY
+                PRIMARY KEY (pipeline_name, step_name)
             )
         """
         )
-        logging.info("DuckDB state table is ready to go!")
+        logging.info("DuckDB state table is initialized.")
 
     def _get_last_run_time(self, pipeline_name: str, step_name: str) -> tuple[datetime | None, str | None]:
         """Fetches the last execution time of a pipeline step from the database."""
@@ -85,9 +87,10 @@ class PipelineScheduler:
             query="""
             INSERT INTO pipeline_step_state (step_name, pipeline_name, last_run, status)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(step_name)
-                DO UPDATE
-                SET pipeline_name = excluded.pipeline_name, last_run = excluded.last_run, status = excluded.status
+            ON CONFLICT(pipeline_name, step_name)
+                DO UPDATE SET
+                last_run = EXCLUDED.last_run,
+                status = EXCLUDED.status
         """,
             parameters=[full_step_name, pipeline_name, now, status],
         )
@@ -127,7 +130,10 @@ class PipelineScheduler:
         return status
 
     def run(self, num_polling_cycles: int = 1) -> list[PollingStatus]:
-        """Create a poller that loops over the pipeline steps"""
+        """
+        Loops over a pipeline's steps and checks if step has been executed
+        according to its scheduled frequency.
+        """
         logging.info("PipelineScheduler has started...")
         cycle_counter = 0
         polling_status = []

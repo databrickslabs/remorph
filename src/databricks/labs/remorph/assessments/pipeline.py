@@ -45,6 +45,7 @@ class PipelineClass:
             self._execute_python_step(step)
         else:
             logging.error(f"Unsupported step type: {step.type}")
+        return StepExecutionStatus.COMPLETE
 
     def _execute_sql_step(self, step: Step):
         logging.debug(f"Reading query from file: {step.extract_source}")
