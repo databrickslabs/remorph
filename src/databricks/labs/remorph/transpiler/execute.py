@@ -76,7 +76,6 @@ async def _process_one_file(
                 error_list.append(error)
         else:
             w.write(transpile_result.transpiled_code)
-            w.write("\n;\n")
 
     logger.info(f"Processed file: {input_path} (errors: {len(error_list)})")
     return transpile_result.success_count, error_list
@@ -213,7 +212,7 @@ async def _do_transpile(
         "generation_error_count": result.generation_error_count,
         "error_log_file": str(error_log_path),
     }
-
+    logger.debug(f"Transpiler Status: {status}")
     return status, result.error_list
 
 

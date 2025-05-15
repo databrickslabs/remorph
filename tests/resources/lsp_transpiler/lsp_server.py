@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from collections.abc import Sequence
@@ -6,29 +7,25 @@ from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
-
 from lsprotocol import types as types_module
 from lsprotocol.types import (
-    InitializeParams,
     INITIALIZE,
-    RegistrationParams,
-    Registration,
-    TextEdit,
-    Diagnostic,
-    TEXT_DOCUMENT_DID_OPEN,
-    DidOpenTextDocumentParams,
-    TEXT_DOCUMENT_DID_CLOSE,
-    DidCloseTextDocumentParams,
-    Range,
-    Position,
     METHOD_TO_TYPES,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    Diagnostic,
     DiagnosticSeverity,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    InitializeParams,
     LanguageKind,
+    Position,
+    Range,
+    Registration,
+    RegistrationParams,
+    TextEdit,
 )
 from pygls.lsp.server import LanguageServer
-
-import logging
-
 
 logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.DEBUG)
 
@@ -116,6 +113,11 @@ class TestLspServer(LanguageServer):
 
     async def did_initialize(self, init_params: InitializeParams) -> None:
         self.initialization_options = init_params.initialization_options or {}
+        client_info = init_params.client_info
+        if client_info:
+            logger.debug(f"client-info={client_info.name}/{client_info.version}")
+        if init_params.process_id:
+            logger.debug(f"client-process-id={init_params.process_id}")
         logger.debug(f"dialect={self.dialect}")
         logger.debug(f"whatever={self.whatever}")
         logger.debug(f"experimental={self.experimental}")
@@ -196,6 +198,11 @@ def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumen
 
 
 if __name__ == "__main__":
+    # added for testing logging of stderr output
+    sys.stderr.write("Running LSP Test Server\u2026\n")
+    sys.stderr.flush()
+    sys.stderr.buffer.write(b"Some bytes that are invalid UTF-8: [\xc0\xc0]\n")
+    sys.stderr.buffer.flush()
     logger.debug(f"SOME_ENV={os.getenv('SOME_ENV')}")
     logger.debug(f"sys.args={sys.argv}")
     server.start_io()
