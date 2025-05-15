@@ -30,7 +30,7 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
     LSPConfigOptionV1,
-    LSPPromptMethod,
+    JsonType,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
@@ -185,7 +185,7 @@ class TranspilerInstaller(abc.ABC):
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
             return []  # gracefully returns an empty list, since this can only happen during testing
-        return config.options.get(source_dialect, config.options.get("all", []))
+        return config.options_for_dialect(source_dialect)
 
     @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
@@ -411,7 +411,7 @@ class WorkspaceInstaller:
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options = None
+        transpiler_options: dict[str, JsonType] | None = None
         if transpiler_config_path:
             transpiler_options = self._prompt_for_transpiler_options(
                 cast(str, transpiler_name), cast(str, source_dialect)
@@ -441,18 +441,7 @@ class WorkspaceInstaller:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
         if len(config_options) == 0:
             return None
-        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
-
-    def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
-        if config_option.method == LSPPromptMethod.FORCE:
-            return config_option.default
-        if config_option.method == LSPPromptMethod.CONFIRM:
-            return self._prompts.confirm(config_option.prompt)
-        if config_option.method == LSPPromptMethod.QUESTION:
-            return self._prompts.question(config_option.prompt, default=config_option.default)
-        if config_option.method == LSPPromptMethod.CHOICE:
-            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
-        raise ValueError(f"Unsupported prompt method: {config_option.method}")
+        return {option.flag: option.prompt_for_value(self._prompts) for option in config_options}
 
     def _configure_catalog(
         self,

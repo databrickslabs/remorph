@@ -82,6 +82,9 @@ class LSPConfig:
     def name(self):
         return self.remorph.name
 
+    def options_for_dialect(self, source_dialect: str) -> list[LSPConfigOptionV1]:
+        return self.options.get("all", []) + self.options.get(source_dialect, [])
+
     @classmethod
     def load(cls, path: Path) -> LSPConfig:
         yaml_text = path.read_text()
