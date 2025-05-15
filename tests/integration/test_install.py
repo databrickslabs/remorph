@@ -1,7 +1,7 @@
 import os
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
-from tempfile import TemporaryFile, TemporaryDirectory
 
 import pytest
 
@@ -19,8 +19,8 @@ def test_gets_maven_version():
     check_valid_version(version)
 
 
-def test_downloads_from_maven():
-    path = Path(str(TemporaryFile()))
+def test_downloads_from_maven(tmp_path: Path) -> None:
+    path = tmp_path / "test-download.pom"
     result = TranspilerInstaller.download_from_maven(
         "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
     )
@@ -30,19 +30,16 @@ def test_downloads_from_maven():
 
 
 @pytest.fixture()
-def mock_transpiler_folder():
-    with TemporaryDirectory() as tmpdir:
-        folder = Path(tmpdir)
-        folder.mkdir(exist_ok=True)
-        for transpiler in ("rct", "morpheus"):
-            target = folder / transpiler
-            target.mkdir(exist_ok=True)
-            target = target / "lib"
-            target.mkdir(exist_ok=True)
-            target = target / "config.yml"
-            source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
-            shutil.copyfile(str(source), str(target))
-        yield folder
+def mock_transpiler_folder(tmp_path: Path) -> Iterable[Path]:
+    for transpiler in ("rct", "morpheus"):
+        target = tmp_path / transpiler
+        target.mkdir()
+        target = target / "lib"
+        target.mkdir()
+        target = target / "config.yml"
+        source = TranspilerInstaller.resources_folder() / transpiler / "lib" / "config.yml"
+        shutil.copyfile(source, target)
+    yield tmp_path
 
 
 def test_lists_all_transpiler_names(mock_transpiler_folder):

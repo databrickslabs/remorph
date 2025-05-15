@@ -9,6 +9,7 @@ class Step:
     mode: str | None
     frequency: str | None
     flag: str | None
+    comment: str | None = None
 
     def __post_init__(self):
         if self.frequency is None:
@@ -24,4 +25,5 @@ class PipelineConfig:
     name: str
     version: str
     extract_folder: str
+    comment: str | None = None
     steps: list[Step] = field(default_factory=list)
