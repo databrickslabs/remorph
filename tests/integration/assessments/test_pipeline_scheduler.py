@@ -7,7 +7,7 @@ from ..connections.helpers import get_db_manager
 
 
 @pytest.fixture()
-def extractor():
+def extractor(mock_credentials):
     return get_db_manager("remorph", "mssql")
 
 
