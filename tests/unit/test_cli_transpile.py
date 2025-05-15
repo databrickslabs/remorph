@@ -12,12 +12,14 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
 from tests.unit.conftest import path_to_resource
 
 TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
 RCT_CONFIG_PATH = str(TRANSPILERS_PATH / "rct" / "lib" / "config.yml")
 
 assert os.path.exists(RCT_CONFIG_PATH), f"RCT_CONFIG_PATH is not valid: {RCT_CONFIG_PATH}"
+
 
 def test_transpile_with_missing_installation():
     with (
@@ -312,9 +314,11 @@ def test_transpile_with_no_output_folder(mock_cli_for_transpile):
 def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     assert os.path.exists(transpiler_config_path), f"Invalid lsp config {transpiler_config_path}"
+    config = LSPConfig.load(Path(transpiler_config_path))
     source_dialect = "snowflake"
+    assert source_dialect in config.remorph.dialects, f"Unsupported dialect {source_dialect}, {config.remorph.dialects}"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
-    assert os.path.exists(transpiler_config_path), f"Invalid input source {input_source}"
+    assert os.path.exists(input_source), f"Invalid input source {input_source}"
     output_folder = str(tmp_path)
     skip_validation = "true"
     catalog_name = "my_catalog"
