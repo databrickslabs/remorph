@@ -7,7 +7,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.labs.remorph.contexts.application import ApplicationContext
 
 
-def test_analyze_with_missing_installation():
+def test_analyze():
     prompts = MockPrompts(
         {
             r"Enter path to output.*": "/tmp/analyzer/databricks",
