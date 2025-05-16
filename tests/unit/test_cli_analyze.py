@@ -12,7 +12,7 @@ def test_analyze_with_missing_installation():
         {
             r"Enter path to output.*": "/tmp/analyzer/databricks",
             r"Enter path to input.*": "/tmp/analyzer/snowflake",
-            r"Select the source technology": "1",
+            r"Select the source technology": "3",
         }
     )
     with patch.object(ApplicationContext, "prompts", prompts):

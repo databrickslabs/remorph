@@ -21,6 +21,7 @@ from databricks.labs.remorph.connections.credential_manager import create_creden
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
 from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
@@ -257,7 +258,7 @@ def analyze(w: WorkspaceClient):
     output_file = prompts.question("Enter path to output results file (with .xlsx extension)")
     input_folder = prompts.question("Enter path to input sources folder")
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
-    with_user_agent_extra("analyzer_source_tech", source_tech)
+    with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
     Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
 
 
