@@ -100,16 +100,20 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     header = f"/*\n    Transpiled from {file_path}\n"
     failed_producing_output = False
     if errors:
-        header += "\n    Following errors were found while transpiling:\n"
+        header += "\n    The following errors were found while transpiling:\n"
         for diag in errors:
             if diag.range:
-                header += f"      - [{diag.range.start.line + 1}:{diag.range.start.character + 1}] {diag.message}\n"
+                line = diag.range.start.line + 1
+                column = (
+                    diag.range.start.character + 1 + 2
+                )  # + 1 to make it one-based, + 2 to take indentation into account
+                header += f"      - [{line}:{column}] {diag.message}\n"
             else:
                 header += f"      - {diag.message}\n"
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
 
     if failed_producing_output:
-        header += "\n\n    Parsing errors prevented the converter to translate the input query.\n"
+        header += "\n\n    Parsing errors prevented the converter from translating the input query.\n"
         header += "    We reproduce the input query unchanged below.\n\n"
 
     return header + "*/\n"
