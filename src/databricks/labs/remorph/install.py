@@ -505,7 +505,7 @@ class WorkspaceInstaller:
                 "This software requires Java 11 or above. Please install Java and re-run 'install-transpile'."
             )
             return
-        product_name = "morpheus-lsp"
+        product_name = "databricks-morph-plugin"
         group_id = "com.databricks.labs"
         artifact_id = product_name
         TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
