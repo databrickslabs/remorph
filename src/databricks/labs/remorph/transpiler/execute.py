@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import math
 from pathlib import Path
 from typing import cast, Any
 
@@ -64,10 +65,9 @@ async def _process_one_file(
     if error_list:
         with_line_numbers = ""
         lines = output_code.split("\n")
-        line_number = 1
-        for line in lines:
-            with_line_numbers += f"/* {line_number:4d} */  {line}\n"
-            line_number += 1
+        line_number_width = math.floor(math.log(len(lines), 10)) + 1
+        for line_number, line in enumerate(lines, start=1):
+            with_line_numbers += f"/* {line_number:{line_number_width}d} */  {line}\n"
         output_code = with_line_numbers
 
     if validator and not error_list:
