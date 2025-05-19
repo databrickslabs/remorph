@@ -230,7 +230,7 @@ class RCTInstaller(TranspilerInstaller):
 
 
 class MorpheusInstaller(TranspilerInstaller):
-    MORPHEUS_TRANSPILER_NAME = "morpheus"
+    MORPHEUS_TRANSPILER_NAME = "databricks-morph-plugin"
     MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
 
     @classmethod
