@@ -143,10 +143,11 @@ class PypiInstaller(TranspilerInstaller):
     def get_pypi_artifact_version(cls, product_name: str) -> str | None:
         try:
             with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-                text = server.read()
+                text: bytes = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("info", {}).get('version', None)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching PyPI metadata: {product_name}", exc_info=e)
             return None
 
     @classmethod
@@ -175,6 +176,8 @@ class PypiInstaller(TranspilerInstaller):
     def _install_checking_versions(self) -> Path | None:
         latest_version = self.get_pypi_artifact_version(self._pypi_name)
         if latest_version is None:
+            logger.warning(f"Could not determine the latest version of {self._pypi_name}")
+            logger.error(f"Failed to install transpiler: {self._product_name}")
             return None
         self._latest_version: str = latest_version
         self._current_version = self.get_installed_version(self._product_name)
@@ -200,7 +203,7 @@ class PypiInstaller(TranspilerInstaller):
                 rmtree(backup_path)
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.info(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
             rmtree(self._product_path)
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
@@ -309,7 +312,8 @@ class MavenInstaller(TranspilerInstaller):
             with request.urlopen(url) as server:
                 text = server.read()
                 return cls._extract_maven_artifact_version(text)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
             return None
 
     @classmethod
@@ -351,6 +355,8 @@ class MavenInstaller(TranspilerInstaller):
     def _install_checking_versions(self) -> Path | None:
         self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
         if self._latest_version is None:
+            logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
+            logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
             return None
         self._current_version = self.get_installed_version(self._product_name)
         if self._current_version == self._latest_version:
@@ -375,7 +381,7 @@ class MavenInstaller(TranspilerInstaller):
                 rmtree(str(backup_path))
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.info(f"Failed to install {self._product_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._product_name} v{self._latest_version}", exc_info=e)
             rmtree(str(self._product_path))
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
@@ -472,6 +478,7 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
+        logger.debug(f"Initializing workspace installation for module: {module} (config: {config})")
         if module in {"transpile", "all"}:
             self.install_rct()
             self.install_bladerunner()
