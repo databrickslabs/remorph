@@ -1,5 +1,3 @@
-# pylint: disable=invalid-name
-
 import logging
 
 from databricks.labs.blueprint.installation import Installation
