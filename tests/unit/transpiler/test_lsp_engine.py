@@ -5,14 +5,18 @@ import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from time import sleep
-
 import pytest
-from lsprotocol.types import Position, Range, TextEdit
+
+from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import ChangeManager, LSPEngine
-from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity, TranspileError
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
+    LSPEngine,
+    ChangeManager,
+)
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
+
 from tests.unit.conftest import path_to_resource
 
 
