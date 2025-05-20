@@ -9,12 +9,12 @@ from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
-from databricks.labs.remorph.config import TranspileResult
+from databricks.labs.remorph.config import TranspileResult, TranspileConfig
 from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.transpile_status import ParserError, ValidationError, TranspileError
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorKind, ErrorSeverity
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ParsedExpression:
 @dataclass
 class ParserProblem:
     original_sql: str
-    parser_error: ParserError
+    transpile_error: TranspileError
 
 
 class SqlglotEngine(TranspileEngine):
@@ -54,22 +54,33 @@ class SqlglotEngine(TranspileEngine):
                 if transpiled_sql.startswith("--"):
                     raise UnsupportedError("Unsupported SQL")
                 transpiled_sqls.append(transpiled_sql)
-            except ParseError as e:
-                error_msg = format_error_message("Parsing Error", e, parsed_expression.original_sql)
-                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
-            except UnsupportedError as e:
-                error_msg = format_error_message("Unsupported SQL Error", e, parsed_expression.original_sql)
-                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
             except TokenError as e:
                 error_msg = format_error_message("Token Error", e, parsed_expression.original_sql)
-                problem_list.append(ParserProblem(parsed_expression.original_sql, ParserError(file_path, error_msg)))
+                error = TranspileError("TOKEN_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, error))
+            except ParseError as e:
+                error_msg = format_error_message("Parsing Error", e, parsed_expression.original_sql)
+                error = TranspileError("PARSE_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, error))
+            except UnsupportedError as e:
+                error_msg = format_error_message("Unsupported SQL Error", e, parsed_expression.original_sql)
+                error = TranspileError("UNSUPPORTED_SQL", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problem_list.append(ParserProblem(parsed_expression.original_sql, error))
         return transpiled_sqls, problem_list
 
-    def transpile(self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path) -> TranspileResult:
+    async def initialize(self, config: TranspileConfig) -> None:
+        pass
+
+    async def shutdown(self) -> None:
+        pass
+
+    async def transpile(
+        self, source_dialect: str, target_dialect: str, source_code: str, file_path: Path
+    ) -> TranspileResult:
         read_dialect = get_dialect(source_dialect)
         error: TranspileError | None = self._check_supported(read_dialect, source_code, file_path)
         if error:
-            return TranspileResult(str(file_path), 1, [error])
+            return TranspileResult(source_code, 1, [error])
         write_dialect = get_dialect(target_dialect)
         try:
             transpiled_expressions = transpile(
@@ -83,18 +94,24 @@ class SqlglotEngine(TranspileEngine):
                 read_dialect, write_dialect, source_code, file_path
             )
             transpiled_code = "\n".join(transpiled_expressions)
-            return TranspileResult(transpiled_code, 1, [problem.parser_error for problem in problems])
+            return TranspileResult(transpiled_code, 1, [problem.transpile_error for problem in problems])
 
     def parse(
         self, source_dialect: str, source_sql: str, file_path: Path
-    ) -> tuple[list[Expression | None] | None, ParserError | None]:
+    ) -> tuple[list[Expression | None] | None, TranspileError | None]:
         expression = None
         error = None
         try:
             expression = parse(source_sql, read=source_dialect, error_level=ErrorLevel.IMMEDIATE)
-        except (ParseError, TokenError, UnsupportedError) as e:
-            error = ParserError(file_path, str(e))
-
+        except TokenError as e:
+            error_msg = format_error_message("Token Error", e, source_sql)
+            error = TranspileError("TOKEN_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+        except ParseError as e:
+            error_msg = format_error_message("Parsing Error", e, source_sql)
+            error = TranspileError("PARSE_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+        except UnsupportedError as e:
+            error_msg = format_error_message("Unsupported SQL Error", e, source_sql)
+            error = TranspileError("UNSUPPORTED_SQL", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
         return expression, error
 
     def analyse_table_lineage(
@@ -121,8 +138,9 @@ class SqlglotEngine(TranspileEngine):
             tokens = read_dialect.tokenize(sql=source_code)
             return self._safe_parse(read_dialect, tokens, file_path)
         except TokenError as e:
-            error_msg = format_error_message("TOKEN ERROR", e, source_code)
-            return [], [ParserProblem(source_code, ParserError(file_path=file_path, error_msg=error_msg))]
+            error_msg = format_error_message("Token error", e, source_code)
+            error = TranspileError("TOKEN_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+            return [], [ParserProblem(source_code, error)]
 
     def _safe_parse(
         self, read_dialect: Dialect, all_tokens: list[Token], file_path: Path
@@ -137,9 +155,18 @@ class SqlglotEngine(TranspileEngine):
                 expressions = parser.parse(tokens)
                 expression = t.cast(Expression, expressions[0])
                 parsed_expressions.append(ParsedExpression(sql, expression))
-            except (ParseError, TokenError, UnsupportedError) as e:
-                error_msg = format_error_message("PARSING ERROR", e, sql)
-                problems.append(ParserProblem(sql, ParserError(file_path, error_msg)))
+            except TokenError as e:
+                error_msg = format_error_message("Token error", e, sql)
+                error = TranspileError("TOKEN_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problems.append(ParserProblem(sql, error))
+            except ParseError as e:
+                error_msg = format_error_message("Parsing error", e, sql)
+                error = TranspileError("PARSE_ERROR", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problems.append(ParserProblem(sql, error))
+            except UnsupportedError as e:
+                error_msg = format_error_message("Unsupported SQL error", e, sql)
+                error = TranspileError("UNSUPPORTED_SQL", ErrorKind.PARSING, ErrorSeverity.ERROR, file_path, error_msg)
+                problems.append(ParserProblem(sql, error))
             finally:
                 parser.reset()
         return parsed_expressions, problems
@@ -168,5 +195,5 @@ class SqlglotEngine(TranspileEngine):
         table = expression.find(exp.Table, bfs=False)
         return table.name if table else ""
 
-    def _check_supported(self, source_dialect: Dialect, source_code: str, file_path: Path) -> ValidationError | None:
+    def _check_supported(self, source_dialect: Dialect, source_code: str, file_path: Path) -> TranspileError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)

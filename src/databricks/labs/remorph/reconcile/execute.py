@@ -44,17 +44,23 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     generate_final_reconcile_aggregate_output,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    Table,
+    AggregateQueryRules,
+    SamplingOptions,
+    RECONCILE_OPERATION_NAME,
+    AGG_RECONCILE_OPERATION_NAME,
+)
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
-    Schema,
     SchemaReconcileOutput,
-    Table,
     ThresholdOutput,
     ReconcileRecordCount,
     AggregateQueryOutput,
-    AggregateQueryRules,
 )
+from databricks.labs.remorph.reconcile.sampler import SamplerFactory
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
@@ -63,9 +69,6 @@ from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
-
-RECONCILE_OPERATION_NAME = "reconcile"
-AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
@@ -677,10 +680,12 @@ class Reconciliation:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
                     tgt_sampler,
+                    reconcile_output.mismatch_count,
                     reconcile_output.mismatch.mismatch_df,
                     table_conf.join_columns,
                     table_conf.source_name,
                     table_conf.target_name,
+                    table_conf.sampling_options,
                 )
 
             if reconcile_output.missing_in_src_count > 0:
@@ -716,12 +721,28 @@ class Reconciliation:
         self,
         src_sampler,
         tgt_sampler,
+        mismatch_count,
         mismatch,
         key_columns,
         src_table: str,
         tgt_table: str,
+        sampling_options: SamplingOptions,
     ):
-        df = mismatch.limit(_SAMPLE_ROWS).cache()
+
+        tgt_sampling_query = tgt_sampler.build_query_with_alias()
+
+        sampling_model_target = self._target.read_data(
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
+            table=tgt_table,
+            query=tgt_sampling_query,
+            options=None,
+        )
+
+        # Uses pre-calculated `mismatch_count` from `reconcile_output.mismatch_count` to avoid from recomputing `mismatch` for RandomSampler.
+        mismatch_sampler = SamplerFactory.get_sampler(sampling_options)
+        df = mismatch_sampler.sample(mismatch, mismatch_count, key_columns, sampling_model_target).cache()
+
         src_mismatch_sample_query = src_sampler.build_query(df)
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
@@ -815,20 +836,23 @@ class Reconciliation:
         if report_type != "schema":
             source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
             target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
-            source_count = self._source.read_data(
+            source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
                 table=table_conf.source_name,
                 query=source_count_query,
                 options=None,
-            ).collect()[0]["count"]
-            target_count = self._target.read_data(
+            ).first()
+            target_count_row = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
                 query=target_count_query,
                 options=None,
-            ).collect()[0]["count"]
+            ).first()
+
+            source_count = int(source_count_row[0]) if source_count_row is not None else 0
+            target_count = int(target_count_row[0]) if target_count_row is not None else 0
 
             return ReconcileRecordCount(source=int(source_count), target=int(target_count))
         return ReconcileRecordCount()

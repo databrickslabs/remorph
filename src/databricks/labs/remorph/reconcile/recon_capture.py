@@ -9,20 +9,20 @@ from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.remorph.reconcile.recon_config import TableThresholds
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
     CleanFromVolumeException,
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,
     ReconcileTableOutput,
     SchemaReconcileOutput,
     StatusOutput,
-    TableThresholds,
     ReconcileRecordCount,
     AggregateQueryOutput,
 )
@@ -36,7 +36,6 @@ _RECON_DETAILS_TABLE_NAME = "details"
 _RECON_AGGREGATE_RULES_TABLE_NAME = "aggregate_rules"
 _RECON_AGGREGATE_METRICS_TABLE_NAME = "aggregate_metrics"
 _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
-_SAMPLE_ROWS = 50
 
 
 class ReconIntermediatePersist:
@@ -404,7 +403,7 @@ class ReconCapture:
         for column in columns:
             map_args.extend([lit(column).alias(column + "_key"), col(column).cast("string").alias(column + "_value")])
         # Create a new DataFrame with a map column
-        df = df.limit(_SAMPLE_ROWS).select(create_map(*map_args).alias("data"))
+        df = df.select(create_map(*map_args).alias("data"))
         df = (
             df.withColumn("recon_table_id", lit(recon_table_id))
             .withColumn("recon_type", lit(recon_type))

@@ -1,3 +1,5 @@
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Contributing
 
 ## First Principles
@@ -32,27 +34,31 @@ If you don't already have one, create a GPG key:
 
 Register your PGP key in GitHub:
  - In GitHub, select Settings from your picture at the top-right
-   - select SSH and PGP key
-     - click on New key, and paste the text content of the exported key
-   - select Emails
-     - if your databricks email is not registered, register it
-     - complete the verification before the next steps
+- select SSH and PGP key
+- click on New key, and paste the text content of the exported key
+- select Emails
+- if your databricks email is not registered, register it
+- complete the verification before the next steps
 
-Tell local git to signoff your commits using your PGP key
-    - see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
-    - in short, you need to run the following commands from a terminal:
-        - git config --global --unset gpg.format
-        - gpg --list-secret-keys --keyid-format=long
-        - git config --global user.signingkey <KEY.ID.FROM.ABOVE>
-        - git config --global commit.gpgsign true
+Tell local git to signoff your commits using your PGP key:
+
+see full instructions here https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
+in short, you need to run the following commands from a terminal:
+``` shell
+git config --global --unset gpg.format
+gpg --list-secret-keys --keyid-format=long
+git config --global user.signingkey <KEY.ID.FROM.ABOVE>
+git config --global commit.gpgsign true
+```
 
 Once all this is done, you can verify it's correct as follows:
-    - create a branch and use it
-    - create a file <FILENAME> with some content
-    - git add <FILENAME>
-    - git commit -m "test PGP"
-    - git verify-commit <COMMIT>
+- create a branch and use it
+- create a file `FILENAME` with some content
+- git add `FILENAME`
+- git commit -m "test PGP"
+- git verify-commit `COMMIT`
 The last command should display something like the following:
+
 `gpg: Signature made Tue Nov 26 11:34:23 2024 CET
 gpg:                using RSA key FD4D754BB2B1D4F09F2BF658F4B0C73DFC65A17B
 gpg: Good signature from "GitHub <your.email@databricks.com>" [ultimate]
@@ -114,44 +120,69 @@ This section provides a step-by-step guide to set up and start working on the pr
 
 To begin, install prerequisites:
 
-`wget` is required by the maven installer
+`wget` is used for downloading tools required by remote spark test suite.
 ```shell
 brew install wget
 ```
 
-`python` is the dependency manager for JVM based languages
+
+### Python Configuration
+
+Once you are done with cloning this project to your local machine, you may follow the steps
+mentioned below.
+
+* We recommend using `pyenv` as Python Version Manager. While Remorph is currently developed and built on
+`Python 3.10`, having a version management tool like `pyenv` gives us the flexibility to manage the python versions easily for
+future enhancements while maintaining the standards.
+
+If you don't already have `pyenv` installed on your local machine, you can run the below command from
+the project directory to install it.
+
 ```shell
-brew install maven
+make setup_python
 ```
+This installation uses python version `3.10`. After you run the above command, The Terminal output will contain and export command
+to update your PATH variable. Append the line (export PATH...) to your profile i.e `~/.zshrc` or `~/.bash_profile` or `~/.profile` and resource your profile for the changes in PATH variable to take effect.
+you might have to restart your terminal to reflect the changes (While it depends on the type of shell, restarting the terminal is always a best practice after updating a Profile variable).
 
-`hatch` is a Python project manager
-```shell
-pip install hatch
-```
+* Once you have `pyenv` installed on your local machine, you may run the below command which will setup the development environment for you
+with all the necessary dependencies required to build and compile your project.
 
-Then run project-specific install scripts
-
-`make dev` creates the default environment and installs development dependencies, assuming you've already cloned the github repo.
 ```shell
 make dev
 ```
 
-Verify installation with
+The above statement  installs `Hatch` (Python Project Manager) which is used
+to create a virtual environment (`.venv/bin/python`) for your project inside the project directory with all
+the necessary libraries and project dependencies.
+
+* If you don't want to use `pyenv`, make sure you have `python3.10` installed on you system. You can use your system `python3.10` interpreter to
+directly run `make dev`.
+
+* Once your virtual environment creation is complete. Make sure you have activated that on your terminal
+to start working on the project.
+
+```shell
+source .venv/bin/activate
+```
+
+You can verify installation with
 ```shell
 make test
 ```
 
 To ensure your integrated development environment (IDE) uses the newly created virtual environment, you can retrieve the Python path with this command:
 ```shell
-hatch run python -c "import sys; print(sys.executable)"
+hatch run python -c "import sys; print(sys.version); print(sys.executable)"
 ```
 
-As of writing, we only support IntelliJ IDEA CE 2024.1. Development using more recent versions doesn't work (yet!).
-Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
+While you may choose an IDE of your choice (PyCharm, VS Code, IntelliJ IDEA), the below IDE configuration is in reference with IntelliJ IDEA CE.
+You may download and install it from: [IntelliJ IDEA](https://www.jetbrains.com/idea/download/other.html)
 
 Configure your IDE to:
  - use this Python venv path so that you work within the virtual environment when developing the project:
-![IDE Setup](docs/img/remorph_intellij.gif)
+
+<img src={useBaseUrl('img/remorph_intellij.gif')} alt="IDE" />
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:
 ```shell
@@ -182,9 +213,9 @@ Here are the example steps to submit your first contribution:
 12. `git commit -a`. Make sure to enter meaningful commit message title.
 13. `git push origin FEATURENAME`
 14. Go to GitHub UI and create PR. Alternatively, `gh pr create` (if you have [GitHub CLI](https://cli.github.com/) installed).
-    Use a meaningful pull request title because it'll appear in the release notes. Use `Resolves #NUMBER` in pull
-    request description to [automatically link it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue)
-    to an existing issue.
+Use a meaningful pull request title because it'll appear in the release notes. Use `Resolves #NUMBER` in pull
+request description to [automatically link it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue)
+to an existing issue.
 15. announce PR for the review
 
 ## Troubleshooting

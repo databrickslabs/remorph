@@ -1,11 +1,18 @@
 remorph:
   version: 1
+  name: test-transpiler
   dialects:
     - snowflake
   environment:
-    - SOME_ENV: abc
+    SOME_ENV: abc
   command_line:
     - python
     - lsp_server.py
+    - --stuff=12
+options:
+  all:
+    - flag: "-experimental"
+      method: CONFIRM
+      prompt: Do you want to use the experimental Databricks generator ?
 custom:
   whatever: xyz

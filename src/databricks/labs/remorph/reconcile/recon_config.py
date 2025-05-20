@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from dataclasses import dataclass, field
 
-from pyspark.sql import DataFrame
+from dataclasses import dataclass
+from collections.abc import Callable
+
 from sqlglot import expressions as exp
+
+from databricks.labs.remorph.reconcile.constants import SamplingOptionMethod, SamplingSpecificationsType
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,9 @@ _SUPPORTED_AGG_TYPES: set[str] = {
     "median",
 }
 
+RECONCILE_OPERATION_NAME = "reconcile"
+AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
+
 
 class TableThresholdBoundsException(ValueError):
     """Raise the error when the bounds for table threshold are invalid"""
@@ -32,15 +37,57 @@ class InvalidModelForTableThreshold(ValueError):
 
 
 @dataclass
+class HashAlgoMapping:
+    source: Callable
+    target: Callable
+
+
+@dataclass
+class SamplingSpecifications:
+    type: SamplingSpecificationsType
+    value: float
+
+    def __post_init__(self):
+        if not isinstance(self.type, SamplingSpecificationsType):
+            self.type = SamplingSpecificationsType(str(self.type).lower())
+        # Disabled
+        if self.type == SamplingSpecificationsType.FRACTION:
+            raise ValueError("SamplingSpecifications: 'FRACTION' type is disabled")
+        if self.type == SamplingSpecificationsType.FRACTION and (self.value is None or (not 0 < self.value < 1)):
+            raise ValueError("SamplingSpecifications: Fraction value must be greater than  0 and less than 1")
+
+
+@dataclass
+class SamplingOptions:
+    method: SamplingOptionMethod
+    specifications: SamplingSpecifications
+    stratified_columns: list[str] | None = None
+    stratified_buckets: int | None = None
+
+    def __post_init__(self):
+        if not isinstance(self.method, SamplingOptionMethod):
+            self.method = SamplingOptionMethod(str(self.method).lower())
+
+        if self.stratified_columns:
+            self.stratified_columns = [col.lower() for col in self.stratified_columns]
+
+        if self.method == SamplingOptionMethod.STRATIFIED:
+            if not self.stratified_columns or not self.stratified_buckets:
+                raise ValueError(
+                    "SamplingOptions : stratified_columns and stratified_buckets are required for STRATIFIED method"
+                )
+
+
+@dataclass
 class JdbcReaderOptions:
-    number_partitions: int
-    partition_column: str
-    lower_bound: str
-    upper_bound: str
+    number_partitions: int | None = None
+    partition_column: str | None = None
+    lower_bound: str | None = None
+    upper_bound: str | None = None
     fetch_size: int = 100
 
     def __post_init__(self):
-        self.partition_column = self.partition_column.lower()
+        self.partition_column = self.partition_column.lower() if self.partition_column else None
 
 
 @dataclass
@@ -131,6 +178,7 @@ def to_lower_case(input_list: list[str]) -> list[str]:
 class Table:
     source_name: str
     target_name: str
+    sampling_options: SamplingOptions | None = None
     aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
@@ -226,7 +274,8 @@ class Table:
 
     def get_partition_column(self, layer: str) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
-            return {self.jdbc_reader_options.partition_column}
+            if self.jdbc_reader_options.partition_column:
+                return {self.jdbc_reader_options.partition_column}
         return set()
 
     def get_filter(self, layer: str) -> str | None:
@@ -241,86 +290,6 @@ class Table:
 class Schema:
     column_name: str
     data_type: str
-
-
-@dataclass
-class MismatchOutput:
-    mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] | None = None
-
-
-@dataclass
-class ThresholdOutput:
-    threshold_df: DataFrame | None = None
-    threshold_mismatch_count: int = 0
-
-
-@dataclass
-class DataReconcileOutput:
-    mismatch_count: int = 0
-    missing_in_src_count: int = 0
-    missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput = field(default_factory=MismatchOutput)
-    missing_in_src: DataFrame | None = None
-    missing_in_tgt: DataFrame | None = None
-    threshold_output: ThresholdOutput = field(default_factory=ThresholdOutput)
-    exception: str | None = None
-
-
-@dataclass
-class HashAlgoMapping:
-    source: Callable
-    target: Callable
-
-
-@dataclass
-class SchemaMatchResult:
-    source_column: str
-    source_datatype: str
-    databricks_column: str
-    databricks_datatype: str
-    is_valid: bool = True
-
-
-@dataclass
-class SchemaReconcileOutput:
-    is_valid: bool
-    compare_df: DataFrame | None = None
-    exception: str | None = None
-
-
-@dataclass
-class ReconcileProcessDuration:
-    start_ts: str
-    end_ts: str | None
-
-
-@dataclass
-class StatusOutput:
-    row: bool | None = None
-    column: bool | None = None
-    schema: bool | None = None
-    aggregate: bool | None = None
-
-
-@dataclass
-class ReconcileTableOutput:
-    target_table_name: str
-    source_table_name: str
-    status: StatusOutput = field(default_factory=StatusOutput)
-    exception_message: str | None = None
-
-
-@dataclass
-class ReconcileOutput:
-    recon_id: str
-    results: list[ReconcileTableOutput]
-
-
-@dataclass
-class ReconcileRecordCount:
-    source: int = 0
-    target: int = 0
 
 
 @dataclass
@@ -392,9 +361,3 @@ class AggregateQueryRules:
     group_by_columns_as_str: str
     query: str
     rules: list[AggregateRule]
-
-
-@dataclass
-class AggregateQueryOutput:
-    rule: AggregateRule | None
-    reconcile_output: DataReconcileOutput
