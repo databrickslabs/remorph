@@ -1,0 +1,132 @@
+import argparse
+import json
+import sys
+import pandas as pd
+import duckdb
+import logging
+import yaml
+from azure.synapse.artifacts import ArtifactsClient
+from azure.identity import DefaultAzureCredential
+
+logger = logging.getLogger(__name__)
+
+def arguments_loader(desc: str):
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--db-path', type=str, required=True, help='Path to DuckDB database file')
+    parser.add_argument(
+        '--credential-config-path', type=str, required=True, help='Path string containing credential configuration'
+    )
+    args = parser.parse_args()
+    credential_file = args.credential_config_path
+
+    if not credential_file.endswith('credentials.yml'):
+        msg = "Credential config file must have 'credentials.yml' extension"
+        # This is the output format expected by the pipeline.py which orchestrates the execution of this script
+        print(json.dumps({"status": "error", "message": msg}), file=sys.stderr)
+        raise ValueError("Credential config file must have 'credentials.yml' extension")
+
+    return args.db_path, credential_file
+
+def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None:
+    """
+    Insert a pandas DataFrame into a DuckDB table.
+
+    Args:
+        df (pd.DataFrame): The pandas DataFrame to insert
+        db_path (str): Path to the DuckDB database file
+        table_name (str): Name of the table to insert data into
+    """
+    try:
+        # Connect to DuckDB
+        conn = duckdb.connect(db_path)
+
+        # Drop existing table if it exists
+        conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+        if df.empty:
+            # If DataFrame is empty, create an empty table with the correct schema
+            if len(df.columns) > 0:
+                # Create empty table with the same schema
+                conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM df LIMIT 0")
+                logging.info(f"Created empty table {table_name} with schema: {df.columns.tolist()}")
+                print(f"Created empty table {table_name} with schema: {df.columns.tolist()}")
+            else:
+                logging.warning(f"Skipping table {table_name} creation as DataFrame has no columns")
+            conn.close()
+            return
+        # Create the table with the DataFrame's schema and insert data
+        conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM df")
+        logging.info(f"Successfully inserted {len(df)} rows into {table_name} table")
+        print(f"Successfully inserted {len(df)} rows into {table_name} table")
+
+        # Close connection
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error inserting data into DuckDB: {str(e)}")
+        raise
+
+def get_config(creds_file: str) -> dict:
+    """
+    Load the configuration from a YAML file.
+
+    Args:
+        creds_file (str): Path to the YAML file
+
+    Returns:
+        dict: Configuration dictionary
+    """
+    try:
+        with open(creds_file, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+    except Exception as e:
+        logging.error(f"Error loading configuration file: {str(e)}")
+        raise
+
+def get_synapse_artifacts_client(config: dict) -> ArtifactsClient:
+    """
+    :return:  an Azure SDK client handle for Synapse Artifacts
+    """
+    return ArtifactsClient(
+        endpoint=config["azure_api_access"]["development_endpoint"],
+        credential=DefaultAzureCredential())
+
+def get_synapse_jdbc_settings(config: dict):
+        """
+        Get Synapse JDBC settings from the configuration.
+
+        Args:
+                config (dict): Configuration dictionary
+
+        Returns:
+                dict: Synapse JDBC settings
+        """
+
+        synapse_jdbc_sql_authentication = {
+            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+            "fetch_size": "1000",
+
+        }
+        synapse_jdbc_ad_passwd_authentication = {
+            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+            "fetch_size": "1000",
+
+        }
+        # AMirskiy on Oct 13 PR#9 manual merge - start
+        synapse_jdbc_spn_authentication = {
+            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+            "fetch_size": "1000",
+        }
+
+        auth_type = config.get("jdbc").get("auth_type")
+        if auth_type == "sql_authentication":
+            return synapse_jdbc_sql_authentication
+        elif auth_type == "ad_password_authentication":
+            return synapse_jdbc_ad_passwd_authentication
+        elif auth_type == "spn_authentication":
+            return synapse_jdbc_spn_authentication
+        else:
+            raise ValueError(f"Unsupported authentication type: {auth_type}")

@@ -1,10 +1,8 @@
-import duckdb
-import argparse
 import json
 import sys
 import logging
 import urllib3
-import pandas as pd
+
 from .profiler_functions import (
     get_synapse_workspace_settings,
     get_synapse_profiler_settings,
@@ -12,25 +10,14 @@ from .profiler_functions import (
     get_azure_metrics_query_client,
 )
 from .profiler_classes import SynapseWorkspace, SynapseMetrics
+from .common.functions import arguments_loader, insert_df_to_duckdb
 
 
 def execute():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger(__name__)
 
-    parser = argparse.ArgumentParser(description='Generate and store random dataset in DuckDB')
-    parser.add_argument('--db-path', type=str, required=True, help='Path to DuckDB database file')
-    parser.add_argument(
-        '--credential-config-path', type=str, required=True, help='Path string containing credential configuration'
-    )
-    args = parser.parse_args()
-    credential_file = args.credential_config_path
-
-    if not credential_file.endswith('credentials.yml'):
-        msg = "Credential config file must have 'credentials.yml' extension"
-        # This is the output format expected by the pipeline.py which orchestrates the execution of this script
-        print(json.dumps({"status": "error", "message": msg}), file=sys.stderr)
-        raise ValueError("Credential config file must have 'credentials.yml' extension")
+    db_path, creds_file = arguments_loader(desc="Monitoring Metrics Extract Script")
 
     try:
         synapse_workspace_settings = get_synapse_workspace_settings()
@@ -53,7 +40,8 @@ def execute():
         workspace_resource_id = workspace_info["id"]
         logger.info(f"workspace_resource_id  →  {workspace_resource_id}")
         metrics_df = synapse_metrics.get_workspace_level_metrics(workspace_resource_id)
-        insert_df_to_duckdb(metrics_df, args.db_path, "workspace_level_metrics")
+        insert_df_to_duckdb(metrics_df,db_path , "workspace_level_metrics")
+
         # SQL Pool Metrics
 
         exclude_dedicated_sql_pools = synapse_profiler_settings.get("exclude_dedicated_sql_pools", None)
@@ -95,9 +83,10 @@ def execute():
                     pools_df = pool_metrics_df
                 else:
                     pools_df = pools_df.union(pool_metrics_df)
-            
+
             # Insert the combined metrics into DuckDB
-            insert_df_to_duckdb(pools_df, args.db_path, step_name)
+            step_name = "dedicated_pool_metrics"
+            insert_df_to_duckdb(pools_df, db_path, step_name)
             logger.info(">End")
 
         # Spark Pool  Metrics
@@ -143,9 +132,9 @@ def execute():
                     spark_pools_df = spark_pool_metrics_df
                 else:
                     spark_pools_df = pools_df.union(pool_metrics_df)
-            
+
             # Insert the combined metrics into DuckDB
-            insert_df_to_duckdb(pools_df, args.db_path, step_name)
+            insert_df_to_duckdb(pools_df, db_path, step_name)
             logger.info(">End")
 
         # This is the output format expected by the pipeline.py which orchestrates the execution of this script
@@ -156,33 +145,5 @@ def execute():
         sys.exit(1)
 
 
-def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None:
-    """
-    Insert a pandas DataFrame into a DuckDB table.
-    
-    Args:
-        df (pd.DataFrame): The pandas DataFrame to insert
-        db_path (str): Path to the DuckDB database file
-        table_name (str): Name of the table to insert data into
-    """
-    try:
-        # Connect to DuckDB
-        conn = duckdb.connect(db_path)
-        
-        # Create table if it doesn't exist
-        conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM df LIMIT 0")
-        
-        # Insert data
-        conn.execute(f"INSERT INTO {table_name} SELECT * FROM df")
-        
-        # Close connection
-        conn.close()
-        logging.info(f"Successfully inserted data into {table_name} table")
-    except Exception as e:
-        logging.error(f"Error inserting data into DuckDB: {str(e)}")
-        raise
-
-
 if __name__ == '__main__':
     execute()
-

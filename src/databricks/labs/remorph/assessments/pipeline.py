@@ -1,5 +1,5 @@
 from pathlib import Path
-from subprocess import run, CalledProcessError
+from subprocess import run, CalledProcessError, Popen, PIPE, STDOUT
 from dataclasses import dataclass
 from enum import Enum
 
@@ -35,7 +35,7 @@ class StepExecutionResult:
 
 
 class PipelineClass:
-    def __init__(self, config: PipelineConfig, executor: DatabaseManager):
+    def __init__(self, config: PipelineConfig, executor: DatabaseManager | None):
         self.config = config
         self.executor = executor
         self.db_path_prefix = Path(config.extract_folder)
@@ -91,13 +91,12 @@ class PipelineClass:
             logging.error(f"SQL execution failed: {str(e)}")
             raise RuntimeError(f"SQL execution failed: {str(e)}") from e
 
-    def _execute_python_step(self, step: Step):
 
+    def _execute_python_step(self, step: Step):
         logging.debug(f"Executing Python script: {step.extract_source}")
         db_path = str(self.db_path_prefix / DB_NAME)
         credential_config = str(cred_file("remorph"))
 
-        # Create a temporary directory for the virtual environment
         with tempfile.TemporaryDirectory() as temp_dir:
             venv_dir = Path(temp_dir) / "venv"
             venv.create(venv_dir, with_pip=True)
@@ -105,21 +104,19 @@ class PipelineClass:
             venv_pip = venv_dir / "bin" / "pip"
 
             logger.info(f"Creating a virtual environment for Python script execution: ${venv_dir}")
-            # Install dependencies in the virtual environment
             if step.dependencies:
                 logging.info(f"Installing dependencies: {', '.join(step.dependencies)}")
                 try:
                     logging.debug("Upgrading local pip")
-                    run([str(venv_pip), "install", "--upgrade", "pip"], check=True, capture_output=True, text=True)
-
-                    run([str(venv_pip), "install", *step.dependencies], check=True, capture_output=True, text=True)
+                    run([str(venv_pip), "install", "--upgrade", "pip"], check=True)
+                    run([str(venv_pip), "install", *step.dependencies], check=True)
                 except CalledProcessError as e:
                     logging.error(f"Failed to install dependencies: {e.stderr}")
                     raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
 
-            # Execute the Python script using the virtual environment's Python interpreter
+            # Stream output from the subprocess
             try:
-                result = run(
+                process = Popen(
                     [
                         str(venv_python),
                         str(step.extract_source),
@@ -128,24 +125,34 @@ class PipelineClass:
                         "--credential-config-path",
                         credential_config,
                     ],
-                    check=True,
-                    capture_output=True,
+                    stdout=PIPE,
+                    stderr=STDOUT,
                     text=True,
+                    bufsize=1,
                 )
 
-                try:
-                    output = json.loads(result.stdout)
-                    if output["status"] == "success":
-                        logging.info(f"Python script completed: {output['message']}")
-                    else:
-                        raise RuntimeError(f"Script reported error: {output['message']}")
-                except json.JSONDecodeError:
-                    logging.info(f"Python script output: {result.stdout}")
+                output_lines = []
+                for line in process.stdout:
+                    logger.info(line.rstrip())
+                    output_lines.append(line)
+                process.wait()
 
-            except CalledProcessError as e:
-                error_msg = e.stderr
-                logging.error(f"Python script failed: {error_msg}")
-                raise RuntimeError(f"Script execution failed: {error_msg}") from e
+                # Try to parse the last line as JSON for status
+                if output_lines:
+                    try:
+                        output = json.loads(output_lines[-1])
+                        if output.get("status") == "success":
+                            logging.info(f"Python script completed: {output['message']}")
+                        else:
+                            raise RuntimeError(f"Script reported error: {output.get('message', 'Unknown error')}")
+                    except json.JSONDecodeError:
+                        logging.info("Could not parse script output as JSON.")
+                if process.returncode != 0:
+                    raise RuntimeError(f"Script execution failed with exit code {process.returncode}")
+
+            except Exception as e:
+                logging.error(f"Python script failed: {str(e)}")
+                raise RuntimeError(f"Script execution failed: {str(e)}") from e
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
