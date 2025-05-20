@@ -1,9 +1,6 @@
-from datetime import timedelta
-
 import pandas as pd
 from azure.monitor.query import MetricAggregationType
-from datetime import datetime, timedelta, date, time as timex, timezone
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, time as timex
 from azure.synapse.artifacts import models as ArtifactsModels
 
 from abc import ABC
@@ -27,7 +24,7 @@ class AzureArtifact(ABC):
 
     @staticmethod
     def create_run_filter_parameters(last_updated_after, last_updated_before):
-        # @todo: fix this from global context to import
+        # TODO: fix this from global context to import
         return ArtifactsModels.RunFilterParameters(
             last_updated_after=last_updated_after, last_updated_before=last_updated_before
         )
@@ -411,5 +408,5 @@ class SynapseMetrics:
                 MetricAggregationType.TOTAL,
             ],
         )
-        # Fetch Metrics
-        yield from self.fetch_metrics(response.metrics)
+        # Fetch Metrics and return as DataFrame
+        return self.fetch_metrics(response.metrics)

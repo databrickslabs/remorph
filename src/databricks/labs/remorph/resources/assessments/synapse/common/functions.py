@@ -5,10 +5,13 @@ import pandas as pd
 import duckdb
 import logging
 import yaml
-from azure.synapse.artifacts import ArtifactsClient
 from azure.identity import DefaultAzureCredential
+from azure.monitor.query import MetricsQueryClient, MetricAggregationType
+from azure.synapse.artifacts import ArtifactsClient
+from azure.synapse.artifacts import models as ArtifactsModels
 
 logger = logging.getLogger(__name__)
+
 
 def arguments_loader(desc: str):
     parser = argparse.ArgumentParser(description=desc)
@@ -26,6 +29,7 @@ def arguments_loader(desc: str):
         raise ValueError("Credential config file must have 'credentials.yml' extension")
 
     return args.db_path, credential_file
+
 
 def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None:
     """
@@ -65,6 +69,7 @@ def insert_df_to_duckdb(df: pd.DataFrame, db_path: str, table_name: str) -> None
         logging.error(f"Error inserting data into DuckDB: {str(e)}")
         raise
 
+
 def get_config(creds_file: str) -> dict:
     """
     Load the configuration from a YAML file.
@@ -83,50 +88,56 @@ def get_config(creds_file: str) -> dict:
         logging.error(f"Error loading configuration file: {str(e)}")
         raise
 
+
 def get_synapse_artifacts_client(config: dict) -> ArtifactsClient:
     """
     :return:  an Azure SDK client handle for Synapse Artifacts
     """
     return ArtifactsClient(
-        endpoint=config["azure_api_access"]["development_endpoint"],
-        credential=DefaultAzureCredential())
+        endpoint=config["azure_api_access"]["development_endpoint"], credential=DefaultAzureCredential()
+    )
+
 
 def get_synapse_jdbc_settings(config: dict):
-        """
-        Get Synapse JDBC settings from the configuration.
+    """
+    Get Synapse JDBC settings from the configuration.
 
-        Args:
-                config (dict): Configuration dictionary
+    Args:
+            config (dict): Configuration dictionary
 
-        Returns:
-                dict: Synapse JDBC settings
-        """
+    Returns:
+            dict: Synapse JDBC settings
+    """
 
-        synapse_jdbc_sql_authentication = {
-            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
-            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
-            "fetch_size": "1000",
+    synapse_jdbc_sql_authentication = {
+        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+        "fetch_size": "1000",
+    }
+    synapse_jdbc_ad_passwd_authentication = {
+        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+        "fetch_size": "1000",
+    }
+    synapse_jdbc_spn_authentication = {
+        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+        "fetch_size": "1000",
+    }
 
-        }
-        synapse_jdbc_ad_passwd_authentication = {
-            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
-            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
-            "fetch_size": "1000",
+    auth_type = config.get("jdbc").get("auth_type")
+    if auth_type == "sql_authentication":
+        return synapse_jdbc_sql_authentication
+    elif auth_type == "ad_password_authentication":
+        return synapse_jdbc_ad_passwd_authentication
+    elif auth_type == "spn_authentication":
+        return synapse_jdbc_spn_authentication
+    else:
+        raise ValueError(f"Unsupported authentication type: {auth_type}")
 
-        }
-        # AMirskiy on Oct 13 PR#9 manual merge - start
-        synapse_jdbc_spn_authentication = {
-            "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
-            "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
-            "fetch_size": "1000",
-        }
 
-        auth_type = config.get("jdbc").get("auth_type")
-        if auth_type == "sql_authentication":
-            return synapse_jdbc_sql_authentication
-        elif auth_type == "ad_password_authentication":
-            return synapse_jdbc_ad_passwd_authentication
-        elif auth_type == "spn_authentication":
-            return synapse_jdbc_spn_authentication
-        else:
-            raise ValueError(f"Unsupported authentication type: {auth_type}")
+def get_azure_metrics_query_client():
+    """
+    :return: an Azure SDK Monitoring Metrics Client handle
+    """
+    return MetricsQueryClient(credential=DefaultAzureCredential())

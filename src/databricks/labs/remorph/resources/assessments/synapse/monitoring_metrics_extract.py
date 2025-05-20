@@ -2,45 +2,52 @@ import json
 import sys
 import logging
 import urllib3
+import zoneinfo
+import pandas as pd
 
-from .profiler_functions import (
-    get_synapse_workspace_settings,
-    get_synapse_profiler_settings,
-    get_synapse_artifacts_client,
-    get_azure_metrics_query_client,
+from databricks.labs.remorph.resources.assessments.synapse.common.profiler_classes import (
+    SynapseWorkspace,
+    SynapseMetrics,
 )
-from .profiler_classes import SynapseWorkspace, SynapseMetrics
-from .common.functions import arguments_loader, insert_df_to_duckdb
+from databricks.labs.remorph.resources.assessments.synapse.common.functions import (
+    arguments_loader,
+    insert_df_to_duckdb,
+    get_config,
+    get_azure_metrics_query_client,
+    get_synapse_artifacts_client,
+)
 
 
 def execute():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger(__name__)
 
     db_path, creds_file = arguments_loader(desc="Monitoring Metrics Extract Script")
 
     try:
-        synapse_workspace_settings = get_synapse_workspace_settings()
-        synapse_profiler_settings = get_synapse_profiler_settings()
-        workspace_tz = synapse_workspace_settings["tz_info"]
+        synapse_workspace_settings = get_config(creds_file)["synapse"]
+        synapse_profiler_settings = synapse_workspace_settings["profiler"]
 
-        workspace_name = synapse_workspace_settings["name"]
+        tz_info = synapse_workspace_settings["workspace"]["tz_info"]
+        workspace_tz = zoneinfo.ZoneInfo(tz_info)
+        workspace_name = synapse_workspace_settings["workspace"]["name"]
         logger.info(f"workspace_name → {workspace_name}")
 
-        artifacts_client = get_synapse_artifacts_client()
-        workspace_instance = SynapseWorkspace(workspace_tz, artifacts_client)
+        artifacts_client = get_synapse_artifacts_client(synapse_workspace_settings)
+        workspace = SynapseWorkspace(workspace_tz, artifacts_client)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         metrics_client = get_azure_metrics_query_client()
         synapse_metrics = SynapseMetrics(metrics_client)
 
-        workspace_info = workspace_instance.get_workspace_info()
+        workspace_info = workspace.get_workspace_info()
+        print(workspace_info)
 
         if not "id" in workspace_info:
             raise ValueError("ERROR: Missing Workspace ID for extracting Workspace Level Metrics")
         workspace_resource_id = workspace_info["id"]
         logger.info(f"workspace_resource_id  →  {workspace_resource_id}")
         metrics_df = synapse_metrics.get_workspace_level_metrics(workspace_resource_id)
-        insert_df_to_duckdb(metrics_df,db_path , "workspace_level_metrics")
+        insert_df_to_duckdb(metrics_df, db_path, "workspace_level_metrics")
 
         # SQL Pool Metrics
 
@@ -55,7 +62,7 @@ def execute():
                 f" exclude_dedicated_sql_pools is set to {exclude_dedicated_sql_pools}, Skipping metrics extract for Dedicated SQL pools"
             )
         else:
-            dedicated_sqlpools = workspace_instance.list_sql_pools()
+            dedicated_sqlpools = workspace.list_sql_pools()
             all_dedicated_pools_list = [pool for poolPages in dedicated_sqlpools for pool in poolPages]
             dedicated_pools_to_profile = (
                 all_dedicated_pools_list
@@ -70,6 +77,7 @@ def execute():
                 f" exclude_dedicated_sql_pools is set to {exclude_dedicated_sql_pools}, Skipping metrics extract for Dedicated SQL pools"
             )
         else:
+            pools_df = pd.DataFrame()
             for idx, pool in enumerate(dedicated_pools_to_profile):
                 pool_name = pool['name']
                 pool_resoure_id = pool['id']
@@ -102,7 +110,7 @@ def execute():
                 f" exclude_spark_pools is set to {exclude_spark_pools}, Skipping metrics extract for Spark pools"
             )
         else:
-            spark_pools_iter = workspace_instance.list_bigdata_pools()
+            spark_pools_iter = workspace.list_bigdata_pools()
             all_spark_pool_list = [pool for poolPages in spark_pools_iter for pool in poolPages]
             spark_pools_to_profile = (
                 all_spark_pool_list
@@ -117,6 +125,7 @@ def execute():
                 f" exclude_spark_pools is set to {exclude_spark_pools}, Skipping metrics extract for Spark pools"
             )
         else:
+            spark_pools_df = pd.DataFrame()
             for idx, pool in enumerate(spark_pools_to_profile):
                 pool_name = pool['name']
                 pool_resoure_id = pool['id']

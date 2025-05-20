@@ -80,6 +80,10 @@ class PipelineClass:
         with open(step.extract_source, 'r', encoding='utf-8') as file:
             query = file.read()
 
+        if self.executor is None:
+            logging.error("DatabaseManager executor is not set.")
+            raise RuntimeError("DatabaseManager executor is not set.")
+
         # Execute the query using the database manager
         logging.info(f"Executing query: {query}")
         try:
@@ -90,7 +94,6 @@ class PipelineClass:
         except Exception as e:
             logging.error(f"SQL execution failed: {str(e)}")
             raise RuntimeError(f"SQL execution failed: {str(e)}") from e
-
 
     def _execute_python_step(self, step: Step):
         logging.debug(f"Executing Python script: {step.extract_source}")
@@ -132,9 +135,10 @@ class PipelineClass:
                 )
 
                 output_lines = []
-                for line in process.stdout:
-                    logger.info(line.rstrip())
-                    output_lines.append(line)
+                if process.stdout is not None:
+                    for line in process.stdout:
+                        logger.info(line.rstrip())
+                        output_lines.append(line)
                 process.wait()
 
                 # Try to parse the last line as JSON for status
