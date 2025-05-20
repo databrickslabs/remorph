@@ -1,0 +1,30 @@
+---
+sidebar_position: 1
+---
+
+## What is the Remorph Profiler?
+
+- The profiler collects usage and performance metrics from a source warehouse
+- It leverages built-in scheduling components of the host operating system to execute usage collection queries
+
+## Why is the profiler usage collection needed?
+
+- Some data warehouses do not preserve query history for longer than a few days or are limited to only a few rows. As an example, Amazon Redshift only preserves usage history for around 2-5 days
+- Having adequate usage history is critical in providing an _accurate_ Total Cost of Ownership (TCO) estimate
+- Having too little history could produce an inaccurate representation of data warehouse query patterns and system utilization
+
+## Supported operating systems
+
+The profiler usage collection can be installed on the following operating systems:
+
+1. MacOS
+2. Linux
+3. [Windows](./windows/windows_installation.mdx)
+
+## How often does the profiler run?
+
+The profiler system task is scheduled to run every 15 minutes. When running, the system task checks the local state to see if usage collection has been run for the day and if there are any gaps in the usage history that should be reconciled.
+
+## Automatic restart
+
+The profiler usage collection service utilizes the host operating system to run as a background process. As a result, the process will automatically resume processing after a system restart; no intervention is needed during a host system restart. The profiler will automatically detect usage history gaps and proactively backfill when possible.

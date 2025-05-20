@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import logging
 import subprocess
+from enum import Enum
 import yaml
 import duckdb
 
@@ -17,6 +18,12 @@ logger.setLevel("INFO")
 DB_NAME = "profiler_extract.db"
 
 
+class StepExecutionStatus(Enum):
+    COMPLETE = "COMPLETE"
+    ERROR = "ERROR"
+    SKIPPED = "SKIPPED"
+
+
 class PipelineClass:
     def __init__(self, config: PipelineConfig, executor: DatabaseManager):
         self.config = config
@@ -28,16 +35,17 @@ class PipelineClass:
         for step in self.config.steps:
             if step.flag == "active":
                 logging.debug(f"Executing step: {step.name}")
-                self._execute_step(step)
+                self.execute_step(step)
         logging.info("Pipeline execution completed")
 
-    def _execute_step(self, step: Step):
+    def execute_step(self, step: Step):
         if step.type == "sql":
             self._execute_sql_step(step)
         elif step.type == "python":
             self._execute_python_step(step)
         else:
             logging.error(f"Unsupported step type: {step.type}")
+        return StepExecutionStatus.COMPLETE
 
     def _execute_sql_step(self, step: Step):
         logging.debug(f"Reading query from file: {step.extract_source}")
