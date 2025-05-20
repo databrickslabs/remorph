@@ -19,6 +19,7 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
 
 def test_gets_maven_artifact_version():
     version = MavenInstaller.get_latest_artifact_version_from_maven("com.databricks", "databricks-connect")
+    assert version, "Maybe maven search is down ? (check https://status.maven.org/)"
     check_valid_version(version)
 
 
