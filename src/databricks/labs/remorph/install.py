@@ -483,7 +483,6 @@ class WorkspaceInstaller:
             self.install_rct()
             self.install_bladerunner()
             self.install_morpheus()
-        logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
             config = self.configure(module)
         if self._is_testing():
