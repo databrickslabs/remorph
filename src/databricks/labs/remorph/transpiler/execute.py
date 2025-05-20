@@ -93,8 +93,8 @@ async def _process_many_files(
     all_errors: list[TranspileError] = []
 
     for file in files:
-        logger.info(f"Processing file: {file}")
         if not is_sql_file(file) and not is_dbt_project_file(file):
+            logger.debug(f"Ignored file: {file}")
             continue
         output_file_name = output_folder / file.name
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
@@ -121,7 +121,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.info(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
+        logger.debug(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
