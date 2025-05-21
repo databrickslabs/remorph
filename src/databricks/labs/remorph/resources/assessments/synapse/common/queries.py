@@ -133,19 +133,9 @@ class SynapseQueries:
         return base_query.format(login_time_filter=login_time_filter)
 
     @staticmethod
-    def list_requests(redact_sql_text: bool = False, min_end_time: str | None = None) -> str:
+    def list_requests(min_end_time: str | None = None) -> str:
         """Get session request list with command type classification"""
         base_query = """
-                     WITH request_data AS (
-                         SELECT
-                             *,
-                             CURRENT_TIMESTAMP as extract_ts
-                         FROM SYS.DM_PDW_EXEC_REQUESTS
-                         WHERE start_time IS NOT NULL
-                           AND command IS NOT NULL
-                             {end_time_filter}
-                     ),
-                          command_classified AS (
                               SELECT
                                   *,
                                   CASE
@@ -159,19 +149,19 @@ class SynapseQueries:
                                           AND UPPER(TRIM(SUBSTRING(command, CHARINDEX(' ', command) + 1, CHARINDEX(' ', command + ' ', CHARINDEX(' ', command) + 1) - CHARINDEX(' ', command) - 1))) IN ('TRAN', 'TRANSACTION') THEN 'TRANSACTION_CONTROL'
                                       WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('COMMIT', 'ROLLBACK') THEN 'TRANSACTION_CONTROL'
                                       ELSE 'OTHER'
-                                      END as command_type
-                              FROM request_data
-                          )
-                     SELECT
-                         *,
-                         {command_redaction}
-                     FROM command_classified
+                                      END as command_type,
+                                  CURRENT_TIMESTAMP as extract_ts,
+                                  {command_redaction}
+                            FROM SYS.DM_PDW_EXEC_REQUESTS
+                            WHERE start_time IS NOT NULL
+                            AND command IS NOT NULL
+                            {end_time_filter}
                      """
 
         end_time_filter = f"AND end_time > '{min_end_time}'" if min_end_time else ""
-        command_redaction = "'[REDACTED]' as command" if redact_sql_text else "command"
+        command_redaction = "'[REDACTED]' as command"
 
-        return base_query.format(end_time_filter=end_time_filter, command_redaction=command_redaction)
+        return base_query.format(end_time_filter=end_time_filter, command_redaction=command_redaction).strip().rstrip(';')
 
     @staticmethod
     def get_db_storage_info() -> str:

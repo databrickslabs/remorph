@@ -169,6 +169,7 @@ def save_resultset_to_db(result, table_name: str, db_path: str, mode: str, batch
         logging.error(f"Error in save_resultset_to_db for table {table_name}: {str(e)}")
         print(f"ERROR: save_resultset_to_db for table {table_name}: {e}")
 
+
 def get_max_column_value_duckdb(column_name, table_name, db_path):
     """
     Get the maximum value of a column from a DuckDB table.
