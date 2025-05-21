@@ -18,8 +18,6 @@ def execute():
     logger = logging.getLogger(__name__)
 
     db_path, creds_file = arguments_loader(desc="Workspace Extract")
-    # db_path=  "/tmp/synapse_workspace_extract.db"
-    # creds_file = "/Users/sundar.shankar/.databricks/labs/remorph/.credentials.yml"
 
     try:
         # Initialize workspace settings and client

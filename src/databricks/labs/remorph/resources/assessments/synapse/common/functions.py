@@ -6,9 +6,8 @@ import duckdb
 import logging
 import yaml
 from azure.identity import DefaultAzureCredential
-from azure.monitor.query import MetricsQueryClient, MetricAggregationType
+from azure.monitor.query import MetricsQueryClient
 from azure.synapse.artifacts import ArtifactsClient
-from azure.synapse.artifacts import models as ArtifactsModels
 
 logger = logging.getLogger(__name__)
 
@@ -110,18 +109,18 @@ def get_synapse_jdbc_settings(config: dict):
     """
 
     synapse_jdbc_sql_authentication = {
-        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
-        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+        "dedicated_sqlpool_url_template": "mssql+pyodbc://{user}:{pwd}@{endpoint}:1433/database={database}?driver={driver};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
+        "serverless_sqlpool_url_template": "jdbc://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;",
         "fetch_size": "1000",
     }
     synapse_jdbc_ad_passwd_authentication = {
-        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
-        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+        "dedicated_sqlpool_url_template": "mssql+pyodbc://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
+        "serverless_sqlpool_url_template": "mssql+pyodbc://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryPassword",
         "fetch_size": "1000",
     }
     synapse_jdbc_spn_authentication = {
-        "dedicated_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
-        "serverless_sqlpool_url_template": "jdbc:sqlserver://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+        "dedicated_sqlpool_url_template": "mssql+pyodbc://{endpoint}:1433;database={database};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
+        "serverless_sqlpool_url_template": "mssql+pyodbc://{endpoint}:1433;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.sql.azuresynapse.net;loginTimeout=30;authentication=ActiveDirectoryServicePrincipal",
         "fetch_size": "1000",
     }
 
@@ -141,3 +140,53 @@ def get_azure_metrics_query_client():
     :return: an Azure SDK Monitoring Metrics Client handle
     """
     return MetricsQueryClient(credential=DefaultAzureCredential())
+
+
+def save_resultset_to_db(result, table_name: str, db_path: str, mode: str, batch_size: int = 1000):
+    try:
+        conn = duckdb.connect(db_path)
+        columns = result.keys()
+        schema = ' STRING, '.join(columns) + ' STRING'
+
+        # Handle write modes
+        if mode == 'overwrite':
+            conn.execute(f"CREATE OR REPLACE TABLE {table_name} ({schema})")
+        elif mode == 'append' and table_name not in conn.get_table_names(""):
+            conn.execute(f"CREATE TABLE {table_name} ({schema})")
+
+        # Batch insert using prepared statements
+        placeholders = ', '.join(['?' for _ in columns])
+        insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+
+        # Fetch and insert rows in batches
+        while True:
+            rows = result.fetchmany(batch_size)
+            if not rows:
+                break
+            conn.executemany(insert_query, rows)
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error in save_resultset_to_db for table {table_name}: {str(e)}")
+        print(f"ERROR: save_resultset_to_db for table {table_name}: {e}")
+
+def get_max_column_value_duckdb(column_name, table_name, db_path):
+    """
+    Get the maximum value of a column from a DuckDB table.
+    """
+    try:
+        conn = duckdb.connect(db_path)
+        # Check if table exists
+        table_exists = table_name in conn.execute("SHOW TABLES").fetchdf()['name'].values
+        if not table_exists:
+            print(f"INFO: Table {table_name} does not exist in DuckDB. Returning None.")
+            conn.close()
+            return None
+        max_column_query = f"SELECT MAX({column_name}) AS last_{column_name} FROM {table_name}"
+        print(f"INFO: get_max_column_value_duckdb:: query {max_column_query}")
+        rows = conn.execute(max_column_query).fetchall()
+        max_column_val = rows[0][0] if rows else None
+        conn.close()
+    except Exception as e:
+        print(f"ERROR: {e}")
+    print(f"INFO: max_column_val = {max_column_val}")
+    return max_column_val

@@ -108,40 +108,45 @@ class PipelineClass:
 
             logger.info(f"Creating a virtual environment for Python script execution: ${venv_dir}")
             if step.dependencies:
-                logging.info(f"Installing dependencies: {', '.join(step.dependencies)}")
-                try:
-                    logging.debug("Upgrading local pip")
-                    run([str(venv_pip), "install", "--upgrade", "pip"], check=True)
-                    run([str(venv_pip), "install", *step.dependencies], check=True)
-                except CalledProcessError as e:
-                    logging.error(f"Failed to install dependencies: {e.stderr}")
-                    raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
+                self._install_dependencies(venv_pip, step.dependencies)
 
-            # Stream output from the subprocess
-            try:
-                process = Popen(
-                    [
-                        str(venv_python),
-                        str(step.extract_source),
-                        "--db-path",
-                        db_path,
-                        "--credential-config-path",
-                        credential_config,
-                    ],
-                    stdout=PIPE,
-                    stderr=STDOUT,
-                    text=True,
-                    bufsize=1,
-                )
+            self._run_python_script(venv_python, step.extract_source, db_path, credential_config)
 
-                output_lines = []
+    @staticmethod
+    def _install_dependencies(venv_pip, dependencies):
+        logging.info(f"Installing dependencies: {', '.join(dependencies)}")
+        try:
+            logging.debug("Upgrading local pip")
+            run([str(venv_pip), "install", "--upgrade", "pip"], check=True)
+            run([str(venv_pip), "install", *dependencies], check=True)
+        except CalledProcessError as e:
+            logging.error(f"Failed to install dependencies: {e.stderr}")
+            raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
+
+    @staticmethod
+    def _run_python_script(venv_python, script_path, db_path, credential_config):
+        output_lines = []
+        try:
+            with Popen(
+                [
+                    str(venv_python),
+                    str(script_path),
+                    "--db-path",
+                    db_path,
+                    "--credential-config-path",
+                    credential_config,
+                ],
+                stdout=PIPE,
+                stderr=STDOUT,
+                text=True,
+                bufsize=1,
+            ) as process:
                 if process.stdout is not None:
                     for line in process.stdout:
                         logger.info(line.rstrip())
                         output_lines.append(line)
                 process.wait()
 
-                # Try to parse the last line as JSON for status
                 if output_lines:
                     try:
                         output = json.loads(output_lines[-1])
@@ -154,9 +159,9 @@ class PipelineClass:
                 if process.returncode != 0:
                     raise RuntimeError(f"Script execution failed with exit code {process.returncode}")
 
-            except Exception as e:
-                logging.error(f"Python script failed: {str(e)}")
-                raise RuntimeError(f"Script execution failed: {str(e)}") from e
+        except Exception as e:
+            logging.error(f"Python script failed: {str(e)}")
+            raise RuntimeError(f"Script execution failed: {str(e)}") from e
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)
