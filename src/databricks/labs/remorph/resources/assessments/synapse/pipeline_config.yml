@@ -39,7 +39,7 @@ steps:
     extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/dedicated_sqlpool_extract.py
     mode: overwrite
     frequency: once
-    flag: active
+    flag: inactive
     dependencies:
       - pandas
       - duckdb
@@ -56,7 +56,7 @@ steps:
     extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/serverless_sqlpool_extract.py
     mode: overwrite
     frequency: once
-    flag: inactive
+    flag: active
     dependencies:
       - pandas
       - duckdb

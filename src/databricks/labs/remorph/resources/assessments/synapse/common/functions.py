@@ -191,3 +191,31 @@ def get_max_column_value_duckdb(column_name, table_name, db_path):
         print(f"ERROR: {e}")
     print(f"INFO: max_column_val = {max_column_val}")
     return max_column_val
+
+
+def get_serverless_database_groups(
+    db_path, inclusion_list=None, exclusion_list=None, table_name="serverless_databases"
+):
+    """
+    Reads serverless databases from DuckDB, groups by collation_name,
+    and applies inclusion/exclusion filters.
+
+    Returns:
+        (serverless_database_groups, serverless_database_groups_in_scope)
+    """
+    rows = duckdb.connect(db_path).execute(f"SELECT name, collation_name FROM {table_name}").fetchall()
+
+    serverless_database_groups = {}
+    for name, collation_name in rows:
+        serverless_database_groups.setdefault(collation_name, []).append(name)
+
+    inclusion_list = inclusion_list or []
+    exclusion_list = exclusion_list or []
+
+    serverless_database_groups_in_scope = {}
+    for collation_name, dbs in serverless_database_groups.items():
+        for db in dbs:
+            if (not inclusion_list or db in inclusion_list) and db not in exclusion_list:
+                serverless_database_groups_in_scope.setdefault(collation_name, []).append(db)
+
+    return serverless_database_groups_in_scope

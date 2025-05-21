@@ -95,63 +95,21 @@ class SynapseQueries:
     @staticmethod
     def list_sessions(last_login_time: str | None = None) -> str:
         """Get session list with transformed login names and client IDs"""
-        base_query = """
-                     WITH session_data AS (
-                         SELECT
-                             *,
-                             CURRENT_TIMESTAMP as extract_ts
-                         FROM SYS.DM_PDW_EXEC_SESSIONS
-                         WHERE CHARINDEX('system', LOWER(LOGIN_NAME)) = 0
-                             {login_time_filter}
-                     ),
-                          login_transformed AS (
-                              SELECT
-                                  *,
-                                  CASE
-                                      WHEN LOWER(LOGIN_NAME) LIKE '%@%.%' THEN 'APP'
-                                      ELSE 'USER'
-                                      END as login_user_type,
-                                  CASE
-                                      WHEN LOWER(LOGIN_NAME) LIKE '%@%.%' THEN
-                                          CASE
-                                              WHEN PATINDEX('%@%', LOGIN_NAME) > 0 THEN
-                                                  SUBSTRING(LOGIN_NAME, 1, PATINDEX('%@%', LOGIN_NAME) - 1)
-                                              ELSE 'otherApp'
-                                              END
-                                      ELSE 'otherUser'
-                                      END as login_user
-                              FROM session_data
-                          )
+        return """
                      SELECT
-                         *,
-                         HASHBYTES('SHA2_256', login_user) as login_user_sha2,
-                         HASHBYTES('SHA2_256', CAST(client_id AS VARCHAR)) as client_id_sha2
-                     FROM login_transformed
+                      *,
+                      CURRENT_TIMESTAMP as extract_ts
+                     FROM SYS.DM_PDW_EXEC_SESSIONS
+                     WHERE start_time IS NOT NULL
+                       AND command IS NOT NULL
                      """
-
-        login_time_filter = f"AND login_time > '{last_login_time}'" if last_login_time else ""
-        return base_query.format(login_time_filter=login_time_filter)
 
     @staticmethod
     def list_requests(min_end_time: str | None = None) -> str:
         """Get session request list with command type classification"""
         base_query = """
-                              SELECT
-                                  *,
-                                  CASE
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('SELECT', 'WITH') THEN 'QUERY'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('INSERT', 'UPDATE', 'MERGE', 'DELETE', 'TRUNCATE', 'COPY', 'IF', 'BEGIN', 'DECLARE', 'BUILDREPLICATEDTABLECACHE') THEN 'DML'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('CREATE', 'DROP', 'ALTER') THEN 'DDL'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('EXEC', 'EXECUTE') THEN 'ROUTINE'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) = 'BEGIN'
-                                          AND UPPER(TRIM(SUBSTRING(command, CHARINDEX(' ', command) + 1, CHARINDEX(' ', command + ' ', CHARINDEX(' ', command) + 1) - CHARINDEX(' ', command) - 1))) IN ('TRAN', 'TRANSACTION') THEN 'TRANSACTION_CONTROL'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) = 'END'
-                                          AND UPPER(TRIM(SUBSTRING(command, CHARINDEX(' ', command) + 1, CHARINDEX(' ', command + ' ', CHARINDEX(' ', command) + 1) - CHARINDEX(' ', command) - 1))) IN ('TRAN', 'TRANSACTION') THEN 'TRANSACTION_CONTROL'
-                                      WHEN UPPER(TRIM(SUBSTRING(command, 1, CHARINDEX(' ', command + ' ') - 1))) IN ('COMMIT', 'ROLLBACK') THEN 'TRANSACTION_CONTROL'
-                                      ELSE 'OTHER'
-                                      END as command_type,
-                                  CURRENT_TIMESTAMP as extract_ts,
-                                  {command_redaction}
+                              SELECT *
+                                  CURRENT_TIMESTAMP as extract_ts
                             FROM SYS.DM_PDW_EXEC_REQUESTS
                             WHERE start_time IS NOT NULL
                             AND command IS NOT NULL
@@ -161,7 +119,9 @@ class SynapseQueries:
         end_time_filter = f"AND end_time > '{min_end_time}'" if min_end_time else ""
         command_redaction = "'[REDACTED]' as command"
 
-        return base_query.format(end_time_filter=end_time_filter, command_redaction=command_redaction).strip().rstrip(';')
+        return (
+            base_query.format(end_time_filter=end_time_filter, command_redaction=command_redaction).strip().rstrip(';')
+        )
 
     @staticmethod
     def get_db_storage_info() -> str:
@@ -228,3 +188,39 @@ class SynapseQueries:
             WHERE QS.last_execution_time >= DATEADD(day, -{days}, GETDATE())
             ORDER BY QS.total_elapsed_time DESC
         """
+
+    @staticmethod
+    def list_query_stats(min_last_execution_time) -> str:
+        """
+        get the query stats
+        source for below query:
+        https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-exec-query-stats-transact-sql?view=sql-server-ver16#b-returning-row-count-aggregates-for-a-query
+
+        """
+        return f"""(
+      SELECT QS.*,
+        SUBSTRING(
+          ST.text,
+          (QS.statement_start_offset / 2) + 1,
+          (
+            (
+              CASE
+                statement_end_offset
+                WHEN -1 THEN DATALENGTH(ST.text)
+                ELSE QS.statement_end_offset
+              END - QS.statement_start_offset
+            ) / 2
+          ) + 1
+        ) AS statement_text
+      FROM sys.dm_exec_query_stats AS QS
+        CROSS APPLY sys.dm_exec_sql_text(QS.sql_handle) as ST
+      {"WHERE QS.last_execution_time > '"+min_last_execution_time+"'" if min_last_execution_time else ""}
+    ) as query_stats"""
+
+    @staticmethod
+    def query_requests_history(min_end_time) -> str:
+        return f"""(
+      SELECT * FROM sys.dm_exec_requests_history
+      {"WHERE end_time > '"+min_end_time+"'" if min_end_time else ""}
+      ) as requests_history
+    """
