@@ -197,7 +197,7 @@ class SynapseQueries:
         https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-exec-query-stats-transact-sql?view=sql-server-ver16#b-returning-row-count-aggregates-for-a-query
 
         """
-        return f"""(
+        return f"""
       SELECT QS.*,
         SUBSTRING(
           ST.text,
@@ -214,13 +214,8 @@ class SynapseQueries:
         ) AS statement_text
       FROM sys.dm_exec_query_stats AS QS
         CROSS APPLY sys.dm_exec_sql_text(QS.sql_handle) as ST
-      {"WHERE QS.last_execution_time > '"+min_last_execution_time+"'" if min_last_execution_time else ""}
-    ) as query_stats"""
+      {"WHERE QS.last_execution_time > '"+min_last_execution_time+"'" if min_last_execution_time else ""}"""
 
     @staticmethod
     def query_requests_history(min_end_time) -> str:
-        return f"""(
-      SELECT * FROM sys.dm_exec_requests_history
-      {"WHERE end_time > '"+min_end_time+"'" if min_end_time else ""}
-      ) as requests_history
-    """
+        return f"""SELECT * FROM sys.dm_exec_requests_history {"WHERE end_time > '"+min_end_time+"'" if min_end_time else ""}"""

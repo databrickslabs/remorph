@@ -121,13 +121,13 @@ def execute():
             session_query = SynapseQueries.list_sessions(prev_max_login_time)
 
             session_result = connection.execute(text(session_query))
-            # save_resultset_to_db(session_result, table_name, db_path, mode="append")
+            save_resultset_to_db(session_result, table_name, db_path, mode="append")
 
-            table_name = "session_request"
-            prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
-            session_request_query = SynapseQueries.list_requests(prev_max_end_time)
+            # table_name = "session_request"
+            # prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
+            # session_request_query = SynapseQueries.list_requests(prev_max_end_time)
 
-            session_request_result = connection.execute(text(session_request_query))
+            # session_request_result = connection.execute(text(session_request_query))
             # save_resultset_to_db(session_request_result, table_name, db_path, mode="append")
 
         print(json.dumps({"status": "success", "message": " All data loaded successfully loaded successfully"}))

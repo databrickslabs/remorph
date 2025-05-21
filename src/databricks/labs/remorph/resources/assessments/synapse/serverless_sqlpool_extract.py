@@ -5,6 +5,9 @@ from databricks.labs.remorph.resources.assessments.synapse.common.functions impo
     arguments_loader,
     get_config,
     get_synapse_artifacts_client,
+    save_resultset_to_db,
+    get_serverless_database_groups,
+    get_max_column_value_duckdb
 )
 import zoneinfo
 from databricks.labs.remorph.resources.assessments.synapse.common.profiler_classes import SynapseWorkspace
@@ -12,8 +15,9 @@ from databricks.labs.remorph.resources.assessments.synapse.common.queries import
 from databricks.labs.remorph.resources.assessments.synapse.common.connector import (
     create_credential_manager,
     get_sqlpool_reader,
-)
 
+)
+from sqlalchemy import text
 
 def execute():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,89 +39,83 @@ def execute():
 
             # Databases
             database_query = SynapseQueries.list_databases()
-            connection = get_sqlpool_reader(config, entry['name'])
-            logger.info("Loading 'tables' for pool: %s", entry['name'])
-            print(f"Loading 'tables' for pool: {entry['name']}")
-            result = connection.execute(text(table_query))
-            save_resultset_to_db(result, "serverless_databases", db_path, mode=mode)
+            connection = get_sqlpool_reader(config, 'master', 'serverless_sql_endpoint')
+            logger.info("Loading 'tables' for pool: %s", 'master')
+            print(f"Loading 'tables' for pool: 'master'")
+            result = connection.execute(text(database_query))
+            save_resultset_to_db(result, "serverless_databases", db_path, mode="overwrite")
 
             serverless_database_groups_in_scope = get_serverless_database_groups(db_path)
+            print("*************************************")
+            print(serverless_database_groups_in_scope)
 
             for idx, collation_name in enumerate(serverless_database_groups_in_scope):
-                print(
-                    f"INFO: {idx+1}. Listing {obj_name} for database_groups → {serverless_database_groups_in_scope[collation_name]}"
-                )
                 mode = "overwrite" if idx == 0 else "append"
-                connection = get_sqlpool_reader(config, entry['name'])
+                databases = serverless_database_groups_in_scope[collation_name]
 
-                # tables
-                table_name = serverless_tables
-                table_query = SynapseQueries.list_tables()
-                logger.info(f"Loading '{table_name}' for pool: %s", entry['name'])
-                print(f"Loading '{table_name}' for pool: {entry['name']}")
-                result = connection.execute(text(table_query))
-                save_resultset_to_db(result, table_name, db_path, mode=mode)
+                for db_name in databases:
+                    connection = get_sqlpool_reader(config, db_name, 'serverless_sql_endpoint')
+                    # tables
+                    table_name = 'serverless_tables'
+                    table_query = SynapseQueries.list_tables()
+                    logger.info(f"Loading '{table_name}' for pool: %s", db_name)
+                    print(f"Loading '{table_name}' for pool: {db_name}")
+                    result = connection.execute(text(table_query))
+                    save_resultset_to_db(result, table_name, db_path, mode=mode)
 
-                # columns
-                table_name = "serverless_columns"
-                column_query = SynapseQueries.list_columns()
-                logger.info(f"Loading '{table_name}' for pool: %s", entry['name'])
-                print(f"Loading '{table_name}' for pool: {entry['name']}")
-                result = connection.execute(text(column_query))
-                save_resultset_to_db(result, table_name, db_path, mode=mode)
+                    # columns
+                    table_name = "serverless_columns"
+                    column_query = SynapseQueries.list_columns()
+                    logger.info(f"Loading '{table_name}' for pool: %s", db_name)
+                    print(f"Loading '{table_name}' for pool: {db_name}")
+                    result = connection.execute(text(column_query))
+                    save_resultset_to_db(result, table_name, db_path, mode=mode)
 
-                # views
-                table_name = "serverless_views"
-                view_query = SynapseQueries.list_views()
-                logger.info(f"Loading '{table_name}' for pool: %s", entry['name'])
-                print(f"Loading '{table_name}' for pool: {entry['name']}")
-                result = connection.execute(text(view_query))
-                save_resultset_to_db(result, table_name, db_path, mode=mode)
+                    # views
+                    table_name = "serverless_views"
+                    view_query = SynapseQueries.list_views()
+                    logger.info(f"Loading '{table_name}' for pool: %s", db_name)
+                    print(f"Loading '{table_name}' for pool: {db_name}")
+                    result = connection.execute(text(view_query))
+                    save_resultset_to_db(result, table_name, db_path, mode=mode)
 
-                # routines
-                table_name = "serverless_routines"
-                routine_query = SynapseQueries.list_routines()
-                logger.info(f"Loading '{table_name}' for pool: %s", entry['name'])
-                print(f"Loading '{table_name}' for pool: {entry['name']}")
-                result = connection.execute(text(routine_query))
-                save_resultset_to_db(result, table_name, db_path, mode=mode)
+                    # routines
+                    table_name = "serverless_routines"
+                    routine_query = SynapseQueries.list_routines()
+                    logger.info(f"Loading '{table_name}' for pool: %s", db_name)
+                    print(f"Loading '{table_name}' for pool: {db_name}")
+                    result = connection.execute(text(routine_query))
+                    save_resultset_to_db(result, table_name, db_path, mode=mode)
 
-                # storage_info
-                table_name = "serverless_storage_info"
-                storage_info_query = SynapseQueries.get_db_storage_info()
-                logger.info(f"Loading '{table_name}' for pool: %s", entry['name'])
-                print(f"Loading '{table_name}' for pool: {entry['name']}")
-                print(storage_info_query)
-                result = connection.execute(text(storage_info_query))
-                save_resultset_to_db(result, table_name, db_path, mode=mode)
+                    mode="append"
 
             # Activity Extract:
-            table_name = "sessions"
-            prev_max_login_time = get_max_column_value_duckdb("login_time", table_name, db_path)
-            session_query = SynapseQueries.list_sessions(prev_max_login_time)
+            # table_name = "sessions"
+            # prev_max_login_time = get_max_column_value_duckdb("login_time", table_name, db_path)
+            # session_query = SynapseQueries.list_sessions(prev_max_login_time)
 
-            session_result = connection.execute(text(session_query))
+            # session_result = connection.execute(text(session_query))
             # save_resultset_to_db(session_result, table_name, db_path, mode="append")
 
-            table_name = "session_request"
-            prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
-            session_request_query = SynapseQueries.list_requests(prev_max_end_time)
+            # table_name = "session_request"
+            # prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
+            # session_request_query = SynapseQueries.list_requests(prev_max_end_time)
 
-            session_request_result = connection.execute(text(session_request_query))
+            # session_request_result = connection.execute(text(session_request_query))
             # save_resultset_to_db(session_request_result, table_name, db_path, mode="append")
 
-            table_name = "query_stats"
+            table_name = "serverless_query_stats"
             max_last_execution_time = get_max_column_value_duckdb("last_execution_time", table_name, db_path)
-            session_query = SynapseQueries.list_query_stats(max_last_execution_time)
+            query_stats = SynapseQueries.list_query_stats(max_last_execution_time)
 
-            session_result = connection.execute(text(session_query))
+            session_result = connection.execute(text(query_stats))
             save_resultset_to_db(session_result, table_name, db_path, mode="append")
 
-            table_name = "requests_history"
+            table_name = "serverless_requests_history"
             max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
-            session_request_query = SynapseQueries.query_requests_history(max_end_time)
+            query_history = SynapseQueries.query_requests_history(max_end_time)
 
-            session_request_result = connection.execute(text(session_request_query))
+            session_request_result = connection.execute(text(query_history))
             save_resultset_to_db(session_request_result, table_name, db_path, mode="append")
 
         else:

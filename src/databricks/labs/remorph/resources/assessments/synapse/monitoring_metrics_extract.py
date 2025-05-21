@@ -69,8 +69,8 @@ def execute():
                 if not dedicated_sql_pools_profiling_list
                 else [pool for pool in all_dedicated_pools_list if pool['name'] in dedicated_sql_pools_profiling_list]
             )
-
-            logger.info(f" Pool names to extract metrics: {[entry['name'] for entry in dedicated_pools_to_profile]}")
+            msg = f"Pool names to extract metrics: {[entry['name'] for entry in dedicated_pools_to_profile]}"
+            logger.info(msg)
 
         if exclude_dedicated_sql_pools:
             logger.info(
@@ -85,6 +85,8 @@ def execute():
                 logger.info(f"{'*'*70}")
                 logger.info(f"{idx+1}) Pool Name: {pool_name}")
                 logger.info(f"   Resource id: {pool_resoure_id}")
+                print(f"{idx+1}) Pool Name: {pool_name}")
+                print(f"   Resource id: {pool_resoure_id}")
 
                 pool_metrics_df = synapse_metrics.get_dedicated_sql_pool_metrics(pool_resoure_id)
                 if idx == 0:
@@ -94,8 +96,8 @@ def execute():
 
             # Insert the combined metrics into DuckDB
             step_name = "dedicated_pool_metrics"
+            print(f"Loading data for {step_name}")
             insert_df_to_duckdb(pools_df, db_path, step_name)
-            logger.info(">End")
 
         # Spark Pool  Metrics
 

@@ -353,7 +353,7 @@ class SynapseMetrics:
             ],
         )
         # Fetch Metrics
-        yield from self.fetch_metrics(response.metrics)
+        return self.fetch_metrics(response.metrics)
 
     # get_spark_pool_metrics
     def get_spark_pool_metrics(self, resource_id):
@@ -380,7 +380,7 @@ class SynapseMetrics:
             ],
         )
         # Fetch Metrics
-        yield from self.fetch_metrics(response.metrics)
+        return self.fetch_metrics(response.metrics)
 
     # get_workspace_level_metrics
     def get_workspace_level_metrics(self, resource_id):

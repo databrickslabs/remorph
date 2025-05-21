@@ -141,34 +141,43 @@ def get_azure_metrics_query_client():
     """
     return MetricsQueryClient(credential=DefaultAzureCredential())
 
-
 def save_resultset_to_db(result, table_name: str, db_path: str, mode: str, batch_size: int = 1000):
     try:
-        conn = duckdb.connect(db_path)
-        columns = result.keys()
-        schema = ' STRING, '.join(columns) + ' STRING'
+        with duckdb.connect(db_path) as conn:
+            columns = result.keys()
+            schema = ', '.join([f"{col} STRING" for col in columns])
+            print(f"schema: {schema} for table: {table_name}")
 
-        # Handle write modes
-        if mode == 'overwrite':
-            conn.execute(f"CREATE OR REPLACE TABLE {table_name} ({schema})")
-        elif mode == 'append' and table_name not in conn.get_table_names(""):
-            conn.execute(f"CREATE TABLE {table_name} ({schema})")
+            # Fetch the first batch
+            first_rows = result.fetchmany(batch_size)
+            print(first_rows)
+            if not first_rows:
+                logging.info(f"No data to save for table {table_name}.")
+                return
 
-        # Batch insert using prepared statements
-        placeholders = ', '.join(['?' for _ in columns])
-        insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+            # Handle write modes
+            if mode == 'overwrite':
+                conn.execute(f"CREATE OR REPLACE TABLE {table_name} ({schema})")
+            elif mode == 'append' and table_name not in conn.get_table_names(""):
+                conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ({schema})")
+            print("Tables created *********")
 
-        # Fetch and insert rows in batches
-        while True:
-            rows = result.fetchmany(batch_size)
-            if not rows:
-                break
-            conn.executemany(insert_query, rows)
-        conn.close()
+            # Batch insert using prepared statements
+            placeholders = ', '.join(['?' for _ in columns])
+            insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+
+            # Insert the first batch
+            conn.executemany(insert_query, first_rows)
+
+            # Continue with the rest
+            while True:
+                rows = result.fetchmany(batch_size)
+                if not rows:
+                    break
+                conn.executemany(insert_query, rows)
     except Exception as e:
         logging.error(f"Error in save_resultset_to_db for table {table_name}: {str(e)}")
         print(f"ERROR: save_resultset_to_db for table {table_name}: {e}")
-
 
 def get_max_column_value_duckdb(column_name, table_name, db_path):
     """

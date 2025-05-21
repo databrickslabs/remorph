@@ -4,10 +4,10 @@ extract_folder: "/tmp/data/synapse_assessment"
 steps:
   - name: workspace_info
     type: python
-    extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/workspace_extract.py
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/workspace_extract.py
     mode: overwrite
     frequency: once
-    flag: inactive
+    flag: active
     dependencies:
       - pandas
       - duckdb
@@ -20,10 +20,10 @@ steps:
       - pyodbc
   - name: monitoring_metrics
     type: python
-    extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/monitoring_metrics_extract.py
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/monitoring_metrics_extract.py
     mode: overwrite
     frequency: once
-    flag: inactive
+    flag: active
     dependencies:
       - pandas
       - duckdb
@@ -36,10 +36,10 @@ steps:
       - pyodbc
   - name: dedicated_sqlpool_extract
     type: python
-    extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/dedicated_sqlpool_extract.py
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/dedicated_sqlpool_extract.py
     mode: overwrite
     frequency: once
-    flag: inactive
+    flag: active
     dependencies:
       - pandas
       - duckdb
@@ -53,7 +53,7 @@ steps:
 
   - name: serverless_sqlpool_extract
     type: python
-    extract_source: /Users/sundar.shankar/IdeaProjects/remorph/src/databricks/labs/remorph/resources/assessments/synapse/serverless_sqlpool_extract.py
+    extract_source: src/databricks/labs/remorph/resources/assessments/synapse/serverless_sqlpool_extract.py
     mode: overwrite
     frequency: once
     flag: active

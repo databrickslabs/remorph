@@ -36,7 +36,7 @@ def create_credential_manager(file_path: Path):
     return CredentialManager(loader, secret_providers)
 
 
-def get_sqlpool_reader(config: dict, db_name: str):
+def get_sqlpool_reader(config: dict, db_name: str, endpoint_key = 'dedicated_sql_endpoint'):
     """
     :param config:
     :param db_name:
@@ -52,7 +52,7 @@ def get_sqlpool_reader(config: dict, db_name: str):
         "mssql+pyodbc",
         username=config['sql_user'],
         password=config['sql_password'],
-        host=config['dedicated_sql_endpoint'],
+        host=config[endpoint_key],
         port=config.get('port', 1433),
         database=db_name,
         query=query_params,
