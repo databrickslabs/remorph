@@ -33,6 +33,9 @@ setup_spark_remote:
 test:
 	hatch run test
 
+test-install:
+	hatch run test-install
+
 integration: setup_spark_remote
 	hatch run integration
 
