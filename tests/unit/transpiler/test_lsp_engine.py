@@ -11,8 +11,11 @@ from lsprotocol.types import Position, Range, TextEdit
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import ChangeManager, LSPEngine
 from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity, TranspileError
+from databricks.labs.remorph.transpiler.lsp_engine import (
+    LSPEngine,
+    ChangeManager,
+)
 from tests.unit.conftest import path_to_resource
 
 
@@ -51,6 +54,7 @@ async def test_sets_env_variables(lsp_engine, transpile_config):
 
 
 async def test_passes_options(lsp_engine, transpile_config):
+    transpile_config = dataclasses.replace(transpile_config, transpiler_options={"experimental": True})
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "experimental=True" in log  # see environment in lsp_transpiler/config.yml

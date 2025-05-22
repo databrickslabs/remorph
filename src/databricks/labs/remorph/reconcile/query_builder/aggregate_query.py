@@ -181,7 +181,7 @@ class AggregateQueryBuilder(QueryBuilder):
             layer=self.layer,
             group_by_columns=group_list[0].group_by_columns,
             group_by_columns_as_str=group_list[0].group_by_columns_as_str,
-            query=query_exp.sql(dialect=self.engine),
+            query=query_exp.sql(dialect=self._dialect),
             rules=query_agg_rules,
         )
         return agg_query_rules

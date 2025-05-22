@@ -14,7 +14,6 @@ from databricks.labs.remorph.config import (
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -23,6 +22,7 @@ from databricks.labs.remorph.reconcile.compare import (
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,

@@ -77,7 +77,7 @@ def test_deploy_existing_job(snowflake_recon_config):
     job_deployer = JobDeployment(workspace_client, installation, install_state, product_info)
     job_deployer.deploy_recon_job(name, snowflake_recon_config, "remorph-x.y.z-py3-none-any.whl")
     workspace_client.jobs.reset.assert_called_once()
-    assert install_state.jobs[name] == str(job.job_id)
+    assert str(install_state.jobs[name]) == str(job.job_id)
 
 
 def test_deploy_missing_job(snowflake_recon_config):
