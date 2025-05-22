@@ -4,7 +4,7 @@ from functools import reduce
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.utils import get_dialect
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,

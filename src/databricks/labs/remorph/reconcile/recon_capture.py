@@ -8,8 +8,8 @@ from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.utils import get_dialect_name
 from databricks.labs.remorph.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect_name
 from databricks.labs.remorph.reconcile.recon_config import TableThresholds
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,

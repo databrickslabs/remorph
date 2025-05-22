@@ -6,9 +6,9 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException, InvalidSnowflakePemPrivateKey
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
 from databricks.sdk.errors import NotFound

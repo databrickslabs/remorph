@@ -7,8 +7,9 @@ from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDa
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.sdk import WorkspaceClient
+
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 
 
 def test_create_adapter_for_snowflake_dialect():

@@ -8,7 +8,6 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
@@ -23,6 +22,7 @@ from databricks.labs.remorph.reconcile.compare import (
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,

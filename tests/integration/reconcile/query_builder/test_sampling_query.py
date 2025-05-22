@@ -1,6 +1,6 @@
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
-from databricks.labs.remorph.reconcile.utils import get_dialect
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )

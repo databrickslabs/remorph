@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 
 from databricks.labs.remorph.reconcile.connectors.sql_server import SQLServerDataSource
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
 

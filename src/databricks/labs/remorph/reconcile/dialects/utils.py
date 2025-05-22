@@ -26,5 +26,12 @@ def get_dialect(dialect: str) -> Dialect:
     return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(dialect))
 
 
+def get_dialect_name(dialect: Dialect) -> str:
+    try:
+        return Dialects(dialect).value
+    except ValueError:
+        return "universal"
+
+
 def dialect_exists(name: str) -> bool:
     return SQLGLOT_DIALECTS.get(name, None) is not None

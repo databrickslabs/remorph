@@ -3,8 +3,8 @@ from pathlib import Path
 
 from pyspark.sql import Row, SparkSession
 
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.config import DatabaseConfig, ReconcileMetadataConfig
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
 )

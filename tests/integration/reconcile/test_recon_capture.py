@@ -7,8 +7,8 @@ from pyspark.sql import Row, SparkSession
 from pyspark.sql.functions import countDistinct
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.config import DatabaseConfig, ReconcileMetadataConfig
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import WriteToTableException, ReadAndWriteWithVolumeException
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,

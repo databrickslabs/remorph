@@ -14,10 +14,10 @@ from databricks.labs.remorph.config import (
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
-from databricks.labs.remorph.reconcile.utils import get_dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,

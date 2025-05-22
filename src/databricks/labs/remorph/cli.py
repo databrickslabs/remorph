@@ -24,8 +24,8 @@ from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompt
 from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
 from databricks.labs.remorph.install import WorkspaceInstaller
 from databricks.labs.remorph.lineage import lineage_generator
+from databricks.labs.remorph.reconcile.dialects.utils import dialect_exists
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
-from databricks.labs.remorph.reconcile.utils import dialect_exists
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
 
 

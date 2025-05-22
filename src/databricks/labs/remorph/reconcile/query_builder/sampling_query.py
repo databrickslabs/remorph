@@ -4,7 +4,7 @@ import sqlglot.expressions as exp
 from sqlglot import select
 from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.reconcile.utils import get_dialect_name
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect_name
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,

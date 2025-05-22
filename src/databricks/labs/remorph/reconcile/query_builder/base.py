@@ -4,7 +4,7 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.reconcile.utils import get_dialect, get_dialect_name
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect, get_dialect_name
 from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
