@@ -79,7 +79,8 @@ class TranspilerInstaller(abc.ABC):
             with request.urlopen(url) as server:
                 text = server.read()
                 return cls._get_maven_version(text)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
             return None
 
     @classmethod
@@ -112,20 +113,25 @@ class TranspilerInstaller(abc.ABC):
     def get_pypi_version(cls, product_name: str) -> str | None:
         try:
             with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-                text = server.read()
+                text: bytes = server.read()
             data: dict[str, Any] = loads(text)
             return data.get("info", {}).get('version', None)
-        except HTTPError:
+        except HTTPError as e:
+            logger.error(f"Error while fetching PyPI metadata: {product_name}", exc_info=e)
             return None
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str):
+    def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
         current_version = cls.get_installed_version(product_name)
         latest_version = cls.get_pypi_version(pypi_name)
+        if latest_version is None:
+            logger.warning(f"Could not determine the latest version of {pypi_name}")
+            logger.error(f"Failed to install transpiler: {product_name}")
+            return None
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
             return None
-        logger.info(f"Installing {pypi_name} v{latest_version}")
+        logger.debug(f"Installing {pypi_name} v{latest_version}")
         product_path = cls.transpilers_path() / product_name
         if current_version is not None:
             product_path.rename(f"{product_name}-saved")
@@ -144,7 +150,7 @@ class TranspilerInstaller(abc.ABC):
                 rmtree(f"{product_path!s}-saved")
             return install_path
         except CalledProcessError as e:
-            logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
+            logger.error(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
@@ -224,19 +230,23 @@ class RCTInstaller(TranspilerInstaller):
 
 
 class MorpheusInstaller(TranspilerInstaller):
-    MORPHEUS_TRANSPILER_NAME = "morpheus"
+    MORPHEUS_TRANSPILER_NAME = "databricks-morph-plugin"
     MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
 
     @classmethod
-    def install(cls):
+    def install(cls) -> None:
         current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
+        if latest_version is None:
+            logger.warning(
+                f"Could not determine the latest version of Databricks Morpheus transpiler ({cls.MORPHEUS_TRANSPILER_GROUP_NAME}:{cls.MORPHEUS_TRANSPILER_NAME})"
+            )
+            logger.error("Failed to install transpiler: Databricks Morpheus transpiler")
+            return
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
-        if latest_version is None:
-            return
-        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
+        logger.debug(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
         if current_version is not None:
             product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
@@ -260,7 +270,7 @@ class MorpheusInstaller(TranspilerInstaller):
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
         else:
-            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
+            logger.error(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
@@ -299,10 +309,10 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
+        logger.debug(f"Initializing workspace installation for module: {module} (config: {config})")
         if module in {"transpile", "all"}:
             self.install_rct()
             self.install_morpheus()
-        logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
             config = self.configure(module)
         if self._is_testing():

@@ -19,6 +19,7 @@ def test_gets_installed_version():
 
 def test_gets_maven_version():
     version = TranspilerInstaller.get_maven_version("com.databricks", "databricks-connect")
+    assert version, "Maybe maven search is down ? (check https://status.maven.org/)"
     check_valid_version(version)
 
 
