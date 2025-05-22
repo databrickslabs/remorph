@@ -131,6 +131,13 @@ class DatabaseConfig:
     target_schema: str
     source_catalog: str | None = None
 
+    def __post_init__(self):
+        # TODO: Better we handle this per dialect. Here Assuming object names are case insensitive in source and target.
+        self.source_schema = self.source_schema.lower()
+        self.target_schema = self.target_schema.lower()
+        self.target_catalog = self.target_catalog.lower()
+        self.source_catalog = self.source_catalog.lower() if self.source_catalog else self.source_catalog
+
 
 @dataclass
 class TranspileResult:
