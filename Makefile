@@ -13,9 +13,10 @@ setup_python:
 
 
 dev:
+	which hatch > /dev/null || pip3 install hatch
 	hatch env create
-	hatch run pip install --upgrade pip
-	hatch run pip install -e '.[test]'
+	hatch run pip3 install --upgrade pip
+	hatch run pip3 install -e '.[test]'
 	hatch run which python
 	@echo "Hatch has created the above virtual environment. Please activate it using 'source .venv/bin/activate' and also select the .venv/bin/python interpreter in your IDE."
 
@@ -49,3 +50,16 @@ python_coverage_report:
 
 dialect_coverage_report: clean_coverage_dir python_coverage_report
 	hatch run python src/databricks/labs/remorph/coverage/local_report.py
+
+
+docs-build:
+	yarn --cwd docs/remorph build
+
+docs-serve-dev:
+	yarn --cwd docs/remorph start
+
+docs-install:
+	yarn --cwd docs/remorph install
+
+docs-serve: docs-build
+	yarn --cwd docs/remorph serve

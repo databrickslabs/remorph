@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import shutil
 from collections.abc import Iterable
 from json import loads, dumps
 import logging
@@ -7,9 +8,9 @@ import os
 from shutil import rmtree, move
 from subprocess import run, CalledProcessError
 import sys
-from typing import Any
+from typing import Any, cast
 from urllib import request
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -28,13 +29,14 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     RemorphConfigs,
     ReconcileMetadataConfig,
+    LSPConfigOptionV1,
+    LSPPromptMethod,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 from databricks.labs.remorph.transpiler.lsp_engine import LSPConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +72,27 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_maven_version(cls, group_id: str, artifact_id: str) -> str | None:
-        url = f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-        with request.urlopen(url) as server:
-            text = server.read()
+        try:
+            url = (
+                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
+            )
+            with request.urlopen(url) as server:
+                text = server.read()
+                return cls._get_maven_version(text)
+        except HTTPError as e:
+            logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
+            return None
+
+    @classmethod
+    def _get_maven_version(cls, text: str):
         data: dict[str, Any] = loads(text)
-        return data.get("response", {}).get('docs', [{}])[0].get("v", None)
+        response: dict[str, Any] | None = data.get("response", None)
+        if not response:
+            return None
+        docs: list[dict[str, Any]] = response.get('docs', None)
+        if not docs or len(docs) < 1:
+            return None
+        return docs[0].get("v", None)
 
     @classmethod
     def download_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
@@ -93,19 +111,27 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_pypi_version(cls, product_name: str) -> str | None:
-        with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
-            text = server.read()
-        data: dict[str, Any] = loads(text)
-        return data.get("info", {}).get('version', None)
+        try:
+            with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
+                text: bytes = server.read()
+            data: dict[str, Any] = loads(text)
+            return data.get("info", {}).get('version', None)
+        except HTTPError as e:
+            logger.error(f"Error while fetching PyPI metadata: {product_name}", exc_info=e)
+            return None
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str):
+    def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
         current_version = cls.get_installed_version(product_name)
         latest_version = cls.get_pypi_version(pypi_name)
+        if latest_version is None:
+            logger.warning(f"Could not determine the latest version of {pypi_name}")
+            logger.error(f"Failed to install transpiler: {product_name}")
+            return None
         if current_version == latest_version:
             logger.info(f"{pypi_name} v{latest_version} already installed")
-            return
-        logger.info(f"Installing {pypi_name} v{latest_version}")
+            return None
+        logger.debug(f"Installing {pypi_name} v{latest_version}")
         product_path = cls.transpilers_path() / product_name
         if current_version is not None:
             product_path.rename(f"{product_name}-saved")
@@ -122,12 +148,14 @@ class TranspilerInstaller(abc.ABC):
             logger.info(f"Successfully installed {pypi_name} v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
+            return install_path
         except CalledProcessError as e:
-            logger.info(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
+            logger.error(f"Failed to install {pypi_name} v{latest_version}", exc_info=e)
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
                 renamed.rename(product_path.name)
+            return None
 
     @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
@@ -153,22 +181,39 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def transpiler_config_path(cls, transpiler_name):
-        config = cls.all_transpiler_configs()[transpiler_name]
+        config = cls.all_transpiler_configs().get(transpiler_name, None)
+        if not config:
+            raise ValueError(f"No such transpiler: {transpiler_name}")
         return f"{config.path!s}"
 
     @classmethod
+    def transpiler_config_options(cls, transpiler_name, source_dialect) -> list[LSPConfigOptionV1]:
+        config = cls.all_transpiler_configs().get(transpiler_name, None)
+        if not config:
+            return []  # gracefully returns an empty list, since this can only happen during testing
+        return config.options.get(source_dialect, config.options.get("all", []))
+
+    @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
-        all_files = os.listdir(cls.transpilers_path())
-        for file in all_files:
-            config = cls._transpiler_config(cls.transpilers_path() / file)
-            if config:
-                yield config
+        path = cls.transpilers_path()
+        if path.exists():
+            all_files = os.listdir(path)
+            for file in all_files:
+                config = cls._transpiler_config(cls.transpilers_path() / file)
+                if config:
+                    yield config
 
     @classmethod
     def _transpiler_config(cls, path: Path) -> LSPConfig | None:
+        if not path.is_dir() or not (path / "lib").is_dir():
+            return None
+        config_path = path / "lib" / "config.yml"
+        if not config_path.is_file():
+            return None
         try:
-            return LSPConfig.load(path / "config.yml")
-        except ValueError:
+            return LSPConfig.load(config_path)
+        except ValueError as e:
+            logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
 
 
@@ -178,21 +223,30 @@ class RCTInstaller(TranspilerInstaller):
 
     @classmethod
     def install(cls):
-        cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        install_path = cls.install_from_pypi(cls.RCT_TRANSPILER_NAME, cls.RCT_TRANSPILER_PYPI_NAME)
+        if install_path:
+            config = TranspilerInstaller.resources_folder() / "rct" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
 
 
 class MorpheusInstaller(TranspilerInstaller):
-    MORPHEUS_TRANSPILER_NAME = "morpheus"
+    MORPHEUS_TRANSPILER_NAME = "databricks-morph-plugin"
     MORPHEUS_TRANSPILER_GROUP_NAME = "com.databricks.labs"
 
     @classmethod
-    def install(cls):
+    def install(cls) -> None:
         current_version = cls.get_installed_version(cls.MORPHEUS_TRANSPILER_NAME)
         latest_version = cls.get_maven_version(cls.MORPHEUS_TRANSPILER_GROUP_NAME, cls.MORPHEUS_TRANSPILER_NAME)
+        if latest_version is None:
+            logger.warning(
+                f"Could not determine the latest version of Databricks Morpheus transpiler ({cls.MORPHEUS_TRANSPILER_GROUP_NAME}:{cls.MORPHEUS_TRANSPILER_NAME})"
+            )
+            logger.error("Failed to install transpiler: Databricks Morpheus transpiler")
+            return
         if current_version == latest_version:
             logger.info(f"Databricks Morpheus transpiler v{latest_version} already installed")
             return
-        logger.info(f"Installing Databricks Morpheus transpiler v{latest_version}")
+        logger.debug(f"Installing Databricks Morpheus transpiler v{latest_version}")
         product_path = cls.transpilers_path() / cls.MORPHEUS_TRANSPILER_NAME
         if current_version is not None:
             product_path.rename(f"{cls.MORPHEUS_TRANSPILER_NAME}-saved")
@@ -210,11 +264,13 @@ class MorpheusInstaller(TranspilerInstaller):
             version_data = {"version": f"v{latest_version}", "date": str(datetime.now())}
             version_path = state_path / "version.json"
             version_path.write_text(dumps(version_data), "utf-8")
+            config = TranspilerInstaller.resources_folder() / "morpheus" / "lib" / "config.yml"
+            shutil.copyfile(str(config), str(install_path / "config.yml"))
             logger.info(f"Successfully installed Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(f"{product_path!s}-saved")
         else:
-            logger.info(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
+            logger.error(f"Failed to install Databricks Morpheus transpiler v{latest_version}")
             if current_version is not None:
                 rmtree(str(product_path))
                 renamed = Path(f"{product_path!s}-saved")
@@ -253,9 +309,10 @@ class WorkspaceInstaller:
         module: str,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        self.install_rct()
-        self.install_morpheus()
-        logger.info(f"Installing Remorph v{self._product_info.version()}")
+        logger.debug(f"Initializing workspace installation for module: {module} (config: {config})")
+        if module in {"transpile", "all"}:
+            self.install_rct()
+            self.install_morpheus()
         if not config:
             config = self.configure(module)
         if self._is_testing():
@@ -321,7 +378,8 @@ class WorkspaceInstaller:
             catalog_name = self._configure_catalog()
             schema_name = self._configure_schema(catalog_name, "transpile")
             self._has_necessary_access(catalog_name, schema_name)
-            runtime_config = self._configure_runtime()
+            warehouse_id = self._resource_configurator.prompt_for_warehouse_setup(TRANSPILER_WAREHOUSE_PREFIX)
+            runtime_config = {"warehouse_id": warehouse_id}
 
         config = dataclasses.replace(
             default_config,
@@ -352,6 +410,7 @@ class WorkspaceInstaller:
             transpiler_name = next(t for t in transpilers)
             logger.info(f"Remorph will use the {transpiler_name} transpiler")
         transpiler_config_path = self._transpiler_config_path(transpiler_name)
+        transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
         input_source = self._prompts.question("Enter input SQL path (directory/file)")
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
@@ -361,12 +420,28 @@ class WorkspaceInstaller:
 
         return TranspileConfig(
             transpiler_config_path=transpiler_config_path,
+            transpiler_options=transpiler_options,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
             input_source=input_source,
             output_folder=output_folder,
             error_file_path=error_file_path,
         )
+
+    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any]:
+        config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
+        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
+
+    def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
+        if config_option.method == LSPPromptMethod.FORCE:
+            return config_option.default
+        if config_option.method == LSPPromptMethod.CONFIRM:
+            return self._prompts.confirm(config_option.prompt)
+        if config_option.method == LSPPromptMethod.QUESTION:
+            return self._prompts.question(config_option.prompt, default=config_option.default)
+        if config_option.method == LSPPromptMethod.CHOICE:
+            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
+        raise ValueError(f"Unsupported prompt method: {config_option.method}")
 
     def _configure_catalog(
         self,
@@ -382,18 +457,6 @@ class WorkspaceInstaller:
             catalog,
             default_schema_name,
         )
-
-    def _configure_runtime(self) -> dict[str, str]:
-        if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
-            warehouse_id = self._resource_configurator.prompt_for_warehouse_setup(TRANSPILER_WAREHOUSE_PREFIX)
-            return {"warehouse_id": warehouse_id}
-
-        if self._ws.config.cluster_id:
-            logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
-            return {"cluster_id": self._ws.config.cluster_id}
-
-        cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
-        return {"cluster_id": cluster_id}
 
     def _configure_reconcile(self) -> ReconcileConfig:
         try:

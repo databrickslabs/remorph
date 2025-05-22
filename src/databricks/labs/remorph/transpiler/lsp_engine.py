@@ -5,48 +5,42 @@ import asyncio
 import logging
 import os
 from collections.abc import Callable, Sequence
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
 import attrs
 import yaml
-
 from lsprotocol import types as types_module
 from lsprotocol.types import (
-    InitializeParams,
-    ClientCapabilities,
-    InitializeResult,
     CLIENT_REGISTER_CAPABILITY,
-    RegistrationParams,
-    Registration,
-    TextEdit,
-    Diagnostic,
-    DidOpenTextDocumentParams,
-    TextDocumentItem,
-    DidCloseTextDocumentParams,
-    TextDocumentIdentifier,
     METHOD_TO_TYPES,
-    LanguageKind,
-    Range as LSPRange,
-    Position as LSPPosition,
+    ClientCapabilities,
+    ClientInfo,
+    Diagnostic,
     DiagnosticSeverity,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    InitializeParams,
+    InitializeResult,
+    LanguageKind,
 )
-from pygls.lsp.client import BaseLanguageClient
+from lsprotocol.types import Position as LSPPosition
+from lsprotocol.types import Range as LSPRange
+from lsprotocol.types import Registration, RegistrationParams, TextDocumentIdentifier, TextDocumentItem, TextEdit
 from pygls.exceptions import FeatureRequestError
+from pygls.lsp.client import BaseLanguageClient
 
 from databricks.labs.blueprint.wheels import ProductInfo
-
-from databricks.labs.remorph.config import TranspileConfig, TranspileResult
+from databricks.labs.remorph.config import LSPConfigOptionV1, TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
-    TranspileError,
+    CodePosition,
+    CodeRange,
     ErrorKind,
     ErrorSeverity,
-    CodeRange,
-    CodePosition,
+    TranspileError,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,10 +64,7 @@ class _LSPRemorphConfigV1:
         dialects = data.get("dialects", [])
         if len(dialects) == 0:
             raise ValueError("Missing 'dialects' entry")
-        env_list = data.get("environment", [])
-        env_vars: dict[str, str] = {}
-        for env_var in env_list:
-            env_vars = env_vars | env_var
+        env_vars = data.get("environment", {})
         command_line = data.get("command_line", [])
         if len(command_line) == 0:
             raise ValueError("Missing 'command_line' entry")
@@ -84,6 +75,7 @@ class _LSPRemorphConfigV1:
 class LSPConfig:
     path: Path
     remorph: _LSPRemorphConfigV1
+    options: dict[str, list[LSPConfigOptionV1]]
     custom: dict[str, Any]
 
     @property
@@ -100,8 +92,12 @@ class LSPConfig:
         if not isinstance(remorph_data, dict):
             raise ValueError(f"Invalid transpiler config, expecting a 'remorph' dict entry, got {remorph_data}")
         remorph = _LSPRemorphConfigV1.parse(remorph_data)
+        options_data = data.get("options", {})
+        if not isinstance(options_data, dict):
+            raise ValueError(f"Invalid transpiler config, expecting an 'options' dict entry, got {options_data}")
+        options = LSPConfigOptionV1.parse_all(options_data)
         custom = data.get("custom", {})
-        return LSPConfig(path, remorph, custom)
+        return LSPConfig(path, remorph, options, custom)
 
 
 def lsp_feature(
@@ -179,9 +175,8 @@ METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
 # subclass BaseLanguageClient so we can override stuff when required
 class _LanguageClient(BaseLanguageClient):
 
-    def __init__(self):
-        version = ProductInfo.from_class(type(self)).version()
-        super().__init__("Remorph", version)
+    def __init__(self, name: str, version: str) -> None:
+        super().__init__(name, version)
         self._transpile_to_databricks_capability: Registration | None = None
         self._register_lsp_features()
 
@@ -203,18 +198,23 @@ class _LanguageClient(BaseLanguageClient):
             logger.debug(f"Unknown capability: {registration.method}")
 
     async def transpile_document_async(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
-        if self.stopped:
-            raise RuntimeError("Client has been stopped.")
-        await self._await_for_transpile_capability()
-        return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
+        """Transpile a document to Databricks SQL.
 
-    async def _await_for_transpile_capability(self):
-        for _ in range(1, 10):
-            if self.transpile_to_databricks_capability:
-                return
-            await asyncio.sleep(0.1)
+        The caller is responsible for ensuring that the LSP server is capable of handling this request.
+
+        Args:
+            params: The parameters for the transpile request to forward to the LSP server.
+        Returns:
+            The result of the transpile request, from the LSP server.
+        Raises:
+            IllegalStateException: If the client has been stopped or the server hasn't (yet) signalled that it is
+                capable of transpiling documents to Databricks SQL.
+        """
+        if self.stopped:
+            raise IllegalStateException("Client has been stopped.")
         if not self.transpile_to_databricks_capability:
-            raise FeatureRequestError(f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability")
+            raise IllegalStateException("Client has not yet registered its transpile capability.")
+        return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
     # can't use @client.feature because it requires a global instance
     def _register_lsp_features(self):
@@ -228,6 +228,31 @@ class _LanguageClient(BaseLanguageClient):
             return func(self, params)
 
         return wrapper
+
+    async def start_io(self, cmd: str, *args, **kwargs):
+        await super().start_io(cmd, *args, **kwargs)
+        # forward stderr
+        task = asyncio.create_task(self.pipe_stderr())
+        self._async_tasks.append(task)
+
+    async def pipe_stderr(self) -> None:
+        server = self._server
+        assert server is not None
+        stderr = server.stderr
+        assert stderr is not None
+        while not self._stop_event.is_set():
+            data: bytes = await stderr.readline()
+            if not data:
+                return
+            # Invalid UTF-8 isn't great, but we can at least log it with the replacement character rather
+            # than dropping it silently or triggering an exception.
+            message = data.decode("utf-8", errors="replace").strip()
+            # Although information may arrive via stderr, it's generally informational in nature and doesn't
+            # necessarily represent an error
+            # TODO: analyze message and log it accordingly (info/war/error...).
+            logger.info(message)
+            if not data.endswith(b"\n"):
+                break
 
 
 class ChangeManager(abc.ABC):
@@ -289,11 +314,13 @@ class ChangeManager(abc.ABC):
 
     @classmethod
     def _is_full_document_change(cls, lines: list[str], change: TextEdit) -> bool:
+        # A range's end is exclusive. Therefore full document range goes from (0, 0) to (l, 0) where l is the number
+        # of lines in the document.
         return (
-            change.range.start.line <= 0
-            and change.range.start.character <= 0
-            and change.range.end.line >= len(lines) - 1
-            and change.range.end.character >= len(lines[-1])
+            change.range.start.line == 0
+            and change.range.start.character == 0
+            and change.range.end.line >= len(lines)
+            and change.range.end.character >= 0
         )
 
 
@@ -348,10 +375,17 @@ class LSPEngine(TranspileEngine):
         config = LSPConfig.load(config_path)
         return LSPEngine(config_path.parent, config)
 
-    def __init__(self, workdir: Path, config: LSPConfig):
+    @classmethod
+    def client_metadata(cls) -> tuple[str, str]:
+        """Obtain the name and version for this LSP client, respectively in a tuple."""
+        product_info = ProductInfo.from_class(cls)
+        return product_info.product_name(), product_info.version()
+
+    def __init__(self, workdir: Path, config: LSPConfig) -> None:
         self._workdir = workdir
         self._config = config
-        self._client = _LanguageClient()
+        name, version = self.client_metadata()
+        self._client = _LanguageClient(name, version)
         self._init_response: InitializeResult | None = None
 
     @property
@@ -369,6 +403,7 @@ class LSPEngine(TranspileEngine):
         try:
             os.chdir(self._workdir)
             await self._do_initialize(config)
+            await self._await_for_transpile_capability()
         # it is good practice to catch broad exceptions raised by launching a child process
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("LSP initialization failed", exc_info=e)
@@ -376,16 +411,24 @@ class LSPEngine(TranspileEngine):
 
     async def _do_initialize(self, config: TranspileConfig) -> None:
         executable = self._config.remorph.command_line[0]
-        env = deepcopy(os.environ)
-        for name, value in self._config.remorph.env_vars.items():
-            env[name] = value
-        args = self._config.remorph.command_line[1:]
+        env: dict[str, str] = os.environ | self._config.remorph.env_vars
+        # ensure modules are searched locally before being searched in remorph
+        if "PYTHONPATH" in env.keys():
+            env["PYTHONPATH"] = str(self._workdir) + os.pathsep + env["PYTHONPATH"]
+        else:
+            env["PYTHONPATH"] = str(self._workdir)
+        log_level = logging.getLevelName(logging.getLogger("databricks").level)
+        args = self._config.remorph.command_line[1:] + [f"--log_level={log_level}"]
+        logger.debug(f"Starting LSP engine: {executable} {args} (cwd={os.getcwd()})")
         await self._client.start_io(executable, env=env, *args)
         input_path = config.input_path
         root_path = input_path if input_path.is_dir() else input_path.parent
         params = InitializeParams(
             capabilities=self._client_capabilities(),
-            root_path=str(root_path),
+            client_info=ClientInfo(name=self._client.name, version=self._client.version),
+            process_id=os.getpid(),
+            root_uri=str(root_path.absolute().as_uri()),
+            workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
         self._init_response = await self._client.initialize_async(params)
@@ -398,8 +441,18 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
+            "options": config.transpiler_options,
             "custom": self._config.custom,
         }
+
+    async def _await_for_transpile_capability(self):
+        for _ in range(1, 100):
+            if self._client.transpile_to_databricks_capability:
+                return
+            await asyncio.sleep(0.1)
+        if not self._client.transpile_to_databricks_capability:
+            msg = f"LSP server did not register its {TRANSPILE_TO_DATABRICKS_METHOD} capability"
+            raise FeatureRequestError(msg)
 
     async def shutdown(self):
         await self._client.shutdown_async(None)

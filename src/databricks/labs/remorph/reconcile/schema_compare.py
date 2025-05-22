@@ -6,13 +6,9 @@ from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from sqlglot import Dialect, parse_one
 from sqlglot.dialects import Databricks
 
+from databricks.labs.remorph.reconcile.recon_config import Schema, Table
+from databricks.labs.remorph.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
 from databricks.labs.remorph.reconcile.utils import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import (
-    Schema,
-    SchemaMatchResult,
-    SchemaReconcileOutput,
-    Table,
-)
 
 logger = logging.getLogger(__name__)
 

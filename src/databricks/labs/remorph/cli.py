@@ -1,30 +1,37 @@
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
+
+from databricks.sdk.core import with_user_agent_extra
+from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
+from databricks.sdk import WorkspaceClient
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.labs.blueprint.tui import Prompts
 
+from databricks.labs.bladespector.analyzer import Analyzer
+
+from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.connections.credential_manager import create_credential_manager
 from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
 from databricks.labs.remorph.install import WorkspaceInstaller
-from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
+from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.reconcile.utils import dialect_exists
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
-from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
-from databricks.labs.remorph.jvmproxy import proxy_command
-from databricks.labs.remorph.transpiler.lsp_engine import LSPEngine
-from databricks.sdk.core import with_user_agent_extra
 
-from databricks.sdk import WorkspaceClient
+
+from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
+from databricks.labs.remorph.transpiler.lsp_engine import LSPEngine
+
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -32,13 +39,6 @@ logger = get_logger(__file__)
 
 def raise_validation_exception(msg: str) -> Exception:
     raise ValueError(msg)
-
-
-proxy_command(remorph, "debug-script")
-proxy_command(remorph, "debug-me")
-proxy_command(remorph, "debug-coverage")
-proxy_command(remorph, "debug-estimate")
-proxy_command(remorph, "debug-bundle")
 
 
 def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
@@ -52,6 +52,29 @@ def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
         app_context.resource_configurator,
         app_context.workspace_installation,
     )
+
+
+def _create_warehouse(ws: WorkspaceClient) -> str:
+
+    dbsql = ws.warehouses.create_and_wait(
+        name=f"remorph-warehouse-{time.time_ns()}",
+        warehouse_type=CreateWarehouseRequestWarehouseType.PRO,
+        cluster_size="Small",  # Adjust size as needed
+        auto_stop_mins=30,  # Auto-stop after 30 minutes of inactivity
+        enable_serverless_compute=True,
+        max_num_clusters=1,
+    )
+
+    if dbsql.id is None:
+        raise RuntimeError(f"Failed to create warehouse {dbsql.name}")
+
+    logger.info(f"Created warehouse with id: {dbsql.id}")
+    return dbsql.id
+
+
+def _remove_warehouse(ws: WorkspaceClient, warehouse_id: str):
+    ws.warehouses.delete(warehouse_id)
+    logger.info(f"Removed warehouse post installation with id: {warehouse_id}")
 
 
 def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
@@ -118,9 +141,10 @@ def transpile(
     status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
 
     for error in errors:
-        print(str(error))
+        logger.error(f"Error Transpiling: {str(error)}")
 
-    print(json.dumps(status))
+    # Table Template in labs.yml requires the status to be list of dicts Do not change this
+    print(json.dumps([status]))
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
@@ -220,8 +244,24 @@ def install_transpile(w: WorkspaceClient):
 def install_reconcile(w: WorkspaceClient):
     """Install the Remorph Reconcile package"""
     with_user_agent_extra("cmd", "install-reconcile")
+    dbsql_id = _create_warehouse(w)
+    w.config.warehouse_id = dbsql_id
     installer = _installer(w)
     installer.run(module="reconcile")
+    _remove_warehouse(w, dbsql_id)
+
+
+@remorph.command()
+def analyze(w: WorkspaceClient):
+    """Run the Analyzer"""
+    with_user_agent_extra("cmd", "analyze")
+    ctx = ApplicationContext(w)
+    prompts = ctx.prompts
+    output_file = prompts.question("Enter path to output results file (with .xlsx extension)")
+    input_folder = prompts.question("Enter path to input sources folder")
+    source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
+    with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
+    Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,54 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
+from typing import Any, cast
 
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
 
 logger = logging.getLogger(__name__)
+
+
+class LSPPromptMethod(Enum):
+    FORCE = auto()  # for mandatory values that are specific to a dialect
+    QUESTION = auto()
+    CHOICE = auto()
+    CONFIRM = auto()
+
+
+@dataclass
+class LSPConfigOptionV1:
+    flag: str
+    method: LSPPromptMethod
+    prompt: str = ""
+    choices: list[str] | None = None
+    default: Any = None
+
+    @classmethod
+    def parse_all(cls, data: dict[str, Any]) -> dict[str, list[LSPConfigOptionV1]]:
+        return {key: list(LSPConfigOptionV1.parse(item) for item in value) for (key, value) in data.items()}
+
+    @classmethod
+    def parse(cls, data: Any) -> LSPConfigOptionV1:
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid transpiler config option, expecting a dict entry, got {data}")
+        flag: str = data.get("flag", "")
+        if not flag:
+            raise ValueError(f"Missing 'flag' entry in {data}")
+        method_name: str = data.get("method", "")
+        if not method_name:
+            raise ValueError(f"Missing 'method' entry in {data}")
+        method: LSPPromptMethod = cast(LSPPromptMethod, LSPPromptMethod[method_name])
+        prompt: str = data.get("prompt", "")
+        if not prompt:
+            raise ValueError(f"Missing 'prompt' entry in {data}")
+        choices = data.get("choices", [])
+        default = data.get("default", None)
+        return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
 
 @dataclass
@@ -23,6 +65,9 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
+    transpiler_options: dict[str, bool | str | int | float | object | list] | None = (
+        None  # need a union because blueprint doesn't support 'Any' type
+    )
 
     @property
     def transpiler_path(self):
@@ -45,6 +90,20 @@ class TranspileConfig:
     @property
     def target_dialect(self):
         return "databricks"
+
+    @classmethod
+    def v1_migrate(cls, raw: dict) -> dict:
+        raw["version"] = 2
+        return raw
+
+    @classmethod
+    def v2_migrate(cls, raw: dict) -> dict:
+        del raw["mode"]
+        key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
+        raw["version"] = 3
+        raw["error_file_path"] = "error_log.txt"
+        raw["transpiler_config_path"] = "remorph_transpiler_config.yml"
+        return {key_mapping.get(key, key): value for key, value in raw.items()}
 
 
 @dataclass

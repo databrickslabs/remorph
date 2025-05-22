@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from collections.abc import Sequence
@@ -6,29 +7,25 @@ from typing import Any, Literal
 from uuid import uuid4
 
 import attrs
-
 from lsprotocol import types as types_module
 from lsprotocol.types import (
-    InitializeParams,
     INITIALIZE,
-    RegistrationParams,
-    Registration,
-    TextEdit,
-    Diagnostic,
-    TEXT_DOCUMENT_DID_OPEN,
-    DidOpenTextDocumentParams,
-    TEXT_DOCUMENT_DID_CLOSE,
-    DidCloseTextDocumentParams,
-    Range,
-    Position,
     METHOD_TO_TYPES,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    Diagnostic,
     DiagnosticSeverity,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    InitializeParams,
     LanguageKind,
+    Position,
+    Range,
+    Registration,
+    RegistrationParams,
+    TextEdit,
 )
 from pygls.lsp.server import LanguageServer
-
-import logging
-
 
 logging.basicConfig(filename='test-lsp-server.log', filemode='w', level=logging.DEBUG)
 
@@ -105,13 +102,25 @@ class TestLspServer(LanguageServer):
         return self.initialization_options["remorph"]["source-dialect"]
 
     @property
-    def whatever(self) -> str:
-        return self.initialization_options["custom"]["whatever"]
+    def experimental(self) -> str | None:
+        options = self.initialization_options.get("options", {}) or {}
+        return options.get("-experimental", None)
+
+    @property
+    def whatever(self) -> str | None:
+        custom = self.initialization_options.get("custom", {}) or {}
+        return custom.get("whatever", None)
 
     async def did_initialize(self, init_params: InitializeParams) -> None:
-        self.initialization_options = init_params.initialization_options
+        self.initialization_options = init_params.initialization_options or {}
+        client_info = init_params.client_info
+        if client_info:
+            logger.debug(f"client-info={client_info.name}/{client_info.version}")
+        if init_params.process_id:
+            logger.debug(f"client-process-id={init_params.process_id}")
         logger.debug(f"dialect={self.dialect}")
         logger.debug(f"whatever={self.whatever}")
+        logger.debug(f"experimental={self.experimental}")
         # TODO check whether the client supports dynamic registration
         registrations = [
             Registration(
@@ -120,6 +129,10 @@ class TestLspServer(LanguageServer):
         ]
         register_params = RegistrationParams(registrations)
         await self.client_register_capability_async(register_params)
+        # ensure we can fetch a workspace file
+        uri = self.workspace.root_uri + "/workspace_file.yml"
+        doc = self.workspace.get_text_document(uri)
+        logger.debug(f"fetch-document-uri={uri}: {doc.source}")
 
     def transpile_to_databricks(self, params: TranspileDocumentParams) -> TranspileDocumentResult:
         source_sql = self.workspace.get_text_document(params.uri).source
@@ -185,6 +198,11 @@ def transpile_to_databricks(params: TranspileDocumentParams) -> TranspileDocumen
 
 
 if __name__ == "__main__":
+    # added for testing logging of stderr output
+    sys.stderr.write("Running LSP Test Server\u2026\n")
+    sys.stderr.flush()
+    sys.stderr.buffer.write(b"Some bytes that are invalid UTF-8: [\xc0\xc0]\n")
+    sys.stderr.buffer.flush()
     logger.debug(f"SOME_ENV={os.getenv('SOME_ENV')}")
     logger.debug(f"sys.args={sys.argv}")
     server.start_io()

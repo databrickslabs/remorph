@@ -1,5 +1,6 @@
 import logging
 
+from functools import reduce
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
@@ -81,6 +82,9 @@ class HashQueryBuilder(QueryBuilder):
         )
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
         concat_expr = concat(list(col_exprs))
+
+        if self._dialect == "oracle":
+            concat_expr = reduce(lambda x, y: exp.DPipe(this=x, expression=y), concat_expr.expressions)
 
         hash_expr = concat_expr.transform(_hash_transform, self._dialect, self.layer).transform(lower, is_expr=True)
 

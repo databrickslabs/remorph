@@ -21,6 +21,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     json_format,
     lower,
     sha2,
+    md5,
     sort_array,
     to_char,
     trim,
@@ -108,6 +109,11 @@ def test_sha2(expr):
         sha2(Column(this="CONCAT(col1,col2,col3)"), num_bits="256", is_expr=True).sql()
         == "SHA2(CONCAT(col1,col2,col3), 256)"
     )
+
+
+def test_md5(expr):
+    assert md5(expr).sql() == "SELECT MD5(col1) FROM DUAL"
+    assert md5(Column(this="CONCAT(col1,col2,col3)"), is_expr=True).sql() == "MD5(CONCAT(col1,col2,col3))"
 
 
 def test_concat():

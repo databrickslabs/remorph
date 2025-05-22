@@ -1,25 +1,31 @@
 import asyncio
 import dataclasses
+import logging
+import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from time import sleep
 
 import pytest
-from lsprotocol.types import TextEdit, Range, Position
+from lsprotocol.types import Position, Range, TextEdit
 
+from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
+from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity, TranspileError
 from databricks.labs.remorph.transpiler.lsp_engine import (
     LSPEngine,
     ChangeManager,
 )
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
 from tests.unit.conftest import path_to_resource
 
 
 @pytest.fixture
-def lsp_engine():
+async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
     config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     engine = LSPEngine.from_config_path(Path(config_path))
-    return engine
+    yield engine
+    if engine.is_alive:
+        await engine.shutdown()
 
 
 async def test_initializes_lsp_server(lsp_engine, transpile_config):
@@ -27,14 +33,12 @@ async def test_initializes_lsp_server(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     sleep(3)
     assert lsp_engine.is_alive
-    await lsp_engine.shutdown()
 
 
 async def test_initializes_lsp_server_only_once(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     with pytest.raises(IllegalStateException):
         await lsp_engine.initialize(transpile_config)
-    await lsp_engine.shutdown()
 
 
 async def test_shuts_lsp_server_down(lsp_engine, transpile_config):
@@ -47,48 +51,77 @@ async def test_sets_env_variables(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "SOME_ENV=abc" in log  # see environment in lsp_transpiler/config.yml
-    await lsp_engine.shutdown()
+
+
+async def test_passes_options(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    assert "experimental=True" in log  # see environment in lsp_transpiler/config.yml
 
 
 async def test_passes_extra_args(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "--stuff=12" in log  # see command_line in lsp_transpiler/config.yml
-    await lsp_engine.shutdown()
+
+
+async def test_passes_log_level(lsp_engine, transpile_config):
+    logging.getLogger("databricks").setLevel(logging.INFO)
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    assert "--log_level=INFO" in log  # see command_line in lsp_transpiler/config.yml
 
 
 async def test_receives_config(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "dialect=snowflake" in log
-    await lsp_engine.shutdown()
+
+
+async def test_receives_client_info(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    product_info = ProductInfo.from_class(type(lsp_engine))
+    expected_client_info = f"client-info={product_info.product_name()}/{product_info.version()}"
+    assert expected_client_info in log
+
+
+async def test_receives_process_id(lsp_engine, transpile_config):
+    await lsp_engine.initialize(transpile_config)
+    log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
+    expected_process_id = f"client-process-id={os.getpid()}"
+    assert expected_process_id in log
 
 
 async def test_server_has_transpile_capability(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
-    # need to give time to child process and client listener
+    assert lsp_engine.server_has_transpile_capability
+
+
+async def read_log(marker: str):
+    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
+    # need to give time to child process
     for _ in range(1, 10):
         await asyncio.sleep(0.1)
-        if lsp_engine.server_has_transpile_capability:
+        log = log_path.read_text("utf-8")
+        if marker in log:
             break
-    assert lsp_engine.server_has_transpile_capability
-    await lsp_engine.shutdown()
+    return log_path.read_text("utf-8")
+
+
+async def test_server_fetches_workspace_file(lsp_engine, transpile_config):
+    sample_path = Path(path_to_resource("lsp_transpiler", "workspace_file.yml"))
+    await lsp_engine.initialize(transpile_config)
+    log = await read_log("fetch-document-uri")
+    assert f"fetch-document-uri={sample_path.as_uri()}" in log
 
 
 async def test_server_loads_document(lsp_engine, transpile_config):
     sample_path = Path(path_to_resource("lsp_transpiler", "source_stuff.sql"))
     await lsp_engine.initialize(transpile_config)
     lsp_engine.open_document(sample_path)
-    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
-    # need to give time to child process
-    for _ in range(1, 10):
-        await asyncio.sleep(0.1)
-        log = log_path.read_text("utf-8")
-        if "open-document-uri" in log:
-            break
-    log = log_path.read_text("utf-8")
+    log = await read_log("open-document-uri")
     assert f"open-document-uri={sample_path.as_uri()}" in log
-    await lsp_engine.shutdown()
 
 
 async def test_server_closes_document(lsp_engine, transpile_config):
@@ -96,16 +129,8 @@ async def test_server_closes_document(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     lsp_engine.open_document(sample_path)
     lsp_engine.close_document(sample_path)
-    log_path = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log"))
-    # need to give time to child process
-    for _ in range(1, 10):
-        await asyncio.sleep(0.1)
-        log = log_path.read_text("utf-8")
-        if "close-document-uri" in log:
-            break
-    log = log_path.read_text("utf-8")
+    log = await read_log("close-document-uri")
     assert f"close-document-uri={sample_path.as_uri()}" in log
-    await lsp_engine.shutdown()
 
 
 async def test_server_transpiles_document(lsp_engine, transpile_config):
@@ -131,6 +156,7 @@ async def test_server_transpiles_document(lsp_engine, transpile_config):
         ("a\nb\nc\n", [TextEdit(Range(Position(0, 0), Position(1, 1)), "x")], "x\nc\n"),
         ("abc", [TextEdit(Range(Position(0, 1), Position(0, 2)), "x")], "axc"),
         ("abc\ndef\nghi", [TextEdit(Range(Position(0, 2), Position(2, 1)), "x\ny")], "abx\nyhi"),
+        ("abbcccdddd", [TextEdit(Range(Position(0, 0), Position(1, 0)), "1\n22\n333\n4444\n")], "1\n22\n333\n4444\n"),
     ],
 )
 def test_change_mgr_replaces_text(source, changes, expected):
