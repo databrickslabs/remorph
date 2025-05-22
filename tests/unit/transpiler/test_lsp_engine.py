@@ -54,6 +54,7 @@ async def test_sets_env_variables(lsp_engine, transpile_config):
 
 
 async def test_passes_options(lsp_engine, transpile_config):
+    transpile_config = dataclasses.replace(transpile_config, transpiler_options={"experimental": True})
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     assert "experimental=True" in log  # see environment in lsp_transpiler/config.yml
