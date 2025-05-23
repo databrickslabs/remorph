@@ -10,7 +10,7 @@ from sqlglot import Dialect
 
 from databricks.labs.remorph.config import (
     DatabaseConfig,
-    TableRecon,
+    ReconcilationMappings,
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
@@ -105,7 +105,7 @@ def main(*argv) -> None:
 
     logger.info(f"Loading {filename} from Databricks Workspace...")
 
-    table_recon = installation.load(type_ref=TableRecon, filename=filename)
+    table_recon = installation.load(type_ref=ReconcilationMappings, filename=filename)
 
     if operation_name == AGG_RECONCILE_OPERATION_NAME:
         return _trigger_reconcile_aggregates(w, table_recon, reconcile_config)
@@ -115,7 +115,7 @@ def main(*argv) -> None:
 
 def _trigger_recon(
     w: WorkspaceClient,
-    table_recon: TableRecon,
+    table_recon: ReconcilationMappings,
     reconcile_config: ReconcileConfig,
 ):
     try:
@@ -134,7 +134,7 @@ def _trigger_recon(
 
 def _trigger_reconcile_aggregates(
     ws: WorkspaceClient,
-    table_recon: TableRecon,
+    table_recon: ReconcilationMappings,
     reconcile_config: ReconcileConfig,
 ):
     """
@@ -171,7 +171,7 @@ def _trigger_reconcile_aggregates(
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
-    table_recon: TableRecon,
+    table_recon: ReconcilationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ) -> ReconcileOutput:
@@ -220,7 +220,7 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in table_recon.tables:
+    for table_conf in table_recon.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
@@ -326,7 +326,7 @@ def _get_missing_data(
 def reconcile_aggregates(
     ws: WorkspaceClient,
     spark: SparkSession,
-    table_recon: TableRecon,
+    table_recon: ReconcilationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ):
@@ -382,7 +382,7 @@ def reconcile_aggregates(
     )
 
     # Get the Aggregated Reconciliation Output for each table
-    for table_conf in table_recon.tables:
+    for table_conf in table_recon.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         try:
             src_schema, tgt_schema = _get_schema(

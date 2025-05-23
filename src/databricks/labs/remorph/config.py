@@ -107,14 +107,14 @@ class TranspileConfig:
 
 
 @dataclass
-class TableRecon:
+class ReconcilationMappings:
     __file__ = "recon_config.yml"
     __version__ = 1
 
     source_schema: str
     target_catalog: str
     target_schema: str
-    tables: list[TableMapping]
+    table_mappings: list[TableMapping]
     source_catalog: str | None = None
 
     def __post_init__(self):
