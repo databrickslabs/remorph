@@ -21,9 +21,9 @@ def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, 
     table_mapping = table_mapping_with_opts
     # schema
     column_and_aliases_types, _ = column_and_aliases_types
-    table_schema.append(ColumnType("s_suppdate", "timestamp"))
+    column_and_aliases_types.append(ColumnType("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
-        table_mapping, table_schema, Layer.SOURCE, get_dialect("oracle")
+        table_mapping, column_and_aliases_types, Layer.SOURCE, get_dialect("oracle")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -50,10 +50,10 @@ def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts,
 
     # schema
     column_and_aliases_types, _ = column_and_aliases_types
-    table_schema.append(ColumnType("s_suppdate", "timestamp"))
+    column_and_aliases_types.append(ColumnType("s_suppdate", "timestamp"))
 
     comparison_query = ThresholdQueryBuilder(
-        table_mapping, table_schema, Layer.TARGET, get_dialect("databricks")
+        table_mapping, column_and_aliases_types, Layer.TARGET, get_dialect("databricks")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
