@@ -60,11 +60,11 @@ def query_store(mock_spark):
 def test_reconcile_aggregate_data_missing_records(
     mock_spark,
     table_mapping_with_opts,
-    table_schema,
+        column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     table_mapping_with_opts.aggregates = [Aggregate(type="MIN", agg_columns=["s_acctbal"])]
@@ -261,11 +261,11 @@ def _compare_reconcile_output(actual_reconcile_output: DataReconcileOutput, expe
 def test_reconcile_aggregate_data_mismatch_and_missing_records(
     mock_spark,
     table_mapping_with_opts,
-    table_schema,
+        column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     table_mapping_with_opts.aggregates = [

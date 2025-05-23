@@ -161,9 +161,9 @@ def query_store(mock_spark):
 
 
 def test_reconcile_data_with_mismatches_and_missing(
-    mock_spark, table_mapping_with_opts, table_schema, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -382,11 +382,11 @@ def test_reconcile_data_with_mismatches_and_missing(
 def test_reconcile_data_without_mismatches_and_missing(
     mock_spark,
     table_mapping_with_opts,
-    table_schema,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -461,9 +461,9 @@ def test_reconcile_data_without_mismatches_and_missing(
 
 
 def test_reconcile_data_with_mismatch_and_no_missing(
-    mock_spark, table_mapping_with_opts, table_schema, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
@@ -567,11 +567,11 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 def test_reconcile_data_missing_and_no_mismatch(
     mock_spark,
     table_mapping_with_opts,
-    table_schema,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
@@ -651,7 +651,7 @@ def test_reconcile_data_missing_and_no_mismatch(
 @pytest.fixture
 def mock_for_report_type_data(
     table_mapping_with_opts,
-    table_schema,
+    column_and_aliases_types,
     query_store,
     setup_metadata_table,
     mock_spark,
@@ -665,7 +665,7 @@ def mock_for_report_type_data(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -860,7 +860,7 @@ def test_recon_for_report_type_is_data(
 
 
 @pytest.fixture
-def mock_for_report_type_schema(table_mapping_with_opts, table_schema, query_store, mock_spark, setup_metadata_table):
+def mock_for_report_type_schema(table_mapping_with_opts, column_and_aliases_types, query_store, mock_spark, setup_metadata_table):
     schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
@@ -868,7 +868,7 @@ def mock_for_report_type_schema(table_mapping_with_opts, table_schema, query_sto
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1049,7 +1049,7 @@ def test_recon_for_report_type_schema(
 def mock_for_report_type_all(
     mock_workspace_client,
     table_mapping_with_opts,
-    table_schema,
+    column_and_aliases_types,
     mock_spark,
     query_store,
     setup_metadata_table,
@@ -1063,7 +1063,7 @@ def mock_for_report_type_all(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1304,7 +1304,7 @@ def test_recon_for_report_type_all(
 
 
 @pytest.fixture
-def mock_for_report_type_row(table_mapping_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
+def mock_for_report_type_row(table_mapping_with_opts, column_and_aliases_types, mock_spark, query_store, setup_metadata_table):
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     schema_mapping = SchemaMapping(
@@ -1314,7 +1314,7 @@ def mock_for_report_type_row(table_mapping_with_opts, table_schema, mock_spark, 
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1867,11 +1867,11 @@ def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for
 def test_reconcile_data_with_threshold_and_row_report_type(
     mock_spark,
     table_mapping_with_opts,
-    table_schema,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,

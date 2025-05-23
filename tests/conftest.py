@@ -34,7 +34,7 @@ def mock_workspace_client():
 
 
 @pytest.fixture
-def column_mapping():
+def column_mappings():
     return [
         ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
         ColumnMapping(source_name="s_address", target_name="s_address_t"),
@@ -46,7 +46,7 @@ def column_mapping():
 
 
 @pytest.fixture
-def table_mapping_with_opts(column_mapping):
+def table_mapping_with_opts(column_mappings):
     return TableMapping(
         source_name="supplier",
         target_name="target_supplier",
@@ -56,7 +56,7 @@ def table_mapping_with_opts(column_mapping):
         join_columns=["s_suppkey", "s_nationkey"],
         select_columns=["s_suppkey", "s_name", "s_address", "s_phone", "s_acctbal", "s_nationkey"],
         drop_columns=["s_comment"],
-        column_mapping=column_mapping,
+        column_mapping=column_mappings,
         transformations=[
             Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)"),
             Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
@@ -92,7 +92,7 @@ def table_mapping_builder():
 
 
 @pytest.fixture
-def table_schema():
+def column_and_aliases_types():
     sch = [
         ColumnType("s_suppkey", "number"),
         ColumnType("s_name", "varchar"),

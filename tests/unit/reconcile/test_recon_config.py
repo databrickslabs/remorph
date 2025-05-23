@@ -30,7 +30,7 @@ def test_table_with_all_options(table_mapping_with_opts):
     assert table_mapping_with_opts.get_threshold_columns(Layer.TARGET) == {"s_acctbal_t"}
 
 
-def test_table_without_column_mapping(table_mapping_builder, column_mapping):
+def test_table_without_column_mapping(table_mapping_builder, column_mappings):
     table_mapping = table_mapping_builder()
 
     assert table_mapping.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}

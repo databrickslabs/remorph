@@ -13,9 +13,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, table_schema):
+def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, column_and_aliases_types):
     spark = mock_spark
-    sch, sch_with_alias = table_schema
+    sch, sch_with_alias = column_and_aliases_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -82,9 +82,9 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, table_
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, table_schema, column_mapping):
+def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, column_and_aliases_types, column_mappings):
     spark = mock_spark
-    _, sch_with_alias = table_schema
+    _, sch_with_alias = column_and_aliases_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -107,7 +107,7 @@ def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, table_sch
 
     conf = table_mapping_builder(
         join_columns=["s_suppkey", "s_nationkey"],
-        column_mapping=column_mapping,
+        column_mapping=column_mappings,
         filters=Filters(source="s_nationkey=1"),
     )
 
@@ -197,9 +197,9 @@ def test_build_query_for_databricks_src(mock_spark, table_mapping_builder):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_builder, table_schema):
+def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_builder, column_and_aliases_types):
     spark = mock_spark
-    sch, sch_with_alias = table_schema
+    sch, sch_with_alias = column_and_aliases_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),

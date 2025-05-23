@@ -11,8 +11,8 @@ def test_table_column_mapping(table_mapping_builder):
     assert table_mapping.to_src_col_map is None
 
 
-def test_table_select_columns(table_mapping_builder, table_schema):
-    schema, _ = table_schema
+def test_table_select_columns(table_mapping_builder, column_and_aliases_types):
+    schema, _ = column_and_aliases_types
     table_mapping = table_mapping_builder(
         select_columns=["s_nationkey", "s_suppkey"],
     )

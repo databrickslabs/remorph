@@ -3,8 +3,8 @@ from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQuery
 from databricks.labs.remorph.reconcile.recon_config import Filters, ColumnMapping, Transformation, Layer
 
 
-def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, table_schema):
-    sch, sch_with_alias = table_schema
+def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, column_and_aliases_types):
+    sch, sch_with_alias = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping_with_opts, sch, Layer.SOURCE, get_dialect("snowflake")).build_query(
         report_type="data"
     )
@@ -29,8 +29,8 @@ def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, table_sch
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_oracle_src(table_mapping_builder, table_schema, column_mapping):
-    schema, _ = table_schema
+def test_hash_query_builder_for_oracle_src(table_mapping_builder, column_and_aliases_types, column_mappings):
+    schema, _ = column_and_aliases_types
     table_mapping = table_mapping_builder(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
@@ -65,13 +65,13 @@ def test_hash_query_builder_for_oracle_src(table_mapping_builder, table_schema, 
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_databricks_src(table_mapping_builder, table_schema, column_mapping):
+def test_hash_query_builder_for_databricks_src(table_mapping_builder, column_and_aliases_types, column_mappings):
     table_mapping = table_mapping_builder(
         join_columns=["s_suppkey"],
-        column_mapping=column_mapping,
+        column_mapping=column_mappings,
         filters=Filters(target="s_nationkey_t=1"),
     )
-    sch, sch_with_alias = table_schema
+    sch, sch_with_alias = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping, sch, Layer.SOURCE, get_dialect("databricks")).build_query(
         report_type="data"
     )
@@ -100,12 +100,12 @@ def test_hash_query_builder_for_databricks_src(table_mapping_builder, table_sche
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_without_column_mapping(table_mapping_builder, table_schema):
+def test_hash_query_builder_without_column_mapping(table_mapping_builder, column_and_aliases_types):
     table_mapping = table_mapping_builder(
         join_columns=["s_suppkey"],
         filters=Filters(target="s_nationkey=1"),
     )
-    sch, _ = table_schema
+    sch, _ = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping, sch, Layer.SOURCE, get_dialect("databricks")).build_query(
         report_type="data"
     )
@@ -134,7 +134,7 @@ def test_hash_query_builder_without_column_mapping(table_mapping_builder, table_
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_without_transformation(table_mapping_builder, table_schema, column_mapping):
+def test_hash_query_builder_without_transformation(table_mapping_builder, column_and_aliases_types, column_mappings):
     table_mapping = table_mapping_builder(
         join_columns=["s_suppkey"],
         transformations=[
@@ -142,10 +142,10 @@ def test_hash_query_builder_without_transformation(table_mapping_builder, table_
             Transformation(column_name="s_name", source="trim(s_name)", target=None),
             Transformation(column_name="s_suppkey", source="trim(s_suppkey)", target=None),
         ],
-        column_mapping=column_mapping,
+        column_mapping=column_mappings,
         filters=Filters(target="s_nationkey_t=1"),
     )
-    sch, tgt_sch = table_schema
+    sch, tgt_sch = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping, sch, Layer.SOURCE, get_dialect("databricks")).build_query(
         report_type="data"
     )
@@ -171,8 +171,8 @@ def test_hash_query_builder_without_transformation(table_mapping_builder, table_
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, table_schema, column_mapping):
-    sch, sch_with_alias = table_schema
+def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, column_and_aliases_types, column_mappings):
+    sch, sch_with_alias = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping_with_opts, sch, Layer.SOURCE, get_dialect("databricks")).build_query(
         report_type="row"
     )
@@ -199,7 +199,7 @@ def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, tabl
     assert tgt_actual == tgt_expected
 
 
-def test_config_case_sensitivity(table_mapping_builder, table_schema, column_mapping):
+def test_config_case_sensitivity(table_mapping_builder, column_and_aliases_types, column_mappings):
     table_mapping = table_mapping_builder(
         select_columns=["S_SUPPKEY", "S_name", "S_ADDRESS", "S_NATIOnKEY", "S_PhONE", "S_acctbal"],
         drop_columns=["s_Comment"],
@@ -209,10 +209,10 @@ def test_config_case_sensitivity(table_mapping_builder, table_schema, column_map
             Transformation(column_name="S_NAME", source="trim(s_name)", target=None),
             Transformation(column_name="s_suppKey", source="trim(s_suppkey)", target=None),
         ],
-        column_mapping=column_mapping,
+        column_mapping=column_mappings,
         filters=Filters(target="s_nationkey_t=1"),
     )
-    sch, tgt_sch = table_schema
+    sch, tgt_sch = column_and_aliases_types
     src_actual = HashQueryBuilder(table_mapping, sch, Layer.SOURCE, get_dialect("databricks")).build_query(
         report_type="data"
     )
