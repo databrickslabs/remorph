@@ -220,13 +220,16 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in schema_mapping.table_mappings:
+    for table_mapping in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
         try:
             src_column_types, tgt_column_types = _get_schema(
-                source=source, target=target, table_conf=table_conf, database_config=reconcile_config.database_config
+                source=source,
+                target=target,
+                table_mapping=table_mapping,
+                database_config=reconcile_config.database_config,
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
@@ -234,7 +237,7 @@ def recon(
             if report_type in {"schema", "all"}:
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler,
-                    table_conf=table_conf,
+                    table_mapping=table_mapping,
                     src_column_types=src_column_types,
                     tgt_column_types=tgt_column_types,
                 )
@@ -243,7 +246,7 @@ def recon(
             if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler,
-                    table_conf=table_conf,
+                    table_mapping=table_mapping,
                     src_column_types=src_column_types,
                     tgt_column_types=tgt_column_types,
                 )
@@ -254,13 +257,13 @@ def recon(
         recon_capture.start(
             data_reconcile_output=data_reconcile_output,
             schema_reconcile_output=schema_reconcile_output,
-            table_conf=table_conf,
+            table_mapping=table_mapping,
             recon_process_duration=recon_process_duration,
-            record_count=reconciler.get_record_count(table_conf, report_type),
+            record_count=reconciler.get_record_count(table_mapping, report_type),
         )
         if report_type != "schema":
             ReconIntermediatePersist(
-                spark=spark, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
+                spark=spark, path=generate_volume_path(table_mapping, reconcile_config.metadata_config)
             ).clean_unmatched_df_from_volume()
 
     return _verify_successful_reconciliation(
@@ -293,10 +296,12 @@ def _verify_successful_reconciliation(
     return reconcile_output
 
 
-def generate_volume_path(table_conf: TableMapping, metadata_config: ReconcileMetadataConfig):
+def generate_volume_path(table_mapping: TableMapping, metadata_config: ReconcileMetadataConfig):
     catalog = metadata_config.catalog
     schema = metadata_config.schema
-    return f"/Volumes/{catalog}/{schema}/{metadata_config.volume}/{table_conf.source_name}_{table_conf.target_name}/"
+    return (
+        f"/Volumes/{catalog}/{schema}/{metadata_config.volume}/{table_mapping.source_name}_{table_mapping.target_name}/"
+    )
 
 
 def initialise_data_source(
@@ -388,23 +393,23 @@ def reconcile_aggregates(
     )
 
     # Get the Aggregated Reconciliation Output for each table
-    for table_conf in schema_mapping.table_mappings:
+    for table_mapping in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         try:
             src_column_types, tgt_column_types = _get_schema(
                 source=source,
                 target=target,
-                table_conf=table_conf,
+                table_mapping=table_mapping,
                 database_config=reconcile_config.database_config,
             )
         except DataSourceRuntimeException as e:
             raise ReconciliationException(message=str(e)) from e
 
-        assert table_conf.aggregates, "Aggregates must be defined for Aggregates Reconciliation"
+        assert table_mapping.aggregates, "Aggregates must be defined for Aggregates Reconciliation"
 
         table_reconcile_agg_output_list: list[AggregateQueryOutput] = _run_reconcile_aggregates(
             reconciler=reconciler,
-            table_conf=table_conf,
+            table_mapping=table_mapping,
             src_column_types=src_column_types,
             tgt_column_types=tgt_column_types,
         )
@@ -414,14 +419,14 @@ def reconcile_aggregates(
         # Persist the data to the delta tables
         recon_capture.store_aggregates_metrics(
             reconcile_agg_output_list=table_reconcile_agg_output_list,
-            table_conf=table_conf,
+            table_mapping=table_mapping,
             recon_process_duration=recon_process_duration,
         )
 
         (
             ReconIntermediatePersist(
                 spark=spark,
-                path=generate_volume_path(table_conf, reconcile_config.metadata_config),
+                path=generate_volume_path(table_mapping, reconcile_config.metadata_config),
             ).clean_unmatched_df_from_volume()
         )
 
@@ -461,22 +466,22 @@ class Reconciliation:
 
     def reconcile_data(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         src_column_types: list[ColumnType],
         tgt_column_types: list[ColumnType],
     ) -> DataReconcileOutput:
-        data_reconcile_output = self._get_reconcile_output(table_conf, src_column_types, tgt_column_types)
+        data_reconcile_output = self._get_reconcile_output(table_mapping, src_column_types, tgt_column_types)
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
             reconcile_output = self._get_sample_data(
-                table_conf, data_reconcile_output, src_column_types, tgt_column_types
+                table_mapping, data_reconcile_output, src_column_types, tgt_column_types
             )
-            if table_conf.get_threshold_columns(Layer.SOURCE):
+            if table_mapping.get_threshold_columns(Layer.SOURCE):
                 reconcile_output.threshold_output = self._reconcile_threshold_data(
-                    table_conf, src_column_types, tgt_column_types
+                    table_mapping, src_column_types, tgt_column_types
                 )
 
-        if self._report_type == "row" and table_conf.get_threshold_columns(Layer.SOURCE):
+        if self._report_type == "row" and table_mapping.get_threshold_columns(Layer.SOURCE):
             logger.warning("Threshold comparison is ignored for 'row' report type")
 
         return reconcile_output
@@ -485,50 +490,50 @@ class Reconciliation:
         self,
         src_column_types: list[ColumnType],
         tgt_column_types: list[ColumnType],
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
     ):
-        return self._schema_comparator.compare(src_column_types, tgt_column_types, self._source_engine, table_conf)
+        return self._schema_comparator.compare(src_column_types, tgt_column_types, self._source_engine, table_mapping)
 
     def reconcile_aggregates(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         src_column_types: list[ColumnType],
         tgt_column_types: list[ColumnType],
     ) -> list[AggregateQueryOutput]:
-        return self._get_reconcile_aggregate_output(table_conf, src_column_types, tgt_column_types)
+        return self._get_reconcile_aggregate_output(table_mapping, src_column_types, tgt_column_types)
 
     def _get_reconcile_output(
         self,
-        table_conf,
+        table_mapping,
         src_column_types,
         tgt_column_types,
     ):
-        src_hash_query = HashQueryBuilder(table_conf, src_column_types, Layer.SOURCE, self._source_engine).build_query(
-            report_type=self._report_type
-        )
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_column_types, Layer.TARGET, self._source_engine).build_query(
-            report_type=self._report_type
-        )
+        src_hash_query = HashQueryBuilder(
+            table_mapping, src_column_types, Layer.SOURCE, self._source_engine
+        ).build_query(report_type=self._report_type)
+        tgt_hash_query = HashQueryBuilder(
+            table_mapping, tgt_column_types, Layer.TARGET, self._source_engine
+        ).build_query(report_type=self._report_type)
         src_data = self._source.read_data(
             catalog=self._database_config.source_catalog,
             schema=self._database_config.source_schema,
-            table=table_conf.source_name,
+            table=table_mapping.source_name,
             query=src_hash_query,
-            options=table_conf.jdbc_reader_options,
+            options=table_mapping.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
             catalog=self._database_config.target_catalog,
             schema=self._database_config.target_schema,
-            table=table_conf.target_name,
+            table=table_mapping.target_name,
             query=tgt_hash_query,
-            options=table_conf.jdbc_reader_options,
+            options=table_mapping.jdbc_reader_options,
         )
 
-        volume_path = generate_volume_path(table_conf, self._metadata_config)
+        volume_path = generate_volume_path(table_mapping, self._metadata_config)
         return reconcile_data(
             source=src_data,
             target=tgt_data,
-            key_columns=table_conf.join_columns,
+            key_columns=table_mapping.join_columns,
             report_type=self._report_type,
             spark=self._spark,
             path=volume_path,
@@ -536,7 +541,7 @@ class Reconciliation:
 
     def _get_reconcile_aggregate_output(
         self,
-        table_conf,
+        table_mapping,
         src_column_types,
         tgt_column_types,
     ):
@@ -593,7 +598,7 @@ class Reconciliation:
         """
 
         src_query_builder = AggregateQueryBuilder(
-            table_conf,
+            table_mapping,
             src_column_types,
             Layer.SOURCE,
             self._source_engine,
@@ -606,13 +611,13 @@ class Reconciliation:
 
         # build Aggregate queries for target(Databricks),
         tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
-            table_conf,
+            table_mapping,
             tgt_column_types,
             Layer.TARGET,
             self._target_engine,
         ).build_queries()
 
-        volume_path = generate_volume_path(table_conf, self._metadata_config)
+        volume_path = generate_volume_path(table_mapping, self._metadata_config)
 
         table_agg_output: list[AggregateQueryOutput] = []
 
@@ -632,16 +637,16 @@ class Reconciliation:
                 src_data = self._source.read_data(
                     catalog=self._database_config.source_catalog,
                     schema=self._database_config.source_schema,
-                    table=table_conf.source_name,
+                    table=table_mapping.source_name,
                     query=src_query_with_rules.query,
-                    options=table_conf.jdbc_reader_options,
+                    options=table_mapping.jdbc_reader_options,
                 )
                 tgt_data = self._target.read_data(
                     catalog=self._database_config.target_catalog,
                     schema=self._database_config.target_schema,
-                    table=table_conf.target_name,
+                    table=table_mapping.target_name,
                     query=tgt_query_with_rules.query,
-                    options=table_conf.jdbc_reader_options,
+                    options=table_mapping.jdbc_reader_options,
                 )
                 # Join the Source and Target Aggregated data
                 joined_df = join_aggregate_data(
@@ -671,7 +676,7 @@ class Reconciliation:
 
     def _get_sample_data(
         self,
-        table_conf,
+        table_mapping,
         reconcile_output,
         src_column_types,
         tgt_column_types,
@@ -685,18 +690,18 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-            src_sampler = SamplingQueryBuilder(table_conf, src_column_types, Layer.SOURCE, self._source_engine)
-            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_column_types, Layer.TARGET, self._target_engine)
+            src_sampler = SamplingQueryBuilder(table_mapping, src_column_types, Layer.SOURCE, self._source_engine)
+            tgt_sampler = SamplingQueryBuilder(table_mapping, tgt_column_types, Layer.TARGET, self._target_engine)
             if reconcile_output.mismatch_count > 0:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
                     tgt_sampler,
                     reconcile_output.mismatch_count,
                     reconcile_output.mismatch.mismatch_df,
-                    table_conf.join_columns,
-                    table_conf.source_name,
-                    table_conf.target_name,
-                    table_conf.sampling_options,
+                    table_mapping.join_columns,
+                    table_mapping.source_name,
+                    table_mapping.target_name,
+                    table_mapping.sampling_options,
                 )
 
             if reconcile_output.missing_in_src_count > 0:
@@ -706,7 +711,7 @@ class Reconciliation:
                     reconcile_output.missing_in_src,
                     self._database_config.target_catalog,
                     self._database_config.target_schema,
-                    table_conf.target_name,
+                    table_mapping.target_name,
                 )
 
             if reconcile_output.missing_in_tgt_count > 0:
@@ -716,7 +721,7 @@ class Reconciliation:
                     reconcile_output.missing_in_tgt,
                     self._database_config.source_catalog,
                     self._database_config.source_schema,
-                    table_conf.source_name,
+                    table_mapping.source_name,
                 )
 
         return DataReconcileOutput(
@@ -776,66 +781,66 @@ class Reconciliation:
 
     def _reconcile_threshold_data(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         src_column_types: list[ColumnType],
         tgt_column_types: list[ColumnType],
     ):
 
-        src_data, tgt_data = self._get_threshold_data(table_conf, src_column_types, tgt_column_types)
+        src_data, tgt_data = self._get_threshold_data(table_mapping, src_column_types, tgt_column_types)
 
-        source_view = f"source_{table_conf.source_name}_df_threshold_vw"
-        target_view = f"target_{table_conf.target_name}_df_threshold_vw"
+        source_view = f"source_{table_mapping.source_name}_df_threshold_vw"
+        target_view = f"target_{table_mapping.target_name}_df_threshold_vw"
 
         src_data.createOrReplaceTempView(source_view)
         tgt_data.createOrReplaceTempView(target_view)
 
-        return self._compute_threshold_comparison(table_conf, src_column_types)
+        return self._compute_threshold_comparison(table_mapping, src_column_types)
 
     def _get_threshold_data(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         src_column_types: list[ColumnType],
         tgt_column_types: list[ColumnType],
     ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
-            table_conf, src_column_types, Layer.SOURCE, self._source_engine
+            table_mapping, src_column_types, Layer.SOURCE, self._source_engine
         ).build_threshold_query()
         tgt_threshold_query = ThresholdQueryBuilder(
-            table_conf, tgt_column_types, Layer.TARGET, self._target_engine
+            table_mapping, tgt_column_types, Layer.TARGET, self._target_engine
         ).build_threshold_query()
 
         src_data = self._source.read_data(
             catalog=self._database_config.source_catalog,
             schema=self._database_config.source_schema,
-            table=table_conf.source_name,
+            table=table_mapping.source_name,
             query=src_threshold_query,
-            options=table_conf.jdbc_reader_options,
+            options=table_mapping.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
             catalog=self._database_config.target_catalog,
             schema=self._database_config.target_schema,
-            table=table_conf.target_name,
+            table=table_mapping.target_name,
             query=tgt_threshold_query,
-            options=table_conf.jdbc_reader_options,
+            options=table_mapping.jdbc_reader_options,
         )
 
         return src_data, tgt_data
 
     def _compute_threshold_comparison(
-        self, table_conf: TableMapping, src_column_types: list[ColumnType]
+        self, table_mapping: TableMapping, src_column_types: list[ColumnType]
     ) -> ThresholdOutput:
         threshold_comparison_query = ThresholdQueryBuilder(
-            table_conf, src_column_types, Layer.TARGET, self._target_engine
+            table_mapping, src_column_types, Layer.TARGET, self._target_engine
         ).build_comparison_query()
 
         threshold_result = self._target.read_data(
             catalog=self._database_config.target_catalog,
             schema=self._database_config.target_schema,
-            table=table_conf.target_name,
+            table=table_mapping.target_name,
             query=threshold_comparison_query,
-            options=table_conf.jdbc_reader_options,
+            options=table_mapping.jdbc_reader_options,
         )
-        threshold_columns = table_conf.get_threshold_columns(Layer.SOURCE)
+        threshold_columns = table_mapping.get_threshold_columns(Layer.SOURCE)
         failed_where_cond = " OR ".join([name + "_match = 'Failed'" for name in threshold_columns])
         mismatched_df = threshold_result.filter(failed_where_cond)
         mismatched_count = mismatched_df.count()
@@ -845,21 +850,21 @@ class Reconciliation:
 
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
 
-    def get_record_count(self, table_conf: TableMapping, report_type: str) -> ReconcileRecordCount:
+    def get_record_count(self, table_mapping: TableMapping, report_type: str) -> ReconcileRecordCount:
         if report_type != "schema":
-            source_count_query = CountQueryBuilder(table_conf, Layer.SOURCE, self._source_engine).build_query()
-            target_count_query = CountQueryBuilder(table_conf, Layer.TARGET, self._target_engine).build_query()
+            source_count_query = CountQueryBuilder(table_mapping, Layer.SOURCE, self._source_engine).build_query()
+            target_count_query = CountQueryBuilder(table_mapping, Layer.TARGET, self._target_engine).build_query()
             source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
-                table=table_conf.source_name,
+                table=table_mapping.source_name,
                 query=source_count_query,
                 options=None,
             ).first()
             target_count_row = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
-                table=table_conf.target_name,
+                table=table_mapping.target_name,
                 query=target_count_query,
                 options=None,
             ).first()
@@ -874,18 +879,18 @@ class Reconciliation:
 def _get_schema(
     source: DataSource,
     target: DataSource,
-    table_conf: TableMapping,
+    table_mapping: TableMapping,
     database_config: DatabaseConfig,
 ) -> tuple[list[ColumnType], list[ColumnType]]:
     src_column_types = source.get_column_types(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,
-        table=table_conf.source_name,
+        table=table_mapping.source_name,
     )
     tgt_column_types = target.get_column_types(
         catalog=database_config.target_catalog,
         schema=database_config.target_schema,
-        table=table_conf.target_name,
+        table=table_mapping.target_name,
     )
 
     return src_column_types, tgt_column_types
@@ -893,13 +898,13 @@ def _get_schema(
 
 def _run_reconcile_data(
     reconciler: Reconciliation,
-    table_conf: TableMapping,
+    table_mapping: TableMapping,
     src_column_types: list[ColumnType],
     tgt_column_types: list[ColumnType],
 ) -> DataReconcileOutput:
     try:
         return reconciler.reconcile_data(
-            table_conf=table_conf, src_column_types=src_column_types, tgt_column_types=tgt_column_types
+            table_mapping=table_mapping, src_column_types=src_column_types, tgt_column_types=tgt_column_types
         )
     except DataSourceRuntimeException as e:
         return DataReconcileOutput(exception=str(e))
@@ -907,13 +912,13 @@ def _run_reconcile_data(
 
 def _run_reconcile_schema(
     reconciler: Reconciliation,
-    table_conf: TableMapping,
+    table_mapping: TableMapping,
     src_column_types: list[ColumnType],
     tgt_column_types: list[ColumnType],
 ):
     try:
         return reconciler.reconcile_schema(
-            table_conf=table_conf, src_column_types=src_column_types, tgt_column_types=tgt_column_types
+            table_mapping=table_mapping, src_column_types=src_column_types, tgt_column_types=tgt_column_types
         )
     except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
@@ -921,12 +926,12 @@ def _run_reconcile_schema(
 
 def _run_reconcile_aggregates(
     reconciler: Reconciliation,
-    table_conf: TableMapping,
+    table_mapping: TableMapping,
     src_column_types: list[ColumnType],
     tgt_column_types: list[ColumnType],
 ) -> list[AggregateQueryOutput]:
     try:
-        return reconciler.reconcile_aggregates(table_conf, src_column_types, tgt_column_types)
+        return reconciler.reconcile_aggregates(table_mapping, src_column_types, tgt_column_types)
     except DataSourceRuntimeException as e:
         return [AggregateQueryOutput(reconcile_output=DataReconcileOutput(exception=str(e)), rule=None)]
 

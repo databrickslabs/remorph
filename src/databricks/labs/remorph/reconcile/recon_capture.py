@@ -241,22 +241,22 @@ class ReconCapture:
 
     def _generate_recon_main_id(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
     ) -> int:
         full_source_table = (
-            f"{self.database_config.source_schema}.{table_conf.source_name}"
+            f"{self.database_config.source_schema}.{table_mapping.source_name}"
             if self.database_config.source_catalog is None
-            else f"{self.database_config.source_catalog}.{self.database_config.source_schema}.{table_conf.source_name}"
+            else f"{self.database_config.source_catalog}.{self.database_config.source_schema}.{table_mapping.source_name}"
         )
         full_target_table = (
-            f"{self.database_config.target_catalog}.{self.database_config.target_schema}.{table_conf.target_name}"
+            f"{self.database_config.target_catalog}.{self.database_config.target_schema}.{table_mapping.target_name}"
         )
         return hash(f"{self.recon_id}{full_source_table}{full_target_table}")
 
     def _insert_into_main_table(
         self,
         recon_table_id: int,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         operation_name: str = "reconcile",
     ) -> None:
@@ -274,12 +274,12 @@ class ReconCapture:
                 named_struct(
                     'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end,
                     'schema', '{self.database_config.source_schema}',
-                    'table_name', '{table_conf.source_name}'
+                    'table_name', '{table_mapping.source_name}'
                 ) as source_table,
                 named_struct(
                     'catalog', '{self.database_config.target_catalog}',
                     'schema', '{self.database_config.target_schema}',
-                    'table_name', '{table_conf.target_name}'
+                    'table_name', '{table_mapping.target_name}'
                 ) as target_table,
                 '{self.report_type}' as report_type,
                 '{operation_name}' as operation_name,
@@ -291,7 +291,7 @@ class ReconCapture:
 
     @classmethod
     def _is_mismatch_within_threshold_limits(
-        cls, data_reconcile_output: DataReconcileOutput, table_conf: TableMapping, record_count: ReconcileRecordCount
+        cls, data_reconcile_output: DataReconcileOutput, table_mapping: TableMapping, record_count: ReconcileRecordCount
     ):
         total_mismatch_count = (
             data_reconcile_output.mismatch_count + data_reconcile_output.threshold_output.threshold_mismatch_count
@@ -303,8 +303,8 @@ class ReconCapture:
             return True
         # pull out table thresholds
         thresholds: list[TableThresholds] = (
-            [threshold for threshold in table_conf.table_thresholds if threshold.model == "mismatch"]
-            if table_conf.table_thresholds
+            [threshold for threshold in table_mapping.table_thresholds if threshold.model == "mismatch"]
+            if table_mapping.table_thresholds
             else []
         )
         # if not table thresholds are provided return false
@@ -330,7 +330,7 @@ class ReconCapture:
         recon_table_id: int,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         record_count: ReconcileRecordCount,
     ) -> None:
         status = False
@@ -338,7 +338,7 @@ class ReconCapture:
             status = (
                 # validate for both exact mismatch and threshold mismatch
                 self._is_mismatch_within_threshold_limits(
-                    data_reconcile_output=data_reconcile_output, table_conf=table_conf, record_count=record_count
+                    data_reconcile_output=data_reconcile_output, table_mapping=table_mapping, record_count=record_count
                 )
                 and data_reconcile_output.missing_in_src_count == 0
                 and data_reconcile_output.missing_in_tgt_count == 0
@@ -589,25 +589,25 @@ class ReconCapture:
         self,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         record_count: ReconcileRecordCount,
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration)
         self._insert_into_metrics_table(
-            recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf, record_count
+            recon_table_id, data_reconcile_output, schema_reconcile_output, table_mapping, record_count
         )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
 
     def store_aggregates_metrics(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         reconcile_agg_output_list: list[AggregateQueryOutput],
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration, 'aggregates-reconcile')
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration, 'aggregates-reconcile')
         self._insert_into_rules_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_metrics_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_details_table(

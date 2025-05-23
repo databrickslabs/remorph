@@ -68,7 +68,7 @@ def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, moc
 
     source_type = get_dialect("snowflake")
     spark = mock_spark
-    agg_reconcile_output, table_conf, reconcile_process_duration = agg_data_prep(mock_spark)
+    agg_reconcile_output, table_mapping, reconcile_process_duration = agg_data_prep(mock_spark)
 
     recon_id = "999fygdrs-dbb7-489f-bad1-6a7e8f4821b1"
 
@@ -82,7 +82,7 @@ def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, moc
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    recon_capture.store_aggregates_metrics(table_conf, reconcile_process_duration, agg_reconcile_output)
+    recon_capture.store_aggregates_metrics(table_mapping, reconcile_process_duration, agg_reconcile_output)
 
     # Check if the tables are created
 

@@ -36,19 +36,19 @@ class SchemaCompare:
         cls,
         source_column_types: list[ColumnType],
         databricks_column_types: list[ColumnType],
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
     ) -> list[SchemaMatchResult]:
         master_column_types = source_column_types
-        if table_conf.select_columns:
+        if table_mapping.select_columns:
             master_column_types = [
-                col_type for col_type in master_column_types if col_type.column_name in table_conf.select_columns
+                col_type for col_type in master_column_types if col_type.column_name in table_mapping.select_columns
             ]
-        if table_conf.drop_columns:
+        if table_mapping.drop_columns:
             master_column_types = [
-                col_type for col_type in master_column_types if col_type.column_name not in table_conf.drop_columns
+                col_type for col_type in master_column_types if col_type.column_name not in table_mapping.drop_columns
             ]
 
-        target_column_map = table_conf.to_src_col_map or {}
+        target_column_map = table_mapping.to_src_col_map or {}
         master_schema_match_res = [
             SchemaMatchResult(
                 source_column=s.column_name,
@@ -108,7 +108,7 @@ class SchemaCompare:
         source_column_types: list[ColumnType],
         databricks_column_types: list[ColumnType],
         source: Dialect,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
     ) -> SchemaReconcileOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
@@ -117,7 +117,7 @@ class SchemaCompare:
         Returns:
             SchemaReconcileOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
-        master_column_types = self._build_master_schema(source_column_types, databricks_column_types, table_conf)
+        master_column_types = self._build_master_schema(source_column_types, databricks_column_types, table_mapping)
         for master in master_column_types:
             if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
