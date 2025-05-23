@@ -45,7 +45,7 @@ from databricks.labs.remorph.reconcile.recon_capture import (
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
-    Table,
+    TableMapping,
     AggregateQueryRules,
     SamplingOptions,
     RECONCILE_OPERATION_NAME,
@@ -219,7 +219,7 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in table_recon.tables:
+    for table_conf in table_recon.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
@@ -286,7 +286,7 @@ def _verify_successful_reconciliation(
     return reconcile_output
 
 
-def generate_volume_path(table_conf: Table, metadata_config: ReconcileMetadataConfig):
+def generate_volume_path(table_conf: TableMapping, metadata_config: ReconcileMetadataConfig):
     catalog = metadata_config.catalog
     schema = metadata_config.schema
     return f"/Volumes/{catalog}/{schema}/{metadata_config.volume}/{table_conf.source_name}_{table_conf.target_name}/"
@@ -381,7 +381,7 @@ def reconcile_aggregates(
     )
 
     # Get the Aggregated Reconciliation Output for each table
-    for table_conf in table_recon.tables:
+    for table_conf in table_recon.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         try:
             src_schema, tgt_schema = _get_schema(
@@ -454,7 +454,7 @@ class Reconciliation:
 
     def reconcile_data(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
     ) -> DataReconcileOutput:
@@ -474,13 +474,13 @@ class Reconciliation:
         self,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
-        table_conf: Table,
+        table_conf: TableMapping,
     ):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def reconcile_aggregates(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
     ) -> list[AggregateQueryOutput]:
@@ -765,7 +765,7 @@ class Reconciliation:
 
     def _reconcile_threshold_data(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
     ):
@@ -782,7 +782,7 @@ class Reconciliation:
 
     def _get_threshold_data(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
     ) -> tuple[DataFrame, DataFrame]:
@@ -810,7 +810,7 @@ class Reconciliation:
 
         return src_data, tgt_data
 
-    def _compute_threshold_comparison(self, table_conf: Table, src_schema: list[Schema]) -> ThresholdOutput:
+    def _compute_threshold_comparison(self, table_conf: TableMapping, src_schema: list[Schema]) -> ThresholdOutput:
         threshold_comparison_query = ThresholdQueryBuilder(
             table_conf, src_schema, "target", self._target_engine
         ).build_comparison_query()
@@ -832,7 +832,7 @@ class Reconciliation:
 
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
 
-    def get_record_count(self, table_conf: Table, report_type: str) -> ReconcileRecordCount:
+    def get_record_count(self, table_conf: TableMapping, report_type: str) -> ReconcileRecordCount:
         if report_type != "schema":
             source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
             target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
@@ -861,7 +861,7 @@ class Reconciliation:
 def _get_schema(
     source: DataSource,
     target: DataSource,
-    table_conf: Table,
+    table_conf: TableMapping,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
     src_schema = source.get_schema(
@@ -880,7 +880,7 @@ def _get_schema(
 
 def _run_reconcile_data(
     reconciler: Reconciliation,
-    table_conf: Table,
+    table_conf: TableMapping,
     src_schema: list[Schema],
     tgt_schema: list[Schema],
 ) -> DataReconcileOutput:
@@ -892,7 +892,7 @@ def _run_reconcile_data(
 
 def _run_reconcile_schema(
     reconciler: Reconciliation,
-    table_conf: Table,
+    table_conf: TableMapping,
     src_schema: list[Schema],
     tgt_schema: list[Schema],
 ):
@@ -904,7 +904,7 @@ def _run_reconcile_schema(
 
 def _run_reconcile_aggregates(
     reconciler: Reconciliation,
-    table_conf: Table,
+    table_conf: TableMapping,
     src_schema: list[Schema],
     tgt_schema: list[Schema],
 ) -> list[AggregateQueryOutput]:

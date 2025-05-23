@@ -42,14 +42,14 @@ class HashQueryBuilder(QueryBuilder):
         key_cols = hash_cols if report_type == "row" else sorted(_join_columns | self.partition_column)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
 
         # in case if we have column mapping, we need to sort the target columns in the order of source columns to get
         # same hash value
         hash_cols_with_alias = [
-            {"this": col, "alias": self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)}
+            {"this": col, "alias": self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer)}
             for col in hash_cols
         ]
         sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])

@@ -10,7 +10,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     DataType_transform_mapping,
     transform_expression,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table, Aggregate
+from databricks.labs.remorph.reconcile.recon_config import Schema, TableMapping, Aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 class QueryBuilder(ABC):
     def __init__(
         self,
-        table_conf: Table,
+        table_mapping: TableMapping,
         schema: list[Schema],
         layer: str,
         dialect: Dialect,
     ):
-        self._table_conf = table_conf
+        self._table_mapping = table_mapping
         self._schema = schema
         self._layer = layer
         self._dialect = dialect
@@ -41,40 +41,40 @@ class QueryBuilder(ABC):
         return self._schema
 
     @property
-    def table_conf(self) -> Table:
-        return self._table_conf
+    def table_mapping(self) -> TableMapping:
+        return self._table_mapping
 
     @property
     def select_columns(self) -> set[str]:
-        return self.table_conf.get_select_columns(self._schema, self._layer)
+        return self.table_mapping.get_select_columns(self._schema, self._layer)
 
     @property
     def threshold_columns(self) -> set[str]:
-        return self.table_conf.get_threshold_columns(self._layer)
+        return self.table_mapping.get_threshold_columns(self._layer)
 
     @property
     def join_columns(self) -> set[str] | None:
-        return self.table_conf.get_join_columns(self._layer)
+        return self.table_mapping.get_join_columns(self._layer)
 
     @property
     def drop_columns(self) -> set[str]:
-        return self._table_conf.get_drop_columns(self._layer)
+        return self._table_mapping.get_drop_columns(self._layer)
 
     @property
     def partition_column(self) -> set[str]:
-        return self._table_conf.get_partition_column(self._layer)
+        return self._table_mapping.get_partition_column(self._layer)
 
     @property
     def filter(self) -> str | None:
-        return self._table_conf.get_filter(self._layer)
+        return self._table_mapping.get_filter(self._layer)
 
     @property
     def user_transformations(self) -> dict[str, str]:
-        return self._table_conf.get_transformation_dict(self._layer)
+        return self._table_mapping.get_transformation_dict(self._layer)
 
     @property
     def aggregates(self) -> list[Aggregate] | None:
-        return self.table_conf.aggregates
+        return self.table_mapping.aggregates
 
     def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
         if self.user_transformations:
@@ -131,6 +131,6 @@ class QueryBuilder(ABC):
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
         if field is None:
-            message = f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
+            message = f"Exception for {self.table_mapping.target_name} target table in {self.layer} layer --> {message}"
             logger.error(message)
             raise InvalidInputException(message)

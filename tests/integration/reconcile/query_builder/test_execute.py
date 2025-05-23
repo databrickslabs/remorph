@@ -663,7 +663,7 @@ def mock_for_report_type_data(
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -866,7 +866,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1061,7 +1061,7 @@ def mock_for_report_type_all(
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1312,7 +1312,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1534,7 +1534,7 @@ def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     source = MockDataSource({}, {})
     target = MockDataSource({}, {})

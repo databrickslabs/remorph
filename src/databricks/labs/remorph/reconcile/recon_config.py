@@ -175,7 +175,7 @@ def to_lower_case(input_list: list[str]) -> list[str]:
 
 
 @dataclass
-class Table:
+class TableMapping:
     source_name: str
     target_name: str
     sampling_options: SamplingOptions | None = None
