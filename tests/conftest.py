@@ -22,7 +22,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Filters,
     TableThresholds,
     ColumnMapping,
-    Schema,
+    ColumnType,
 )
 
 
@@ -94,23 +94,23 @@ def table_mapping_builder():
 @pytest.fixture
 def table_schema():
     sch = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "varchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "varchar"),
+        ColumnType("s_suppkey", "number"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_address", "varchar"),
+        ColumnType("s_nationkey", "number"),
+        ColumnType("s_phone", "varchar"),
+        ColumnType("s_acctbal", "number"),
+        ColumnType("s_comment", "varchar"),
     ]
 
     sch_with_alias = [
-        Schema("s_suppkey_t", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address_t", "varchar"),
-        Schema("s_nationkey_t", "number"),
-        Schema("s_phone_t", "varchar"),
-        Schema("s_acctbal_t", "number"),
-        Schema("s_comment_t", "varchar"),
+        ColumnType("s_suppkey_t", "number"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_address_t", "varchar"),
+        ColumnType("s_nationkey_t", "number"),
+        ColumnType("s_phone_t", "varchar"),
+        ColumnType("s_acctbal_t", "number"),
+        ColumnType("s_comment_t", "varchar"),
     ]
 
     return sch, sch_with_alias

@@ -193,7 +193,7 @@ def test_get_schema():
     # create object for SnowflakeDataSource
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
-    dfds.get_schema("catalog", "schema", "supplier")
+    dfds.get_column_types("catalog", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with(
@@ -267,7 +267,7 @@ def test_get_schema_exception_handling():
         "where lower\\(table_name\\)='supplier' and table_schema = 'SCHEMA' order by ordinal_position : Test "
         "Exception",
     ):
-        dfds.get_schema("catalog", "schema", "supplier")
+        dfds.get_column_types("catalog", "schema", "supplier")
 
 
 def test_read_data_with_out_options_private_key():

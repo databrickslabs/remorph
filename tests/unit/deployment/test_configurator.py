@@ -45,7 +45,7 @@ def test_prompt_for_catalog_setup_existing_catalog_no_access_abort(ws):
     )
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
-    catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
+    catalog_operations.get_column_types.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
     catalog_operations.has_catalog_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
@@ -103,7 +103,7 @@ def test_prompt_for_schema_setup_existing_schema(ws):
         }
     )
     catalog_ops = create_autospec(CatalogOperations)
-    catalog_ops.get_schema.return_value = SchemaInfo(
+    catalog_ops.get_column_types.return_value = SchemaInfo(
         catalog_name="remorph",
         name="reconcile",
         full_name="remorph.reconcile",
@@ -120,7 +120,7 @@ def test_prompt_for_schema_setup_existing_schema_no_access_abort(ws):
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = SchemaInfo(
+    catalog_operations.get_column_types.return_value = SchemaInfo(
         catalog_name="remorph", name="reconcile", full_name="remorph.reconcile"
     )
     catalog_operations.has_catalog_access.return_value = True
@@ -139,7 +139,7 @@ def test_prompt_for_schema_setup_existing_schema_no_access_retry_exhaust_attempt
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = None
+    catalog_operations.get_column_types.return_value = None
     catalog_operations.has_schema_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
@@ -154,7 +154,7 @@ def test_prompt_for_schema_setup_new_schema(ws):
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = None
+    catalog_operations.get_column_types.return_value = None
     catalog_operations.create_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_schema_setup("remorph", "reconcile") == "reconcile"
@@ -168,7 +168,7 @@ def test_prompt_for_schema_setup_new_schema_abort(ws):
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = None
+    catalog_operations.get_column_types.return_value = None
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_schema_setup("remorph", "reconcile")

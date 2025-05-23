@@ -11,7 +11,8 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
 from databricks.labs.remorph.reconcile.recon_config import (
     Aggregate,
     AggregateQueryRules,
-    AggregateRule, Layer,
+    AggregateRule,
+    Layer,
 )
 
 logger = logging.getLogger(__name__)

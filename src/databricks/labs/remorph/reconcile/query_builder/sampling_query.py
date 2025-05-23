@@ -100,7 +100,7 @@ class SamplingQueryBuilder(QueryBuilder):
             column_types_dict = dict(column_types)
             orig_types_dict = {
                 schema.column_name: schema.data_type
-                for schema in self.schema
+                for schema in self.column_types
                 if schema.column_name not in self.user_transformations
             }
             row_select = [

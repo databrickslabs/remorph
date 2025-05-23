@@ -36,6 +36,12 @@ def test_table_without_column_mapping(table_mapping_builder, column_mapping):
     assert table_mapping.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}
     assert table_mapping.get_layer_tgt_to_src_col_mapping("s_address_t", Layer.TARGET) == "s_address_t"
     assert table_mapping.get_layer_tgt_to_src_col_mapping("s_address", Layer.SOURCE) == "s_address"
-    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], Layer.SOURCE) == {"s_address", "s_name"}
-    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], Layer.TARGET) == {"s_address", "s_name"}
+    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], Layer.SOURCE) == {
+        "s_address",
+        "s_name",
+    }
+    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], Layer.TARGET) == {
+        "s_address",
+        "s_name",
+    }
     assert table_mapping.get_layer_src_to_tgt_col_mapping("s_address", Layer.SOURCE) == "s_address"

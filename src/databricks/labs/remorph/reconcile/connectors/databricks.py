@@ -9,7 +9,7 @@ from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, ColumnType
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -69,12 +69,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
-    def get_schema(
+    def get_column_types(
         self,
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[ColumnType]:
         catalog_str = catalog if catalog else "hive_metastore"
         schema_query = _get_schema_query(catalog_str, schema, table)
         try:
@@ -82,6 +82,6 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             logger.info(f"Fetching Schema: Started at: {datetime.now()}")
             schema_metadata = self._spark.sql(schema_query).where("col_name not like '#%'").distinct().collect()
             logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
-            return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_metadata]
+            return [ColumnType(field.col_name.lower(), field.data_type.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)

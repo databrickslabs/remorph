@@ -26,7 +26,7 @@ def test_get_schema():
 
     # catalog as catalog
     ddds = DatabricksDataSource(engine, spark, ws, scope)
-    ddds.get_schema("catalog", "schema", "supplier")
+    ddds.get_column_types("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
         re.sub(
             r'\s+',
@@ -40,12 +40,12 @@ def test_get_schema():
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
     # hive_metastore as catalog
-    ddds.get_schema("hive_metastore", "schema", "supplier")
+    ddds.get_column_types("hive_metastore", "schema", "supplier")
     spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table hive_metastore.schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
     # global_temp as schema with hive_metastore
-    ddds.get_schema("hive_metastore", "global_temp", "supplier")
+    ddds.get_column_types("hive_metastore", "global_temp", "supplier")
     spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table global_temp.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
@@ -106,7 +106,7 @@ def test_get_schema_exception_handling():
     ddds = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql.side_effect = RuntimeError("Test Exception")
     with pytest.raises(DataSourceRuntimeException) as exception:
-        ddds.get_schema("org", "data", "employee")
+        ddds.get_column_types("org", "data", "employee")
 
     assert str(exception.value) == (
         "Runtime exception occurred while fetching schema using select lower(column_name) "
