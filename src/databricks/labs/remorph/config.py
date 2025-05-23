@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-import typing
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, cast
 
+from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
@@ -52,9 +52,6 @@ class LSPConfigOptionV1:
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
 
-JSON: typing.TypeAlias = None | bool | int | float | str | list["JSON"] | dict[str, "JSON"]
-
-
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
@@ -69,7 +66,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: JSON = None
+    transpiler_options: JsonValue = None
 
     @property
     def transpiler_path(self):
