@@ -105,24 +105,24 @@ def main(*argv) -> None:
 
     logger.info(f"Loading {filename} from Databricks Workspace...")
 
-    table_recon = installation.load(type_ref=SchemaMapping, filename=filename)
+    schema_mapping = installation.load(type_ref=SchemaMapping, filename=filename)
 
     if operation_name == AGG_RECONCILE_OPERATION_NAME:
-        return _trigger_reconcile_aggregates(w, table_recon, reconcile_config)
+        return _trigger_reconcile_aggregates(w, schema_mapping, reconcile_config)
 
-    return _trigger_recon(w, table_recon, reconcile_config)
+    return _trigger_recon(w, schema_mapping, reconcile_config)
 
 
 def _trigger_recon(
     w: WorkspaceClient,
-    table_recon: SchemaMapping,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
 ):
     try:
         recon_output = recon(
             ws=w,
             spark=DatabricksSession.builder.getOrCreate(),
-            table_recon=table_recon,
+            schema_mapping=schema_mapping,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
@@ -134,7 +134,7 @@ def _trigger_recon(
 
 def _trigger_reconcile_aggregates(
     ws: WorkspaceClient,
-    table_recon: SchemaMapping,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
 ):
     """
@@ -146,7 +146,7 @@ def _trigger_reconcile_aggregates(
 
     Parameters:
     - ws (WorkspaceClient): The workspace client used to interact with Databricks workspaces.
-    - table_recon (TableRecon): Configuration for the table reconciliation process, including source and target details.
+    - schema_mapping (SchemaMapping): Configuration for the table reconciliation process, including source and target details.
     - reconcile_config (ReconcileConfig): General configuration for the reconciliation process,
                                                                     including database and table settings.
 
@@ -158,7 +158,7 @@ def _trigger_reconcile_aggregates(
         recon_output = reconcile_aggregates(
             ws=ws,
             spark=DatabricksSession.builder.getOrCreate(),
-            schema_mapping=table_recon,
+            schema_mapping=schema_mapping,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
@@ -171,7 +171,7 @@ def _trigger_reconcile_aggregates(
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
-    table_recon: SchemaMapping,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ) -> ReconcileOutput:
@@ -220,7 +220,7 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in table_recon.table_mappings:
+    for table_conf in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
