@@ -10,7 +10,7 @@ from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.config import (
     DatabaseConfig,
-    TableRecon,
+    ReconcilationMappings,
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
@@ -658,12 +658,12 @@ def mock_for_report_type_data(
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+    table_recon = ReconcilationMappings(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -861,12 +861,12 @@ def test_recon_for_report_type_is_data(
 
 @pytest.fixture
 def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store, mock_spark, setup_metadata_table):
-    table_recon = TableRecon(
+    table_recon = ReconcilationMappings(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1056,12 +1056,12 @@ def mock_for_report_type_all(
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+    table_recon = ReconcilationMappings(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1307,12 +1307,12 @@ def test_recon_for_report_type_all(
 def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+    table_recon = ReconcilationMappings(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -1529,12 +1529,12 @@ def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.column_thresholds = None
     table_conf_with_opts.join_columns = None
-    table_recon = TableRecon(
+    table_recon = ReconcilationMappings(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_conf_with_opts],
     )
     source = MockDataSource({}, {})
     target = MockDataSource({}, {})

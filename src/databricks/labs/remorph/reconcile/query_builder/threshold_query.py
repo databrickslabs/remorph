@@ -17,7 +17,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_where_clause,
     coalesce,
 )
-from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds
+from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds, Layer
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,10 @@ class ThresholdQueryBuilder(QueryBuilder):
     # Comparison query
     def build_comparison_query(self) -> str:
         self._validate(
-            self.table_conf.get_join_columns("source"), "Join Columns are compulsory for threshold comparison query"
+            self.table_conf.get_join_columns(Layer.SOURCE), "Join Columns are compulsory for threshold comparison query"
         )
         join_columns = (
-            self.table_conf.get_join_columns("source") if self.table_conf.get_join_columns("source") else set()
+            self.table_conf.get_join_columns(Layer.SOURCE) if self.table_conf.get_join_columns(Layer.SOURCE) else set()
         )
         select_clause, where = self._generate_select_where_clause(join_columns)
         from_clause, join_clause = self._generate_from_and_join_clause(join_columns)
