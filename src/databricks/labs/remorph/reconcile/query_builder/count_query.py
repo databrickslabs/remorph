@@ -4,7 +4,7 @@ from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import build_column, build_literal
-from databricks.labs.remorph.reconcile.recon_config import TableMapping
+from databricks.labs.remorph.reconcile.recon_config import TableMapping, Layer
 
 logger = logging.getLogger(__name__)
 
@@ -14,20 +14,20 @@ class CountQueryBuilder:
     def __init__(
         self,
         mapping: TableMapping,
-        layer: str,
-        engine: Dialect,
+        layer: Layer,
+        dialect: Dialect,
     ):
-        self._table_conf = mapping
+        self._mapping = mapping
         self._layer = layer
-        self._engine = engine
+        self._dialect = dialect
 
     def build_query(self):
         select_clause = build_column(this=exp.Count(this=build_literal(this="1", is_string=False)), alias="count")
         count_query = (
             exp.select(select_clause)
             .from_(":tbl")
-            .where(self._table_conf.get_filter(self._layer))
-            .sql(dialect=self._engine)
+            .where(self._mapping.get_filter(self._layer))
+            .sql(dialect=self._dialect)
         )
         logger.info(f"Record Count Query for {self._layer}: {count_query}")
         return count_query

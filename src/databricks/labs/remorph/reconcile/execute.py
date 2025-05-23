@@ -50,6 +50,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     SamplingOptions,
     RECONCILE_OPERATION_NAME,
     AGG_RECONCILE_OPERATION_NAME,
+    Layer,
 )
 from databricks.labs.remorph.reconcile.recon_output_config import (
     DataReconcileOutput,
@@ -462,10 +463,10 @@ class Reconciliation:
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
             reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
-            if table_conf.get_threshold_columns("source"):
+            if table_conf.get_threshold_columns(Layer.SOURCE):
                 reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
 
-        if self._report_type == "row" and table_conf.get_threshold_columns("source"):
+        if self._report_type == "row" and table_conf.get_threshold_columns(Layer.SOURCE):
             logger.warning("Threshold comparison is ignored for 'row' report type")
 
         return reconcile_output
@@ -787,10 +788,10 @@ class Reconciliation:
         tgt_schema: list[Schema],
     ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
-            table_conf, src_schema, "source", self._source_engine
+            table_conf, src_schema, Layer.SOURCE, self._source_engine
         ).build_threshold_query()
         tgt_threshold_query = ThresholdQueryBuilder(
-            table_conf, tgt_schema, "target", self._target_engine
+            table_conf, tgt_schema, Layer.TARGET, self._target_engine
         ).build_threshold_query()
 
         src_data = self._source.read_data(
@@ -812,7 +813,7 @@ class Reconciliation:
 
     def _compute_threshold_comparison(self, table_conf: TableMapping, src_schema: list[Schema]) -> ThresholdOutput:
         threshold_comparison_query = ThresholdQueryBuilder(
-            table_conf, src_schema, "target", self._target_engine
+            table_conf, src_schema, Layer.TARGET, self._target_engine
         ).build_comparison_query()
 
         threshold_result = self._target.read_data(
@@ -822,7 +823,7 @@ class Reconciliation:
             query=threshold_comparison_query,
             options=table_conf.jdbc_reader_options,
         )
-        threshold_columns = table_conf.get_threshold_columns("source")
+        threshold_columns = table_conf.get_threshold_columns(Layer.SOURCE)
         failed_where_cond = " OR ".join([name + "_match = 'Failed'" for name in threshold_columns])
         mismatched_df = threshold_result.filter(failed_where_cond)
         mismatched_count = mismatched_df.count()
@@ -834,8 +835,8 @@ class Reconciliation:
 
     def get_record_count(self, table_conf: TableMapping, report_type: str) -> ReconcileRecordCount:
         if report_type != "schema":
-            source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
-            target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
+            source_count_query = CountQueryBuilder(table_conf, Layer.SOURCE, self._source_engine).build_query()
+            target_count_query = CountQueryBuilder(table_conf, Layer.TARGET, self._target_engine).build_query()
             source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
