@@ -46,7 +46,7 @@ def column_mapping():
 
 
 @pytest.fixture
-def table_conf_with_opts(column_mapping):
+def table_mapping_with_opts(column_mapping):
     return TableMapping(
         source_name="supplier",
         target_name="target_supplier",
@@ -73,8 +73,8 @@ def table_conf_with_opts(column_mapping):
 
 
 @pytest.fixture
-def table_conf():
-    def _table_conf(**kwargs):
+def table_mapping_builder():
+    def _table_mapping(**kwargs):
         return TableMapping(
             source_name="supplier",
             target_name="supplier",
@@ -88,7 +88,7 @@ def table_conf():
             filters=kwargs.get('filters', None),
         )
 
-    return _table_conf
+    return _table_mapping
 
 
 @pytest.fixture
