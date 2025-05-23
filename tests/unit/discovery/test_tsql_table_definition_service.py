@@ -43,7 +43,7 @@ def test_get_table_definition_with_data():
     assert result[0].primary_keys == ['col1', 'col2']
     assert isinstance(result[0], TableDefinition)
     assert result[0].fqn.catalog == 'catalog1'
-    assert result[0].fqn.column_types == 'schema1'
+    assert result[0].fqn.schema == 'schema1'
     assert result[0].fqn.name == 'table1'
 
 
