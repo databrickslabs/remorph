@@ -139,7 +139,8 @@ async def _process_many_files(
     counter = 0
     all_errors: list[TranspileError] = []
 
-    logger.info(f"Processing folder: {files!s}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
         if not is_sql_file(file) and not is_dbt_project_file(file):
             logger.debug(f"Ignored file: {file}")
@@ -148,7 +149,6 @@ async def _process_many_files(
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
-    logger.info(f"Processed folder: {files!s}")
     return counter, all_errors
 
 
@@ -169,7 +169,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.debug(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
+        logger.debug(f"Transpiling SQL files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
@@ -237,7 +237,7 @@ async def _do_transpile(
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
-    logger.info(f"Transpiler results: {result}")
+    logger.debug(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
