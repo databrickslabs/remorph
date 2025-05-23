@@ -66,6 +66,7 @@ dependencies = [
   "types-pyYAML~=6.0.12",
   "types-pytz~=2025.2",
   "databricks-labs-pylint~=0.4.0",
+  "databricks-labs-pytester>=0.3.0",
   "mypy~=1.10.0",
   "numpy==1.26.4",
   "pandas==1.4.1",
