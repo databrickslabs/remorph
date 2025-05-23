@@ -2,14 +2,14 @@ from databricks.labs.remorph.reconcile.recon_config import Layer
 
 
 def test_table_without_join_column(table_mapping_builder):
-    table_mapping_builder = table_mapping_builder()
-    assert table_conf.get_join_columns(Layer.SOURCE) is None
-    assert table_conf.get_drop_columns(Layer.SOURCE) == set()
-    assert table_conf.get_partition_column(Layer.SOURCE) == set()
-    assert table_conf.get_partition_column(Layer.TARGET) == set()
-    assert table_conf.get_filter(Layer.SOURCE) is None
-    assert table_conf.get_filter(Layer.TARGET) is None
-    assert table_conf.get_threshold_columns(Layer.SOURCE) == set()
+    table_mapping = table_mapping_builder()
+    assert table_mapping.get_join_columns(Layer.SOURCE) is None
+    assert table_mapping.get_drop_columns(Layer.SOURCE) == set()
+    assert table_mapping.get_partition_column(Layer.SOURCE) == set()
+    assert table_mapping.get_partition_column(Layer.TARGET) == set()
+    assert table_mapping.get_filter(Layer.SOURCE) is None
+    assert table_mapping.get_filter(Layer.TARGET) is None
+    assert table_mapping.get_threshold_columns(Layer.SOURCE) == set()
 
 
 def test_table_with_all_options(table_mapping_with_opts):
@@ -31,11 +31,11 @@ def test_table_with_all_options(table_mapping_with_opts):
 
 
 def test_table_without_column_mapping(table_mapping_builder, column_mapping):
-    table_mapping_builder = table_mapping_builder()
+    table_mapping = table_mapping_builder()
 
-    assert table_conf.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}
-    assert table_conf.get_layer_tgt_to_src_col_mapping("s_address_t", "target") == "s_address_t"
-    assert table_conf.get_layer_tgt_to_src_col_mapping("s_address", "source") == "s_address"
-    assert table_conf.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "source") == {"s_address", "s_name"}
-    assert table_conf.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "target") == {"s_address", "s_name"}
-    assert table_conf.get_layer_src_to_tgt_col_mapping("s_address", "source") == "s_address"
+    assert table_mapping.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}
+    assert table_mapping.get_layer_tgt_to_src_col_mapping("s_address_t", "target") == "s_address_t"
+    assert table_mapping.get_layer_tgt_to_src_col_mapping("s_address", "source") == "s_address"
+    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "source") == {"s_address", "s_name"}
+    assert table_mapping.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "target") == {"s_address", "s_name"}
+    assert table_mapping.get_layer_src_to_tgt_col_mapping("s_address", "source") == "s_address"
