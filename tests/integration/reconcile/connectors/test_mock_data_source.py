@@ -4,7 +4,7 @@ from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
-from databricks.labs.remorph.reconcile.recon_config import Schema
+from databricks.labs.remorph.reconcile.recon_config import ColumnType
 
 CATALOG = "org"
 SCHEMA = "data"
@@ -27,9 +27,9 @@ def test_mock_data_source_happy(mock_spark):
     }
     schema_repository = {
         (CATALOG, SCHEMA, TABLE): [
-            Schema(column_name="emp_id", data_type="int"),
-            Schema(column_name="emp_name", data_type="str"),
-            Schema(column_name="sal", data_type="int"),
+            ColumnType(column_name="emp_id", data_type="int"),
+            ColumnType(column_name="emp_name", data_type="str"),
+            ColumnType(column_name="sal", data_type="int"),
         ]
     }
 
@@ -44,12 +44,12 @@ def test_mock_data_source_happy(mock_spark):
         ]
     )
 
-    actual_schema = data_source.get_schema(CATALOG, SCHEMA, TABLE)
+    actual_schema = data_source.get_column_types(CATALOG, SCHEMA, TABLE)
     assertDataFrameEqual(actual_data, expected_data)
     assert actual_schema == [
-        Schema(column_name="emp_id", data_type="int"),
-        Schema(column_name="emp_name", data_type="str"),
-        Schema(column_name="sal", data_type="int"),
+        ColumnType(column_name="emp_id", data_type="int"),
+        ColumnType(column_name="emp_name", data_type="str"),
+        ColumnType(column_name="sal", data_type="int"),
     ]
 
 
@@ -66,7 +66,7 @@ def test_mock_data_source_fail(mock_spark):
         DataSourceRuntimeException,
         match="Runtime exception occurred while fetching schema using \\(org, data, unknown\\) : TABLE NOT FOUND",
     ):
-        data_source.get_schema(CATALOG, SCHEMA, "unknown")
+        data_source.get_column_types(CATALOG, SCHEMA, "unknown")
 
 
 def test_mock_data_source_no_catalog(mock_spark):
@@ -85,9 +85,9 @@ def test_mock_data_source_no_catalog(mock_spark):
     }
     schema_repository = {
         (CATALOG, SCHEMA, TABLE): [
-            Schema(column_name="emp_id", data_type="int"),
-            Schema(column_name="emp_name", data_type="str"),
-            Schema(column_name="sal", data_type="int"),
+            ColumnType(column_name="emp_id", data_type="int"),
+            ColumnType(column_name="emp_name", data_type="str"),
+            ColumnType(column_name="sal", data_type="int"),
         ]
     }
 

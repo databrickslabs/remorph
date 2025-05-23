@@ -10,7 +10,7 @@ from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.config import (
     DatabaseConfig,
-    TableRecon,
+    SchemaMapping,
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
@@ -161,9 +161,9 @@ def query_store(mock_spark):
 
 
 def test_reconcile_data_with_mismatches_and_missing(
-    mock_spark, table_conf_with_opts, table_schema, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -251,7 +251,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
     expected_data_reconcile = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
@@ -313,7 +313,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         get_dialect("databricks"),
         mock_spark,
         ReconcileMetadataConfig(),
-    ).reconcile_schema(src_schema, tgt_schema, table_conf_with_opts)
+    ).reconcile_schema(src_schema, tgt_schema, table_mapping_with_opts)
     expected_schema_reconcile = mock_spark.createDataFrame(
         [
             Row(
@@ -381,12 +381,12 @@ def test_reconcile_data_with_mismatches_and_missing(
 
 def test_reconcile_data_without_mismatches_and_missing(
     mock_spark,
-    table_conf_with_opts,
-    table_schema,
+    table_mapping_with_opts,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -449,7 +449,7 @@ def test_reconcile_data_without_mismatches_and_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
     assert actual.mismatch_count == 0
     assert actual.missing_in_src_count == 0
     assert actual.missing_in_tgt_count == 0
@@ -461,11 +461,11 @@ def test_reconcile_data_without_mismatches_and_missing(
 
 
 def test_reconcile_data_with_mismatch_and_no_missing(
-    mock_spark, table_conf_with_opts, table_schema, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
+    src_schema, tgt_schema = column_and_aliases_types
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -527,7 +527,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
     expected = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=0,
@@ -566,14 +566,14 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 
 def test_reconcile_data_missing_and_no_mismatch(
     mock_spark,
-    table_conf_with_opts,
-    table_schema,
+    table_mapping_with_opts,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
+    src_schema, tgt_schema = column_and_aliases_types
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -627,7 +627,7 @@ def test_reconcile_data_missing_and_no_mismatch(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
     expected = DataReconcileOutput(
         mismatch_count=0,
         missing_in_src_count=1,
@@ -650,22 +650,22 @@ def test_reconcile_data_missing_and_no_mismatch(
 
 @pytest.fixture
 def mock_for_report_type_data(
-    table_conf_with_opts,
-    table_schema,
+    table_mapping_with_opts,
+    column_and_aliases_types,
     query_store,
     setup_metadata_table,
     mock_spark,
 ):
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -737,7 +737,7 @@ def mock_for_report_type_data(
         ),
         metadata_config=ReconcileMetadataConfig(schema="default"),
     )
-    return table_recon, source, target, reconcile_config_data
+    return schema_mapping, source, target, reconcile_config_data
 
 
 def test_recon_for_report_type_is_data(
@@ -748,7 +748,7 @@ def test_recon_for_report_type_is_data(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config_data = mock_for_report_type_data
+    schema_mapping, source, target, reconcile_config_data = mock_for_report_type_data
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
@@ -762,7 +762,7 @@ def test_recon_for_report_type_is_data(
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         with pytest.raises(ReconciliationException) as exc_info:
-            recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_data, local_test_run=True)
+            recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config_data, local_test_run=True)
         if exc_info.value.reconcile_output is not None:
             assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
@@ -860,15 +860,15 @@ def test_recon_for_report_type_is_data(
 
 
 @pytest.fixture
-def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store, mock_spark, setup_metadata_table):
-    table_recon = TableRecon(
+def mock_for_report_type_schema(table_mapping_with_opts, column_and_aliases_types, query_store, mock_spark, setup_metadata_table):
+    schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -930,7 +930,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         ),
         metadata_config=ReconcileMetadataConfig(schema="default"),
     )
-    return table_recon, source, target, reconcile_config_schema
+    return schema_mapping, source, target, reconcile_config_schema
 
 
 def test_recon_for_report_type_schema(
@@ -941,7 +941,7 @@ def test_recon_for_report_type_schema(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config_schema = mock_for_report_type_schema
+    schema_mapping, source, target, reconcile_config_schema = mock_for_report_type_schema
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
@@ -955,7 +955,7 @@ def test_recon_for_report_type_schema(
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         final_reconcile_output = recon(
-            mock_workspace_client, mock_spark, table_recon, reconcile_config_schema, local_test_run=True
+            mock_workspace_client, mock_spark, schema_mapping, reconcile_config_schema, local_test_run=True
         )
 
     expected_remorph_recon = mock_spark.createDataFrame(
@@ -1048,22 +1048,22 @@ def test_recon_for_report_type_schema(
 @pytest.fixture
 def mock_for_report_type_all(
     mock_workspace_client,
-    table_conf_with_opts,
-    table_schema,
+    table_mapping_with_opts,
+    column_and_aliases_types,
     mock_spark,
     query_store,
     setup_metadata_table,
 ):
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1137,7 +1137,7 @@ def mock_for_report_type_all(
         ),
         metadata_config=ReconcileMetadataConfig(),
     )
-    return table_recon, source, target, reconcile_config_all
+    return schema_mapping, source, target, reconcile_config_all
 
 
 def test_recon_for_report_type_all(
@@ -1148,7 +1148,7 @@ def test_recon_for_report_type_all(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config_all = mock_for_report_type_all
+    schema_mapping, source, target, reconcile_config_all = mock_for_report_type_all
 
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
@@ -1163,7 +1163,7 @@ def test_recon_for_report_type_all(
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         with pytest.raises(ReconciliationException) as exc_info:
-            recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_all, local_test_run=True)
+            recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config_all, local_test_run=True)
         if exc_info.value.reconcile_output is not None:
             assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
@@ -1304,17 +1304,17 @@ def test_recon_for_report_type_all(
 
 
 @pytest.fixture
-def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_recon = TableRecon(
+def mock_for_report_type_row(table_mapping_with_opts, column_and_aliases_types, mock_spark, query_store, setup_metadata_table):
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1408,7 +1408,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
         metadata_config=ReconcileMetadataConfig(),
     )
 
-    return source, target, table_recon, reconcile_config_row
+    return source, target, schema_mapping, reconcile_config_row
 
 
 def test_recon_for_report_type_is_row(
@@ -1419,7 +1419,7 @@ def test_recon_for_report_type_is_row(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    source, target, table_recon, reconcile_config_row = mock_for_report_type_row
+    source, target, schema_mapping, reconcile_config_row = mock_for_report_type_row
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
@@ -1433,7 +1433,7 @@ def test_recon_for_report_type_is_row(
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         with pytest.raises(ReconciliationException) as exc_info:
-            recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_row, local_test_run=True)
+            recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config_row, local_test_run=True)
 
         if exc_info.value.reconcile_output is not None:
             assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
@@ -1525,16 +1525,16 @@ def test_recon_for_report_type_is_row(
 
 
 @pytest.fixture
-def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_conf_with_opts.join_columns = None
-    table_recon = TableRecon(
+def mock_for_recon_exception(table_mapping_with_opts, setup_metadata_table):
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    table_mapping_with_opts.join_columns = None
+    schema_mapping = SchemaMapping(
         source_catalog="org",
         source_schema="data",
         target_catalog="org",
         target_schema="data",
-        tables=[table_conf_with_opts],
+        table_mappings=[table_mapping_with_opts],
     )
     source = MockDataSource({}, {})
     target = MockDataSource({}, {})
@@ -1551,7 +1551,7 @@ def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
         metadata_config=ReconcileMetadataConfig(),
     )
 
-    return table_recon, source, target, reconcile_config_exception
+    return schema_mapping, source, target, reconcile_config_exception
 
 
 def test_schema_recon_with_data_source_exception(
@@ -1562,7 +1562,7 @@ def test_schema_recon_with_data_source_exception(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config_exception = mock_for_recon_exception
+    schema_mapping, source, target, reconcile_config_exception = mock_for_recon_exception
     reconcile_config_exception.report_type = "schema"
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
@@ -1577,7 +1577,7 @@ def test_schema_recon_with_data_source_exception(
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_exception, local_test_run=True)
+        recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config_exception, local_test_run=True)
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1629,7 +1629,7 @@ def test_schema_recon_with_general_exception(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config_schema = mock_for_report_type_schema
+    schema_mapping, source, target, reconcile_config_schema = mock_for_report_type_schema
     reconcile_config_schema.data_source = "snowflake"
     reconcile_config_schema.secret_scope = "remorph_snowflake"
     with (
@@ -1647,7 +1647,7 @@ def test_schema_recon_with_general_exception(
         schema_source_mock.side_effect = PySparkException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_schema, local_test_run=True)
+        recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config_schema, local_test_run=True)
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1699,7 +1699,7 @@ def test_data_recon_with_general_exception(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config = mock_for_report_type_schema
+    schema_mapping, source, target, reconcile_config = mock_for_report_type_schema
     reconcile_config.data_source = "snowflake"
     reconcile_config.secret_scope = "remorph_snowflake"
     reconcile_config.report_type = "data"
@@ -1718,7 +1718,7 @@ def test_data_recon_with_general_exception(
         data_source_mock.side_effect = DataSourceRuntimeException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon(mock_workspace_client, mock_spark, table_recon, reconcile_config, local_test_run=True)
+        recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config, local_test_run=True)
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1770,7 +1770,7 @@ def test_data_recon_with_source_exception(
     tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    table_recon, source, target, reconcile_config = mock_for_report_type_schema
+    schema_mapping, source, target, reconcile_config = mock_for_report_type_schema
     reconcile_config.data_source = "snowflake"
     reconcile_config.secret_scope = "remorph_snowflake"
     reconcile_config.report_type = "data"
@@ -1789,7 +1789,7 @@ def test_data_recon_with_source_exception(
         data_source_mock.side_effect = DataSourceRuntimeException("Source Runtime Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon(mock_workspace_client, mock_spark, table_recon, reconcile_config, local_test_run=True)
+        recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config, local_test_run=True)
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1847,7 +1847,7 @@ def test_initialise_data_source(mock_workspace_client, mock_spark):
 
 
 def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for_report_type_row):
-    source, target, table_recon, reconcile_config = mock_for_report_type_row
+    source, target, schema_mapping, reconcile_config = mock_for_report_type_row
     reconcile_config.report_type = "ro"
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
@@ -1861,17 +1861,17 @@ def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon(mock_workspace_client, mock_spark, table_recon, reconcile_config, local_test_run=True)
+        recon(mock_workspace_client, mock_spark, schema_mapping, reconcile_config, local_test_run=True)
 
 
 def test_reconcile_data_with_threshold_and_row_report_type(
     mock_spark,
-    table_conf_with_opts,
-    table_schema,
+    table_mapping_with_opts,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = table_schema
+    src_schema, tgt_schema = column_and_aliases_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1937,7 +1937,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
 
     assert actual.mismatch_count == 0
     assert actual.missing_in_src_count == 0
@@ -1991,9 +1991,9 @@ def test_recon_output_without_exception(mock_gen_final_recon_output):
         pytest.fail(msg)
 
 
-def test_generate_volume_path(table_conf_with_opts):
-    volume_path = generate_volume_path(table_conf_with_opts, ReconcileMetadataConfig())
+def test_generate_volume_path(table_mapping_with_opts):
+    volume_path = generate_volume_path(table_mapping_with_opts, ReconcileMetadataConfig())
     assert (
         volume_path
-        == f"/Volumes/remorph/reconcile/reconcile_volume/{table_conf_with_opts.source_name}_{table_conf_with_opts.target_name}/"
+        == f"/Volumes/remorph/reconcile/reconcile_volume/{table_mapping_with_opts.source_name}_{table_mapping_with_opts.target_name}/"
     )

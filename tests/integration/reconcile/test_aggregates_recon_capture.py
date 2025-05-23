@@ -8,7 +8,7 @@ from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
 )
-from databricks.labs.remorph.reconcile.recon_config import Table
+from databricks.labs.remorph.reconcile.recon_config import TableMapping
 from databricks.labs.remorph.reconcile.recon_output_config import (
     ReconcileProcessDuration,
     AggregateQueryOutput,
@@ -29,7 +29,7 @@ def remove_directory_recursively(directory_path):
 
 
 def agg_data_prep(spark: SparkSession):
-    table_conf = Table(source_name="supplier", target_name="target_supplier")
+    table_mapping = TableMapping(source_name="supplier", target_name="target_supplier")
     reconcile_process_duration = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
     )
@@ -58,7 +58,7 @@ def agg_data_prep(spark: SparkSession):
         for table in tables:
             remove_directory_recursively(f"{warehouse_location.lstrip('file:')}/{table}")
 
-    return agg_reconcile_output, table_conf, reconcile_process_duration
+    return agg_reconcile_output, table_mapping, reconcile_process_duration
 
 
 def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, mock_spark):
@@ -68,7 +68,7 @@ def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, moc
 
     source_type = get_dialect("snowflake")
     spark = mock_spark
-    agg_reconcile_output, table_conf, reconcile_process_duration = agg_data_prep(mock_spark)
+    agg_reconcile_output, table_mapping, reconcile_process_duration = agg_data_prep(mock_spark)
 
     recon_id = "999fygdrs-dbb7-489f-bad1-6a7e8f4821b1"
 
@@ -82,7 +82,7 @@ def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, moc
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    recon_capture.store_aggregates_metrics(table_conf, reconcile_process_duration, agg_reconcile_output)
+    recon_capture.store_aggregates_metrics(table_mapping, reconcile_process_duration, agg_reconcile_output)
 
     # Check if the tables are created
 

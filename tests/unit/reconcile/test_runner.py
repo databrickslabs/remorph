@@ -221,7 +221,7 @@ def test_run_with_job_id_in_config():
             "recon_config_snowflake_abc_all.json": {
                 "source_catalog": "abc",
                 "source_schema": "def",
-                "tables": [
+                "table_mappings": [
                     {
                         "column_mapping": [
                             {"source_name": "p_id", "target_name": "product_id"},
@@ -286,7 +286,7 @@ def test_run_with_job_id_in_state(monkeypatch):
             "recon_config_snowflake_abc_all.json": {
                 "source_catalog": "abc",
                 "source_schema": "def",
-                "tables": [
+                "table_mappings": [
                     {
                         "column_mapping": [
                             {"source_name": "p_id", "target_name": "product_id"},
@@ -345,7 +345,7 @@ def test_run_with_failed_execution():
             "recon_config_snowflake_abc_all.json": {
                 "source_catalog": "abc",
                 "source_schema": "def",
-                "tables": [
+                "table_mappings": [
                     {
                         "column_mapping": [
                             {"source_name": "p_id", "target_name": "product_id"},
@@ -412,7 +412,7 @@ def test_aggregates_reconcile_run_with_job_id_in_state(monkeypatch):
     sf_recon_config = {
         "source_catalog": "abc",
         "source_schema": "def",
-        "tables": [
+        "table_mappings": [
             {
                 "aggregates": [
                     {"type": "MIN", "agg_columns": ["discount"], "group_by_columns": ["p_id"]},

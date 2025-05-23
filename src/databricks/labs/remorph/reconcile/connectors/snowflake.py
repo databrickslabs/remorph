@@ -13,7 +13,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.exception import InvalidSnowflakePemPrivateKey
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, ColumnType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
@@ -123,12 +123,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
-    def get_schema(
+    def get_column_types(
         self,
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[ColumnType]:
         """
         Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in Snowflake.
 
@@ -146,7 +146,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             logger.info(f"Fetching Schema: Started at: {datetime.now()}")
             schema_metadata = self.reader(schema_query).load().collect()
             logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
-            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
+            return [ColumnType(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
