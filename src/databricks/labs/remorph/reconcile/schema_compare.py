@@ -7,7 +7,7 @@ from sqlglot import Dialect, parse_one
 from sqlglot.dialects import Databricks
 
 from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table
+from databricks.labs.remorph.reconcile.recon_config import Schema, TableMapping
 from databricks.labs.remorph.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class SchemaCompare:
         cls,
         source_schema: list[Schema],
         databricks_schema: list[Schema],
-        table_conf: Table,
+        table_conf: TableMapping,
     ) -> list[SchemaMatchResult]:
         master_schema = source_schema
         if table_conf.select_columns:
@@ -104,7 +104,7 @@ class SchemaCompare:
         source_schema: list[Schema],
         databricks_schema: list[Schema],
         source: Dialect,
-        table_conf: Table,
+        table_conf: TableMapping,
     ) -> SchemaReconcileOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema

@@ -10,7 +10,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     DataType_transform_mapping,
     transform_expression,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table, Aggregate
+from databricks.labs.remorph.reconcile.recon_config import Schema, TableMapping, Aggregate, Layer
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 class QueryBuilder(ABC):
     def __init__(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         schema: list[Schema],
-        layer: str,
+        layer: Layer,
         dialect: Dialect,
     ):
         self._table_conf = table_conf
@@ -33,7 +33,7 @@ class QueryBuilder(ABC):
         return self._dialect
 
     @property
-    def layer(self) -> str:
+    def layer(self) -> Layer:
         return self._layer
 
     @property
@@ -41,7 +41,7 @@ class QueryBuilder(ABC):
         return self._schema
 
     @property
-    def table_conf(self) -> Table:
+    def table_conf(self) -> TableMapping:
         return self._table_conf
 
     @property
