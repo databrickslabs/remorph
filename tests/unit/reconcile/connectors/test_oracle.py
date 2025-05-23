@@ -49,7 +49,7 @@ def test_read_data_with_options():
     # create object for SnowflakeDataSource
     ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -65,7 +65,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ords.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    ords.read_data(None, "data", "employee", "select 1 from :tbl", table_mapping.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -127,7 +127,7 @@ def test_read_data_exception_handling():
     engine, spark, ws, scope = initial_setup()
     ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -147,7 +147,7 @@ def test_read_data_exception_handling():
         DataSourceRuntimeException,
         match="Runtime exception occurred while fetching data using select 1 from data.employee : Test Exception",
     ):
-        ords.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+        ords.read_data(None, "data", "employee", "select 1 from :tbl", table_mapping.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():

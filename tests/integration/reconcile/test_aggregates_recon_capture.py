@@ -29,7 +29,7 @@ def remove_directory_recursively(directory_path):
 
 
 def agg_data_prep(spark: SparkSession):
-    table_conf = TableMapping(source_name="supplier", target_name="target_supplier")
+    table_mapping = TableMapping(source_name="supplier", target_name="target_supplier")
     reconcile_process_duration = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
     )
@@ -58,7 +58,7 @@ def agg_data_prep(spark: SparkSession):
         for table in tables:
             remove_directory_recursively(f"{warehouse_location.lstrip('file:')}/{table}")
 
-    return agg_reconcile_output, table_conf, reconcile_process_duration
+    return agg_reconcile_output, table_mapping, reconcile_process_duration
 
 
 def test_aggregates_reconcile_store_aggregate_metrics(mock_workspace_client, mock_spark):

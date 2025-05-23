@@ -78,7 +78,7 @@ def test_read_data_with_options():
     # create object for SnowflakeDataSource
     data_source = SQLServerDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="src_supplier",
         target_name="tgt_supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -88,7 +88,7 @@ def test_read_data_with_options():
 
     # Call the read_data method with the Tables configuration
     data_source.read_data(
-        "org", "data", "employee", "WITH tmp AS (SELECT * from :tbl) select 1 from tmp", table_conf.jdbc_reader_options
+        "org", "data", "employee", "WITH tmp AS (SELECT * from :tbl) select 1 from tmp", table_mapping.jdbc_reader_options
     )
 
     # spark assertions

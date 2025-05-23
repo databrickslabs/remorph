@@ -110,7 +110,7 @@ def data_prep(spark: SparkSession):
         threshold_output=threshold,
     )
     schema_output = SchemaReconcileOutput(is_valid=True, compare_df=schema_df)
-    table_conf = TableMapping(source_name="supplier", target_name="target_supplier")
+    table_mapping = TableMapping(source_name="supplier", target_name="target_supplier")
     reconcile_process = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
     )
@@ -122,7 +122,7 @@ def data_prep(spark: SparkSession):
 
     row_count = ReconcileRecordCount(source=5, target=5)
 
-    return reconcile_output, schema_output, table_conf, reconcile_process, row_count
+    return reconcile_output, schema_output, table_mapping, reconcile_process, row_count
 
 
 def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):

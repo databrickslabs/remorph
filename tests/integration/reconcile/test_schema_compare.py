@@ -168,7 +168,7 @@ def schemas():
 def test_snowflake_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
     spark = mock_spark
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         drop_columns=["dummy"],
@@ -182,7 +182,7 @@ def test_snowflake_schema_compare(schemas, mock_spark):
         src_schema,
         tgt_schema,
         get_dialect("snowflake"),
-        table_conf,
+        table_mapping,
     )
     df = schema_compare_output.compare_df
 
@@ -195,7 +195,7 @@ def test_snowflake_schema_compare(schemas, mock_spark):
 def test_databricks_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["databricks_databricks_schema"]
     spark = mock_spark
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         select_columns=[
@@ -217,7 +217,7 @@ def test_databricks_schema_compare(schemas, mock_spark):
         src_schema,
         tgt_schema,
         get_dialect("databricks"),
-        table_conf,
+        table_mapping,
     )
     df = schema_compare_output.compare_df
 
@@ -230,7 +230,7 @@ def test_databricks_schema_compare(schemas, mock_spark):
 def test_oracle_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["oracle_databricks_schema"]
     spark = mock_spark
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         drop_columns=["dummy"],
@@ -243,7 +243,7 @@ def test_oracle_schema_compare(schemas, mock_spark):
         src_schema,
         tgt_schema,
         get_dialect("oracle"),
-        table_conf,
+        table_mapping,
     )
     df = schema_compare_output.compare_df
 
@@ -263,7 +263,7 @@ def test_schema_compare(mock_spark):
         Schema("col2", "string"),
     ]
     spark = mock_spark
-    table_conf = TableMapping(
+    table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
         drop_columns=["dummy"],
@@ -277,7 +277,7 @@ def test_schema_compare(mock_spark):
         src_schema,
         tgt_schema,
         get_dialect("databricks"),
-        table_conf,
+        table_mapping,
     )
     df = schema_compare_output.compare_df
 
