@@ -3,7 +3,6 @@ import dataclasses
 import json
 import os
 import time
-import sys
 from pathlib import Path
 
 from databricks.sdk.core import with_user_agent_extra
@@ -318,6 +317,4 @@ def analyze(w: WorkspaceClient):
 
 
 if __name__ == "__main__":
-    if "--debug" in sys.argv:
-        logger.setLevel("DEBUG")
     remorph()
