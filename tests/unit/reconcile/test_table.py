@@ -1,4 +1,4 @@
-from databricks.labs.remorph.reconcile.recon_config import Filters
+from databricks.labs.remorph.reconcile.recon_config import Filters, Layer
 
 
 def test_table_column_mapping(table_mapping_builder):
@@ -17,5 +17,5 @@ def test_table_select_columns(table_mapping_builder, table_schema):
         select_columns=["s_nationkey", "s_suppkey"],
     )
 
-    assert table_mapping.get_select_columns(schema, "source") == {"s_nationkey", "s_suppkey"}
-    assert len(table_mapping.get_select_columns(schema, "source")) == 2
+    assert table_mapping.get_select_columns(schema, Layer.SOURCE) == {"s_nationkey", "s_suppkey"}
+    assert len(table_mapping.get_select_columns(schema, Layer.SOURCE)) == 2

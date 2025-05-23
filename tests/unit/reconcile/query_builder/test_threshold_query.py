@@ -23,7 +23,7 @@ def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, 
     table_schema, _ = table_schema
     table_schema.append(Schema("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
-        table_mapping, table_schema, "source", get_dialect("oracle")
+        table_mapping, table_schema, Layer.SOURCE, get_dialect("oracle")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -53,7 +53,7 @@ def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts,
     table_schema.append(Schema("s_suppdate", "timestamp"))
 
     comparison_query = ThresholdQueryBuilder(
-        table_mapping, table_schema, "target", get_dialect("databricks")
+        table_mapping, table_schema, Layer.TARGET, get_dialect("databricks")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -139,7 +139,7 @@ def test_build_expression_type_raises_value_error(table_mapping_with_opts, table
     tgt_schema.append(Schema("s_suppdate", "timestamp"))
 
     with pytest.raises(ValueError):
-        ThresholdQueryBuilder(table_mapping, src_schema, "source", get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(table_mapping, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
 
 
 def test_test_no_join_columns_raise_exception(table_mapping_with_opts, table_schema):
@@ -150,4 +150,4 @@ def test_test_no_join_columns_raise_exception(table_mapping_with_opts, table_sch
     tgt_schema.append(Schema("s_suppdate", "timestamp"))
 
     with pytest.raises(InvalidInputException):
-        ThresholdQueryBuilder(table_mapping, src_schema, "source", get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(table_mapping, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()

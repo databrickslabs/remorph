@@ -493,10 +493,10 @@ class Reconciliation:
         src_schema,
         tgt_schema,
     ):
-        src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE, self._source_engine).build_query(
             report_type=self._report_type
         )
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._source_engine).build_query(
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET, self._source_engine).build_query(
             report_type=self._report_type
         )
         src_data = self._source.read_data(
@@ -585,7 +585,7 @@ class Reconciliation:
         src_query_builder = AggregateQueryBuilder(
             table_conf,
             src_schema,
-            "source",
+            Layer.SOURCE,
             self._source_engine,
         )
 
@@ -598,7 +598,7 @@ class Reconciliation:
         tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
             table_conf,
             tgt_schema,
-            "target",
+            Layer.TARGET,
             self._target_engine,
         ).build_queries()
 
@@ -675,8 +675,8 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-            src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
-            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
+            src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE, self._source_engine)
+            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET, self._target_engine)
             if reconcile_output.mismatch_count > 0:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
