@@ -93,7 +93,7 @@ class SchemaCompare:
     @classmethod
     def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query) -> None:
         databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
-        logger.info(
+        logger.debug(
             f"""
         Source datatype: create table dummy ({master.source_column} {master.source_datatype})
         Parse datatype: {parsed_query}
