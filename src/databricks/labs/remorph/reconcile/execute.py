@@ -604,14 +604,14 @@ class Reconciliation:
             self._source_engine,
         )
 
-        logger.info("Building src queries...")
+        logger.info(f"Building src queries for mapping {table_mapping} with src columns {src_column_types}")
         # build Aggregate queries for source,
         src_agg_queries: list[AggregateQueryRules] = src_query_builder.build_queries()
 
         # There could be one or more queries per table based on the group by columns
 
         # build Aggregate queries for target(Databricks),
-        logger.info("Building tgt queries...")
+        logger.info(f"Building tgt queries for mapping {table_mapping} with tgt columns {tgt_column_types}")
 
         tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
             table_mapping,
