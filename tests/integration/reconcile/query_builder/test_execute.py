@@ -45,9 +45,9 @@ TGT_TABLE = "target_supplier"
 
 
 def test_reconcile_data_with_mismatches_and_missing(
-    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -70,7 +70,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -115,7 +115,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             ]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -135,7 +135,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_column_types, tgt_column_types)
     expected_data_reconcile = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
@@ -197,7 +197,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         get_dialect("databricks"),
         mock_spark,
         ReconcileMetadataConfig(),
-    ).reconcile_schema(src_schema, tgt_schema, table_mapping_with_opts)
+    ).reconcile_schema(src_column_types, tgt_column_types, table_mapping_with_opts)
     expected_schema_reconcile = mock_spark.createDataFrame(
         [
             Row(
@@ -266,11 +266,11 @@ def test_reconcile_data_with_mismatches_and_missing(
 def test_reconcile_data_without_mismatches_and_missing(
     mock_spark,
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -286,7 +286,7 @@ def test_reconcile_data_without_mismatches_and_missing(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -313,7 +313,7 @@ def test_reconcile_data_without_mismatches_and_missing(
             ]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -333,7 +333,7 @@ def test_reconcile_data_without_mismatches_and_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_column_types, tgt_column_types)
     assert actual.mismatch_count == 0
     assert actual.missing_in_src_count == 0
     assert actual.missing_in_tgt_count == 0
@@ -345,9 +345,9 @@ def test_reconcile_data_without_mismatches_and_missing(
 
 
 def test_reconcile_data_with_mismatch_and_no_missing(
-    mock_spark, table_mapping_with_opts, column_and_aliases_types, query_store, tmp_path: Path
+    mock_spark, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
@@ -365,7 +365,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -391,7 +391,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -411,7 +411,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_column_types, tgt_column_types)
     expected = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=0,
@@ -451,11 +451,11 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 def test_reconcile_data_missing_and_no_mismatch(
     mock_spark,
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     source_dataframe_repository = {
@@ -474,7 +474,7 @@ def test_reconcile_data_missing_and_no_mismatch(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -491,7 +491,7 @@ def test_reconcile_data_missing_and_no_mismatch(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -511,7 +511,7 @@ def test_reconcile_data_missing_and_no_mismatch(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_column_types, tgt_column_types)
     expected = DataReconcileOutput(
         mismatch_count=0,
         missing_in_src_count=1,
@@ -535,7 +535,7 @@ def test_reconcile_data_missing_and_no_mismatch(
 @pytest.fixture
 def mock_for_report_type_data(
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     query_store,
     setup_metadata_table,
     mock_spark,
@@ -549,7 +549,7 @@ def mock_for_report_type_data(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -572,7 +572,7 @@ def mock_for_report_type_data(
             [Row(count=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -606,7 +606,7 @@ def mock_for_report_type_data(
             [Row(count=3)]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     reconcile_config_data = ReconcileConfig(
@@ -745,7 +745,7 @@ def test_recon_for_report_type_is_data(
 
 @pytest.fixture
 def mock_for_report_type_schema(
-    table_mapping_with_opts, column_and_aliases_types, query_store, mock_spark, setup_metadata_table
+    table_mapping_with_opts, src_and_tgt_column_types, query_store, mock_spark, setup_metadata_table
 ):
     schema_mapping = SchemaMapping(
         source_catalog="org",
@@ -754,7 +754,7 @@ def mock_for_report_type_schema(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -777,7 +777,7 @@ def mock_for_report_type_schema(
             [Row(count=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
 
     target_dataframe_repository = {
         (
@@ -801,7 +801,7 @@ def mock_for_report_type_schema(
             [Row(count=3)]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     reconcile_config_schema = ReconcileConfig(
@@ -935,7 +935,7 @@ def test_recon_for_report_type_schema(
 def mock_for_report_type_all(
     mock_workspace_client,
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     mock_spark,
     query_store,
     setup_metadata_table,
@@ -949,7 +949,7 @@ def mock_for_report_type_all(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -972,7 +972,7 @@ def mock_for_report_type_all(
             [Row(count=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
 
     target_dataframe_repository = {
         (
@@ -1008,7 +1008,7 @@ def mock_for_report_type_all(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     reconcile_config_all = ReconcileConfig(
@@ -1191,7 +1191,7 @@ def test_recon_for_report_type_all(
 
 @pytest.fixture
 def mock_for_report_type_row(
-    table_mapping_with_opts, column_and_aliases_types, mock_spark, query_store, setup_metadata_table
+    table_mapping_with_opts, src_and_tgt_column_types, mock_spark, query_store, setup_metadata_table
 ):
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
@@ -1202,7 +1202,7 @@ def mock_for_report_type_row(
         target_schema="data",
         table_mappings=[table_mapping_with_opts],
     )
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1240,7 +1240,7 @@ def mock_for_report_type_row(
             [Row(count=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
 
     target_dataframe_repository = {
         (
@@ -1280,7 +1280,7 @@ def mock_for_report_type_row(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     reconcile_config_row = ReconcileConfig(
@@ -1755,11 +1755,11 @@ def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for
 def test_reconcile_data_with_threshold_and_row_report_type(
     mock_spark,
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
         (
             CATALOG,
@@ -1775,7 +1775,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
 
     target_dataframe_repository = {
         (
@@ -1804,7 +1804,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -1825,7 +1825,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_column_types, tgt_column_types)
 
     assert actual.mismatch_count == 0
     assert actual.missing_in_src_count == 0

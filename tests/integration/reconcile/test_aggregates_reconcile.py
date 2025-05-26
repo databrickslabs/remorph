@@ -61,11 +61,11 @@ def query_store(mock_spark):
 def test_reconcile_aggregate_data_missing_records(
     mock_spark,
     table_mapping_with_opts,
-    column_and_aliases_types,
+    src_and_tgt_column_types,
     query_store,
     tmp_path: Path,
 ):
-    src_schema, tgt_schema = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     table_mapping_with_opts.aggregates = [Aggregate(type="MIN", agg_columns=["s_acctbal"])]
@@ -81,7 +81,7 @@ def test_reconcile_aggregate_data_missing_records(
             ]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_column_types}
 
     target_dataframe_repository = {
         (
@@ -95,7 +95,7 @@ def test_reconcile_aggregate_data_missing_records(
         )
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_column_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -114,7 +114,7 @@ def test_reconcile_aggregate_data_missing_records(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_aggregates(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_aggregates(table_mapping_with_opts, src_column_types, tgt_column_types)
 
         assert len(actual) == 1
 

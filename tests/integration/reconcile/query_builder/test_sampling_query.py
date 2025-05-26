@@ -13,9 +13,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, column_and_aliases_types):
+def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, src_and_tgt_column_types):
     spark = mock_spark
-    sch, sch_with_alias = column_and_aliases_types
+    src_column_types, tgt_column_types = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -49,7 +49,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, column
         transformations=[Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)")],
     )
 
-    src_actual = SamplingQueryBuilder(conf, sch, Layer.SOURCE, get_dialect("snowflake")).build_query(df)
+    src_actual = SamplingQueryBuilder(conf, src_column_types, Layer.SOURCE, get_dialect("snowflake")).build_query(df)
 
     src_expected = (
         "WITH recon AS (SELECT CAST(11 AS number) AS s_nationkey, CAST(1 AS number) "
@@ -64,7 +64,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, column
         "src.s_nationkey = recon.s_nationkey AND src.s_suppkey = recon.s_suppkey"
     )
 
-    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, Layer.TARGET, get_dialect("databricks")).build_query(df)
+    tgt_actual = SamplingQueryBuilder(conf, tgt_column_types, Layer.TARGET, get_dialect("databricks")).build_query(df)
 
     tgt_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
@@ -82,9 +82,9 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, column
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, column_and_aliases_types, column_mappings):
+def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, src_and_tgt_column_types, column_mappings):
     spark = mock_spark
-    _, sch_with_alias = column_and_aliases_types
+    _, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -197,9 +197,9 @@ def test_build_query_for_databricks_src(mock_spark, table_mapping_builder):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_builder, column_and_aliases_types):
+def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_builder, src_and_tgt_column_types):
     spark = mock_spark
-    sch, sch_with_alias = column_and_aliases_types
+    sch, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
