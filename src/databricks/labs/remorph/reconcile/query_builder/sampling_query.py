@@ -99,9 +99,9 @@ class SamplingQueryBuilder(QueryBuilder):
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
             column_types_dict = dict(column_types)
             orig_types_dict = {
-                schema.column_name: schema.data_type
-                for schema in self.column_types
-                if schema.column_name not in self.user_transformations
+                column_type.column_name: column_type.data_type
+                for column_type in self.column_types
+                if column_type.column_name not in self.user_transformations
             }
             row_select = [
                 (
