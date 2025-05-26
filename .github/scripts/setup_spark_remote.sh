@@ -5,7 +5,7 @@ set -xve
 mkdir -p "$HOME"/spark
 cd "$HOME"/spark || exit 1
 
-version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark-[0-9.]*/"' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark/- | sort -r --version-sort | head -1)
+version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark-3\.[0-9.]*/"' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark/- | sort -r --version-sort | head -1)
 if [ -z "$version" ]; then
   echo "Failed to extract Spark version"
    exit 1
