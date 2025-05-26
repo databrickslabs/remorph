@@ -11,11 +11,11 @@ def test_table_column_mapping(table_mapping_builder):
     assert table_mapping.to_src_col_map is None
 
 
-def test_table_select_columns(table_mapping_builder, column_and_aliases_types):
-    schema, _ = column_and_aliases_types
+def test_table_select_columns(table_mapping_builder, src_and_tgt_column_types):
+    column_types, _ = src_and_tgt_column_types
     table_mapping = table_mapping_builder(
         select_columns=["s_nationkey", "s_suppkey"],
     )
 
-    assert table_mapping.get_select_columns(schema, Layer.SOURCE) == {"s_nationkey", "s_suppkey"}
-    assert len(table_mapping.get_select_columns(schema, Layer.SOURCE)) == 2
+    assert table_mapping.get_select_columns(column_types, Layer.SOURCE) == {"s_nationkey", "s_suppkey"}
+    assert len(table_mapping.get_select_columns(column_types, Layer.SOURCE)) == 2
