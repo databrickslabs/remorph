@@ -641,6 +641,7 @@ class Reconciliation:
                     query=src_query_with_rules.query,
                     options=table_mapping.jdbc_reader_options,
                 )
+                logger.info(f"source data: {src_data}")
                 tgt_data = self._target.read_data(
                     catalog=self._database_config.target_catalog,
                     schema=self._database_config.target_schema,
@@ -648,6 +649,7 @@ class Reconciliation:
                     query=tgt_query_with_rules.query,
                     options=table_mapping.jdbc_reader_options,
                 )
+                logger.info(f"target data: {tgt_data}")
                 # Join the Source and Target Aggregated data
                 joined_df = join_aggregate_data(
                     source=src_data,
@@ -657,6 +659,7 @@ class Reconciliation:
                     path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
                 )
             except DataSourceRuntimeException as e:
+                logger.error(exc_info=e)
                 data_source_exception = e
 
             # For each Aggregated Query, reconcile the data based on the rule

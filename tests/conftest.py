@@ -92,8 +92,8 @@ def table_mapping_builder():
 
 
 @pytest.fixture
-def column_and_aliases_types():
-    sch = [
+def src_and_tgt_column_types():
+    types = [
         ColumnType("s_suppkey", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address", "varchar"),
@@ -103,7 +103,7 @@ def column_and_aliases_types():
         ColumnType("s_comment", "varchar"),
     ]
 
-    sch_with_alias = [
+    types_with_alias = [
         ColumnType("s_suppkey_t", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address_t", "varchar"),
@@ -113,7 +113,7 @@ def column_and_aliases_types():
         ColumnType("s_comment_t", "varchar"),
     ]
 
-    return sch, sch_with_alias
+    return types, types_with_alias
 
 
 @pytest.fixture
