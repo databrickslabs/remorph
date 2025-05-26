@@ -257,12 +257,8 @@ class PypiInstaller(TranspilerInstaller):
             os.chdir(self._install_path)
             pip = pip.relative_to(self._install_path)
             target = self._site_packages.relative_to(self._install_path)
-            if sys.platform == "win32":
-                args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
-            else:
-                args = [f"'{pip}'", "install", self._pypi_name, "-t", f"'{target}'"]
-                completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+            args = [str(pip), "install", self._pypi_name, "-t", str(target)]
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
             # checking return code later makes debugging easier
             completed.check_returncode()
         finally:
