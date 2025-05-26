@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
+
 @dataclass
 class SamplingQueries:
     target_sampling_query: str
