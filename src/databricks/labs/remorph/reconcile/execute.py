@@ -604,12 +604,15 @@ class Reconciliation:
             self._source_engine,
         )
 
+        logger.info("Building src queries...")
         # build Aggregate queries for source,
         src_agg_queries: list[AggregateQueryRules] = src_query_builder.build_queries()
 
         # There could be one or more queries per table based on the group by columns
 
         # build Aggregate queries for target(Databricks),
+        logger.info("Building tgt queries...")
+
         tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
             table_mapping,
             tgt_column_types,
@@ -634,6 +637,7 @@ class Reconciliation:
             joined_df = None
             data_source_exception = None
             try:
+                logger.info("Reading data...")
                 src_data = self._source.read_data(
                     catalog=self._database_config.source_catalog,
                     schema=self._database_config.source_schema,
@@ -658,6 +662,7 @@ class Reconciliation:
                     spark=self._spark,
                     path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
                 )
+                logger.info(f"joined data: {joined_df}")
             except DataSourceRuntimeException as e:
                 logger.error("error", exc_info=e)
                 data_source_exception = e
