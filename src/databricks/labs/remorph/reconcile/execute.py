@@ -637,7 +637,7 @@ class Reconciliation:
             joined_df = None
             data_source_exception = None
             try:
-                logger.info("Reading data...")
+                logger.info(f"Reading data from {table_mapping.source_name}: {src_query_with_rules.query}")
                 src_data = self._source.read_data(
                     catalog=self._database_config.source_catalog,
                     schema=self._database_config.source_schema,
@@ -646,6 +646,7 @@ class Reconciliation:
                     options=table_mapping.jdbc_reader_options,
                 )
                 logger.info(f"source data: {src_data}")
+                logger.info(f"Reading data from {table_mapping.target_name}: {tgt_query_with_rules.query}")
                 tgt_data = self._target.read_data(
                     catalog=self._database_config.target_catalog,
                     schema=self._database_config.target_schema,
