@@ -46,12 +46,10 @@ PATH_TO_TRANSPILER_CONFIG = "/some/path/to/config.yml"
 def ws_installer():
 
     class TestWorkspaceInstaller(WorkspaceInstaller):
-        # TODO the below methods currently raise a 404 because the artifacts don't exist yet
-        # TODO remove this once they are available !!!
-        @classmethod
-        def install_rct(cls, artifact: Path | None = None):
-            pass
 
+        # TODO the below 'install_xxx' methods currently fail
+        # (because the artifact is either missing or invalid)
+        # TODO remove this once they are available and healthy !!!
         @classmethod
         def install_bladerunner(cls, artifact: Path | None = None):
             pass
@@ -270,10 +268,10 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     )
 
 
-@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_rct")
+@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_bladerunner")
 @patch("databricks.labs.remorph.install.WorkspaceInstaller.install_morpheus")
-def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_rct, ws):
-    mock_install_rct.return_value = None
+def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_bladerunner, ws):
+    mock_install_bladerunner.return_value = None
     mock_install_morpheus.return_value = None
 
     prompts = MockPrompts(

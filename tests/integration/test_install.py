@@ -64,7 +64,7 @@ def test_downloads_whl_from_pypi():
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
     resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
-    for transpiler in ("rct", "morpheus"):
+    for transpiler in ("bladerunner", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)
         target = target / "lib"
@@ -78,34 +78,45 @@ def patched_transpiler_installer(tmp_path: Path):
 
 def test_lists_all_transpiler_names(patched_transpiler_installer):
     transpiler_names = patched_transpiler_installer.all_transpiler_names()
-    assert transpiler_names == {'Morpheus', 'Remorph Community Transpiler'}
+    assert transpiler_names == {'Morpheus', 'Bladerunner'}
 
 
 def test_lists_all_dialects(patched_transpiler_installer):
     dialects = patched_transpiler_installer.all_dialects()
     assert dialects == {
-        "athena",
-        "bigquery",
-        "mysql",
-        "netezza",
-        "oracle",
-        "postgresql",
-        "presto",
-        "redshift",
-        "snowflake",
-        "sqlite",
-        "teradata",
-        "trino",
-        "tsql",
-        "vertica",
+        'abinitio',
+        'alteryx',
+        'athena',
+        'datastage',
+        'greenplum',
+        'hive',
+        'impala',
+        'informatica (big data edition)',
+        'informatica (desktop)',
+        'netezza',
+        'oozie',
+        'oracle',
+        'pentaho',
+        'pig',
+        'presto',
+        'redshift',
+        'sap hana',
+        'sas',
+        'snowflake',
+        'ssis',
+        'synapse',
+        'talend',
+        'teradata',
+        'tsql',
+        'vertica',
     }
 
 
 def test_lists_dialect_transpilers(patched_transpiler_installer):
     transpilers = patched_transpiler_installer.transpilers_with_dialect("snowflake")
-    assert transpilers == {'Morpheus', 'Remorph Community Transpiler'}
+    assert transpilers == {'Morpheus', 'Bladerunner'}
     transpilers = patched_transpiler_installer.transpilers_with_dialect("presto")
-    assert transpilers == {'Remorph Community Transpiler'}
+    assert transpilers == {'Bladerunner'}
 
 
 def check_valid_version(version: str):
@@ -210,7 +221,7 @@ async def test_installs_and_runs_local_bladerunner():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_morpheus(patched_transpiler_installer):
+async def test_installs_and_runs_local_morpheus(patched_transpiler_installer):
     artifact = (
         Path(__file__).parent.parent
         / "resources"

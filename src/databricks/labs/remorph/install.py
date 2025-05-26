@@ -528,7 +528,6 @@ class WorkspaceInstaller:
         if module == "transpile" and artifact:
             self.install_artifact(artifact)
         elif module in {"transpile", "all"}:
-            self.install_rct()
             self.install_bladerunner()
             self.install_morpheus()
         if not config:
@@ -538,12 +537,6 @@ class WorkspaceInstaller:
         self._ws_installation.install(config)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
         return config
-
-    @classmethod
-    def install_rct(cls, artifact: Path | None = None):
-        local_name = "remorph-community-transpiler"
-        pypi_name = f"databricks-labs-{local_name}"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
     @classmethod
     def install_bladerunner(cls, artifact: Path | None = None):
@@ -574,8 +567,11 @@ class WorkspaceInstaller:
             cls.install_morpheus(path)
         elif "databricks-bb-plugin" in path.name:
             cls.install_bladerunner(path)
+        # don't automatically install RCT, but keep the ability to install it manually
         elif "remorph-community-transpiler" in path.name:
-            cls.install_rct(path)
+            local_name = "remorph-community-transpiler"
+            pypi_name = f"databricks-labs-{local_name}"
+            TranspilerInstaller.install_from_pypi(local_name, pypi_name, path)
 
     @classmethod
     def get_java_version(cls) -> int | None:
