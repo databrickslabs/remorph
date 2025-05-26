@@ -60,7 +60,7 @@ def query_store(mock_spark):
 def test_reconcile_aggregate_data_missing_records(
     mock_spark,
     table_mapping_with_opts,
-        column_and_aliases_types,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
@@ -261,7 +261,7 @@ def _compare_reconcile_output(actual_reconcile_output: DataReconcileOutput, expe
 def test_reconcile_aggregate_data_mismatch_and_missing_records(
     mock_spark,
     table_mapping_with_opts,
-        column_and_aliases_types,
+    column_and_aliases_types,
     query_store,
     tmp_path: Path,
 ):
