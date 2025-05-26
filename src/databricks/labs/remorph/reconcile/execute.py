@@ -659,7 +659,7 @@ class Reconciliation:
                     path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
                 )
             except DataSourceRuntimeException as e:
-                logger.error(exc_info=e)
+                logger.error("error", exc_info=e)
                 data_source_exception = e
 
             # For each Aggregated Query, reconcile the data based on the rule

@@ -139,7 +139,9 @@ def test_build_expression_type_raises_value_error(table_mapping_with_opts, src_a
     tgt_column_types.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(ValueError):
-        ThresholdQueryBuilder(table_mapping, src_column_types, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(
+            table_mapping, src_column_types, Layer.SOURCE, get_dialect("oracle")
+        ).build_comparison_query()
 
 
 def test_test_no_join_columns_raise_exception(table_mapping_with_opts, src_and_tgt_column_types):
@@ -150,4 +152,6 @@ def test_test_no_join_columns_raise_exception(table_mapping_with_opts, src_and_t
     tgt_column_types.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(InvalidInputException):
-        ThresholdQueryBuilder(table_mapping, src_column_types, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(
+            table_mapping, src_column_types, Layer.SOURCE, get_dialect("oracle")
+        ).build_comparison_query()

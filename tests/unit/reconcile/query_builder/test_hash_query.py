@@ -5,9 +5,9 @@ from databricks.labs.remorph.reconcile.recon_config import Filters, ColumnMappin
 
 def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, src_and_tgt_column_types):
     src_column_types, tgt_column_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(table_mapping_with_opts, src_column_types, Layer.SOURCE, get_dialect("snowflake")).build_query(
-        report_type="data"
-    )
+    src_actual = HashQueryBuilder(
+        table_mapping_with_opts, src_column_types, Layer.SOURCE, get_dialect("snowflake")
+    ).build_query(report_type="data")
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
         "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey AS "
@@ -173,9 +173,9 @@ def test_hash_query_builder_without_transformation(table_mapping_builder, src_an
 
 def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, src_and_tgt_column_types, column_mappings):
     src_column_types, tgt_column_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(table_mapping_with_opts, src_column_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="row"
-    )
+    src_actual = HashQueryBuilder(
+        table_mapping_with_opts, src_column_types, Layer.SOURCE, get_dialect("databricks")
+    ).build_query(report_type="row")
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
         "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address) AS "
