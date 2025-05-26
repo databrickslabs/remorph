@@ -1,6 +1,7 @@
 import os
 import logging
-from unittest.mock import patch
+from os import getenv
+from unittest.mock import patch, create_autospec
 
 import pytest
 from pyspark.sql import SparkSession
@@ -48,7 +49,10 @@ def mock_spark() -> SparkSession:
     Method helps to create spark session
     :return: returns the spark session
     """
-    return SparkSession.builder.appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
+    if getenv("CI"):
+        return SparkSession.builder.appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
+    else:
+        return create_autospec(SparkSession)
 
 
 @pytest.fixture(scope="session")
