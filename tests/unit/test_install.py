@@ -46,6 +46,18 @@ PATH_TO_TRANSPILER_CONFIG = "/some/path/to/config.yml"
 def ws_installer():
 
     class TestWorkspaceInstaller(WorkspaceInstaller):
+
+        # TODO the below 'install_xxx' methods currently fail
+        # (because the artifact is either missing or invalid)
+        # TODO remove this once they are available and healthy !!!
+        @classmethod
+        def install_bladerunner(cls):
+            pass
+
+        @classmethod
+        def install_morpheus(cls):
+            pass
+
         def _all_installed_dialects(self):
             return ALL_INSTALLED_DIALECTS
 

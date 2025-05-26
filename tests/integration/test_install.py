@@ -160,6 +160,7 @@ def format_transpiled(sql: str) -> str:
     sql = sql.replace(";;", ";")
     return sql
 
+
 async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
     with patch("databricks.labs.remorph.install.PypiInstaller", PatchedPypiInstaller):
         patched_transpiler_installer.install_from_pypi("bladerunner", "databricks-labs-bladerunner")
