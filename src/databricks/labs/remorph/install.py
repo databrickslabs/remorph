@@ -480,7 +480,6 @@ class WorkspaceInstaller:
     ) -> RemorphConfigs:
         logger.debug(f"Initializing workspace installation for module: {module} (config: {config})")
         if module in {"transpile", "all"}:
-            self.install_rct()
             self.install_bladerunner()
             self.install_morpheus()
         if not config:
@@ -490,12 +489,6 @@ class WorkspaceInstaller:
         self._ws_installation.install(config)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
         return config
-
-    @classmethod
-    def install_rct(cls):
-        local_name = "remorph-community-transpiler"
-        pypi_name = f"databricks-labs-{local_name}"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
 
     @classmethod
     def install_bladerunner(cls):

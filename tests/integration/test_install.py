@@ -66,7 +66,7 @@ def test_downloads_whl_from_pypi():
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
     resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
-    for transpiler in ("rct", "morpheus"):
+    for transpiler in ("bladerunner", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)
         target = target / "lib"
@@ -126,11 +126,7 @@ class PatchedPypiInstaller(PypiInstaller):
         return "0.0.1"
 
     def _install_from_pip(self):
-        wheel_file = (
-            "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
-            if self._product_name == "rct"
-            else "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
-        )
+        wheel_file = "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
         sample_wheel = (
             Path(__file__).parent.parent
             / "resources"
@@ -163,43 +159,6 @@ def format_transpiled(sql: str) -> str:
     sql = " ".join(stripped)
     sql = sql.replace(";;", ";")
     return sql
-
-
-async def test_installs_and_runs_rct(patched_transpiler_installer):
-    with patch("databricks.labs.remorph.install.PypiInstaller", PatchedPypiInstaller):
-        patched_transpiler_installer.install_from_pypi("rct", "databricks-labs-remorph-community-transpiler")
-        # check file-level installation
-        rct = patched_transpiler_installer.transpilers_path() / "rct"
-        config_path = rct / "lib" / "config.yml"
-        assert config_path.exists()
-        main_path = rct / "lib" / "main.py"
-        assert main_path.exists()
-        version_path = rct / "state" / "version.json"
-        assert version_path.exists()
-        # check execution
-        lsp_engine = LSPEngine.from_config_path(config_path)
-        with TemporaryDirectory() as input_source:
-            with TemporaryDirectory() as output_folder:
-                transpile_config = TranspileConfig(
-                    transpiler_config_path=str(config_path),
-                    transpiler_options={"-experimental": True},
-                    source_dialect="snowflake",
-                    input_source=input_source,
-                    output_folder=output_folder,
-                    sdk_config={"cluster_id": "test_cluster"},
-                    skip_validation=False,
-                    catalog_name="catalog",
-                    schema_name="schema",
-                )
-                await lsp_engine.initialize(transpile_config)
-                dialect = transpile_config.source_dialect
-                input_file = Path(input_source) / "some_query.sql"
-                sql_code = "select * from employees"
-                result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
-                await lsp_engine.shutdown()
-                transpiled = format_transpiled(result.transpiled_code)
-                assert transpiled == sql_code
-
 
 async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
     with patch("databricks.labs.remorph.install.PypiInstaller", PatchedPypiInstaller):
