@@ -12,16 +12,16 @@ from databricks.sdk import WorkspaceClient
 
 def create_adapter(
     engine: Dialect,
-    spark: SparkSession,
+    spark_session: SparkSession,
     ws: WorkspaceClient,
     secret_scope: str,
 ) -> DataSource:
     if isinstance(engine, Snowflake):
-        return SnowflakeDataSource(engine, spark, ws, secret_scope)
+        return SnowflakeDataSource(engine, spark_session, ws, secret_scope)
     if isinstance(engine, Oracle):
-        return OracleDataSource(engine, spark, ws, secret_scope)
+        return OracleDataSource(engine, spark_session, ws, secret_scope)
     if isinstance(engine, Databricks):
-        return DatabricksDataSource(engine, spark, ws, secret_scope)
+        return DatabricksDataSource(engine, spark_session, ws, secret_scope)
     if isinstance(engine, TSQL):
-        return SQLServerDataSource(engine, spark, ws, secret_scope)
+        return SQLServerDataSource(engine, spark_session, ws, secret_scope)
     raise ValueError(f"Unsupported source type --> {engine}")

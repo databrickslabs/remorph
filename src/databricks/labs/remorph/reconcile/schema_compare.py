@@ -7,7 +7,7 @@ from sqlglot import Dialect, parse_one
 from sqlglot.dialects import Databricks
 
 from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table
+from databricks.labs.remorph.reconcile.recon_config import ColumnType, TableMapping
 from databricks.labs.remorph.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
 
 logger = logging.getLogger(__name__)
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 class SchemaCompare:
     def __init__(
         self,
-        spark: SparkSession,
+        spark_session: SparkSession,
     ):
-        self.spark = spark
+        self.spark_session = spark_session
 
     # Define the schema for the schema compare DataFrame
     _schema_compare_schema: StructType = StructType(
@@ -34,17 +34,21 @@ class SchemaCompare:
     @classmethod
     def _build_master_schema(
         cls,
-        source_schema: list[Schema],
-        databricks_schema: list[Schema],
-        table_conf: Table,
+        source_column_types: list[ColumnType],
+        databricks_column_types: list[ColumnType],
+        table_mapping: TableMapping,
     ) -> list[SchemaMatchResult]:
-        master_schema = source_schema
-        if table_conf.select_columns:
-            master_schema = [schema for schema in master_schema if schema.column_name in table_conf.select_columns]
-        if table_conf.drop_columns:
-            master_schema = [sschema for sschema in master_schema if sschema.column_name not in table_conf.drop_columns]
+        master_column_types = source_column_types
+        if table_mapping.select_columns:
+            master_column_types = [
+                col_type for col_type in master_column_types if col_type.column_name in table_mapping.select_columns
+            ]
+        if table_mapping.drop_columns:
+            master_column_types = [
+                col_type for col_type in master_column_types if col_type.column_name not in table_mapping.drop_columns
+            ]
 
-        target_column_map = table_conf.to_src_col_map or {}
+        target_column_map = table_mapping.to_src_col_map or {}
         master_schema_match_res = [
             SchemaMatchResult(
                 source_column=s.column_name,
@@ -53,13 +57,13 @@ class SchemaCompare:
                 databricks_datatype=next(
                     (
                         tgt.data_type
-                        for tgt in databricks_schema
+                        for tgt in databricks_column_types
                         if tgt.column_name == target_column_map.get(s.column_name, s.column_name)
                     ),
                     "",
                 ),
             )
-            for s in master_schema
+            for s in master_column_types
         ]
         return master_schema_match_res
 
@@ -70,7 +74,7 @@ class SchemaCompare:
         :return: DataFrame
         """
         data = [tuple(asdict(item).values()) for item in data]
-        df = self.spark.createDataFrame(data, schema)
+        df = self.spark_session.createDataFrame(data, schema)
 
         return df
 
@@ -89,7 +93,7 @@ class SchemaCompare:
     @classmethod
     def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query) -> None:
         databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
-        logger.info(
+        logger.debug(
             f"""
         Source datatype: create table dummy ({master.source_column} {master.source_datatype})
         Parse datatype: {parsed_query}
@@ -101,10 +105,10 @@ class SchemaCompare:
 
     def compare(
         self,
-        source_schema: list[Schema],
-        databricks_schema: list[Schema],
+        source_column_types: list[ColumnType],
+        databricks_column_types: list[ColumnType],
         source: Dialect,
-        table_conf: Table,
+        table_mapping: TableMapping,
     ) -> SchemaReconcileOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
@@ -113,14 +117,14 @@ class SchemaCompare:
         Returns:
             SchemaReconcileOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
-        master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
-        for master in master_schema:
+        master_column_types = self._build_master_schema(source_column_types, databricks_column_types, table_mapping)
+        for master in master_column_types:
             if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
 
-        df = self._create_dataframe(master_schema, self._schema_compare_schema)
-        final_result = self._table_schema_status(master_schema)
+        df = self._create_dataframe(master_column_types, self._schema_compare_schema)
+        final_result = self._table_schema_status(master_column_types)
         return SchemaReconcileOutput(final_result, df)

@@ -6,7 +6,7 @@ from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping
+from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping, Layer
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
@@ -158,13 +158,13 @@ def transform_expression(
 
 def get_hash_transform(
     source: Dialect,
-    layer: str,
+    layer: Layer,
 ):
     dialect_algo = Dialect_hash_algo_mapping.get(source)
     if not dialect_algo:
         raise ValueError(f"Source {source} is not supported. Please add it to Dialect_hash_algo_mapping dictionary.")
 
-    layer_algo = getattr(dialect_algo, layer, None)
+    layer_algo = getattr(dialect_algo, layer.value, None)
     if not layer_algo:
         raise ValueError(
             f"Layer {layer} is not supported for source {source}. Please add it to Dialect_hash_algo_mapping dictionary."

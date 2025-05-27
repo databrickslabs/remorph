@@ -1,21 +1,21 @@
-from databricks.labs.remorph.reconcile.recon_config import Filters
+from databricks.labs.remorph.reconcile.recon_config import Filters, Layer
 
 
-def test_table_column_mapping(table_conf):
-    table_conf = table_conf(
+def test_table_column_mapping(table_mapping_builder):
+    table_mapping = table_mapping_builder(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
     )
 
-    assert table_conf.to_src_col_map is None
-    assert table_conf.to_src_col_map is None
+    assert table_mapping.to_src_col_map is None
+    assert table_mapping.to_src_col_map is None
 
 
-def test_table_select_columns(table_conf, table_schema):
-    schema, _ = table_schema
-    table_conf = table_conf(
+def test_table_select_columns(table_mapping_builder, src_and_tgt_column_types):
+    column_types, _ = src_and_tgt_column_types
+    table_mapping = table_mapping_builder(
         select_columns=["s_nationkey", "s_suppkey"],
     )
 
-    assert table_conf.get_select_columns(schema, "source") == {"s_nationkey", "s_suppkey"}
-    assert len(table_conf.get_select_columns(schema, "source")) == 2
+    assert table_mapping.get_select_columns(column_types, Layer.SOURCE) == {"s_nationkey", "s_suppkey"}
+    assert len(table_mapping.get_select_columns(column_types, Layer.SOURCE)) == 2
