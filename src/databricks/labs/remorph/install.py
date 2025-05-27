@@ -80,9 +80,11 @@ class TranspilerInstaller(abc.ABC):
             return None
         return version[1:]
 
+    _version_pattern = re.compile(r"[_-](\d+(?:[.\-_]\w*\d+)+)")
+
     @classmethod
     def get_local_artifact_version(cls, artifact: Path) -> str | None:
-        match = re.search(r"[_-](\d+(?:[.\-_]\w*\d+)+)", artifact.stem)
+        match = cls._version_pattern.match(artifact.stem)
         if not match:
             return None
         group = match.group(0)
