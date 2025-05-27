@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class QueryBuilder(ABC):
+
     def __init__(
         self,
         table_mapping: TableMapping,
