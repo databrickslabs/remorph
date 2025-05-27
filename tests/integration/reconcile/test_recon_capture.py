@@ -35,6 +35,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 logger = logging.getLogger(__name__)
 
+
 def data_prep(spark_session: SparkSession):
     # Mismatch DataFrame
     data = [
