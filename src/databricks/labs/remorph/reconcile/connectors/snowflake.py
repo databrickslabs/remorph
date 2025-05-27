@@ -55,7 +55,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         secret_scope: str,
     ):
         self._engine = engine
-        self._spark_sessopm = spark_session
+        self._spark_session = spark_session
         self._ws = ws
         self._secret_scope = secret_scope
 
