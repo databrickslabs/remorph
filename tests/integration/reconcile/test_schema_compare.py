@@ -165,9 +165,9 @@ def schemas():
     }
 
 
-def test_snowflake_schema_compare(schemas, mock_spark):
+def test_snowflake_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
-    spark = mock_spark
+    spark = spark_session
     table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -192,9 +192,9 @@ def test_snowflake_schema_compare(schemas, mock_spark):
     assert df.filter("is_valid = 'false'").count() == 2
 
 
-def test_databricks_schema_compare(schemas, mock_spark):
+def test_databricks_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["databricks_databricks_schema"]
-    spark = mock_spark
+    spark = spark_session
     table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -227,9 +227,9 @@ def test_databricks_schema_compare(schemas, mock_spark):
     assert df.filter("is_valid = 'false'").count() == 1
 
 
-def test_oracle_schema_compare(schemas, mock_spark):
+def test_oracle_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["oracle_databricks_schema"]
-    spark = mock_spark
+    spark = spark_session
     table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -253,7 +253,7 @@ def test_oracle_schema_compare(schemas, mock_spark):
     assert df.filter("is_valid = 'false'").count() == 0
 
 
-def test_schema_compare(mock_spark):
+def test_schema_compare(spark_session):
     src_schema = [
         ColumnType("col1", "int"),
         ColumnType("col2", "string"),
@@ -262,7 +262,7 @@ def test_schema_compare(mock_spark):
         ColumnType("col1", "int"),
         ColumnType("col2", "string"),
     ]
-    spark = mock_spark
+    spark = spark_session
     table_mapping = TableMapping(
         source_name="supplier",
         target_name="supplier",

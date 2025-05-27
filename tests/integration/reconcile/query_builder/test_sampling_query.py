@@ -13,8 +13,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, src_and_tgt_column_types):
-    spark = mock_spark
+def test_build_query_for_snowflake_src(spark_session, table_mapping_builder, src_and_tgt_column_types):
+    spark = spark_session
     src_column_types, tgt_column_types = src_and_tgt_column_types
     df_schema = StructType(
         [
@@ -82,8 +82,8 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_builder, src_an
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, src_and_tgt_column_types, column_mappings):
-    spark = mock_spark
+def test_build_query_for_oracle_src(spark_session, table_mapping_builder, src_and_tgt_column_types, column_mappings):
+    spark = spark_session
     _, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
@@ -156,8 +156,8 @@ def test_build_query_for_oracle_src(mock_spark, table_mapping_builder, src_and_t
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_databricks_src(mock_spark, table_mapping_builder):
-    spark = mock_spark
+def test_build_query_for_databricks_src(spark_session, table_mapping_builder):
+    spark = spark_session
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -197,8 +197,8 @@ def test_build_query_for_databricks_src(mock_spark, table_mapping_builder):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_builder, src_and_tgt_column_types):
-    spark = mock_spark
+def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_builder, src_and_tgt_column_types):
+    spark = spark_session
     sch, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
@@ -268,8 +268,8 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_map
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_mapping_builder):
-    spark = mock_spark
+def test_build_query_for_snowflake_src_for_non_integer_primary_keys(spark_session, table_mapping_builder):
+    spark = spark_session
     sch = [ColumnType("s_suppkey", "varchar"), ColumnType("s_name", "varchar"), ColumnType("s_nationkey", "number")]
 
     sch_with_alias = [

@@ -45,7 +45,7 @@ class AggregateQueryStore:
 
 
 @pytest.fixture
-def query_store(mock_spark):
+def query_store(spark_session):
     agg_queries = AggregateQueries(
         source_agg_query="SELECT min(s_acctbal) AS source_min_s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
         target_agg_query="SELECT min(s_acctbal_t) AS target_min_s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
@@ -59,7 +59,7 @@ def query_store(mock_spark):
 
 
 def test_reconcile_aggregate_data_missing_records(
-    mock_spark,
+    spark_session,
     table_mapping_with_opts,
     src_and_tgt_column_types,
     query_store,
@@ -75,7 +75,7 @@ def test_reconcile_aggregate_data_missing_records(
             CATALOG,
             SCHEMA,
             query_store.agg_queries.source_agg_query,
-        ): mock_spark.createDataFrame(
+        ): spark_session.createDataFrame(
             [
                 Row(source_min_s_acctbal=11),
             ]
@@ -88,7 +88,7 @@ def test_reconcile_aggregate_data_missing_records(
             CATALOG,
             SCHEMA,
             query_store.agg_queries.target_agg_query,
-        ): mock_spark.createDataFrame(
+        ): spark_session.createDataFrame(
             [
                 Row(target_min_s_acctbal=10),
             ]
@@ -110,9 +110,9 @@ def test_reconcile_aggregate_data_missing_records(
             target,
             database_config,
             "",
-            SchemaCompare(mock_spark),
+            SchemaCompare(spark_session),
             get_dialect("databricks"),
-            mock_spark,
+            spark_session,
             ReconcileMetadataConfig(),
         ).reconcile_aggregates(table_mapping_with_opts, src_column_types, tgt_column_types)
 
@@ -137,7 +137,7 @@ def test_reconcile_aggregate_data_missing_records(
             missing_in_tgt_count=0,
             mismatch=MismatchOutput(
                 mismatch_columns=None,
-                mismatch_df=mock_spark.createDataFrame(
+                mismatch_df=spark_session.createDataFrame(
                     [
                         Row(
                             source_min_s_acctbal=11,
@@ -190,7 +190,7 @@ def _compare_reconcile_output(actual_reconcile_output: DataReconcileOutput, expe
 
 
 def test_reconcile_aggregate_data_mismatch_and_missing_records(
-    mock_spark,
+    spark_session,
     table_mapping_with_opts,
     src_and_tgt_column_types,
     query_store,
@@ -209,7 +209,7 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             CATALOG,
             SCHEMA,
             query_store.agg_queries.source_group_agg_query,
-        ): mock_spark.createDataFrame(
+        ): spark_session.createDataFrame(
             [
                 Row(source_sum_s_acctbal=101, source_count_s_name=13, source_group_by_s_nationkey=11),
                 Row(source_sum_s_acctbal=23, source_count_s_name=11, source_group_by_s_nationkey=12),
@@ -224,7 +224,7 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             CATALOG,
             SCHEMA,
             query_store.agg_queries.target_group_agg_query,
-        ): mock_spark.createDataFrame(
+        ): spark_session.createDataFrame(
             [
                 Row(target_sum_s_acctbal=101, target_count_s_name=13, target_group_by_s_nationkey=11),
                 Row(target_sum_s_acctbal=43, target_count_s_name=9, target_group_by_s_nationkey=12),
@@ -247,9 +247,9 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             MockDataSource(target_dataframe_repository, target_schema_repository),
             db_config,
             "",
-            SchemaCompare(mock_spark),
+            SchemaCompare(spark_session),
             get_dialect("databricks"),
-            mock_spark,
+            spark_session,
             ReconcileMetadataConfig(),
         ).reconcile_aggregates(table_mapping_with_opts, src_column_types, tgt_column_types)
 
@@ -274,7 +274,7 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
 
             # Reconcile Output validations
             _compare_reconcile_output(
-                actual.reconcile_output, expected_reconcile_output_dict(mock_spark).get(actual.rule.agg_type)
+                actual.reconcile_output, expected_reconcile_output_dict(spark_session).get(actual.rule.agg_type)
             )
 
 

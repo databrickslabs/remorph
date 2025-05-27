@@ -45,14 +45,19 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session")
 def mock_spark() -> SparkSession:
+    return create_autospec(SparkSession)
+
+
+@pytest.fixture(scope="session")
+def spark_session(mock_spark) -> SparkSession:
     """
     Method helps to create spark session
     :return: returns the spark session
     """
     if getenv("CI"):
         return SparkSession.builder.appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
-    else:
-        return create_autospec(SparkSession)
+    return mock_spark
+
 
 
 @pytest.fixture(scope="session")
