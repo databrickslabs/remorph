@@ -16,7 +16,7 @@ from databricks.labs.remorph.reconcile.recon_output_config import (
 
 
 def test_compare_data_for_report_all(
-        spark_session,
+    spark_session,
     tmp_path: Path,
 ):
     source = spark_session.createDataFrame(

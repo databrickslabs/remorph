@@ -45,7 +45,7 @@ TGT_TABLE = "target_supplier"
 
 
 def test_reconcile_data_with_mismatches_and_missing(
-        spark_session, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
+    spark_session, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
 ):
     src_column_types, tgt_column_types = src_and_tgt_column_types
     source_dataframe_repository = {
@@ -264,7 +264,7 @@ def test_reconcile_data_with_mismatches_and_missing(
 
 
 def test_reconcile_data_without_mismatches_and_missing(
-        spark_session,
+    spark_session,
     table_mapping_with_opts,
     src_and_tgt_column_types,
     query_store,
@@ -345,7 +345,7 @@ def test_reconcile_data_without_mismatches_and_missing(
 
 
 def test_reconcile_data_with_mismatch_and_no_missing(
-        spark_session, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
+    spark_session, table_mapping_with_opts, src_and_tgt_column_types, query_store, tmp_path: Path
 ):
     src_column_types, tgt_column_types = src_and_tgt_column_types
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
@@ -449,7 +449,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 
 
 def test_reconcile_data_missing_and_no_mismatch(
-        spark_session,
+    spark_session,
     table_mapping_with_opts,
     src_and_tgt_column_types,
     query_store,
@@ -538,7 +538,7 @@ def mock_for_report_type_data(
     src_and_tgt_column_types,
     query_store,
     setup_metadata_table,
-        spark_session,
+    spark_session,
 ):
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
@@ -626,7 +626,7 @@ def mock_for_report_type_data(
 
 def test_recon_for_report_type_is_data(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_data,
     tmp_path: Path,
@@ -821,7 +821,7 @@ def mock_for_report_type_schema(
 
 def test_recon_for_report_type_schema(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_schema,
     tmp_path: Path,
@@ -936,7 +936,7 @@ def mock_for_report_type_all(
     mock_workspace_client,
     table_mapping_with_opts,
     src_and_tgt_column_types,
-        spark_session,
+    spark_session,
     query_store,
     setup_metadata_table,
 ):
@@ -1028,7 +1028,7 @@ def mock_for_report_type_all(
 
 def test_recon_for_report_type_all(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_all,
     tmp_path: Path,
@@ -1301,7 +1301,7 @@ def mock_for_report_type_row(
 
 def test_recon_for_report_type_is_row(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     mock_for_report_type_row,
     report_tables_schema,
     tmp_path: Path,
@@ -1444,7 +1444,7 @@ def mock_for_recon_exception(table_mapping_with_opts, setup_metadata_table):
 
 def test_schema_recon_with_data_source_exception(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_recon_exception,
     tmp_path: Path,
@@ -1511,7 +1511,7 @@ def test_schema_recon_with_data_source_exception(
 
 def test_schema_recon_with_general_exception(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_schema,
     tmp_path: Path,
@@ -1581,7 +1581,7 @@ def test_schema_recon_with_general_exception(
 
 def test_data_recon_with_general_exception(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_schema,
     tmp_path: Path,
@@ -1652,7 +1652,7 @@ def test_data_recon_with_general_exception(
 
 def test_data_recon_with_source_exception(
     mock_workspace_client,
-        spark_session,
+    spark_session,
     report_tables_schema,
     mock_for_report_type_schema,
     tmp_path: Path,
@@ -1727,8 +1727,12 @@ def test_initialise_data_source(mock_workspace_client, spark_session):
 
     source, target = initialise_data_source(mock_workspace_client, spark_session, src_engine, secret_scope)
 
-    snowflake_data_source = SnowflakeDataSource(src_engine, spark_session, mock_workspace_client, secret_scope).__class__
-    databricks_data_source = DatabricksDataSource(src_engine, spark_session, mock_workspace_client, secret_scope).__class__
+    snowflake_data_source = SnowflakeDataSource(
+        src_engine, spark_session, mock_workspace_client, secret_scope
+    ).__class__
+    databricks_data_source = DatabricksDataSource(
+        src_engine, spark_session, mock_workspace_client, secret_scope
+    ).__class__
 
     assert isinstance(source, snowflake_data_source)
     assert isinstance(target, databricks_data_source)
@@ -1753,7 +1757,7 @@ def test_recon_for_wrong_report_type(mock_workspace_client, spark_session, mock_
 
 
 def test_reconcile_data_with_threshold_and_row_report_type(
-        spark_session,
+    spark_session,
     table_mapping_with_opts,
     src_and_tgt_column_types,
     query_store,

@@ -59,7 +59,6 @@ def spark_session(mock_spark) -> SparkSession:
     return mock_spark
 
 
-
 @pytest.fixture(scope="session")
 def mock_credentials():
     with patch(
