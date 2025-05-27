@@ -1,0 +1,32 @@
+remorph:
+  version: 1
+  name: Bladerunner
+  dialects:
+    - abinitio
+    - alteryx
+    - athena
+    - datastage
+    - greenplum
+    - hive
+    - impala
+    - informatica (big data edition)
+    - informatica (desktop)
+    - tsql
+    - netezza
+    - oozie
+    - oracle
+    - pentaho
+    - pig
+    - presto
+    - redshift
+    - sap hana
+    - sas
+    - snowflake
+    - ssis
+    - synapse
+    - talend
+    - teradata
+    - vertica
+  command_line:
+    - python
+    - main.py
