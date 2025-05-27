@@ -26,7 +26,7 @@ else
   if [ -f "${spark}.tgz" ];then
     echo "${spark}.tgz already exists"
   else
-    wget "https://dlcdn.apache.org/spark/spark-${version}/${spark}.tgz"
+    wget "https://archive.apache.org/dist/spark/spark-${version}/${spark}.tgz"
   fi
   tar -xvf "${spark}.tgz"
 fi
