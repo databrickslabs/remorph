@@ -561,7 +561,7 @@ class WorkspaceInstaller:
     def install_artifact(cls, artifact: str):
         path = Path(artifact)
         if not path.exists():
-            logger.error(f"Could not locate actifact {artifact}")
+            logger.error(f"Could not locate artifact {artifact}")
             return
         if "morpheus-lsp" in path.name:
             cls.install_morpheus(path)
