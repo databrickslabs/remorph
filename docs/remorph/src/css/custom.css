@@ -23,6 +23,7 @@
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 
+  --ifm-navbar-height: 6.8rem;
   --ifm-footer-background-color: #1b3139;
   --ifm-footer-color: var(--ifm-footer-link-color);
   --ifm-footer-link-color: var(--ifm-color-secondary);
@@ -49,7 +50,6 @@ button {
   @apply font-sans;
 }
 
-
 .header-github-link::before {
   content: '';
   width: 24px;
@@ -63,6 +63,21 @@ button {
 
 .header-github-link:hover::before {
   background-color: var(--ifm-navbar-link-hover-color);
+}
+
+.navbar {
+  flex-direction: column;
+  padding: 0;
+
+  .navbar__inner {
+    min-height: 0;
+    padding: var(--ifm-navbar-padding-vertical) var(--ifm-navbar-padding-horizontal);
+
+    &:first-child {
+      border-bottom: 1px solid var(--ifm-color-gray-200);
+      flex: 55%;
+    }
+  }
 }
 
 .markdown {
