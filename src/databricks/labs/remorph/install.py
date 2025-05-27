@@ -84,7 +84,7 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_local_artifact_version(cls, artifact: Path) -> str | None:
-        match = cls._version_pattern.match(artifact.stem)
+        match = cls._version_pattern.search(artifact.stem)
         if not match:
             return None
         group = match.group(0)

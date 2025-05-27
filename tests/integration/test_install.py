@@ -146,6 +146,7 @@ async def test_installs_and_runs_local_rct():
         / "wheel"
         / "databricks_labs_remorph_community_transpiler-0.0.1-py3-none-any.whl"
     )
+    assert artifact.exists()
     TranspilerInstaller.install_from_pypi("rct", "databricks-labs-remorph-community-transpiler", artifact)
     # check file-level installation
     rct = TranspilerInstaller.transpilers_path() / "rct"
@@ -189,6 +190,7 @@ async def test_installs_and_runs_local_bladerunner():
         / "wheel"
         / "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
     )
+    assert artifact.exists()
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
     # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
@@ -231,6 +233,7 @@ async def test_installs_and_runs_local_morpheus(patched_transpiler_installer):
         / "jar"
         / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
     )
+    assert artifact.exists()
     TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
