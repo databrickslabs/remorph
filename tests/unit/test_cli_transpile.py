@@ -5,15 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from databricks.labs.remorph import cli, resources
+from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from tests.unit.conftest import path_to_resource
 
-SQLGLOT = str(Path(resources.__file__).parent / "transpilers" / "rct" / "lib" / "config.yml")
-
+SQLGLOT = str(Path(__file__).parent.parent / "resources" / "transpiler_configs" / "rct" / "lib" / "config.yml")
 
 def test_transpile_with_missing_installation():
     workspace_client = create_autospec(WorkspaceClient)
