@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import datetime
 import json
@@ -32,6 +33,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     TableThresholdBoundsException,
 )
 
+logger = logging.getLogger(__name__)
 
 def data_prep(spark_session: SparkSession):
     # Mismatch DataFrame
@@ -156,10 +158,10 @@ def test_recon_capture_start_snowflake_all(mock_workspace_client, spark_session)
     assert remorph_recon_df.count() == 1
     assert row.recon_id == "73b44582-dbb7-489f-bad1-6a7e8f4821b1"
     assert row.source_table.catalog == "source_test_catalog"
-    assert row.source_table.column_types == "source_test_schema"
+    assert row.source_table.schema == "source_test_schema"
     assert row.source_table.table_name == "supplier"
     assert row.target_table.catalog == "target_test_catalog"
-    assert row.target_table.column_types == "target_test_schema"
+    assert row.target_table.schema == "target_test_schema"
     assert row.target_table.table_name == "target_supplier"
     assert row.report_type == "all"
     assert row.source_type == "Snowflake"
