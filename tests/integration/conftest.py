@@ -5,8 +5,8 @@ from unittest.mock import patch, create_autospec
 
 import pytest
 from pyspark.sql import SparkSession
-from databricks.labs.remorph.__about__ import __version__
 
+from databricks.labs.remorph.__about__ import __version__
 
 logging.getLogger("tests").setLevel("DEBUG")
 logging.getLogger("databricks.labs.remorph").setLevel("DEBUG")
