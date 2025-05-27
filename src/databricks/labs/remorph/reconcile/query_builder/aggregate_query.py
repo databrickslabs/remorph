@@ -39,10 +39,9 @@ class AggregateQueryBuilder(QueryBuilder):
         :return: Mapped Column Name if found, else Column Name
         """
         # apply column mapping, ex: "{source: pid, target: product_id}"
-        column_with_mapping = self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer)
-        if self.layer is Layer.TARGET:
-            column_with_mapping = self.table_mapping.get_layer_src_to_tgt_col_mapping(col, self.layer)
-        return column_with_mapping
+        if self.layer is Layer.SOURCE:
+            return self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer)
+        return self.table_mapping.get_layer_src_to_tgt_col_mapping(col, self.layer)
 
     def _get_mapping_cols_with_alias(self, cols_list: list[str], agg_type: str):
         """
@@ -73,7 +72,7 @@ class AggregateQueryBuilder(QueryBuilder):
 
             # Create a new alias with layer, agg_type and original column name,
             # ex: source_min_pid, target_max_product_id
-            layer_agg_type_col_alias = f"{self.layer}_{agg_type}_{org_col_name}".lower()
+            layer_agg_type_col_alias = f"{self.layer.value}_{agg_type}_{org_col_name}".lower()
 
             # Get the Transformed column name without the alias
             col_name = transformed_col.sql().replace(f"AS {transformed_col.alias}", '').strip()
