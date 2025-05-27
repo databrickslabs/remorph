@@ -637,7 +637,6 @@ class Reconciliation:
             joined_df = None
             data_source_exception = None
             try:
-                logger.info(f"Reading data from {table_mapping.source_name}: {src_query_with_rules.query}")
                 src_data = self._source.read_data(
                     catalog=self._database_config.source_catalog,
                     schema=self._database_config.source_schema,
@@ -645,8 +644,6 @@ class Reconciliation:
                     query=src_query_with_rules.query,
                     options=table_mapping.jdbc_reader_options,
                 )
-                logger.info(f"source data: {src_data}")
-                logger.info(f"Reading data from {table_mapping.target_name}: {tgt_query_with_rules.query}")
                 tgt_data = self._target.read_data(
                     catalog=self._database_config.target_catalog,
                     schema=self._database_config.target_schema,
@@ -654,7 +651,6 @@ class Reconciliation:
                     query=tgt_query_with_rules.query,
                     options=table_mapping.jdbc_reader_options,
                 )
-                logger.info(f"target data: {tgt_data}")
                 # Join the Source and Target Aggregated data
                 joined_df = join_aggregate_data(
                     source=src_data,
@@ -663,7 +659,6 @@ class Reconciliation:
                     spark=self._spark,
                     path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
                 )
-                logger.info(f"joined data: {joined_df}")
             except DataSourceRuntimeException as e:
                 logger.error("error", exc_info=e)
                 data_source_exception = e
