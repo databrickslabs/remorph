@@ -14,6 +14,7 @@ from tests.unit.conftest import path_to_resource
 
 SQLGLOT = str(Path(__file__).parent.parent / "resources" / "transpiler_configs" / "rct" / "lib" / "config.yml")
 
+
 def test_transpile_with_missing_installation():
     workspace_client = create_autospec(WorkspaceClient)
     with (
