@@ -5,7 +5,7 @@ set -xve
 mkdir -p "$HOME"/spark
 cd "$HOME"/spark || exit 1
 
-version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark-3\.[0-9.]*/"' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark/- | sort -r --version-sort | head -1)
+version=$(wget -O - https://archive.apache.org/dist/spark/ | grep 'href="spark-3.5.5' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark/- | sort -r --version-sort | head -1)
 if [ -z "$version" ]; then
   echo "Failed to extract Spark version"
    exit 1
@@ -26,7 +26,7 @@ else
   if [ -f "${spark}.tgz" ];then
     echo "${spark}.tgz already exists"
   else
-    wget "https://dlcdn.apache.org/spark/spark-${version}/${spark}.tgz"
+    wget "https://archive.apache.org/dist/spark/spark-${version}/${spark}.tgz"
   fi
   tar -xvf "${spark}.tgz"
 fi
