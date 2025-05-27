@@ -5,13 +5,13 @@ from sqlglot import select
 from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.reconcile.dialects.utils import get_dialect_name
-from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
     _get_is_string,
     build_join_clause,
 )
+from databricks.labs.remorph.reconcile.query_builder.sqlglot_query_builder import SqlglotQueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import Layer
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def _union_concat(
     return _union_concat(unions, res, cnt)
 
 
-class SamplingQueryBuilder(QueryBuilder):
+class SamplingQueryBuilder(SqlglotQueryBuilder):
     def build_query_with_alias(self):
         self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
         join_columns = self.join_columns if self.join_columns else set()

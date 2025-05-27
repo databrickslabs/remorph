@@ -4,7 +4,6 @@ from sqlglot import expressions as exp
 from sqlglot import select
 
 from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
-from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     anonymous,
     build_between,
@@ -17,12 +16,13 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_where_clause,
     coalesce,
 )
+from databricks.labs.remorph.reconcile.query_builder.sqlglot_query_builder import SqlglotQueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds, Layer
 
 logger = logging.getLogger(__name__)
 
 
-class ThresholdQueryBuilder(QueryBuilder):
+class ThresholdQueryBuilder(SqlglotQueryBuilder):
     # Comparison query
     def build_comparison_query(self) -> str:
         self._validate(
