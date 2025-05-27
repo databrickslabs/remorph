@@ -169,7 +169,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.debug(f"Transpiling SQL files from folder: {source_dir} -> {transpiled_dir}")
+        logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
