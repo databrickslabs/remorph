@@ -19,9 +19,14 @@
   --ifm-font-family-base: 'DM Sans';
   --ifm-heading-font-family: 'DM Sans';
   --ifm-font-family-monospace: 'DM Mono', monospace;
-  
+
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1); 
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --ifm-footer-background-color: #1b3139;
+  --ifm-footer-color: var(--ifm-footer-link-color);
+  --ifm-footer-link-color: var(--ifm-color-secondary);
+  --ifm-footer-title-color: var(--ifm-color-white);
 }
 
 
@@ -58,4 +63,32 @@ button {
 
 .header-github-link:hover::before {
   background-color: var(--ifm-navbar-link-hover-color);
+}
+
+.markdown {
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+  }
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: transparent;
+  color: var(--ifm-font-color-base);
+}
+
+.menu.menu {
+  padding: 0.5rem;
+
+  .menu__link {
+    font-size: .875rem;
+    font-weight: 400;
+  }
+
+  .menu__caret {
+    &:before {
+      width: 1rem;
+      height: 1rem;
+      background-size: 1.4rem 1.4rem;
+    }
+  }
 }
