@@ -45,7 +45,7 @@ def test_compare_data_for_report_all(
         target=target,
         key_columns=["s_suppkey", "s_nationkey"],
         report_type="all",
-        spark=spark_session,
+        spark_session=spark_session,
         path=str(tmp_path),
     )
     expected = DataReconcileOutput(
@@ -92,7 +92,7 @@ def test_compare_data_for_report_hash(spark_session, tmp_path: Path):
         target=target,
         key_columns=["s_suppkey", "s_nationkey"],
         report_type="hash",
-        spark=spark_session,
+        spark_session=spark_session,
         path=str(tmp_path),
     )
     expected = DataReconcileOutput(

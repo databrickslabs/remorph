@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 class SchemaCompare:
     def __init__(
         self,
-        spark: SparkSession,
+        spark_session: SparkSession,
     ):
-        self.spark = spark
+        self.spark_session = spark_session
 
     # Define the schema for the schema compare DataFrame
     _schema_compare_schema: StructType = StructType(
@@ -74,7 +74,7 @@ class SchemaCompare:
         :return: DataFrame
         """
         data = [tuple(asdict(item).values()) for item in data]
-        df = self.spark.createDataFrame(data, schema)
+        df = self.spark_session.createDataFrame(data, schema)
 
         return df
 
