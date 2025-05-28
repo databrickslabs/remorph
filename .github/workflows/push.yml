@@ -36,11 +36,6 @@ jobs:
       - name: Install hatch
         run: pip install hatch==$HATCH_VERSION
 
-      - name: Setup Spark Remote
-        run: |
-          chmod +x $GITHUB_WORKSPACE/.github/scripts/setup_spark_remote.sh
-          $GITHUB_WORKSPACE/.github/scripts/setup_spark_remote.sh
-
       - name: Run unit tests
         run: hatch run test
 

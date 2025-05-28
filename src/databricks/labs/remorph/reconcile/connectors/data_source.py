@@ -59,7 +59,7 @@ class MockDataSource(DataSource):
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
         catalog_str = catalog if catalog else ""
-        mock_df = self._dataframe_repository.get((catalog_str, schema, query))
+        mock_df = self._dataframe_repository.get((catalog_str, schema, query), None)
         if not mock_df:
             return self.log_and_throw_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
         return mock_df

@@ -34,6 +34,12 @@ def test_mock_data_source_happy(spark_session):
     }
 
     data_source = MockDataSource(dataframe_repository, schema_repository)
+    actual_schema = data_source.get_column_types(CATALOG, SCHEMA, TABLE)
+    assert actual_schema == [
+        ColumnType(column_name="emp_id", data_type="int"),
+        ColumnType(column_name="emp_name", data_type="str"),
+        ColumnType(column_name="sal", data_type="int"),
+    ]
 
     actual_data = data_source.read_data(CATALOG, SCHEMA, TABLE, "select * from employee", None)
     expected_data = spark_session.createDataFrame(
@@ -44,13 +50,7 @@ def test_mock_data_source_happy(spark_session):
         ]
     )
 
-    actual_schema = data_source.get_column_types(CATALOG, SCHEMA, TABLE)
     assertDataFrameEqual(actual_data, expected_data)
-    assert actual_schema == [
-        ColumnType(column_name="emp_id", data_type="int"),
-        ColumnType(column_name="emp_name", data_type="str"),
-        ColumnType(column_name="sal", data_type="int"),
-    ]
 
 
 def test_mock_data_source_fail(spark_session):

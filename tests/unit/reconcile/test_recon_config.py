@@ -19,14 +19,14 @@ def test_table_with_all_options(table_mapping_with_opts):
     assert table_mapping_with_opts.get_drop_columns(Layer.SOURCE) == {"s_comment"}
     assert table_mapping_with_opts.get_partition_column(Layer.SOURCE) == {"s_nationkey"}
     assert table_mapping_with_opts.get_partition_column(Layer.TARGET) == set()
-    assert table_mapping_with_opts.get_filter(Layer.SOURCE) == "s_name='t' and s_address='a'"
+    assert table_mapping_with_opts.get_filter(Layer.SOURCE) == "s_name = 't' AND s_address = 'a'"
     assert table_mapping_with_opts.get_threshold_columns(Layer.SOURCE) == {"s_acctbal"}
 
     ## layer == target
     assert table_mapping_with_opts.get_join_columns(Layer.TARGET) == {"s_nationkey_t", "s_suppkey_t"}
     assert table_mapping_with_opts.get_drop_columns(Layer.TARGET) == {"s_comment_t"}
     assert table_mapping_with_opts.get_partition_column(Layer.TARGET) == set()
-    assert table_mapping_with_opts.get_filter(Layer.TARGET) == "s_name='t' and s_address_t='a'"
+    assert table_mapping_with_opts.get_filter(Layer.TARGET) == "s_name = 't' AND s_address_t = 'a'"
     assert table_mapping_with_opts.get_threshold_columns(Layer.TARGET) == {"s_acctbal_t"}
 
 
