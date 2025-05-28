@@ -210,7 +210,7 @@ def test_transpile_with_cluster_id_in_sdk_config(transpiler_config_path: Path) -
         )
 
 
-def test_transpile_with_invalid_transpiler(mock_workspace_client_cli):
+def test_transpile_with_invalid_transpiler(mock_workspace_client_cli) -> None:
     with pytest.raises(Exception, match="Invalid value for '--transpiler-config-path'"):
         cli.transpile(
             mock_workspace_client_cli,
@@ -342,7 +342,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli, transpiler_config
         )
 
 
-def test_transpile_with_valid_transpiler(mock_workspace_client_cli):
+def test_transpile_with_valid_transpiler(mock_workspace_client_cli) -> None:
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
@@ -422,7 +422,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli, transpiler_con
         )
 
 
-def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client_cli):
+def test_transpile_prints_errors(caplog, mock_workspace_client_cli, tmp_path: Path) -> None:
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
