@@ -3,21 +3,20 @@ from pathlib import Path
 import dataclasses
 import os.path
 
-
 import pytest
 import yaml
 
 from databricks.labs.remorph import cli
 
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph import resources
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.remorph.install import TranspilerInstaller
 from tests.unit.conftest import path_to_resource
 
-TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
+TRANSPILERS_PATH = Path(__file__).parent.parent / "resources" / "transpiler_configs"
 
 
 @pytest.fixture(name="transpiler_config_path")
@@ -30,9 +29,18 @@ def stubbed_transpiler_config_path(tmp_path: Path) -> Path:
             "name": "Stubbed LSP Transpiler Configuration",
             "dialects": ["snowflake"],
             "command_line": ["/usr/bin/true"],
-            "options": [],
+        },
+        "options": {
+            "all": [
+                {
+                    "flag": "-experimental",
+                    "method": "CONFIRM",
+                    "prompt": "Do you want to use the experimental Databricks generator ?"
+                }
+            ]
         }
     }
+
     config_path = tmp_path / "lsp_config.yml"
     with config_path.open("w") as f:
         yaml.dump(lsp_configuration, f)
@@ -71,8 +79,8 @@ def mock_cli_for_transpile(mock_workspace_client, transpiler_config_path):
         {
             "Do you want to use the experimental.*": "no",
             "Enter output directory": "/path/to/output/folder",
-            "Select the source dialect.*": "8",  # snowflake
-            "Select the transpiler.*": "1",  # RCT
+            "Select the source dialect.*": "21", # snowflake
+            "Select the transpiler.*": "1",  # morpheus
         }
     )
     mock_app_context = create_autospec(ApplicationContext)
@@ -178,7 +186,7 @@ def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile, transpi
     )
 
 
-def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile, transpiler_config_path):
+def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
     cli.transpile(
         ws,
@@ -188,7 +196,7 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile, t
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=str(transpiler_config_path),
+            transpiler_config_path=str(TRANSPILERS_PATH / "morpheus" / "lib" / "config.yml"),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -197,7 +205,7 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile, t
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-            transpiler_options={'-experimental': False},
+            transpiler_options=None,
         ),
     )
 
@@ -221,14 +229,14 @@ def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, trans
             skip_validation=True,
             catalog_name="my_catalog",
             schema_name="my_schema",
-            transpiler_options={'-experimental': False},
+            transpiler_options={"-experimental": False},
         ),
     )
 
 
 def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
     ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
-    with (pytest.raises(Exception, match="Invalid value for '--skip-validation'"),):
+    with (pytest.raises(Exception, match="Invalid value for '--skip-validation'"), ):
         cli.transpile(
             ws,
             skip_validation="invalid_value",
@@ -237,7 +245,7 @@ def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
 
 def test_transpile_with_invalid_input_source(mock_cli_for_transpile):
     ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
-    with (pytest.raises(Exception, match="Invalid value for '--input-source'"),):
+    with (pytest.raises(Exception, match="Invalid value for '--input-source'"), ):
         cli.transpile(
             ws,
             input_source="invalid_path",
@@ -269,7 +277,7 @@ def test_transpile_with_valid_inputs(mock_cli_for_transpile, transpiler_config_p
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=str(transpiler_config_path),
+            transpiler_config_path=str(TRANSPILERS_PATH / "rct" / "lib" / "config.yml"),
             source_dialect=source_dialect,
             input_source=input_source,
             output_folder=output_folder,
@@ -328,7 +336,8 @@ def test_transpile_with_no_output_folder(mock_cli_for_transpile):
     cli.transpile(ws)
 
 
-def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client, transpiler_config_path):
+def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
+    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
     output_folder = str(tmp_path)
@@ -348,7 +357,7 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client, transp
     ):
         cli.transpile(
             mock_workspace_client,
-            transpiler_config_path=str(transpiler_config_path),
+            transpiler_config_path=transpiler_config_path,
             source_dialect=source_dialect,
             input_source=input_source,
             output_folder=output_folder,
