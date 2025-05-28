@@ -27,7 +27,7 @@ const CallToAction = () => {
 const Hero = () => {
   return (
 
-    <div className="px-4 md:px-10 min-h-screen flex flex-col justify-center items-center w-full">
+    <div className="px-4 md:px-10 min-h-[calc(100vh-var(--ifm-navbar-height))] flex flex-col justify-center items-center w-full">
       {/* Logo Section */}
       <div className="m-2">
         <img src="img/logo.svg" alt="Remorph Logo" className="w-32 md:w-48" />
@@ -37,7 +37,7 @@ const Hero = () => {
         Remorph - Assisted Migration Toolkit
       </h1>
       <p className="text-center text-gray-600 dark:text-gray-500 mb-4">
-        Provided by <a href="https://github.com/databrickslabs" className="underline text-blue-500 hover:text-blue-700">Databricks Labs</a>
+        Provided by <a href="https://github.com/databrickslabs">Databricks Labs</a>
       </p>
       <p className="text-lg text-center text-balance">
           Remorph is a comprehensive toolkit designed to facilitate seamless migrations to Databricks.

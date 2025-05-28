@@ -23,14 +23,24 @@
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 
-  --ifm-navbar-height: 6.8rem;
   --ifm-footer-background-color: #1b3139;
   --ifm-footer-color: var(--ifm-footer-link-color);
   --ifm-footer-link-color: var(--ifm-color-secondary);
   --ifm-footer-title-color: var(--ifm-color-white);
+
+  --ifm-link-color: #2272b4;
+  --ifm-link-decoration: none;
+  --ifm-link-hover-color: #2272b4;
+  --ifm-link-hover-decoration: underline;
 }
 
+.main-page {
+  --ifm-navbar-height: 3.75rem;
+}
 
+.docs-page {
+  --ifm-navbar-height: 6.8rem;
+}
 
 .font-mono {
   font-family: "DM Mono", monospace;
@@ -70,12 +80,26 @@ button {
   padding: 0;
 
   .navbar__inner {
-    min-height: 0;
     padding: var(--ifm-navbar-padding-vertical) var(--ifm-navbar-padding-horizontal);
 
+    .navbar__search {
+      .navbar__search-input {
+        width: calc(var(--doc-sidebar-width) - 2rem);
+        background-position: right 1rem center;
+        padding: 0 2.25rem 0 1rem;
+        border-radius: 0.25rem;
+        font-size: .875rem;
+        font-weight: 400;
+      }
+    }
+
     &:first-child {
-      border-bottom: 1px solid var(--ifm-color-gray-200);
+      border-bottom: 1px solid var(--ifm-toc-border-color);
       flex: 55%;
+
+      .navbar__search {
+        display: none;
+      }
     }
   }
 }
