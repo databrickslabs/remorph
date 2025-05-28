@@ -83,7 +83,10 @@ async def test_receives_client_info(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     product_info = ProductInfo.from_class(type(lsp_engine))
-    expected_client_info = f"client-info={product_info.product_name()}/{product_info.version()}"
+    # The product version can include a suffix of the form +{rev}{timestamp}. The timestamp for this process won't match
+    # that of the LSP server under test, so we strip it off the string that we will hunt for in the log.
+    (stripped_product_version, *_) = product_info.version().split("+")
+    expected_client_info = f"client-info={product_info.product_name()}/{stripped_product_version}"
     assert expected_client_info in log
 
 

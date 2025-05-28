@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-import typing
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, cast
 
+from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
@@ -52,7 +52,7 @@ class LSPConfigOptionV1:
         default = data.get("default", None)
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
-    def prompt_for_value(self, prompts: Prompts) -> JsonType:
+    def prompt_for_value(self, prompts: Prompts) -> JsonValue:
         if self.method == LSPPromptMethod.FORCE:
             return self.default
         if self.method == LSPPromptMethod.CONFIRM:
@@ -62,9 +62,6 @@ class LSPConfigOptionV1:
         if self.method == LSPPromptMethod.CHOICE:
             return prompts.choice(self.prompt, cast(list[str], self.choices))
         raise ValueError(f"Unsupported prompt method: {self.method}")
-
-
-JsonType: typing.TypeAlias = None | bool | int | float | str | list["JsonType"] | dict[str, "JsonType"]
 
 
 @dataclass
@@ -81,7 +78,7 @@ class TranspileConfig:
     skip_validation: bool | None = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, JsonType] | None = None
+    transpiler_options: JsonValue = None
 
     @property
     def transpiler_path(self):

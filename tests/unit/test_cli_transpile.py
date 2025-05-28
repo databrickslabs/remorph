@@ -1,13 +1,16 @@
+from unittest.mock import create_autospec, patch, ANY, MagicMock
+from pathlib import Path
 import dataclasses
 import os.path
 
-from unittest.mock import create_autospec, patch, ANY, MagicMock
-from pathlib import Path
 
 import pytest
+import yaml
+
+from databricks.labs.remorph import cli
 
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph import cli, resources
+from databricks.labs.remorph import resources
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
@@ -15,12 +18,28 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from tests.unit.conftest import path_to_resource
 
 TRANSPILERS_PATH = Path(resources.__file__).parent / "transpilers"
-RCT_CONFIG_PATH = str(TRANSPILERS_PATH / "rct" / "lib" / "config.yml")
-
-assert os.path.exists(RCT_CONFIG_PATH), f"RCT_CONFIG_PATH is not valid: {RCT_CONFIG_PATH}"
 
 
-def test_transpile_with_missing_installation():
+@pytest.fixture(name="transpiler_config_path")
+def stubbed_transpiler_config_path(tmp_path: Path) -> Path:
+    """Path to a stubbed LSP transpiler configuration file."""
+    # Refer to LSPConfig.load() for the expected structure; there is no .save() method.
+    lsp_configuration = {
+        "remorph": {
+            "version": 1,
+            "name": "Stubbed LSP Transpiler Configuration",
+            "dialects": ["snowflake"],
+            "command_line": ["/usr/bin/true"],
+            "options": [],
+        }
+    }
+    config_path = tmp_path / "lsp_config.yml"
+    with config_path.open("w") as f:
+        yaml.dump(lsp_configuration, f)
+    return config_path
+
+
+def test_transpile_with_missing_installation(transpiler_config_path: Path) -> None:
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         pytest.raises(SystemExit),
@@ -30,7 +49,7 @@ def test_transpile_with_missing_installation():
         mock_app_context.return_value.transpile_config = None
         cli.transpile(
             workspace_client,
-            RCT_CONFIG_PATH,
+            str(transpiler_config_path),
             "snowflake",
             "/path/to/sql/file.sql",
             "/path/to/output",
@@ -42,7 +61,7 @@ def test_transpile_with_missing_installation():
 
 
 @pytest.fixture
-def mock_cli_for_transpile(mock_workspace_client):
+def mock_cli_for_transpile(mock_workspace_client, transpiler_config_path):
     mock_transpile = MagicMock(return_value=({}, []))
 
     async def do_transpile(*args, **kwargs):
@@ -64,7 +83,7 @@ def mock_cli_for_transpile(mock_workspace_client):
         patch("databricks.labs.remorph.cli.ApplicationContext", mock_app_context),
     ):
         default_config = TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -85,7 +104,7 @@ def mock_cli_for_transpile(mock_workspace_client):
         set_default_config(default_config)
 
 
-def test_transpile_with_no_sdk_config(mock_cli_for_transpile):
+def test_transpile_with_no_sdk_config(mock_cli_for_transpile, transpiler_config_path):
     ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
     set_cfg(dataclasses.replace(cfg, sdk_config=None))
     cli.transpile(
@@ -95,7 +114,7 @@ def test_transpile_with_no_sdk_config(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -109,7 +128,7 @@ def test_transpile_with_no_sdk_config(mock_cli_for_transpile):
     )
 
 
-def test_transpile_with_warehouse_id_in_sdk_config(mock_cli_for_transpile):
+def test_transpile_with_warehouse_id_in_sdk_config(mock_cli_for_transpile, transpiler_config_path):
     ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
     sdk_config = {"warehouse_id": "w_id"}
     set_cfg(dataclasses.replace(cfg, sdk_config=sdk_config))
@@ -120,7 +139,7 @@ def test_transpile_with_warehouse_id_in_sdk_config(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -134,7 +153,7 @@ def test_transpile_with_warehouse_id_in_sdk_config(mock_cli_for_transpile):
     )
 
 
-def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile):
+def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile, transpiler_config_path):
     ws, cfg, set_cfg, do_transpile = mock_cli_for_transpile
     sdk_config = {"cluster_id": "c_id"}
     set_cfg(dataclasses.replace(cfg, sdk_config=sdk_config))
@@ -145,7 +164,7 @@ def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -159,7 +178,7 @@ def test_transpile_with_cluster_id_in_sdk_config(mock_cli_for_transpile):
     )
 
 
-def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
+def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
     cli.transpile(
         ws,
@@ -169,7 +188,7 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -183,7 +202,7 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
     )
 
 
-def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile):
+def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
     cli.transpile(
         ws,
@@ -193,7 +212,7 @@ def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect="snowflake",
             input_source="/path/to/sql/file.sql",
             output_folder="/path/to/output",
@@ -225,9 +244,9 @@ def test_transpile_with_invalid_input_source(mock_cli_for_transpile):
         )
 
 
-def test_transpile_with_valid_inputs(mock_cli_for_transpile):
+def test_transpile_with_valid_inputs(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
-    transpiler = RCT_CONFIG_PATH
+    transpiler = str(transpiler_config_path)
     source_dialect = "oracle"
     input_source = "/other/path/to/sql/file.sql"
     output_folder = "/other/path/to/output"
@@ -250,7 +269,7 @@ def test_transpile_with_valid_inputs(mock_cli_for_transpile):
         ws,
         ANY,
         TranspileConfig(
-            transpiler_config_path=RCT_CONFIG_PATH,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect=source_dialect,
             input_source=input_source,
             output_folder=output_folder,
@@ -264,10 +283,9 @@ def test_transpile_with_valid_inputs(mock_cli_for_transpile):
     )
 
 
-def test_transpile_with_real_inputs(mock_cli_for_transpile):
+def test_transpile_with_real_inputs(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
     with patch("os.path.exists", os.path.exists):
-        transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
         source_dialect = "snowflake"
         input_source = path_to_resource("functional", "snowflake", "aggregates", "least_1.sql")
         output_folder = path_to_resource("lsp_transpiler")
@@ -277,7 +295,7 @@ def test_transpile_with_real_inputs(mock_cli_for_transpile):
         schema_name = "my_schema"
         cli.transpile(
             ws,
-            transpiler_config_path=transpiler_config_path,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect=source_dialect,
             input_source=input_source,
             output_folder=output_folder,
@@ -290,7 +308,7 @@ def test_transpile_with_real_inputs(mock_cli_for_transpile):
             ws,
             ANY,
             TranspileConfig(
-                transpiler_config_path=transpiler_config_path,
+                transpiler_config_path=str(transpiler_config_path),
                 source_dialect=source_dialect,
                 input_source=input_source,
                 output_folder=output_folder,
@@ -310,8 +328,7 @@ def test_transpile_with_no_output_folder(mock_cli_for_transpile):
     cli.transpile(ws)
 
 
-def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
-    transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client, transpiler_config_path):
     source_dialect = "snowflake"
     input_source = path_to_resource("lsp_transpiler", "unsupported_lca.sql")
     output_folder = str(tmp_path)
@@ -331,7 +348,7 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     ):
         cli.transpile(
             mock_workspace_client,
-            transpiler_config_path=transpiler_config_path,
+            transpiler_config_path=str(transpiler_config_path),
             source_dialect=source_dialect,
             input_source=input_source,
             output_folder=output_folder,

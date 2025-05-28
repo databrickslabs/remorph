@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import math
 from pathlib import Path
 from typing import cast, Any
 
@@ -66,29 +67,66 @@ async def _process_one_file(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    output_code = transpile_result.transpiled_code
+
+    if any(err.kind == ErrorKind.PARSING for err in error_list):
+        output_code = source_code
+
+    if error_list:
+        with_line_numbers = ""
+        lines = output_code.split("\n")
+        line_number_width = math.floor(math.log(len(lines), 10)) + 1
+        for line_number, line in enumerate(lines, start=1):
+            with_line_numbers += f"/* {line_number:{line_number_width}d} */  {line}\n"
+        output_code = with_line_numbers
+
+    if validator and not error_list:
+        logger.debug(f"Validating transpiled code for file: {input_path}")
+        validation_result = _validation(validator, config, transpile_result.transpiled_code)
+        # Potentially expensive, only evaluate if debug is enabled
+        if logger.isEnabledFor(logging.DEBUG):
+            msg = f"Finished validating transpiled code for file: {input_path} (result: {validation_result})"
+            logger.debug(msg)
+        if validation_result.exception_msg is not None:
+            error = TranspileError(
+                "VALIDATION_ERROR",
+                ErrorKind.VALIDATION,
+                ErrorSeverity.WARNING,
+                input_path,
+                validation_result.exception_msg,
+            )
+            error_list.append(error)
+        output_code = validation_result.validated_sql
+
     with output_path.open("w") as w:
-        if validator:
-            logger.debug(f"Validating transpiled code for file: {input_path}")
-            validation_result = _validation(validator, config, transpile_result.transpiled_code)
-            # Potentially expensive, only evaluate if debug is enabled
-            if logger.isEnabledFor(logging.DEBUG):
-                msg = f"Finished validating transpiled code for file: {input_path} (result: {validation_result})"
-                logger.debug(msg)
-            w.write(validation_result.validated_sql)
-            if validation_result.exception_msg is not None:
-                error = TranspileError(
-                    "VALIDATION_ERROR",
-                    ErrorKind.VALIDATION,
-                    ErrorSeverity.WARNING,
-                    input_path,
-                    validation_result.exception_msg,
-                )
-                error_list.append(error)
-        else:
-            w.write(transpile_result.transpiled_code)
+        w.write(_make_header(input_path, error_list))
+        w.write(output_code)
 
     logger.info(f"Processed file: {input_path} (errors: {len(error_list)})")
     return transpile_result.success_count, error_list
+
+
+def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
+    header = f"/*\n    Transpiled from {file_path}\n"
+    failed_producing_output = False
+    if errors:
+        header += "\n    The following errors were found while transpiling:\n"
+        for diag in errors:
+            if diag.range:
+                line = diag.range.start.line + 1
+                column = (
+                    diag.range.start.character + 1 + 2
+                )  # + 1 to make it one-based, + 2 to take indentation into account
+                header += f"      - [{line}:{column}] {diag.message}\n"
+            else:
+                header += f"      - {diag.message}\n"
+            failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
+
+    if failed_producing_output:
+        header += "\n\n    Parsing errors prevented the converter from translating the input query.\n"
+        header += "    We reproduce the input query unchanged below.\n\n"
+
+    return header + "*/\n"
 
 
 async def _process_many_files(
@@ -98,20 +136,19 @@ async def _process_many_files(
     output_folder: Path,
     files: list[Path],
 ) -> tuple[int, list[TranspileError]]:
-
     counter = 0
     all_errors: list[TranspileError] = []
 
-    logger.info(f"Processing folder: {files!s}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
-        logger.info(f"Processing file: {file}")
         if not is_sql_file(file) and not is_dbt_project_file(file):
+            logger.debug(f"Ignored file: {file}")
             continue
         output_file_name = output_folder / file.name
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
-    logger.info(f"Processed folder: {files!s}")
     return counter, all_errors
 
 
@@ -132,7 +169,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.info(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
+        logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls

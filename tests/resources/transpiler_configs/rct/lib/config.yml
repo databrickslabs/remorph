@@ -1,0 +1,26 @@
+remorph:
+  version: 1
+  name: Remorph Community Transpiler
+  dialects:
+    - athena
+    - bigquery
+    - mysql
+    - netezza
+    - oracle
+    - postgresql
+    - presto
+    - redshift
+    - snowflake
+    - sqlite
+    - teradata
+    - trino
+    - tsql
+    - vertica
+  command_line:
+    - python
+    - databricks/labs/remorph/transpiler/server.py
+options:
+  all:
+    - flag: "-experimental"
+      method: CONFIRM
+      prompt: Do you want to use the experimental Databricks generator ?
