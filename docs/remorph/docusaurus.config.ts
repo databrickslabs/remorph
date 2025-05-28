@@ -82,22 +82,27 @@ const config: Config = {
     navbar: {
       title: 'Remorph',
       logo: {
-        alt: 'Remorph Logo',
+        alt: 'Remorph',
         src: 'img/logo.svg',
       },
       items: [
         {
-          type: 'search',
-          position: 'right',
+          to: '/docs/installation/',
+          position: 'left',
+          label: "Get started",
+          className: "navbar__link--active"
         },
         {
-          href: 'https://github.com/databrickslabs/remorph',
-          position: 'right',
-
-          className: 'header-github-link',
-          'aria-label': 'GitHub repository',
+          label: 'Resources',
+          position: 'left',
+          items: [
+            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/remorph', },
+          ],
         },
-
+        {
+          type: 'search',
+          position: 'right',
+        }
       ],
     },
     footer: {

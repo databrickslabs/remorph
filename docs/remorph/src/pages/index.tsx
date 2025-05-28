@@ -18,7 +18,7 @@ const CallToAction = () => {
         link="/docs/installation"
         size="large"
         label="Start using remorph ✨"
-        className="w-full p-4 font-mono md:w-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+        className="w-full p-4 md:w-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
       />
     </div>
   )

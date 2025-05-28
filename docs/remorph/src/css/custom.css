@@ -13,8 +13,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 :root {
   --ifm-font-family-base: 'DM Sans';
   --ifm-heading-font-family: 'DM Sans';
@@ -28,10 +26,10 @@
   --ifm-footer-link-color: var(--ifm-color-secondary);
   --ifm-footer-title-color: var(--ifm-color-white);
 
-  --ifm-link-color: #2272b4;
   --ifm-link-decoration: none;
-  --ifm-link-hover-color: #2272b4;
   --ifm-link-hover-decoration: underline;
+
+  --ifm-color-primary: #2272b4;
 }
 
 .main-page {
@@ -42,14 +40,26 @@
   --ifm-navbar-height: 6.8rem;
 }
 
-.font-mono {
-  font-family: "DM Mono", monospace;
-  font-style: normal;
-}
-
 .font-sans {
   font-family: "DM Sans", sans-serif;
   font-style: normal;
+}
+
+.navbar__brand {
+  margin-right: 1.5rem;
+
+  .navbar__logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .navbar__title {
+    text-transform: lowercase;
+    font-size: 24px;
+    font-weight: 550;
+    line-height: 1.1;
+    letter-spacing: -0.6px;
+  }
 }
 
 button {
@@ -130,4 +140,10 @@ button {
       background-size: 1.4rem 1.4rem;
     }
   }
+}
+
+.dropdown>.navbar__link:after {
+  border: .3em solid transparent;
+  border-top-color: currentColor;
+  top: 6px;
 }
