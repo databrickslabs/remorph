@@ -22,15 +22,15 @@ from databricks.labs.remorph.reconcile.compare import (
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
-from databricks.labs.remorph.reconcile.dialects.utils import get_dialect
+from databricks.labs.remorph.reconcile.dialects.utils import get_dialect, get_dialect_name
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,
     ReconciliationException,
 )
 from databricks.labs.remorph.reconcile.query_builder.aggregate_query import AggregateQueryBuilder
-from databricks.labs.remorph.reconcile.query_builder.count_query import CountQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
+from databricks.labs.remorph.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )
@@ -858,8 +858,12 @@ class Reconciliation:
 
     def get_record_count(self, table_mapping: TableMapping, report_type: str) -> ReconcileRecordCount:
         if report_type != "schema":
-            source_count_query = CountQueryBuilder(table_mapping, Layer.SOURCE, self._source_engine).build_query()
-            target_count_query = CountQueryBuilder(table_mapping, Layer.TARGET, self._target_engine).build_query()
+            source_count_query = QueryBuilder.for_dialect(
+                table_mapping, [], Layer.SOURCE, get_dialect_name(self._source_engine)
+            ).build_query()
+            target_count_query = QueryBuilder.for_dialect(
+                table_mapping, [], Layer.TARGET, get_dialect_name(self._target_engine)
+            ).build_query()
             source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
