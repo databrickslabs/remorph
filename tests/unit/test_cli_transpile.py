@@ -1,5 +1,3 @@
-import asyncio
-
 from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
 from pathlib import Path
 
@@ -39,8 +37,7 @@ def test_transpile_with_missing_installation():
 def patch_do_transpile():
     mock_transpile = MagicMock(return_value=({}, []))
 
-    @asyncio.coroutine
-    def patched_do_transpile(*args, **kwargs):
+    async def patched_do_transpile(*args, **kwargs):
         return mock_transpile(*args, **kwargs)
 
     return mock_transpile, patched_do_transpile
