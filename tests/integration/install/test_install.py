@@ -139,7 +139,7 @@ def format_transpiled(sql: str) -> str:
 
 async def test_installs_and_runs_local_rct():
     artifact = (
-        Path(__file__).parent.parent
+        Path(__file__).parent.parent.parent
         / "resources"
         / "transpiler_configs"
         / "rct"
@@ -183,7 +183,7 @@ async def test_installs_and_runs_local_rct():
 
 async def test_installs_and_runs_local_bladerunner():
     artifact = (
-        Path(__file__).parent.parent
+        Path(__file__).parent.parent.parent
         / "resources"
         / "transpiler_configs"
         / "bladerunner"
@@ -226,7 +226,7 @@ async def test_installs_and_runs_local_bladerunner():
 
 async def test_installs_and_runs_local_morpheus(patched_transpiler_installer):
     artifact = (
-        Path(__file__).parent.parent
+        Path(__file__).parent.parent.parent
         / "resources"
         / "transpiler_configs"
         / "morpheus"
