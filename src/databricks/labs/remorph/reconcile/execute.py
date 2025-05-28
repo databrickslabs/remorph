@@ -860,10 +860,10 @@ class Reconciliation:
         if report_type != "schema":
             source_count_query = QueryBuilder.for_dialect(
                 table_mapping, [], Layer.SOURCE, get_dialect_name(self._source_engine)
-            ).build_query()
+            ).build_count_query()
             target_count_query = QueryBuilder.for_dialect(
                 table_mapping, [], Layer.TARGET, get_dialect_name(self._target_engine)
-            ).build_query()
+            ).build_count_query()
             source_count_row = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
