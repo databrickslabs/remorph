@@ -6,11 +6,11 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
 @pytest.mark.parametrize(
     "layer, dialect, expected",
     [
-        (Layer.SOURCE, "snowflake", """SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'),
- TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey AS s_nationkey,
- s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"""),
-        (Layer.TARGET, "databricks", """SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'),
- TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey_t AS s_nationkey,"""),
+        (Layer.SOURCE, "snowflake", "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+                                     " TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey,"
+                                     " s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"),
+        (Layer.TARGET, "databricks", "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+                                        " TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey_t,"),
     ]
 )
 def test_hash_query_builder(table_mapping_with_opts, src_and_tgt_column_types, layer, dialect, expected):
