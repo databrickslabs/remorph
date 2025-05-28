@@ -10,6 +10,11 @@ logger = logging.getLogger(__name__)
 
 class QueryBuilder(ABC):
 
+    @classmethod
+    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: str):
+        # TODO for now
+        return QueryBuilder(table_mapping, column_types, layer)
+
     def __init__(
         self,
         table_mapping: TableMapping,
@@ -69,3 +74,7 @@ class QueryBuilder(ABC):
             message = f"Exception for {self.table_mapping.target_name} target table in {self.layer} layer --> {message}"
             logger.error(message)
             raise InvalidInputException(message)
+
+    def build_count_query(self) -> str:
+        where_clause = self._table_mapping.get_filter(self._layer)
+        return f"SELECT COUNT(1) AS count FROM :tbl WHERE {where_clause}"
