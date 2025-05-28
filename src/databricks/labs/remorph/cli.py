@@ -250,12 +250,12 @@ def install_reconcile(w: WorkspaceClient):
 
 
 @remorph.command()
-def analyze(w: WorkspaceClient, source_directory: str, output_file_name: str):
+def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     """Run the Analyzer"""
     with_user_agent_extra("cmd", "analyze")
     ctx = ApplicationContext(w)
     prompts = ctx.prompts
-    output_file = output_file_name
+    output_file = report_file
     input_folder = source_directory
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
     with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
