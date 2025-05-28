@@ -10,9 +10,14 @@ logger = logging.getLogger(__name__)
 
 class QueryBuilder(ABC):
 
+    _factories: dict[str, type] = {}
+
     @classmethod
     def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: str):
-        # TODO for now
+        factory = cls._factories.get(dialect, None)
+        if factory:
+            return factory(table_mapping, column_types, layer)
+        # default to basic query builder
         return QueryBuilder(table_mapping, column_types, layer)
 
     def __init__(
