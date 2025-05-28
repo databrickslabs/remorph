@@ -567,13 +567,15 @@ class WorkspaceInstaller:
             return
         if "morpheus-lsp" in path.name:
             cls.install_morpheus(path)
-        elif "databricks-bb-plugin" in path.name:
+        elif "databricks_bb_plugin" in path.name:
             cls.install_bladerunner(path)
         # don't automatically install RCT, but keep the ability to install it manually
-        elif "remorph-community-transpiler" in path.name:
+        elif "remorph_community_transpiler" in path.name:
             local_name = "remorph-community-transpiler"
             pypi_name = f"databricks-labs-{local_name}"
             TranspilerInstaller.install_from_pypi(local_name, pypi_name, path)
+        else:
+            logger.fatal(f"Cannot install unsupported artifact: {artifact}")
 
     @classmethod
     def get_java_version(cls) -> int | None:
