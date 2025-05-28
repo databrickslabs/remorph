@@ -11,9 +11,20 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class Column:
     table: str | None
-    column: str
+    name: str
     alias: str | None = None
+    transform: str | None = None
     quoted = False
+
+    def sql(self) -> str:
+        if self.transform and self.transform != self.name and self.transform != self.alias:
+            if not self.alias:
+                raise ValueError(f"Missing alias for column: {self}")
+            return f"{self.transform} AS {self.alias}"
+        if self.alias and self.alias != self.name:
+            return f"{self.name} AS {self.alias}"
+        return self.name
+
 
 class QueryBuilder:
 
@@ -81,7 +92,7 @@ class QueryBuilder:
     @property
     def default_transformations(self) -> dict[str, list[str]]:
         return {
-            "default": [ "trim($column$)", "coalesce($column$, '_null_recon_')"]
+            "default": [ "TRIM($column$)", "COALESCE($column$, '_null_recon_')"]
         }
     @property
     def hash_transform(self) -> str:
@@ -93,21 +104,34 @@ class QueryBuilder:
             logger.error(message)
             raise InvalidInputException(message)
 
-    def _apply_user_transformation(self, column: str | Column) -> str:
+    def _apply_user_transformation(self, column: Column) -> Column:
+        # don't transform already transformed columns
+        if column.transform:
+            return column
         user_transformations = self.user_transformations or {}
-        if isinstance(column, Column):
-            column = column.alias or column.column
-        return user_transformations.get(column, column)
+        key = column.alias or column.name
+        transform = user_transformations.get(key, None)
+        return dataclasses.replace(column, transform=transform)
 
-    def _apply_default_transformation(self, column: str) -> str:
+    def _apply_default_transformation(self, column: Column) -> Column:
+        # don't transform already transformed columns
+        if column.transform:
+            return column
+        # ensure we have transforms to apply for column type
         if not self.default_transformations:
             return column
-        transformations = self.default_transformations.get(column, self.default_transformations.get("default", None))
+        column_types: list[ColumnType] = list(filter(lambda col: col.column_name == column.name, self._column_types))
+        if not column_types:
+            return column
+        data_type = column_types[0].data_type
+        transformations = self.default_transformations.get(data_type, self.default_transformations.get("default", None))
         if not transformations:
             return column
+        # apply transforms
+        transform = column.name
         for transformation in transformations:
-            column = transformation.replace("$column$", column)
-        return column
+            transform = transformation.replace("$column$", transform)
+        return dataclasses.replace(column, transform=transform)
 
     def build_count_query(self) -> str:
         return f"SELECT COUNT(1) AS count FROM :tbl WHERE {self.filter}"
@@ -116,38 +140,36 @@ class QueryBuilder:
         if report_type != 'row':
             self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
 
-        join_columns = self.join_columns | set()
+        join_columns = self.join_columns or set()
 
-        hash_cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        hash_cols = list((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
         hash_cols_with_alias = [
             Column(table = None,
-                   column=col,
+                   name=col,
                    alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in hash_cols
         ]
+        # in case if we have column mapping, we need to sort the target columns
+        # in the same order as source columns to ge the same hash value
+        hash_cols_with_alias_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias)
+        hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hash_cols_with_alias_sorted]
+        hash_cols_with_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
+        hash_col_with_concat = f"CONCAT({', '.join(col.transform or col.name for col in hash_cols_with_transform)})"
+        hash_col_with_hash = self.hash_transform.replace("$column$", hash_col_with_concat)
+        hash_col_with_lower = f"LOWER({hash_col_with_hash}) AS hash_value_recon"
 
         key_cols = hash_cols if report_type == "row" else sorted(join_columns | self.partition_column)
         key_cols_with_alias = [
             Column(table = None,
-                   column=col,
+                   name=col,
                    alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
-
-        # in case if we have column mapping, we need to sort the target columns
-        # in the same order as source columns to ge the same hash value
-        sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column.alias)
-        hashcols_sorted_as_src_seq = [column.column for column in sorted_hash_cols_with_alias]
-
         key_cols_with_transform = [ self._apply_user_transformation(col) for col in key_cols_with_alias ]
-        hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hashcols_sorted_as_src_seq]
-        hash_cols_with_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
-        hash_col_with_concat = f"CONCAT({','.join(hash_cols_with_transform)})"
-        hash_col_with_cat = self.hash_transform.replace("$column$", hash_col_with_concat)
-        hash_col_with_transform = f"LOWER({hash_col_with_cat}) AS hash_value_recon"
 
-        columns_to_select = [hash_col_with_transform] + key_cols_with_transform
-        sql = f"SELECT {','.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
+
+        columns_to_select = [hash_col_with_lower] + [col.sql() for col in key_cols_with_transform]
+        sql = f"SELECT {', '.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
         logger.info(f"Hash Query for {self.layer}: {sql}")
         return sql
 

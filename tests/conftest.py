@@ -58,9 +58,9 @@ def table_mapping_with_opts(column_mappings):
         drop_columns=["s_comment"],
         column_mapping=column_mappings,
         transformations=[
-            Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)"),
-            Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
-            Transformation(column_name="s_name", source="trim(s_name)", target="trim(s_name)"),
+            Transformation(column_name="s_address", source="TRIM(s_address)", target="TRIM(s_address_t)"),
+            Transformation(column_name="s_phone", source="TRIM(s_phone)", target="TRIM(s_phone_t)"),
+            Transformation(column_name="s_name", source="TRIM(s_name)", target="TRIM(s_name)"),
         ],
         column_thresholds=[
             ColumnThresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
