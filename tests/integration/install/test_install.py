@@ -19,10 +19,9 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
     check_valid_version(version)
 
 
-@pytest.mark.skip(reason="The search.maven.org service is too unreliable; our dependency on it will be removed.")
-def test_gets_maven_artifact_version():
-    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
-    assert version, "Maybe maven search is down ? (check https://status.maven.org/)"
+def test_gets_maven_artifact_version() -> None:
+    version = MavenInstaller.get_current_maven_artifact_version("com.databricks", "databricks-connect")
+    assert version
     check_valid_version(version)
 
 
@@ -215,7 +214,15 @@ class PatchedMavenInstaller(MavenInstaller):
         return "0.2.0"
 
     @classmethod
-    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact_from_maven(
+        cls,
+        group_id: str,
+        artifact_id: str,
+        version: str,
+        target: Path,
+        classifier: str | None = None,
+        extension: str = "jar",
+    ) -> int:
         sample_jar = (
             Path(__file__).parent.parent.parent
             / "resources"
