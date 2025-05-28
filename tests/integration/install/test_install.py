@@ -5,9 +5,9 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
-from databricks.labs.remorph.config import TranspileConfig
 
-from databricks.labs.remorph.install import TranspilerInstaller, WheelInstaller, MavenInstaller, WorkspaceInstaller
+from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.remorph.install import TranspilerInstaller, MavenInstaller, WorkspaceInstaller, WheelInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
@@ -64,7 +64,7 @@ def test_downloads_whl_from_pypi():
 
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
-    resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
+    resources_folder = Path(__file__).parent.parent.parent / "resources" / "transpiler_configs"
     for transpiler in ("bladerunner", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)

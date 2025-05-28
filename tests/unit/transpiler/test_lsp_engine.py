@@ -5,14 +5,18 @@ import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from time import sleep
-
 import pytest
-from lsprotocol.types import Position, Range, TextEdit
+
+from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import ChangeManager, LSPEngine
-from databricks.labs.remorph.transpiler.transpile_status import ErrorKind, ErrorSeverity, TranspileError
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
+    LSPEngine,
+    ChangeManager,
+)
+from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
+
 from tests.unit.conftest import path_to_resource
 
 
@@ -79,7 +83,10 @@ async def test_receives_client_info(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
     log = Path(path_to_resource("lsp_transpiler", "test-lsp-server.log")).read_text("utf-8")
     product_info = ProductInfo.from_class(type(lsp_engine))
-    expected_client_info = f"client-info={product_info.product_name()}/{product_info.version()}"
+    # The product version can include a suffix of the form +{rev}{timestamp}. The timestamp for this process won't match
+    # that of the LSP server under test, so we strip it off the string that we will hunt for in the log.
+    (stripped_product_version, *_) = product_info.version().split("+")
+    expected_client_info = f"client-info={product_info.product_name()}/{stripped_product_version}"
     assert expected_client_info in log
 
 

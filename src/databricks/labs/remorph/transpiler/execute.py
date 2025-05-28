@@ -43,6 +43,16 @@ async def _process_one_file(
     logger.debug(f"Started processing file: {input_path}")
     error_list: list[TranspileError] = []
 
+    if not config.source_dialect:
+        error = TranspileError(
+            code="no-source-dialect-specified",
+            kind=ErrorKind.INTERNAL,
+            severity=ErrorSeverity.ERROR,
+            path=input_path,
+            message="No source dialect specified",
+        )
+        return 0, [error]
+
     with input_path.open("r") as f:
         source_code = remove_bom(f.read())
 
@@ -129,6 +139,8 @@ async def _process_many_files(
     counter = 0
     all_errors: list[TranspileError] = []
 
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
         if not is_sql_file(file) and not is_dbt_project_file(file):
             logger.debug(f"Ignored file: {file}")
@@ -137,7 +149,6 @@ async def _process_many_files(
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
-
     return counter, all_errors
 
 
@@ -158,7 +169,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.debug(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
+        logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
@@ -191,6 +202,7 @@ async def transpile(
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
+    logger.info("Done transpiling.")
     return status, errors
 
 
@@ -294,7 +306,7 @@ def transpile_sql(
     engine: TranspileEngine = SqlglotEngine()
 
     transpiler_result = asyncio.run(
-        _transpile(engine, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
+        _transpile(engine, cast(str, config.source_dialect), config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:
