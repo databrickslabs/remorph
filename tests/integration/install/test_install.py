@@ -210,7 +210,7 @@ async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
 class PatchedMavenInstaller(MavenInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str):
+    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str):
         return "0.2.0"
 
     @classmethod
