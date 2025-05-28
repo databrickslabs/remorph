@@ -13,7 +13,6 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.remorph.install import TranspilerInstaller
 from tests.unit.conftest import path_to_resource
 
 TRANSPILERS_PATH = Path(__file__).parent.parent / "resources" / "transpiler_configs"
@@ -35,10 +34,10 @@ def stubbed_transpiler_config_path(tmp_path: Path) -> Path:
                 {
                     "flag": "-experimental",
                     "method": "CONFIRM",
-                    "prompt": "Do you want to use the experimental Databricks generator ?"
+                    "prompt": "Do you want to use the experimental Databricks generator ?",
                 }
             ]
-        }
+        },
     }
 
     config_path = tmp_path / "lsp_config.yml"
@@ -79,7 +78,7 @@ def mock_cli_for_transpile(mock_workspace_client, transpiler_config_path):
         {
             "Do you want to use the experimental.*": "no",
             "Enter output directory": "/path/to/output/folder",
-            "Select the source dialect.*": "21", # snowflake
+            "Select the source dialect.*": "21",  # snowflake
             "Select the transpiler.*": "1",  # morpheus
         }
     )
@@ -236,7 +235,7 @@ def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, trans
 
 def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
     ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
-    with (pytest.raises(Exception, match="Invalid value for '--skip-validation'"), ):
+    with (pytest.raises(Exception, match="Invalid value for '--skip-validation'"),):
         cli.transpile(
             ws,
             skip_validation="invalid_value",
@@ -245,7 +244,7 @@ def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
 
 def test_transpile_with_invalid_input_source(mock_cli_for_transpile):
     ws, _cfg, _set_cfg, _do_transpile = mock_cli_for_transpile
-    with (pytest.raises(Exception, match="Invalid value for '--input-source'"), ):
+    with (pytest.raises(Exception, match="Invalid value for '--input-source'"),):
         cli.transpile(
             ws,
             input_source="invalid_path",
