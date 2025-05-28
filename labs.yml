@@ -10,6 +10,11 @@ min_python: 3.10
 commands:
   - name: analyze
     description: Analyze source code from existing technology
+    flags:
+      - name: source-directory
+        description: Source Directory to Analyze
+      - name: output-file-name
+        description: Output File Name for Analysis Report, including full path, includes file extension(.xlsx)
   - name: transpile
     description: Transpile SQL script to Databricks SQL
     flags:
