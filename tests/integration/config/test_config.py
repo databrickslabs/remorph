@@ -1,5 +1,3 @@
-
-
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.config import TranspileConfig, ReconcileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
