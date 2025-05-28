@@ -8,9 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import TranspileConfig, ReconcileConfig
-from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 

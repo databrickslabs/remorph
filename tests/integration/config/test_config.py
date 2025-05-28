@@ -1,18 +1,9 @@
-import os
-import shutil
-import sys
-from pathlib import Path
-from subprocess import run
-from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
-import pytest
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.config import TranspileConfig, ReconcileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.remorph.install import WorkspaceInstaller
 
 
 class _WorkspaceInstaller(WorkspaceInstaller):
@@ -52,4 +43,3 @@ def test_stores_and_fetches_config(ws):
     installer.save_config(config)
     retrieved = ApplicationContext(ws).transpile_config
     assert retrieved == config
-
