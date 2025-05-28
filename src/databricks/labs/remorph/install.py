@@ -597,18 +597,37 @@ class WorkspaceInstaller:
         return TranspilerInstaller.transpiler_config_path(transpiler)
 
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
+        install_later = "Set it later"
+        # TODO tidy this up, logger might not display the below in console...
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        all_dialects = self._all_installed_dialects()
-        source_dialect = self._prompts.choice("Select the source dialect:", all_dialects)
-        transpilers = self._transpilers_with_dialect(source_dialect)
-        if len(transpilers) > 1:
-            transpiler_name = self._prompts.choice("Select the transpiler:", transpilers)
-        else:
-            transpiler_name = next(t for t in transpilers)
-            logger.info(f"Remorph will use the {transpiler_name} transpiler")
-        transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
-        input_source = self._prompts.question("Enter input SQL path (directory/file)")
+        all_dialects = [install_later] + self._all_installed_dialects()
+        source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
+        if source_dialect == install_later:
+            source_dialect = None
+        transpiler_name = None
+        transpiler_config_path = None
+        if source_dialect:
+            transpilers = self._transpilers_with_dialect(source_dialect)
+            if len(transpilers) > 1:
+                transpilers = [install_later] + transpilers
+                transpiler_name = self._prompts.choice("Select the transpiler:", transpilers, sort=False)
+                if transpiler_name == install_later:
+                    transpiler_name = None
+            else:
+                transpiler_name = next(t for t in transpilers)
+                logger.info(f"Remorph will use the {transpiler_name} transpiler")
+            if transpiler_name:
+                transpiler_config_path = self._transpiler_config_path(transpiler_name)
+        transpiler_options = None
+        if transpiler_config_path:
+            transpiler_options = self._prompt_for_transpiler_options(
+                cast(str, transpiler_name), cast(str, source_dialect)
+            )
+        input_source: str | None = self._prompts.question(
+            "Enter input SQL path (directory/file)", default=install_later
+        )
+        if input_source == install_later:
+            input_source = None
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
         run_validation = self._prompts.confirm(
@@ -625,8 +644,10 @@ class WorkspaceInstaller:
             error_file_path=error_file_path,
         )
 
-    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any]:
+    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any] | None:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
+        if len(config_options) == 0:
+            return None
         return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
 
     def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:

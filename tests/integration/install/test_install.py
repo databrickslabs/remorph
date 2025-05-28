@@ -7,8 +7,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
-from databricks.labs.remorph.config import TranspileConfig
 
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
@@ -66,7 +66,7 @@ def test_downloads_whl_from_pypi():
 
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
-    resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
+    resources_folder = Path(__file__).parent.parent.parent / "resources" / "transpiler_configs"
     for transpiler in ("bladerunner", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)
@@ -140,7 +140,7 @@ class PatchedPypiInstaller(PypiInstaller):
     def _install_from_pip(self):
         wheel_file = "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
         sample_wheel = (
-            Path(__file__).parent.parent
+            Path(__file__).parent.parent.parent
             / "resources"
             / "transpiler_configs"
             / self._product_name
@@ -217,7 +217,7 @@ class PatchedMavenInstaller(MavenInstaller):
     @classmethod
     def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
         sample_jar = (
-            Path(__file__).parent.parent
+            Path(__file__).parent.parent.parent
             / "resources"
             / "transpiler_configs"
             / "morpheus"
