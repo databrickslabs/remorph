@@ -220,7 +220,7 @@ def path_to_resource(*args: str) -> str:
 
 
 @pytest.fixture
-def mock_workspace_client_cli():
+def mock_workspace_client():
     state = {
         "/Users/foo/.remorph/config.yml": yaml.dump(
             {
