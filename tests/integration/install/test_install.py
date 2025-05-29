@@ -264,6 +264,8 @@ async def test_installs_and_runs_local_morpheus(patched_transpiler_installer):
             await lsp_engine.shutdown()
             transpiled = format_transpiled(result.transpiled_code)
             assert transpiled == sql_code
+
+
 class PatchedMavenInstaller(MavenInstaller):
 
     @classmethod

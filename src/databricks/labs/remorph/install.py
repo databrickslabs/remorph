@@ -1,3 +1,4 @@
+import re
 import abc
 import dataclasses
 import shutil
@@ -763,7 +764,7 @@ class WorkspaceInstaller:
         if config_option.method == LSPPromptMethod.CONFIRM:
             return self._prompts.confirm(config_option.prompt)
         if config_option.method == LSPPromptMethod.QUESTION:
-            default= config_option.default if config_option.default else "None"
+            default = config_option.default if config_option.default else "None"
             return self._prompts.question(config_option.prompt, default=default)
         if config_option.method == LSPPromptMethod.CHOICE:
             return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
