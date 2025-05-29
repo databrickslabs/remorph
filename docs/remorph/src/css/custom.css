@@ -30,6 +30,8 @@
   --ifm-link-hover-decoration: underline;
 
   --ifm-color-primary: #2272b4;
+
+  --ifm-navbar-shadow: none;
 }
 
 html[data-theme="dark"] {

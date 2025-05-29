@@ -87,16 +87,29 @@ const config: Config = {
       },
       items: [
         {
+          to: '/docs/motivation/',
+          position: 'left',
+          label: "Why Remorph"
+        },
+        {
           to: '/docs/installation/',
           position: 'left',
-          label: "Get started",
-          className: "navbar__link--active"
+          label: "Get Started"
+        },
+        {
+          label: 'Guides',
+          position: 'left',
+          items: [
+            { label: 'Transpile', to: '/docs/transpile_guide/', },
+            { label: 'Reconcile', to: '/docs/reconcile/', },
+            { label: 'Assessment', to: '/docs/assessment/', }
+          ],
         },
         {
           label: 'Resources',
           position: 'left',
           items: [
-            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/remorph', },
+            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/remorph', }
           ],
         },
         {
@@ -106,9 +119,7 @@ const config: Config = {
       ],
     },
     footer: {
-      links: [
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Databricks Labs. Docs built with Docusaurus.`,
+
     },
     prism: {
       theme: prismThemes.oneLight,
