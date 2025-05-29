@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-import re
 import shutil
 from collections.abc import Iterable
 from json import loads, dumps
