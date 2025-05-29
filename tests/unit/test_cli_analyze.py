@@ -10,11 +10,9 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 def test_analyze():
     prompts = MockPrompts(
         {
-            r"Enter path to output.*": "/tmp/analyzer/databricks",
-            r"Enter path to input.*": "/tmp/analyzer/snowflake",
             r"Select the source technology": "3",
         }
     )
     with patch.object(ApplicationContext, "prompts", prompts):
         ws = create_autospec(WorkspaceClient)
-        cli.analyze(ws)
+        cli.analyze(ws, "/tmp/analyzer/snowflake", "/tmp/analyzer/databricks")
