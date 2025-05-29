@@ -687,6 +687,7 @@ class WorkspaceInstaller:
                     transpiler_name = None
             else:
                 transpiler_name = next(t for t in transpilers)
+                # TODO Change name for bladerunner
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
@@ -728,7 +729,8 @@ class WorkspaceInstaller:
         if config_option.method == LSPPromptMethod.CONFIRM:
             return self._prompts.confirm(config_option.prompt)
         if config_option.method == LSPPromptMethod.QUESTION:
-            return self._prompts.question(config_option.prompt, default=config_option.default)
+            default= config_option.default if config_option.default else "None"
+            return self._prompts.question(config_option.prompt, default=default)
         if config_option.method == LSPPromptMethod.CHOICE:
             return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
         raise ValueError(f"Unsupported prompt method: {config_option.method}")
