@@ -11,7 +11,7 @@ export default function LayoutWrapper(props: Props): ReactNode {
   const location = useLocation();
   
   return (
-    <div className={clsx("w-full", location.pathname === "/remorph/" ? "main-page" : "docs-page")}>
+    <div className={clsx("w-full flex flex-col grow", location.pathname === "/remorph/" ? "main-page" : "docs-page")}>
       <Layout {...props} />
     </div>
   );

@@ -32,6 +32,10 @@
   --ifm-color-primary: #2272b4;
 }
 
+html[data-theme="dark"] {
+  --ifm-color-primary: #4299e0;
+}
+
 .main-page {
   --ifm-navbar-height: 3.75rem;
 }
@@ -114,9 +118,32 @@ button {
   }
 }
 
+h1 {
+  font-weight: 500;
+  font-size: 45px;
+}
+
+h2 {
+  font-weight: 300;
+  font-size: 34px;
+}
+
+h3 {
+  font-weight: 500;
+  font-size: 28px;
+}
+
 .markdown {
   h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
+  }
+}
+
+.breadcrumbs__link.breadcrumbs__link {
+  color: var(--ifm-color-primary);
+
+  &:hover {
+    background: transparent;
   }
 }
 

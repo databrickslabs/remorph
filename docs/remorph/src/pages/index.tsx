@@ -33,7 +33,7 @@ const Hero = () => {
         <img src="img/logo.svg" alt="Remorph Logo" className="w-32 md:w-48" />
       </div>
 
-      <h1 className="text-4xl md:text-5xl font-semibold text-center mb-6">
+      <h1 className="text-4xl md:text-5xl text-center mb-6">
         Remorph - Assisted Migration Toolkit
       </h1>
       <p className="text-center text-gray-600 dark:text-gray-500 mb-4">
@@ -44,7 +44,7 @@ const Hero = () => {
       </p>
 
       {/* Call to Action Buttons */}
-      <div className="mt-12 flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+      <div className="mt-12 flex flex-wrap justify-center flex-col md:flex-row gap-y-4 md:gap-y-4 md:gap-x-4">
         <Button
           variant="secondary"
           outline={true}
@@ -103,7 +103,7 @@ export default function Home(): JSX.Element {
     <Layout>
       <main>
         <div className='flex justify-center mx-auto'>
-          <div className='max-w-screen-lg'>
+          <div className='w-full'>
             <Hero />
             <CallToAction />
           </div>
