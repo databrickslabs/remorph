@@ -146,22 +146,21 @@ class PipelineClass:
                         logger.info(line.rstrip())
                         output_lines.append(line)
                 process.wait()
-
-                if output_lines:
-                    try:
-                        output = json.loads(output_lines[-1])
-                        if output.get("status") == "success":
-                            logging.info(f"Python script completed: {output['message']}")
-                        else:
-                            raise RuntimeError(f"Script reported error: {output.get('message', 'Unknown error')}")
-                    except json.JSONDecodeError:
-                        logging.info("Could not parse script output as JSON.")
-                if process.returncode != 0:
-                    raise RuntimeError(f"Script execution failed with exit code {process.returncode}")
-
         except Exception as e:
             logging.error(f"Python script failed: {str(e)}")
             raise RuntimeError(f"Script execution failed: {str(e)}") from e
+
+        if output_lines:
+            try:
+                output = json.loads(output_lines[-1])
+                if output.get("status") == "success":
+                    logging.info(f"Python script completed: {output['message']}")
+                else:
+                    raise RuntimeError(f"Script reported error: {output.get('message', 'Unknown error')}")
+            except json.JSONDecodeError:
+                logging.info("Could not parse script output as JSON.")
+        if process.returncode != 0:
+            raise RuntimeError(f"Script execution failed with exit code {process.returncode}")
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
         self._create_dir(self.db_path_prefix)

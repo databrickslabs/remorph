@@ -7,7 +7,7 @@ from databricks.labs.remorph.resources.assessments.synapse.common.functions impo
     get_synapse_artifacts_client,
     save_resultset_to_db,
     get_serverless_database_groups,
-    get_max_column_value_duckdb
+    get_max_column_value_duckdb,
 )
 import zoneinfo
 from databricks.labs.remorph.resources.assessments.synapse.common.profiler_classes import SynapseWorkspace
@@ -15,9 +15,9 @@ from databricks.labs.remorph.resources.assessments.synapse.common.queries import
 from databricks.labs.remorph.resources.assessments.synapse.common.connector import (
     create_credential_manager,
     get_sqlpool_reader,
-
 )
 from sqlalchemy import text
+
 
 def execute():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -87,7 +87,7 @@ def execute():
                     result = connection.execute(text(routine_query))
                     save_resultset_to_db(result, table_name, db_path, mode=mode)
 
-                    mode="append"
+                    mode = "append"
 
             # Activity Extract:
             # table_name = "sessions"

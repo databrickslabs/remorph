@@ -36,7 +36,7 @@ def create_credential_manager(file_path: Path):
     return CredentialManager(loader, secret_providers)
 
 
-def get_sqlpool_reader(config: dict, db_name: str, endpoint_key = 'dedicated_sql_endpoint'):
+def get_sqlpool_reader(config: dict, db_name: str, endpoint_key='dedicated_sql_endpoint'):
     """
     :param config:
     :param db_name:

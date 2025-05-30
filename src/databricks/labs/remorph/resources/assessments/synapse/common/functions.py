@@ -141,6 +141,7 @@ def get_azure_metrics_query_client():
     """
     return MetricsQueryClient(credential=DefaultAzureCredential())
 
+
 def save_resultset_to_db(result, table_name: str, db_path: str, mode: str, batch_size: int = 1000):
     try:
         with duckdb.connect(db_path) as conn:
@@ -178,6 +179,7 @@ def save_resultset_to_db(result, table_name: str, db_path: str, mode: str, batch
     except Exception as e:
         logging.error(f"Error in save_resultset_to_db for table {table_name}: {str(e)}")
         print(f"ERROR: save_resultset_to_db for table {table_name}: {e}")
+
 
 def get_max_column_value_duckdb(column_name, table_name, db_path):
     """
