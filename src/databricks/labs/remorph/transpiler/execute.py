@@ -4,6 +4,7 @@ import logging
 import math
 from pathlib import Path
 from typing import cast, Any
+import itertools
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -107,26 +108,43 @@ async def _process_one_file(
 
 
 def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
-    header = f"/*\n    Transpiled from {file_path}\n"
+    header = ""
     failed_producing_output = False
-    if errors:
+    diagBySeverity = {}
+
+    for severity, diags in itertools.groupby(errors, key=lambda x: x.severity):
+        diagBySeverity[severity] = list(diags)
+
+    if ErrorSeverity.ERROR in diagBySeverity.keys():
+        header += f"/*\n    Failed transpilation of {file_path}\n"
         header += "\n    The following errors were found while transpiling:\n"
-        for diag in errors:
-            if diag.range:
-                line = diag.range.start.line + 1
-                column = (
-                    diag.range.start.character + 1 + 2
-                )  # + 1 to make it one-based, + 2 to take indentation into account
-                header += f"      - [{line}:{column}] {diag.message}\n"
-            else:
-                header += f"      - {diag.message}\n"
+        for diag in diagBySeverity[ErrorSeverity.ERROR]:
+            header += _append_diagnostic(diag)
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
+    else:
+        header += f"/*\n    Successfully transpiled from {file_path}\n"
+
+    if ErrorSeverity.WARNING in diagBySeverity.keys():
+        header += "\n    The following warnings were found while transpiling:\n"
+        for diag in diagBySeverity[ErrorSeverity.WARNING]:
+            header += _append_diagnostic(diag)
 
     if failed_producing_output:
         header += "\n\n    Parsing errors prevented the converter from translating the input query.\n"
         header += "    We reproduce the input query unchanged below.\n\n"
 
     return header + "*/\n"
+
+
+def _append_diagnostic(diag: TranspileError) -> str:
+    if diag.range:
+        line = diag.range.start.line + 1
+        column = (
+            diag.range.start.character + 1 + 2
+        )  # + 1 to make it one-based, + 2 to take indentation into account
+        return f"      - [{line}:{column}] {diag.message}\n"
+    else:
+        return f"      - {diag.message}\n"
 
 
 async def _process_many_files(
