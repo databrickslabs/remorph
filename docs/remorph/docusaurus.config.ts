@@ -82,28 +82,44 @@ const config: Config = {
     navbar: {
       title: 'Remorph',
       logo: {
-        alt: 'Remorph Logo',
+        alt: 'Remorph',
         src: 'img/logo.svg',
       },
       items: [
         {
-          type: 'search',
-          position: 'right',
+          to: '/docs/motivation/',
+          position: 'left',
+          label: "Why Remorph"
         },
         {
-          href: 'https://github.com/databrickslabs/remorph',
-          position: 'right',
-
-          className: 'header-github-link',
-          'aria-label': 'GitHub repository',
+          to: '/docs/installation/',
+          position: 'left',
+          label: "Get Started"
         },
-
+        {
+          label: 'Guides',
+          position: 'left',
+          items: [
+            { label: 'Transpile', to: '/docs/transpile_guide/', },
+            { label: 'Reconcile', to: '/docs/reconcile/', },
+            { label: 'Assessment', to: '/docs/assessment/', }
+          ],
+        },
+        {
+          label: 'Resources',
+          position: 'left',
+          items: [
+            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/remorph', }
+          ],
+        },
+        {
+          type: 'search',
+          position: 'right',
+        }
       ],
     },
     footer: {
-      links: [
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Databricks Labs. Docs built with Docusaurus.`,
+
     },
     prism: {
       theme: prismThemes.oneLight,
