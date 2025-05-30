@@ -73,6 +73,6 @@ commands:
     flags:
       - name: artifact
         description: Local path to transpiler artifact
-        default: None
+        default: null
   - name: install-reconcile
     description: "Install Reconcile"
