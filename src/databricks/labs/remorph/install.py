@@ -401,6 +401,8 @@ class MavenInstaller(TranspilerInstaller):
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
+        if backup_path.exists():
+            rmtree(backup_path)
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
         self._product_path.mkdir(parents=True)
