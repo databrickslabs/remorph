@@ -409,7 +409,7 @@ class MavenInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version(version)
+            result = self._unsafe_install_version(version)
             logger.info(f"Successfully installed {self._product_name} v{version}")
             if backup_path.exists():
                 rmtree(backup_path)
@@ -421,7 +421,7 @@ class MavenInstaller(TranspilerInstaller):
                 os.rename(backup_path, self._product_path)
             return None
 
-    def _unsafe_install_latest_version(self, version: str) -> Path | None:
+    def _unsafe_install_version(self, version: str) -> Path | None:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         success = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
         if not success:
