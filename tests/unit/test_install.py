@@ -56,11 +56,11 @@ def ws_installer():
         # (because the artifact is either missing or invalid)
         # TODO remove this once they are available and healthy !!!
         @classmethod
-        def install_bladerunner(cls):
+        def install_bladerunner(cls, artifact: Path | None = None):
             pass
 
         @classmethod
-        def install_morpheus(cls):
+        def install_morpheus(cls, artifact: Path | None = None):
             pass
 
         def _all_installed_dialects(self):
