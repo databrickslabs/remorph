@@ -24,7 +24,7 @@ const Hero = () => {
           variant="primary"
           link="/docs/installation"
           size="large"
-          label="Start using remorph"
+          label="Get Started"
           className="bg-[#eb1600] text-white rounded-none border-0 px-6 py-2 font-medium text-base leading-6"
         />
         <Button
