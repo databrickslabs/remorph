@@ -101,11 +101,11 @@ class TranspilerInstaller(abc.ABC):
         return set(config.name for config in configs)
 
     @classmethod
-    def transpiler_config_path(cls, transpiler_name) -> str:
+    def transpiler_config_path(cls, transpiler_name) -> Path:
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
             raise ValueError(f"No such transpiler: {transpiler_name}")
-        return f"{config.path!s}"
+        return config.path
 
     @classmethod
     def transpiler_config_options(cls, transpiler_name, source_dialect) -> list[LSPConfigOptionV1]:
@@ -624,7 +624,7 @@ class WorkspaceInstaller:
     def _transpilers_with_dialect(self, dialect: str):
         return sorted(TranspilerInstaller.transpilers_with_dialect(dialect))
 
-    def _transpiler_config_path(self, transpiler: str):
+    def _transpiler_config_path(self, transpiler: str) -> Path:
         return TranspilerInstaller.transpiler_config_path(transpiler)
 
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
@@ -635,8 +635,8 @@ class WorkspaceInstaller:
         source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
         if source_dialect == install_later:
             source_dialect = None
-        transpiler_name = None
-        transpiler_config_path = None
+        transpiler_name: str | None = None
+        transpiler_config_path: Path | None = None
         if source_dialect:
             transpilers = self._transpilers_with_dialect(source_dialect)
             if len(transpilers) > 1:
@@ -649,11 +649,9 @@ class WorkspaceInstaller:
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options = None
-        if transpiler_config_path:
-            transpiler_options = self._prompt_for_transpiler_options(
-                cast(str, transpiler_name), cast(str, source_dialect)
-            )
+        transpiler_options: dict[str, Any] | None = None
+        if transpiler_name and source_dialect:
+            transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
         input_source: str | None = self._prompts.question(
             "Enter input SQL path (directory/file)", default=install_later
         )
@@ -666,7 +664,7 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            transpiler_config_path=transpiler_config_path,
+            transpiler_config_path=str(transpiler_config_path),
             transpiler_options=transpiler_options,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
