@@ -1,3 +1,5 @@
+import datetime as dt
+import json
 from pathlib import Path
 from unittest.mock import create_autospec, patch
 
@@ -1282,3 +1284,34 @@ def test_runs_and_stores_choice_config_option(ws_installer, ws):
             "version": 3,
         },
     )
+
+
+def test_store_product_state(tmp_path) -> None:
+    """Verify the product state is stored after installing is correct."""
+
+    class MockTranspilerInstaller(TranspilerInstaller):
+        @classmethod
+        def store_product_state(cls, product_path: Path, version: str) -> None:
+            cls._store_product_state(product_path, version)
+
+    # Store the product state, capturing the time before and after so we can verify the timestamp it puts in there.
+    before = dt.datetime.now(tz=dt.timezone.utc)
+    MockTranspilerInstaller.store_product_state(tmp_path, "1.2.3")
+    after = dt.datetime.now(tz=dt.timezone.utc)
+
+    # Load the state that was just stored.
+    with (tmp_path / "state" / "version.json").open("r", encoding="utf-8") as f:
+        stored_state = json.load(f)
+
+    # Verify the timestamp first.
+    stored_date = stored_state["date"]
+    parsed_date = dt.datetime.fromisoformat(stored_date)
+    assert parsed_date.tzinfo is not None, "Stored date should be timezone-aware."
+    assert before <= parsed_date <= after, f"Stored date {stored_date} is not within the expected range."
+
+    # Verify the rest, now that we've checked the timestamp.
+    expected_state = {
+        "version": "v1.2.3",
+        "date": stored_date,
+    }
+    assert stored_state == expected_state
