@@ -613,10 +613,10 @@ class WorkspaceInstaller:
         self._save_config(config)
         return config
 
-    def _all_installed_dialects(self):
+    def _all_installed_dialects(self) -> list[str]:
         return sorted(TranspilerInstaller.all_dialects())
 
-    def _transpilers_with_dialect(self, dialect: str):
+    def _transpilers_with_dialect(self, dialect: str) -> list[str]:
         return sorted(TranspilerInstaller.transpilers_with_dialect(dialect))
 
     def _transpiler_config_path(self, transpiler: str) -> Path:
