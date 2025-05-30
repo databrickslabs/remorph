@@ -409,63 +409,33 @@ class MavenInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_version(version)
-            logger.info(f"Successfully installed {self._product_name} v{version}")
-            if backup_path.exists():
-                rmtree(backup_path)
-            return result
-        except (CalledProcessError, ValueError) as e:
+            if self._unsafe_install_version(version):
+                logger.info(f"Successfully installed {self._product_name} v{version}")
+                self._store_product_state(self._product_path, version)
+                if backup_path.exists():
+                    rmtree(backup_path)
+                return self._product_path
+        except (KeyError, ValueError) as e:
             logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
-            rmtree(self._product_path)
-            if backup_path.exists():
-                os.rename(backup_path, self._product_path)
-            return None
+        rmtree(self._product_path)
+        if backup_path.exists():
+            os.rename(backup_path, self._product_path)
+        return None
 
-    def _unsafe_install_version(self, version: str) -> Path | None:
+    def _unsafe_install_version(self, version: str) -> bool:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         success = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
         if not success:
             logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
-            return None
-        self._copy_lsp_resources(jar_file_path)
-        return self._post_install(version)
+            return False
+        self._copy_lsp_config(jar_file_path)
+        return True
 
-    def _copy_lsp_resources(self, jar_file_path: Path):
+    def _copy_lsp_config(self, jar_file_path: Path) -> None:
         with ZipFile(jar_file_path) as zip_file:
-            names = [name for name in zip_file.namelist() if name.startswith("lsp/")]
-            for name in names:
-                zip_file.extract(name, self._install_path)
-                # move file to 'lib' dir
-                if not name.endswith("/"):
-                    name = name.split("/")[1]
-                    shutil.move(self._install_path / "lsp" / name, self._install_path / name)
-                    if name.endswith(".sh") and sys.platform != "win32":
-                        cmd = f"chmod 777 {(self._install_path / name)!s}"
-                        run(cmd, stdout=sys.stdout, stderr=sys.stdin, shell=True, check=True)
-
-            # drop the 'lsp' folder created by zip extract
-            shutil.rmtree(self._install_path / "lsp")
-
-    def _post_install(self, version: str) -> Path:
-        install_ext = "ps1" if sys.platform == "win32" else "sh"
-        install_script = f"install.{install_ext}"
-        install_path = self._install_path / install_script
-        if install_path.exists():
-            self._run_custom_installer(install_path)
-        self._store_product_state(self._product_path, version)
-        return self._install_path
-
-    def _run_custom_installer(self, installer: Path) -> None:
-        completed = run(
-            str(installer),
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-            cwd=str(self._install_path),
-            shell=True,
-            check=False,
-        )
-        completed.check_returncode()
+            zip_file.extract("lsp/config.yml", self._install_path)
+        shutil.move(self._install_path / "lsp" / "config.yml", self._install_path / "lsp_config.yml")
+        os.rmdir(self._install_path / "lsp")
 
 
 class WorkspaceInstaller:
