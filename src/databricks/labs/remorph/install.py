@@ -360,21 +360,21 @@ class MavenInstaller(TranspilerInstaller):
         target: Path,
         classifier: str | None = None,
         extension: str = "jar",
-    ) -> int:
+    ) -> bool:
         if target.exists():
             logger.warning(f"Skipping download of {group_id}:{artifact_id}:{version}; target already exists: {target}")
-            return 0
+            return True
         url = cls.artifact_url(group_id, artifact_id, version, classifier, extension)
         try:
             path, _ = request.urlretrieve(url)
             logger.debug(f"Downloaded maven artefact from {url} to {path}")
         except URLError as e:
             logger.error(f"Unable to download maven artefact: {group_id}:{artifact_id}:{version}", exc_info=e)
-            return -1
+            return False
         logger.debug(f"Moving {path} to {target}")
         move(path, target)
         logger.info(f"Successfully installed: {group_id}:{artifact_id}:{version}")
-        return 0
+        return True
 
     def __init__(self, product_name: str, group_id: str, artifact_id: str):
         self._product_name = product_name
@@ -423,13 +423,8 @@ class MavenInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self, version: str) -> Path | None:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
-        return_code = self.download_artifact_from_maven(
-            self._group_id,
-            self._artifact_id,
-            version,
-            jar_file_path,
-        )
-        if return_code != 0:
+        success = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
+        if not success:
             logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
             return None
         self._copy_lsp_resources(jar_file_path)
