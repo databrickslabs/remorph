@@ -71,7 +71,7 @@ def test_deploy_existing_job(snowflake_recon_config):
     job_id = 1234
     job = Job(job_id=job_id)
     name = "Recon Job"
-    installation = MockInstallation({"state.json": {"resources": {"jobs": {name: job_id}}, "version": 1}})
+    installation = MockInstallation({"state.json": {"resources": {"jobs": {name: str(job_id)}}, "version": 1}})
     install_state = InstallState.from_installation(installation)
     product_info = ProductInfo.for_testing(RemorphConfigs)
     job_deployer = JobDeployment(workspace_client, installation, install_state, product_info)
@@ -87,7 +87,7 @@ def test_deploy_missing_job(snowflake_recon_config):
     workspace_client.jobs.create.return_value = job
     workspace_client.jobs.reset.side_effect = InvalidParameterValue("Job not found")
     name = "Recon Job"
-    installation = MockInstallation({"state.json": {"resources": {"jobs": {name: 5678}}, "version": 1}})
+    installation = MockInstallation({"state.json": {"resources": {"jobs": {name: "5678"}}, "version": 1}})
     install_state = InstallState.from_installation(installation)
     product_info = ProductInfo.for_testing(RemorphConfigs)
     job_deployer = JobDeployment(workspace_client, installation, install_state, product_info)

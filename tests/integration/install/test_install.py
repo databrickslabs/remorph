@@ -7,8 +7,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
-from databricks.labs.remorph.config import TranspileConfig
 
+from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller, PypiInstaller, MavenInstaller, WorkspaceInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
@@ -19,10 +19,9 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
     check_valid_version(version)
 
 
-@pytest.mark.skip(reason="The search.maven.org service is too unreliable; our dependency on it will be removed.")
-def test_gets_maven_artifact_version():
-    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
-    assert version, "Maybe maven search is down ? (check https://status.maven.org/)"
+def test_gets_maven_artifact_version() -> None:
+    version = MavenInstaller.get_current_maven_artifact_version("com.databricks", "databricks-connect")
+    assert version
     check_valid_version(version)
 
 
@@ -66,7 +65,7 @@ def test_downloads_whl_from_pypi():
 
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
-    resources_folder = Path(__file__).parent.parent / "resources" / "transpiler_configs"
+    resources_folder = Path(__file__).parent.parent.parent / "resources" / "transpiler_configs"
     for transpiler in ("bladerunner", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)
@@ -140,7 +139,7 @@ class PatchedPypiInstaller(PypiInstaller):
     def _install_from_pip(self):
         wheel_file = "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
         sample_wheel = (
-            Path(__file__).parent.parent
+            Path(__file__).parent.parent.parent
             / "resources"
             / "transpiler_configs"
             / self._product_name
@@ -211,13 +210,21 @@ async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
 class PatchedMavenInstaller(MavenInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str):
+    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str):
         return "0.2.0"
 
     @classmethod
-    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact_from_maven(
+        cls,
+        group_id: str,
+        artifact_id: str,
+        version: str,
+        target: Path,
+        classifier: str | None = None,
+        extension: str = "jar",
+    ) -> int:
         sample_jar = (
-            Path(__file__).parent.parent
+            Path(__file__).parent.parent.parent
             / "resources"
             / "transpiler_configs"
             / "morpheus"

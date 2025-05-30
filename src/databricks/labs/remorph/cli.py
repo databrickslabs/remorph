@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 import os
 import time
@@ -95,53 +96,106 @@ def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    transpiler_config_path: str,
-    source_dialect: str,
-    input_source: str,
-    output_folder: str | None,
-    error_file_path: str | None,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+    transpiler_config_path: str | None = None,
+    source_dialect: str | None = None,
+    input_source: str | None = None,
+    output_folder: str | None = None,
+    error_file_path: str | None = None,
+    skip_validation: str | None = None,
+    catalog_name: str | None = None,
+    schema_name: str | None = None,
 ):
     """Transpiles source dialect to databricks dialect"""
-    with_user_agent_extra("cmd", "execute-transpile")
     ctx = ApplicationContext(w)
+    logger.debug(f"Application transpiler config: {ctx.transpile_config}")
+    checker = _TranspileConfigChecker(ctx.transpile_config)
+    checker.use_transpiler_config_path(transpiler_config_path)
+    checker.use_source_dialect(source_dialect)
+    checker.use_input_source(input_source)
+    checker.use_output_folder(output_folder)
+    checker.use_error_file_path(error_file_path)
+    checker.use_skip_validation(skip_validation)
+    checker.use_catalog_name(catalog_name)
+    checker.use_schema_name(schema_name)
+    config, engine = checker.check()
+    asyncio.run(_transpile(ctx, config, engine))
+
+
+class _TranspileConfigChecker:
+
+    def __init__(self, config: TranspileConfig | None):
+        if not config:
+            raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+        self._config: TranspileConfig = config
+
+    def use_transpiler_config_path(self, transpiler_config_path: str | None):
+        if transpiler_config_path and transpiler_config_path != "None":
+            logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
+            self._config = dataclasses.replace(self._config, transpiler_config_path=transpiler_config_path)
+
+    def use_source_dialect(self, source_dialect: str | None):
+        if source_dialect and source_dialect != "None":
+            logger.debug(f"Setting source_dialect to '{source_dialect}'")
+            self._config = dataclasses.replace(self._config, source_dialect=source_dialect)
+
+    def use_input_source(self, input_source: str | None):
+        if input_source and input_source != "None":
+            logger.debug(f"Setting input_source to '{input_source}'")
+            self._config = dataclasses.replace(self._config, input_source=input_source)
+
+    def use_output_folder(self, output_folder: str | None):
+        if output_folder and output_folder != "None":
+            logger.debug(f"Setting output_folder to '{output_folder}'")
+            self._config = dataclasses.replace(self._config, output_folder=output_folder)
+
+    def use_error_file_path(self, error_file_path: str | None):
+        if error_file_path and error_file_path != "None":
+            logger.debug(f"Setting error_file_path to '{error_file_path}'")
+            self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
+
+    def use_skip_validation(self, skip_validation: str | None):
+        if skip_validation and skip_validation != "None":
+            if skip_validation.lower() not in {"true", "false"}:
+                raise_validation_exception(
+                    f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
+                )
+            logger.debug(f"Setting skip_validation to '{skip_validation}'")
+            self._config = dataclasses.replace(self._config, skip_validation=skip_validation.lower() == "true")
+
+    def use_catalog_name(self, catalog_name: str | None):
+        if catalog_name and catalog_name != "None":
+            logger.debug(f"Setting catalog_name to '{catalog_name}'")
+            self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
+
+    def use_schema_name(self, schema_name: str | None):
+        if schema_name and schema_name != "None":
+            logger.debug(f"Setting schema_name to '{schema_name}'")
+            self._config = dataclasses.replace(self._config, schema_name=schema_name)
+
+    def check(self) -> tuple[TranspileConfig, TranspileEngine]:
+        logger.debug(f"Checking config: {self!s}")
+        # not using os.path.exists because it sometimes fails mysteriously...
+        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
+            raise_validation_exception(
+                f"Invalid value for '--transpiler-config-path': Path '{self._config.transpiler_config_path}' does not exist."
+            )
+        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
+        engine.check_source_dialect(self._config.source_dialect)
+        if not self._config.input_source or not os.path.exists(self._config.input_source):
+            raise_validation_exception(
+                f"Invalid value for '--input-source': Path '{self._config.input_source}' does not exist."
+            )
+        # 'transpiled' will be used as output_folder if not specified
+        # 'errors.log' will be used as errors file if not specified
+        return self._config, engine
+
+
+async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
+    """Transpiles source dialect to databricks dialect"""
+    with_user_agent_extra("cmd", "execute-transpile")
     logger.debug(f"User: {ctx.current_user}")
-    default_config = ctx.transpile_config
-    if not default_config:
-        raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
-    _override_workspace_client_config(ctx, default_config.sdk_config)
-    engine = TranspileEngine.load_engine(Path(transpiler_config_path))
-    engine.check_source_dialect(source_dialect)
-    if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
-    if not output_folder and default_config.output_folder:
-        output_folder = str(default_config.output_folder)
-    if not error_file_path and default_config.error_file_path:
-        error_file_path = str(default_config.error_file_path)
-    if skip_validation.lower() not in {"true", "false"}:
-        raise_validation_exception(
-            f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
-        )
-
-    sdk_config = default_config.sdk_config if default_config.sdk_config else None
-    catalog_name = catalog_name if catalog_name else default_config.catalog_name
-    schema_name = schema_name if schema_name else default_config.schema_name
-
-    config = TranspileConfig(
-        transpiler_config_path=transpiler_config_path,
-        source_dialect=source_dialect.lower(),
-        input_source=input_source,
-        output_folder=output_folder,
-        error_file_path=error_file_path,
-        skip_validation=skip_validation.lower() == "true",  # convert to bool
-        catalog_name=catalog_name,
-        schema_name=schema_name,
-        sdk_config=sdk_config,
-    )
-    status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
-
+    _override_workspace_client_config(ctx, config.sdk_config)
+    status, errors = await do_transpile(ctx.workspace_client, engine, config)
     for error in errors:
         logger.error(f"Error Transpiling: {str(error)}")
 
@@ -260,13 +314,13 @@ def install_reconcile(w: WorkspaceClient):
 
 
 @remorph.command()
-def analyze(w: WorkspaceClient):
+def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     """Run the Analyzer"""
     with_user_agent_extra("cmd", "analyze")
     ctx = ApplicationContext(w)
     prompts = ctx.prompts
-    output_file = prompts.question("Enter path to output results file (with .xlsx extension)")
-    input_folder = prompts.question("Enter path to input sources folder")
+    output_file = report_file
+    input_folder = source_directory
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
     with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
     Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
