@@ -434,7 +434,7 @@ class MavenInstaller(TranspilerInstaller):
     def _copy_lsp_config(self, jar_file_path: Path) -> None:
         with ZipFile(jar_file_path) as zip_file:
             zip_file.extract("lsp/config.yml", self._install_path)
-        shutil.move(self._install_path / "lsp" / "config.yml", self._install_path / "lsp_config.yml")
+        shutil.move(self._install_path / "lsp" / "config.yml", self._install_path / "config.yml")
         os.rmdir(self._install_path / "lsp")
 
 
