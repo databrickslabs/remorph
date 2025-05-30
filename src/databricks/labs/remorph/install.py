@@ -394,9 +394,9 @@ class MavenInstaller(TranspilerInstaller):
         if installed_version == latest_version:
             logger.info(f"Databricks {self._product_name} transpiler v{latest_version} already installed")
             return None
-        return self._install_latest_version(latest_version)
+        return self._install_version(latest_version)
 
-    def _install_latest_version(self, version: str) -> Path | None:
+    def _install_version(self, version: str) -> Path | None:
         logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
