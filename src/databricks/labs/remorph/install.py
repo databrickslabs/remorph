@@ -171,7 +171,7 @@ class PypiInstaller(TranspilerInstaller):
             logger.info(f"Successfully downloaded {path}")
             if not target.exists():
                 logger.info(f"Moving {path} to {target!s}")
-                move(path, str(target))
+                move(path, target)
             return 0
         except URLError as e:
             logger.error("While downloading from pypi", exc_info=e)
@@ -412,11 +412,11 @@ class MavenInstaller(TranspilerInstaller):
             result = self._unsafe_install_latest_version(version)
             logger.info(f"Successfully installed {self._product_name} v{version}")
             if backup_path.exists():
-                rmtree(str(backup_path))
+                rmtree(backup_path)
             return result
         except (CalledProcessError, ValueError) as e:
             logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
-            rmtree(str(self._product_path))
+            rmtree(self._product_path)
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
