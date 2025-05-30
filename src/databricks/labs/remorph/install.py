@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import shutil
 from collections.abc import Iterable
-from json import loads, dumps
+from json import loads, dump
 import logging
 import os
 from shutil import rmtree, move
@@ -137,6 +137,16 @@ class TranspilerInstaller(abc.ABC):
             logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
 
+    @classmethod
+    def _store_product_state(cls, product_path: Path, version: str) -> None:
+        state_path = product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{version}", "date": datetime.now(timezone.utc).isoformat()}
+        version_path = state_path / "version.json"
+        with version_path.open("w", encoding="utf-8") as f:
+            dump(version_data, f)
+            f.write("\n")
+
 
 class PypiInstaller(TranspilerInstaller):
 
@@ -180,15 +190,14 @@ class PypiInstaller(TranspilerInstaller):
             logger.warning(f"Could not determine the latest version of {self._pypi_name}")
             logger.error(f"Failed to install transpiler: {self._product_name}")
             return None
-        self._latest_version: str = latest_version
-        self._current_version = self.get_installed_version(self._product_name)
-        if self._current_version == self._latest_version:
-            logger.info(f"{self._pypi_name} v{self._latest_version} already installed")
+        installed_version = self.get_installed_version(self._product_name)
+        if installed_version == latest_version:
+            logger.info(f"{self._pypi_name} v{latest_version} already installed")
             return None
-        return self._install_latest_version()
+        return self._install_latest_version(latest_version)
 
-    def _install_latest_version(self) -> Path | None:
-        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
+    def _install_latest_version(self, version: str) -> Path | None:
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
@@ -198,23 +207,23 @@ class PypiInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version()
-            logger.info(f"Successfully installed {self._pypi_name} v{self._latest_version}")
+            result = self._unsafe_install_latest_version(version)
+            logger.info(f"Successfully installed {self._pypi_name} v{version}")
             if backup_path.exists():
                 rmtree(backup_path)
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.error(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._pypi_name} v{version}", exc_info=e)
             rmtree(self._product_path)
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
 
-    def _unsafe_install_latest_version(self) -> Path | None:
+    def _unsafe_install_latest_version(self, version: str) -> Path | None:
         self._create_venv()
         self._install_from_pip()
         self._copy_lsp_resources()
-        return self._post_install()
+        return self._post_install(version)
 
     def _create_venv(self) -> None:
         self._venv = self._install_path / ".venv"
@@ -274,7 +283,7 @@ class PypiInstaller(TranspilerInstaller):
             raise ValueError("Installed transpiler is missing a 'lsp' folder")
         shutil.copytree(lsp, self._install_path, dirs_exist_ok=True)
 
-    def _post_install(self) -> Path | None:
+    def _post_install(self, version: str) -> Path | None:
         config = self._install_path / "config.yml"
         if not config.exists():
             raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
@@ -283,15 +292,8 @@ class PypiInstaller(TranspilerInstaller):
         installer = self._install_path / install_script
         if installer.exists():
             self._run_custom_installer(installer)
-        self._store_state()
+        self._store_product_state(product_path=self._product_path, version=version)
         return self._install_path
-
-    def _store_state(self) -> None:
-        state_path = self._product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{self._latest_version}", "date": datetime.now(timezone.utc).isoformat()}
-        version_path = state_path / "version.json"
-        version_path.write_text(dumps(version_data), "utf-8")
 
     def _run_custom_installer(self, installer):
         args = [str(installer)]
@@ -383,19 +385,19 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        self._latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
-        if self._latest_version is None:
+        latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
+        if latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
             logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
             return None
-        self._current_version = self.get_installed_version(self._product_name)
-        if self._current_version == self._latest_version:
-            logger.info(f"Databricks {self._product_name} transpiler v{self._latest_version} already installed")
+        installed_version = self.get_installed_version(self._product_name)
+        if installed_version == latest_version:
+            logger.info(f"Databricks {self._product_name} transpiler v{latest_version} already installed")
             return None
-        return self._install_latest_version()
+        return self._install_latest_version(latest_version)
 
-    def _install_latest_version(self) -> Path | None:
-        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
+    def _install_latest_version(self, version: str) -> Path | None:
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
@@ -405,31 +407,31 @@ class MavenInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version()
-            logger.info(f"Successfully installed {self._product_name} v{self._latest_version}")
+            result = self._unsafe_install_latest_version(version)
+            logger.info(f"Successfully installed {self._product_name} v{version}")
             if backup_path.exists():
                 rmtree(str(backup_path))
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.error(f"Failed to install {self._product_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
             rmtree(str(self._product_path))
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
 
-    def _unsafe_install_latest_version(self) -> Path | None:
+    def _unsafe_install_latest_version(self, version: str) -> Path | None:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         return_code = self.download_artifact_from_maven(
             self._group_id,
             self._artifact_id,
-            str(self._latest_version),
+            version,
             jar_file_path,
         )
         if return_code != 0:
-            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
+            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
             return None
         self._copy_lsp_resources(jar_file_path)
-        return self._post_install()
+        return self._post_install(version)
 
     def _copy_lsp_resources(self, jar_file_path: Path):
         with ZipFile(jar_file_path) as zip_file:
@@ -447,21 +449,14 @@ class MavenInstaller(TranspilerInstaller):
             # drop the 'lsp' folder created by zip extract
             shutil.rmtree(self._install_path / "lsp")
 
-    def _post_install(self) -> Path:
+    def _post_install(self, version: str) -> Path:
         install_ext = "ps1" if sys.platform == "win32" else "sh"
         install_script = f"install.{install_ext}"
         install_path = self._install_path / install_script
         if install_path.exists():
             self._run_custom_installer(install_path)
-        self._store_state()
+        self._store_product_state(self._product_path, version)
         return self._install_path
-
-    def _store_state(self) -> None:
-        state_path = self._product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{self._latest_version}", "date": str(datetime.now())}
-        version_path = state_path / "version.json"
-        version_path.write_text(dumps(version_data), "utf-8")
 
     def _run_custom_installer(self, installer: Path) -> None:
         completed = run(
