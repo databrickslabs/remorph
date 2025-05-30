@@ -6,6 +6,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, cast
 
+from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
@@ -57,7 +58,7 @@ class TranspileConfig:
     __version__ = 3
 
     transpiler_config_path: str
-    source_dialect: str
+    source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
     error_file_path: str | None = None
@@ -65,9 +66,7 @@ class TranspileConfig:
     skip_validation: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
-    transpiler_options: dict[str, bool | str | int | float | object | list] | None = (
-        None  # need a union because blueprint doesn't support 'Any' type
-    )
+    transpiler_options: JsonValue = None
 
     @property
     def transpiler_path(self):

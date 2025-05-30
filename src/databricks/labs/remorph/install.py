@@ -14,6 +14,7 @@ from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
 from databricks.labs.blueprint.installation import Installation
@@ -298,47 +299,80 @@ class PypiInstaller(TranspilerInstaller):
 
 
 class MavenInstaller(TranspilerInstaller):
+    # Maven Central, base URL.
+    _maven_central_repo: str = "https://repo.maven.apache.org/maven2/"
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+    def _artifact_base_url(cls, group_id: str, artifact_id: str) -> str:
+        """Construct the base URL for a Maven artifact."""
+        # Reference: https://maven.apache.org/repositories/layout.html
+        group_path = group_id.replace(".", "/")
+        return f"{cls._maven_central_repo}{group_path}/{artifact_id}/"
+
+    @classmethod
+    def artifact_metadata_url(cls, group_id: str, artifact_id: str) -> str:
+        """Get the metadata URL for a Maven artifact."""
+        # TODO: Unit test this method.
+        return f"{cls._artifact_base_url(group_id, artifact_id)}maven-metadata.xml"
+
+    @classmethod
+    def artifact_url(
+        cls, group_id: str, artifact_id: str, version: str, classifier: str | None = None, extension: str = "jar"
+    ) -> str:
+        """Get the URL for a versioned Maven artifact."""
+        # TODO: Unit test this method, including classifier and extension.
+        _classifier = f"-{classifier}" if classifier else ""
+        artifact_base_url = cls._artifact_base_url(group_id, artifact_id)
+        return f"{artifact_base_url}{version}/{artifact_id}-{version}{_classifier}.{extension}"
+
+    @classmethod
+    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+        url = cls.artifact_metadata_url(group_id, artifact_id)
         try:
-            url = (
-                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-            )
             with request.urlopen(url) as server:
                 text = server.read()
-                return cls._extract_maven_artifact_version(text)
         except HTTPError as e:
             logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
             return None
+        logger.debug(f"Maven metadata for {group_id}:{artifact_id}: {text}")
+        return cls._extract_latest_release_version(text)
 
     @classmethod
-    def _extract_maven_artifact_version(cls, text: str) -> str | None:
-        data: dict[str, Any] = loads(text)
-        response: dict[str, Any] | None = data.get("response", None)
-        if not response:
-            return None
-        docs: list[dict[str, Any]] = response.get('docs', None)
-        if not docs or len(docs) < 1:
-            return None
-        return docs[0].get("v", None)
+    def _extract_latest_release_version(cls, maven_metadata: str) -> str | None:
+        """Extract the latest release version from Maven metadata."""
+        # Reference: https://maven.apache.org/repositories/metadata.html#The_A_Level_Metadata
+        # TODO: Unit test this method, to verify the sequence of things it checks for.
+        root = ET.fromstring(maven_metadata)
+        for label in ("release", "latest"):
+            version = root.findtext(f"./versioning/{label}")
+            if version is not None:
+                return version
+        return root.findtext("./versioning/versions/version[last()]")
 
     @classmethod
     def download_artifact_from_maven(
-        cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"
+        cls,
+        group_id: str,
+        artifact_id: str,
+        version: str,
+        target: Path,
+        classifier: str | None = None,
+        extension: str = "jar",
     ) -> int:
-        group_id = group_id.replace(".", "/")
-        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
+        if target.exists():
+            logger.warning(f"Skipping download of {group_id}:{artifact_id}:{version}; target already exists: {target}")
+            return 0
+        url = cls.artifact_url(group_id, artifact_id, version, classifier, extension)
         try:
             path, _ = request.urlretrieve(url)
-            logger.info(f"Successfully downloaded {path}")
-            if not target.exists():
-                logger.info(f"Moving {path} to {target!s}")
-                move(path, str(target))
-            return 0
+            logger.debug(f"Downloaded maven artefact from {url} to {path}")
         except URLError as e:
-            logger.error("While downloading from maven", exc_info=e)
+            logger.error(f"Unable to download maven artefact: {group_id}:{artifact_id}:{version}", exc_info=e)
             return -1
+        logger.debug(f"Moving {path} to {target}")
+        move(path, target)
+        logger.info(f"Successfully installed: {group_id}:{artifact_id}:{version}")
+        return 0
 
     def __init__(self, product_name: str, group_id: str, artifact_id: str):
         self._product_name = product_name
@@ -349,7 +383,7 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
+        self._latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
         if self._latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
             logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
@@ -597,18 +631,37 @@ class WorkspaceInstaller:
         return TranspilerInstaller.transpiler_config_path(transpiler)
 
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
+        install_later = "Set it later"
+        # TODO tidy this up, logger might not display the below in console...
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        all_dialects = self._all_installed_dialects()
-        source_dialect = self._prompts.choice("Select the source dialect:", all_dialects)
-        transpilers = self._transpilers_with_dialect(source_dialect)
-        if len(transpilers) > 1:
-            transpiler_name = self._prompts.choice("Select the transpiler:", transpilers)
-        else:
-            transpiler_name = next(t for t in transpilers)
-            logger.info(f"Remorph will use the {transpiler_name} transpiler")
-        transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
-        input_source = self._prompts.question("Enter input SQL path (directory/file)")
+        all_dialects = [install_later] + self._all_installed_dialects()
+        source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
+        if source_dialect == install_later:
+            source_dialect = None
+        transpiler_name = None
+        transpiler_config_path = None
+        if source_dialect:
+            transpilers = self._transpilers_with_dialect(source_dialect)
+            if len(transpilers) > 1:
+                transpilers = [install_later] + transpilers
+                transpiler_name = self._prompts.choice("Select the transpiler:", transpilers, sort=False)
+                if transpiler_name == install_later:
+                    transpiler_name = None
+            else:
+                transpiler_name = next(t for t in transpilers)
+                logger.info(f"Remorph will use the {transpiler_name} transpiler")
+            if transpiler_name:
+                transpiler_config_path = self._transpiler_config_path(transpiler_name)
+        transpiler_options = None
+        if transpiler_config_path:
+            transpiler_options = self._prompt_for_transpiler_options(
+                cast(str, transpiler_name), cast(str, source_dialect)
+            )
+        input_source: str | None = self._prompts.question(
+            "Enter input SQL path (directory/file)", default=install_later
+        )
+        if input_source == install_later:
+            input_source = None
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
         run_validation = self._prompts.confirm(
@@ -625,8 +678,10 @@ class WorkspaceInstaller:
             error_file_path=error_file_path,
         )
 
-    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any]:
+    def _prompt_for_transpiler_options(self, transpiler_name: str, source_dialect: str) -> dict[str, Any] | None:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
+        if len(config_options) == 0:
+            return None
         return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
 
     def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
