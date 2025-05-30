@@ -145,6 +145,7 @@ class TranspilerInstaller(abc.ABC):
         version_path = state_path / "version.json"
         with version_path.open("w", encoding="utf-8") as f:
             dump(version_data, f)
+            f.write("\n")
 
 
 class PypiInstaller(TranspilerInstaller):
