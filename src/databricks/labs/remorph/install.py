@@ -434,7 +434,10 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
+        if self._artifact:
+            latest_version = self.get_local_artifact_version(self._artifact)
+        else:
+            latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
         if latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
             logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
