@@ -110,23 +110,23 @@ async def _process_one_file(
 def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     header = ""
     failed_producing_output = False
-    diagBySeverity = {}
+    diag_by_severity = {}
 
     for severity, diags in itertools.groupby(errors, key=lambda x: x.severity):
-        diagBySeverity[severity] = list(diags)
+        diag_by_severity[severity] = list(diags)
 
-    if ErrorSeverity.ERROR in diagBySeverity.keys():
+    if ErrorSeverity.ERROR in diag_by_severity.keys():
         header += f"/*\n    Failed transpilation of {file_path}\n"
         header += "\n    The following errors were found while transpiling:\n"
-        for diag in diagBySeverity[ErrorSeverity.ERROR]:
+        for diag in diag_by_severity[ErrorSeverity.ERROR]:
             header += _append_diagnostic(diag)
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
     else:
         header += f"/*\n    Successfully transpiled from {file_path}\n"
 
-    if ErrorSeverity.WARNING in diagBySeverity.keys():
+    if ErrorSeverity.WARNING in diag_by_severity.keys():
         header += "\n    The following warnings were found while transpiling:\n"
-        for diag in diagBySeverity[ErrorSeverity.WARNING]:
+        for diag in diag_by_severity[ErrorSeverity.WARNING]:
             header += _append_diagnostic(diag)
 
     if failed_producing_output:
@@ -139,12 +139,9 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
 def _append_diagnostic(diag: TranspileError) -> str:
     if diag.range:
         line = diag.range.start.line + 1
-        column = (
-            diag.range.start.character + 1 + 2
-        )  # + 1 to make it one-based, + 2 to take indentation into account
+        column = diag.range.start.character + 1 + 2  # + 1 to make it one-based, + 2 to take indentation into account
         return f"      - [{line}:{column}] {diag.message}\n"
-    else:
-        return f"      - {diag.message}\n"
+    return f"      - {diag.message}\n"
 
 
 async def _process_many_files(
