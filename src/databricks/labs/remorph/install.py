@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import shutil
 from collections.abc import Iterable
-from json import loads, dumps
+from json import loads, dump
 import logging
 import os
 from shutil import rmtree, move
@@ -14,6 +14,7 @@ from urllib.error import URLError, HTTPError
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
 from databricks.labs.blueprint.installation import Installation
@@ -136,6 +137,16 @@ class TranspilerInstaller(abc.ABC):
             logger.error(f"Could not load config: {path!s}", exc_info=e)
             return None
 
+    @classmethod
+    def _store_product_state(cls, product_path: Path, version: str) -> None:
+        state_path = product_path / "state"
+        state_path.mkdir()
+        version_data = {"version": f"v{version}", "date": datetime.now(timezone.utc).isoformat()}
+        version_path = state_path / "version.json"
+        with version_path.open("w", encoding="utf-8") as f:
+            dump(version_data, f)
+            f.write("\n")
+
 
 class PypiInstaller(TranspilerInstaller):
 
@@ -179,15 +190,14 @@ class PypiInstaller(TranspilerInstaller):
             logger.warning(f"Could not determine the latest version of {self._pypi_name}")
             logger.error(f"Failed to install transpiler: {self._product_name}")
             return None
-        self._latest_version: str = latest_version
-        self._current_version = self.get_installed_version(self._product_name)
-        if self._current_version == self._latest_version:
-            logger.info(f"{self._pypi_name} v{self._latest_version} already installed")
+        installed_version = self.get_installed_version(self._product_name)
+        if installed_version == latest_version:
+            logger.info(f"{self._pypi_name} v{latest_version} already installed")
             return None
-        return self._install_latest_version()
+        return self._install_latest_version(latest_version)
 
-    def _install_latest_version(self) -> Path | None:
-        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
+    def _install_latest_version(self, version: str) -> Path | None:
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
@@ -197,23 +207,23 @@ class PypiInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version()
-            logger.info(f"Successfully installed {self._pypi_name} v{self._latest_version}")
+            result = self._unsafe_install_latest_version(version)
+            logger.info(f"Successfully installed {self._pypi_name} v{version}")
             if backup_path.exists():
                 rmtree(backup_path)
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.error(f"Failed to install {self._pypi_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._pypi_name} v{version}", exc_info=e)
             rmtree(self._product_path)
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
 
-    def _unsafe_install_latest_version(self) -> Path | None:
+    def _unsafe_install_latest_version(self, version: str) -> Path | None:
         self._create_venv()
         self._install_from_pip()
         self._copy_lsp_resources()
-        return self._post_install()
+        return self._post_install(version)
 
     def _create_venv(self) -> None:
         self._venv = self._install_path / ".venv"
@@ -273,7 +283,7 @@ class PypiInstaller(TranspilerInstaller):
             raise ValueError("Installed transpiler is missing a 'lsp' folder")
         shutil.copytree(lsp, self._install_path, dirs_exist_ok=True)
 
-    def _post_install(self) -> Path | None:
+    def _post_install(self, version: str) -> Path | None:
         config = self._install_path / "config.yml"
         if not config.exists():
             raise ValueError("Installed transpiler is missing a 'config.yml' file in its 'lsp' folder")
@@ -282,15 +292,8 @@ class PypiInstaller(TranspilerInstaller):
         installer = self._install_path / install_script
         if installer.exists():
             self._run_custom_installer(installer)
-        self._store_state()
+        self._store_product_state(product_path=self._product_path, version=version)
         return self._install_path
-
-    def _store_state(self) -> None:
-        state_path = self._product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{self._latest_version}", "date": datetime.now(timezone.utc).isoformat()}
-        version_path = state_path / "version.json"
-        version_path.write_text(dumps(version_data), "utf-8")
 
     def _run_custom_installer(self, installer):
         args = [str(installer)]
@@ -298,47 +301,80 @@ class PypiInstaller(TranspilerInstaller):
 
 
 class MavenInstaller(TranspilerInstaller):
+    # Maven Central, base URL.
+    _maven_central_repo: str = "https://repo.maven.apache.org/maven2/"
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+    def _artifact_base_url(cls, group_id: str, artifact_id: str) -> str:
+        """Construct the base URL for a Maven artifact."""
+        # Reference: https://maven.apache.org/repositories/layout.html
+        group_path = group_id.replace(".", "/")
+        return f"{cls._maven_central_repo}{group_path}/{artifact_id}/"
+
+    @classmethod
+    def artifact_metadata_url(cls, group_id: str, artifact_id: str) -> str:
+        """Get the metadata URL for a Maven artifact."""
+        # TODO: Unit test this method.
+        return f"{cls._artifact_base_url(group_id, artifact_id)}maven-metadata.xml"
+
+    @classmethod
+    def artifact_url(
+        cls, group_id: str, artifact_id: str, version: str, classifier: str | None = None, extension: str = "jar"
+    ) -> str:
+        """Get the URL for a versioned Maven artifact."""
+        # TODO: Unit test this method, including classifier and extension.
+        _classifier = f"-{classifier}" if classifier else ""
+        artifact_base_url = cls._artifact_base_url(group_id, artifact_id)
+        return f"{artifact_base_url}{version}/{artifact_id}-{version}{_classifier}.{extension}"
+
+    @classmethod
+    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str) -> str | None:
+        url = cls.artifact_metadata_url(group_id, artifact_id)
         try:
-            url = (
-                f"https://search.maven.org/solrsearch/select?q=g:{group_id}+AND+a:{artifact_id}&core=gav&rows=1&wt=json"
-            )
             with request.urlopen(url) as server:
                 text = server.read()
-                return cls._extract_maven_artifact_version(text)
         except HTTPError as e:
             logger.error(f"Error while fetching maven metadata: {group_id}:{artifact_id}", exc_info=e)
             return None
+        logger.debug(f"Maven metadata for {group_id}:{artifact_id}: {text}")
+        return cls._extract_latest_release_version(text)
 
     @classmethod
-    def _extract_maven_artifact_version(cls, text: str) -> str | None:
-        data: dict[str, Any] = loads(text)
-        response: dict[str, Any] | None = data.get("response", None)
-        if not response:
-            return None
-        docs: list[dict[str, Any]] = response.get('docs', None)
-        if not docs or len(docs) < 1:
-            return None
-        return docs[0].get("v", None)
+    def _extract_latest_release_version(cls, maven_metadata: str) -> str | None:
+        """Extract the latest release version from Maven metadata."""
+        # Reference: https://maven.apache.org/repositories/metadata.html#The_A_Level_Metadata
+        # TODO: Unit test this method, to verify the sequence of things it checks for.
+        root = ET.fromstring(maven_metadata)
+        for label in ("release", "latest"):
+            version = root.findtext(f"./versioning/{label}")
+            if version is not None:
+                return version
+        return root.findtext("./versioning/versions/version[last()]")
 
     @classmethod
     def download_artifact_from_maven(
-        cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"
+        cls,
+        group_id: str,
+        artifact_id: str,
+        version: str,
+        target: Path,
+        classifier: str | None = None,
+        extension: str = "jar",
     ) -> int:
-        group_id = group_id.replace(".", "/")
-        url = f"https://search.maven.org/remotecontent?filepath={group_id}/{artifact_id}/{version}/{artifact_id}-{version}.{extension}"
+        if target.exists():
+            logger.warning(f"Skipping download of {group_id}:{artifact_id}:{version}; target already exists: {target}")
+            return 0
+        url = cls.artifact_url(group_id, artifact_id, version, classifier, extension)
         try:
             path, _ = request.urlretrieve(url)
-            logger.info(f"Successfully downloaded {path}")
-            if not target.exists():
-                logger.info(f"Moving {path} to {target!s}")
-                move(path, str(target))
-            return 0
+            logger.debug(f"Downloaded maven artefact from {url} to {path}")
         except URLError as e:
-            logger.error("While downloading from maven", exc_info=e)
+            logger.error(f"Unable to download maven artefact: {group_id}:{artifact_id}:{version}", exc_info=e)
             return -1
+        logger.debug(f"Moving {path} to {target}")
+        move(path, target)
+        logger.info(f"Successfully installed: {group_id}:{artifact_id}:{version}")
+        return 0
 
     def __init__(self, product_name: str, group_id: str, artifact_id: str):
         self._product_name = product_name
@@ -349,19 +385,19 @@ class MavenInstaller(TranspilerInstaller):
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        self._latest_version = self.get_maven_artifact_version(self._group_id, self._artifact_id)
-        if self._latest_version is None:
+        latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
+        if latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
             logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
             return None
-        self._current_version = self.get_installed_version(self._product_name)
-        if self._current_version == self._latest_version:
-            logger.info(f"Databricks {self._product_name} transpiler v{self._latest_version} already installed")
+        installed_version = self.get_installed_version(self._product_name)
+        if installed_version == latest_version:
+            logger.info(f"Databricks {self._product_name} transpiler v{latest_version} already installed")
             return None
-        return self._install_latest_version()
+        return self._install_latest_version(latest_version)
 
-    def _install_latest_version(self) -> Path | None:
-        logger.info(f"Installing Databricks {self._product_name} transpiler v{self._latest_version}")
+    def _install_latest_version(self, version: str) -> Path | None:
+        logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
@@ -371,31 +407,31 @@ class MavenInstaller(TranspilerInstaller):
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version()
-            logger.info(f"Successfully installed {self._product_name} v{self._latest_version}")
+            result = self._unsafe_install_latest_version(version)
+            logger.info(f"Successfully installed {self._product_name} v{version}")
             if backup_path.exists():
                 rmtree(str(backup_path))
             return result
         except (CalledProcessError, ValueError) as e:
-            logger.error(f"Failed to install {self._product_name} v{self._latest_version}", exc_info=e)
+            logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
             rmtree(str(self._product_path))
             if backup_path.exists():
                 os.rename(backup_path, self._product_path)
             return None
 
-    def _unsafe_install_latest_version(self) -> Path | None:
+    def _unsafe_install_latest_version(self, version: str) -> Path | None:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         return_code = self.download_artifact_from_maven(
             self._group_id,
             self._artifact_id,
-            str(self._latest_version),
+            version,
             jar_file_path,
         )
         if return_code != 0:
-            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{self._latest_version}")
+            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
             return None
         self._copy_lsp_resources(jar_file_path)
-        return self._post_install()
+        return self._post_install(version)
 
     def _copy_lsp_resources(self, jar_file_path: Path):
         with ZipFile(jar_file_path) as zip_file:
@@ -413,21 +449,14 @@ class MavenInstaller(TranspilerInstaller):
             # drop the 'lsp' folder created by zip extract
             shutil.rmtree(self._install_path / "lsp")
 
-    def _post_install(self) -> Path:
+    def _post_install(self, version: str) -> Path:
         install_ext = "ps1" if sys.platform == "win32" else "sh"
         install_script = f"install.{install_ext}"
         install_path = self._install_path / install_script
         if install_path.exists():
             self._run_custom_installer(install_path)
-        self._store_state()
+        self._store_product_state(self._product_path, version)
         return self._install_path
-
-    def _store_state(self) -> None:
-        state_path = self._product_path / "state"
-        state_path.mkdir()
-        version_data = {"version": f"v{self._latest_version}", "date": str(datetime.now())}
-        version_path = state_path / "version.json"
-        version_path.write_text(dumps(version_data), "utf-8")
 
     def _run_custom_installer(self, installer: Path) -> None:
         completed = run(
@@ -656,7 +685,8 @@ class WorkspaceInstaller:
         if config_option.method == LSPPromptMethod.CONFIRM:
             return self._prompts.confirm(config_option.prompt)
         if config_option.method == LSPPromptMethod.QUESTION:
-            return self._prompts.question(config_option.prompt, default=config_option.default)
+            default = config_option.default if config_option.default else "None"
+            return self._prompts.question(config_option.prompt, default=default)
         if config_option.method == LSPPromptMethod.CHOICE:
             return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
         raise ValueError(f"Unsupported prompt method: {config_option.method}")
