@@ -21,6 +21,8 @@ from databricks.labs.remorph.assessments.configure_assessment import (
     PROFILER_SOURCE_SYSTEM,
 )
 
+from databricks.labs.remorph.assessments.profiler import Profiler
+
 from databricks.labs.remorph.__about__ import __version__
 
 from databricks.labs.remorph.config import TranspileConfig
@@ -333,6 +335,21 @@ def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     user = ctx.current_user
     logger.debug(f"User: {user}")
     Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
+
+
+@remorph.command()
+def profile(w: WorkspaceClient):
+    """Run the Profiler"""
+    with_user_agent_extra("cmd", "profiler")
+    ctx = ApplicationContext(w)
+    prompts = ctx.prompts
+    source_tech = prompts.choice("Select the source technology", Profiler.supported_source_technologies())
+    with_user_agent_extra("profiler_source_tech", make_alphanum_or_semver(source_tech))
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
+    profiler = Profiler()
+    # TODO: Add extractor logic to ApplicationContext instead of creating inside the Profiler class
+    profiler.profile(source_tech, None)
 
 
 if __name__ == "__main__":

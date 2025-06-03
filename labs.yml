@@ -67,8 +67,11 @@ commands:
   - name: debug-me
     description: "[INTERNAL] Debug SDK connectivity"
   - name: install-assessment
-    description: "Install Assessment"
+    description: "[EXPERIMENTAL] Install Assessment"
   - name: install-transpile
     description: "Install Transpile"
   - name: install-reconcile
     description: "Install Reconcile"
+  - name: profile
+    description: "[EXPERIMENTAL] Profile the database"
+

@@ -195,7 +195,7 @@ class PipelineClass:
             dir_path.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def load_config_from_yaml(file_path: str) -> PipelineConfig:
+    def load_config_from_yaml(file_path: str | Path) -> PipelineConfig:
         with open(file_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
         steps = [Step(**step) for step in data['steps']]
