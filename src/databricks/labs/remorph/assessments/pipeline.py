@@ -100,7 +100,6 @@ class PipelineClass:
         db_path = str(self.db_path_prefix / DB_NAME)
         credential_config = str(cred_file("remorph"))
 
-
         # Create a temporary directory for the virtual environment
         with tempfile.TemporaryDirectory() as temp_dir:
             venv_dir = Path(temp_dir) / "venv"
