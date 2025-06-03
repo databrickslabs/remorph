@@ -31,7 +31,7 @@ class Profiler:
 
     @staticmethod
     def path_modifier(config_file: str | Path) -> PipelineConfig:
-        #TODO: Make this work install during developer mode
+        # TODO: Make this work install during developer mode
         config = PipelineClass.load_config_from_yaml(config_file)
         for step in config.steps:
             step.extract_source = f"{PRODUCT_PATH_PREFIX}/{step.extract_source}"

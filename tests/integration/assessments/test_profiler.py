@@ -4,12 +4,6 @@ from unittest.mock import patch
 import pytest
 
 from databricks.labs.remorph.assessments.profiler import Profiler
-from ..connections.helpers import get_db_manager
-
-
-@pytest.fixture()
-def extractor(mock_credentials):
-    return get_db_manager("remorph", "mssql")
 
 
 def test_supported_source_technologies():
@@ -32,19 +26,19 @@ def test_profile_unsupported_platform():
     {"Synapse": "tests/resources/assessments/pipeline_config_main.yml"},
 )
 @patch('databricks.labs.remorph.assessments.profiler.PRODUCT_PATH_PREFIX', Path(__file__).parent / "../../../")
-def test_profile_execution(extractor, get_logger):
+def test_profile_execution():
     """Test successful profiling execution using actual pipeline configuration"""
     profiler = Profiler()
-    profiler.profile("Synapse", extractor)
+    profiler.profile("Synapse")
 
 
 @patch(
     'databricks.labs.remorph.assessments.profiler._PLATFORM_TO_SOURCE_TECHNOLOGY',
     {"Synapse": "tests/resources/assessments/synapse/pipeline_config_main.yml"},
 )
-def test_profile_execution_with_invalid_config(extractor, get_logger):
+def test_profile_execution_with_invalid_config():
     """Test profiling execution with invalid configuration"""
     with patch('pathlib.Path.exists', return_value=False):
         profiler = Profiler()
         with pytest.raises(FileNotFoundError):
-            profiler.profile("Synapse", extractor)
+            profiler.profile("Synapse")
