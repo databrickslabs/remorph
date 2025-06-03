@@ -45,6 +45,7 @@ class PipelineClass:
         logging.info(f"Pipeline initialized with config: {self.config.name}, version: {self.config.version}")
         execution_results: list[StepExecutionResult] = []
         for step in self.config.steps:
+            logging.info(f"Executing step: {step.name}")
             result = self._process_step(step)
             execution_results.append(result)
             logging.info(f"Step '{step.name}' completed with status: {result.status}")
@@ -119,8 +120,8 @@ class PipelineClass:
         logging.info(f"Installing dependencies: {', '.join(dependencies)}")
         try:
             logging.debug("Upgrading local pip")
-            run([str(venv_pip), "install", "--upgrade", "pip"], check=True,  stdout=DEVNULL, stderr=DEVNULL)
-            run([str(venv_pip), "install", *dependencies], check=True,  stdout=DEVNULL, stderr=DEVNULL)
+            run([str(venv_pip), "install", "--upgrade", "pip"], check=True, stdout=DEVNULL, stderr=DEVNULL)
+            run([str(venv_pip), "install", *dependencies], check=True, stdout=DEVNULL, stderr=DEVNULL)
         except CalledProcessError as e:
             logging.error(f"Failed to install dependencies: {e.stderr}")
             raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
