@@ -1,0 +1,18 @@
+command: [
+  "streamlit",
+  "run",
+  "app.py"
+]
+
+env:
+  - name: "REMORPH_METADATA_SCHEMA"
+    value: "kushagra_remorph.reconcile"
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"
+  - name: DATABRICKS_CLUSTER_ID
+    value: "0709-132523-cnhxf2p6"
+  - name: RECON_CONFIG_TABLE_NAME
+    value: "recon_app_config_table"
+  - name: RECON_JOB_RUN_DETAILS_TABLE_NAME
+    value: "job_run_details"
+
