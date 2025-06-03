@@ -19,13 +19,12 @@ async def test_transpiles_all_dbt_project_files(ws):
             source_dialect="snowflake",
             input_source=str(input_source),
             output_folder=output_folder,
-            sdk_config={"cluster_id": "test_cluster"},
             skip_validation=False,
             catalog_name="catalog",
             schema_name="schema",
         )
         await transpile(ws, lsp_engine, transpile_config)
-        assert ( Path(output_folder) / "top-query.sql" ).exists()
-        assert ( Path(output_folder) / "dbt_project.yml" ).exists()
-        assert ( Path(output_folder) / "sub" / "sub-query.sql" ).exists()
-        assert ( Path(output_folder) / "sub" / "dbt_project.yml" ).exists()
+        assert (Path(output_folder) / "top-query.sql").exists()
+        assert (Path(output_folder) / "dbt_project.yml").exists()
+        assert (Path(output_folder) / "sub" / "sub-query.sql").exists()
+        assert (Path(output_folder) / "sub" / "dbt_project.yml").exists()
