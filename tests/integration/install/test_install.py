@@ -303,6 +303,8 @@ async def test_installs_and_runs_morpheus(patched_transpiler_installer):
         config_path = morpheus / "lib" / "config.yml"
         assert config_path.exists()
         main_path = morpheus / "lib" / "morpheus-lsp.jar"
+        for child in os.listdir(main_path.parent):
+            print(child)
         assert main_path.exists()
         version_path = morpheus / "state" / "version.json"
         assert version_path.exists()
