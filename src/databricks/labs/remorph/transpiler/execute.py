@@ -195,11 +195,11 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
 async def _process_input_file(
     config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine
 ) -> TranspileStatus:
-    if not is_sql_file(config.input_path):
-        msg = f"{config.input_source} is not a SQL file."
-        logger.warning(msg)
-        # silently ignore non-sql files
-        return TranspileStatus([], 0, [])
+    #if not is_sql_file(config.input_path):
+    #    msg = f"{config.input_source} is not a SQL file."
+    #    logger.warning(msg)
+    #    # silently ignore non-sql files
+    #    return TranspileStatus([], 0, [])
     msg = f"Transpiling sql file: {config.input_path!s}"
     logger.info(msg)
     output_path = config.output_path
