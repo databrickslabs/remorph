@@ -1,5 +1,5 @@
 from pathlib import Path
-from subprocess import run, CalledProcessError, Popen, PIPE, STDOUT
+from subprocess import run, CalledProcessError, Popen, PIPE, STDOUT, DEVNULL
 from dataclasses import dataclass
 from enum import Enum
 
@@ -119,8 +119,8 @@ class PipelineClass:
         logging.info(f"Installing dependencies: {', '.join(dependencies)}")
         try:
             logging.debug("Upgrading local pip")
-            run([str(venv_pip), "install", "--upgrade", "pip"], check=True)
-            run([str(venv_pip), "install", *dependencies], check=True)
+            run([str(venv_pip), "install", "--upgrade", "pip"], check=True,  stdout=DEVNULL, stderr=DEVNULL)
+            run([str(venv_pip), "install", *dependencies], check=True,  stdout=DEVNULL, stderr=DEVNULL)
         except CalledProcessError as e:
             logging.error(f"Failed to install dependencies: {e.stderr}")
             raise RuntimeError(f"Failed to install dependencies: {e.stderr}") from e
