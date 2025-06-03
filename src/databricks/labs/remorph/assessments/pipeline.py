@@ -55,7 +55,6 @@ class PipelineClass:
         if step.flag != "active":
             logging.info(f"Skipping step: {step.name} as it is not active")
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
-
         logging.debug(f"Executing step: {step.name}")
         try:
             status = self._execute_step(step)
@@ -96,10 +95,13 @@ class PipelineClass:
             raise RuntimeError(f"SQL execution failed: {str(e)}") from e
 
     def _execute_python_step(self, step: Step):
+
         logging.debug(f"Executing Python script: {step.extract_source}")
         db_path = str(self.db_path_prefix / DB_NAME)
         credential_config = str(cred_file("remorph"))
 
+
+        # Create a temporary directory for the virtual environment
         with tempfile.TemporaryDirectory() as temp_dir:
             venv_dir = Path(temp_dir) / "venv"
             venv.create(venv_dir, with_pip=True)
