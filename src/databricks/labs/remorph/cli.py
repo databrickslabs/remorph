@@ -18,11 +18,14 @@ from databricks.labs.blueprint.tui import Prompts
 
 from databricks.labs.bladespector.analyzer import Analyzer
 
+
+from databricks.labs.remorph.assessments.configure_assessment import (
+    create_assessment_configurator,
+    PROFILER_SOURCE_SYSTEM,
+)
+
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
 from databricks.labs.remorph.config import TranspileConfig, LSPConfigOptionV1
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.env_getter import EnvGetter
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
@@ -185,7 +188,7 @@ class _TranspileConfigChecker:
             else:
                 transpiler_name = next(name for name in transpiler_names)
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
-            transpiler_config_path = TranspilerInstaller.transpiler_config_path(transpiler_name)
+            transpiler_config_path = str(TranspilerInstaller.transpiler_config_path(transpiler_name))
         logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
         self._config = dataclasses.replace(self._config, transpiler_config_path=cast(str, transpiler_config_path))
 
@@ -301,7 +304,8 @@ class _TranspileConfigChecker:
 async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
     """Transpiles source dialect to databricks dialect"""
     with_user_agent_extra("cmd", "execute-transpile")
-    logger.debug(f"User: {ctx.current_user}")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     _override_workspace_client_config(ctx, config.sdk_config)
     status, errors = await do_transpile(ctx.workspace_client, engine, config)
     for error in errors:
@@ -334,7 +338,8 @@ def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-reconcile")
     ctx = ApplicationContext(w)
-    logger.debug(f"User: {ctx.current_user}")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -349,7 +354,8 @@ def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-aggregates-reconcile")
     ctx = ApplicationContext(w)
-    logger.debug(f"User: {ctx.current_user}")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -389,17 +395,25 @@ def configure_secrets(w: WorkspaceClient):
 
 @remorph.command(is_unauthenticated=True)
 def install_assessment():
-    """Install the Remorph Assessment package"""
+    """[Experimental] Install the Remorph Assessment package"""
     prompts = Prompts()
-    credential = create_credential_manager("remorph", EnvGetter())
-    assessment = ConfigureAssessment(product_name="remorph", prompts=prompts)
-    assessment.run(cred_manager=credential)
+
+    # Prompt for source system
+    source_system = str(
+        prompts.choice("Please select the source system you want to configure", PROFILER_SOURCE_SYSTEM)
+    ).lower()
+
+    # Create appropriate assessment configurator
+    assessment = create_assessment_configurator(source_system=source_system, product_name="remorph", prompts=prompts)
+    assessment.run()
 
 
 @remorph.command()
 def install_transpile(w: WorkspaceClient):
     """Install the Remorph Transpile package"""
     with_user_agent_extra("cmd", "install-transpile")
+    user = w.current_user
+    logger.debug(f"User: {user}")
     installer = _installer(w)
     installer.run(module="transpile")
 
@@ -408,6 +422,8 @@ def install_transpile(w: WorkspaceClient):
 def install_reconcile(w: WorkspaceClient):
     """Install the Remorph Reconcile package"""
     with_user_agent_extra("cmd", "install-reconcile")
+    user = w.current_user
+    logger.debug(f"User: {user}")
     dbsql_id = _create_warehouse(w)
     w.config.warehouse_id = dbsql_id
     installer = _installer(w)
@@ -416,15 +432,17 @@ def install_reconcile(w: WorkspaceClient):
 
 
 @remorph.command()
-def analyze(w: WorkspaceClient):
+def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     """Run the Analyzer"""
     with_user_agent_extra("cmd", "analyze")
     ctx = ApplicationContext(w)
     prompts = ctx.prompts
-    output_file = prompts.question("Enter path to output results file (with .xlsx extension)")
-    input_folder = prompts.question("Enter path to input sources folder")
+    output_file = report_file
+    input_folder = source_directory
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
     with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
 
 

@@ -19,20 +19,19 @@ def test_gets_installed_remorph_version(patched_transpiler_installer):
     check_valid_version(version)
 
 
-@pytest.mark.skip(reason="The search.maven.org service is too unreliable; our dependency on it will be removed.")
-def test_gets_maven_artifact_version():
-    version = MavenInstaller.get_maven_artifact_version("com.databricks", "databricks-connect")
-    assert version, "Maybe maven search is down ? (check https://status.maven.org/)"
+def test_gets_maven_artifact_version() -> None:
+    version = MavenInstaller.get_current_maven_artifact_version("com.databricks", "databricks-connect")
+    assert version
     check_valid_version(version)
 
 
 def test_downloads_from_maven():
     with TemporaryDirectory() as parent:
         path = Path(parent) / "pom.xml"
-        result = MavenInstaller.download_artifact_from_maven(
+        success = MavenInstaller.download_artifact_from_maven(
             "com.databricks", "databricks-connect", "16.0.0", path, extension="pom"
         )
-        assert result == 0
+        assert success
         assert path.exists()
         assert path.stat().st_size == 5_684
 
@@ -211,11 +210,19 @@ async def test_installs_and_runs_bladerunner(patched_transpiler_installer):
 class PatchedMavenInstaller(MavenInstaller):
 
     @classmethod
-    def get_maven_artifact_version(cls, group_id: str, artifact_id: str):
+    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str):
         return "0.2.0"
 
     @classmethod
-    def download_artifact_from_maven(cls, group_id: str, artifact_id: str, version: str, target: Path, extension="jar"):
+    def download_artifact_from_maven(
+        cls,
+        group_id: str,
+        artifact_id: str,
+        version: str,
+        target: Path,
+        classifier: str | None = None,
+        extension: str = "jar",
+    ) -> bool:
         sample_jar = (
             Path(__file__).parent.parent.parent
             / "resources"
@@ -226,7 +233,7 @@ class PatchedMavenInstaller(MavenInstaller):
         )
         assert sample_jar.exists()
         shutil.copyfile(sample_jar, target)
-        return 0
+        return True
 
 
 async def test_installs_and_runs_morpheus(patched_transpiler_installer):
