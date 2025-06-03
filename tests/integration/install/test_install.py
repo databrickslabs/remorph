@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -10,6 +11,7 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller, MavenInstaller, WorkspaceInstaller, WheelInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
+logger = logging.getLogger(__name__)
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")
 def test_gets_installed_remorph_version(patched_transpiler_installer):
@@ -304,7 +306,7 @@ async def test_installs_and_runs_morpheus(patched_transpiler_installer):
         assert config_path.exists()
         main_path = morpheus / "lib" / "morpheus-lsp.jar"
         for child in os.listdir(main_path.parent):
-            print(child)
+            logger.debug(child)
         assert main_path.exists()
         version_path = morpheus / "state" / "version.json"
         assert version_path.exists()
