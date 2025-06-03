@@ -30,6 +30,7 @@ def test_profile_execution():
     """Test successful profiling execution using actual pipeline configuration"""
     profiler = Profiler()
     profiler.profile("Synapse")
+    assert Path("/tmp/profiler_main/profiler_extract.db").exists(), "Profiler extract database should be created"
 
 
 @patch(

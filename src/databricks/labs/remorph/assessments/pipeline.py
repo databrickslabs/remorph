@@ -39,6 +39,7 @@ class PipelineClass:
         self.config = config
         self.executor = executor
         self.db_path_prefix = Path(config.extract_folder)
+        self._create_dir(self.db_path_prefix)
 
     def execute(self) -> list[StepExecutionResult]:
         logging.info(f"Pipeline initialized with config: {self.config.name}, version: {self.config.version}")
@@ -164,7 +165,6 @@ class PipelineClass:
             raise RuntimeError(f"Script execution failed with exit code {process.returncode}")
 
     def _save_to_db(self, result, step_name: str, mode: str, batch_size: int = 1000):
-        self._create_dir(self.db_path_prefix)
         db_path = str(self.db_path_prefix / DB_NAME)
 
         with duckdb.connect(db_path) as conn:
