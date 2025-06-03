@@ -479,8 +479,7 @@ class MavenInstaller(TranspilerInstaller):
         if self._artifact:
             shutil.copyfile(self._artifact, jar_file_path)
         else:
-            return_code = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
-            if return_code != 0:
+            if not self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path):
                 logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
                 return False
         self._copy_lsp_config(jar_file_path)
