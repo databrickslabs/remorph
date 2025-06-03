@@ -120,11 +120,11 @@ class TranspilerInstaller(abc.ABC):
         return set(config.name for config in configs)
 
     @classmethod
-    def transpiler_config_path(cls, transpiler_name) -> str:
+    def transpiler_config_path(cls, transpiler_name) -> Path:
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
             raise ValueError(f"No such transpiler: {transpiler_name}")
-        return f"{config.path!s}"
+        return config.path
 
     @classmethod
     def transpiler_config_options(cls, transpiler_name, source_dialect) -> list[LSPConfigOptionV1]:
@@ -190,7 +190,7 @@ class WheelInstaller(TranspilerInstaller):
             logger.info(f"Successfully downloaded {path}")
             if not target.exists():
                 logger.info(f"Moving {path} to {target!s}")
-                move(path, str(target))
+                move(path, target)
             return 0
         except URLError as e:
             logger.error("While downloading from pypi", exc_info=e)
@@ -408,21 +408,21 @@ class MavenInstaller(TranspilerInstaller):
         target: Path,
         classifier: str | None = None,
         extension: str = "jar",
-    ) -> int:
+    ) -> bool:
         if target.exists():
             logger.warning(f"Skipping download of {group_id}:{artifact_id}:{version}; target already exists: {target}")
-            return 0
+            return True
         url = cls.artifact_url(group_id, artifact_id, version, classifier, extension)
         try:
             path, _ = request.urlretrieve(url)
             logger.debug(f"Downloaded maven artefact from {url} to {path}")
         except URLError as e:
             logger.error(f"Unable to download maven artefact: {group_id}:{artifact_id}:{version}", exc_info=e)
-            return -1
+            return False
         logger.debug(f"Moving {path} to {target}")
         move(path, target)
         logger.info(f"Successfully installed: {group_id}:{artifact_id}:{version}")
-        return 0
+        return True
 
     def __init__(self, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None):
         self._product_name = product_name
@@ -446,32 +446,35 @@ class MavenInstaller(TranspilerInstaller):
         if installed_version == latest_version:
             logger.info(f"Databricks {self._product_name} transpiler v{latest_version} already installed")
             return None
-        return self._install_latest_version(latest_version)
+        return self._install_version(latest_version)
 
-    def _install_latest_version(self, version: str) -> Path | None:
+    def _install_version(self, version: str) -> Path | None:
         logger.info(f"Installing Databricks {self._product_name} transpiler v{version}")
         # use type(self) to workaround a mock bug on class methods
         self._product_path = type(self).transpilers_path() / self._product_name
         backup_path = Path(f"{self._product_path!s}-saved")
+        if backup_path.exists():
+            rmtree(backup_path)
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
         self._product_path.mkdir(parents=True)
         self._install_path = self._product_path / "lib"
         self._install_path.mkdir()
         try:
-            result = self._unsafe_install_latest_version(version)
-            logger.info(f"Successfully installed {self._product_name} v{version}")
-            if backup_path.exists():
-                rmtree(str(backup_path))
-            return result
-        except (CalledProcessError, ValueError) as e:
+            if self._unsafe_install_version(version):
+                logger.info(f"Successfully installed {self._product_name} v{version}")
+                self._store_product_state(self._product_path, version)
+                if backup_path.exists():
+                    rmtree(backup_path)
+                return self._product_path
+        except (KeyError, ValueError) as e:
             logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
-            rmtree(str(self._product_path))
-            if backup_path.exists():
-                os.rename(backup_path, self._product_path)
-            return None
+        rmtree(self._product_path)
+        if backup_path.exists():
+            os.rename(backup_path, self._product_path)
+        return None
 
-    def _unsafe_install_latest_version(self, version: str) -> Path | None:
+    def _unsafe_install_version(self, version: str) -> bool:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         if self._artifact:
             shutil.copyfile(self._artifact, jar_file_path)
@@ -479,46 +482,15 @@ class MavenInstaller(TranspilerInstaller):
             return_code = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
             if return_code != 0:
                 logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
-                return None
-        self._copy_lsp_resources(jar_file_path)
-        return self._post_install(version)
+                return False
+        self._copy_lsp_config(jar_file_path)
+        return True
 
-    def _copy_lsp_resources(self, jar_file_path: Path):
+    def _copy_lsp_config(self, jar_file_path: Path) -> None:
         with ZipFile(jar_file_path) as zip_file:
-            names = [name for name in zip_file.namelist() if name.startswith("lsp/")]
-            for name in names:
-                zip_file.extract(name, self._install_path)
-                # move file to 'lib' dir
-                if not name.endswith("/"):
-                    name = name.split("/")[1]
-                    shutil.move(self._install_path / "lsp" / name, self._install_path / name)
-                    if name.endswith(".sh") and sys.platform != "win32":
-                        cmd = f"chmod 777 {(self._install_path / name)!s}"
-                        run(cmd, stdout=sys.stdout, stderr=sys.stdin, shell=True, check=True)
-
-            # drop the 'lsp' folder created by zip extract
-            shutil.rmtree(self._install_path / "lsp")
-
-    def _post_install(self, version: str) -> Path:
-        install_ext = "ps1" if sys.platform == "win32" else "sh"
-        install_script = f"install.{install_ext}"
-        install_path = self._install_path / install_script
-        if install_path.exists():
-            self._run_custom_installer(install_path)
-        self._store_product_state(self._product_path, version)
-        return self._install_path
-
-    def _run_custom_installer(self, installer: Path) -> None:
-        completed = run(
-            str(installer),
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-            cwd=str(self._install_path),
-            shell=True,
-            check=False,
-        )
-        completed.check_returncode()
+            zip_file.extract("lsp/config.yml", self._install_path)
+        shutil.move(self._install_path / "lsp" / "config.yml", self._install_path / "config.yml")
+        os.rmdir(self._install_path / "lsp")
 
 
 class WorkspaceInstaller:
@@ -682,13 +654,13 @@ class WorkspaceInstaller:
         self._save_config(config)
         return config
 
-    def _all_installed_dialects(self):
+    def _all_installed_dialects(self) -> list[str]:
         return sorted(TranspilerInstaller.all_dialects())
 
-    def _transpilers_with_dialect(self, dialect: str):
+    def _transpilers_with_dialect(self, dialect: str) -> list[str]:
         return sorted(TranspilerInstaller.transpilers_with_dialect(dialect))
 
-    def _transpiler_config_path(self, transpiler: str):
+    def _transpiler_config_path(self, transpiler: str) -> Path:
         return TranspilerInstaller.transpiler_config_path(transpiler)
 
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
@@ -699,8 +671,8 @@ class WorkspaceInstaller:
         source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
         if source_dialect == install_later:
             source_dialect = None
-        transpiler_name = None
-        transpiler_config_path = None
+        transpiler_name: str | None = None
+        transpiler_config_path: Path | None = None
         if source_dialect:
             transpilers = self._transpilers_with_dialect(source_dialect)
             if len(transpilers) > 1:
@@ -714,11 +686,9 @@ class WorkspaceInstaller:
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options = None
-        if transpiler_config_path:
-            transpiler_options = self._prompt_for_transpiler_options(
-                cast(str, transpiler_name), cast(str, source_dialect)
-            )
+        transpiler_options: dict[str, Any] | None = None
+        if transpiler_name and source_dialect:
+            transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
         input_source: str | None = self._prompts.question(
             "Enter input SQL path (directory/file)", default=install_later
         )
@@ -731,7 +701,7 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            transpiler_config_path=transpiler_config_path,
+            transpiler_config_path=str(transpiler_config_path),
             transpiler_options=transpiler_options,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
