@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 from pathlib import Path
@@ -11,7 +10,6 @@ from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller, MavenInstaller, WorkspaceInstaller, WheelInstaller
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
-logger = logging.getLogger(__name__)
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")
 def test_gets_installed_remorph_version(patched_transpiler_installer):
