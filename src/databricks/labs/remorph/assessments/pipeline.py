@@ -109,7 +109,9 @@ class PipelineClass:
             venv_python = venv_dir / "bin" / "python"
             venv_pip = venv_dir / "bin" / "pip"
 
-            logger.info(f"Creating a virtual environment for Python script execution: ${venv_dir}")
+            logger.info(
+                f"Creating a virtual environment for Python script execution: ${venv_dir} for step: {step.name}"
+            )
             if step.dependencies:
                 self._install_dependencies(venv_pip, step.dependencies)
 
