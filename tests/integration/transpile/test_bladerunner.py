@@ -22,9 +22,9 @@ async def test_transpiles_informatica_with_sparksql(ws):
     assert artifact.exists()
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
     # check execution
-    config_path = TranspilerInstaller.transpilers_path() / "morpheus" / "lib" / "config.yml"
+    config_path = TranspilerInstaller.transpilers_path() / "bladerunner" / "lib" / "config.yml"
     lsp_engine = LSPEngine.from_config_path(config_path)
-    input_source = Path(__file__).parent.parent.parent / "resources" / "functional" / "dbt"
+    input_source = Path(__file__).parent.parent.parent / "resources" / "functional" / "informatica"
     with TemporaryDirectory() as output_folder:
         transpile_config = TranspileConfig(
             transpiler_config_path=str(config_path),
