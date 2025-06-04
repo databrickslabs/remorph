@@ -559,7 +559,7 @@ class WorkspaceInstaller:
         if not path.exists():
             logger.error(f"Could not locate artifact {artifact}")
             return
-        if "morpheus-lsp" in path.name:
+        if "databricks-morph-plugin" in path.name:
             cls.install_morpheus(path)
         elif "databricks_bb_plugin" in path.name:
             cls.install_bladerunner(path)
