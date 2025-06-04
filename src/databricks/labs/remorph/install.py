@@ -48,6 +48,14 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
+    def labs_path(cls) -> Path:
+        return Path.home() / ".databricks" / "labs"
+
+    @classmethod
+    def transpilers_path(cls) -> Path:
+        return cls.labs_path() / "remorph-transpilers"
+
+    @classmethod
     def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
         installer = WheelInstaller(product_name, pypi_name, artifact)
         return installer.install()
@@ -58,14 +66,6 @@ class TranspilerInstaller(abc.ABC):
     ) -> Path | None:
         installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
         return installer.install()
-
-    @classmethod
-    def labs_path(cls) -> Path:
-        return Path.home() / ".databricks" / "labs"
-
-    @classmethod
-    def transpilers_path(cls) -> Path:
-        return cls.labs_path() / "remorph-transpilers"
 
     @classmethod
     def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
@@ -560,7 +560,7 @@ class WorkspaceInstaller:
         if not path.exists():
             logger.error(f"Could not locate artifact {artifact}")
             return
-        if "morpheus-lsp" in path.name:
+        if "databricks-morph-plugin" in path.name:
             cls.install_morpheus(path)
         elif "databricks_bb_plugin" in path.name:
             cls.install_bladerunner(path)
