@@ -24,7 +24,7 @@ jobs:
     environment: tool
     runs-on:
       group: databrickslabs-protected-runner-group
-      labels: linux-ubuntu-latest
+      labels: larger
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
