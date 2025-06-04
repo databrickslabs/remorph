@@ -48,6 +48,18 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
+    def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
+        installer = WheelInstaller(product_name, pypi_name, artifact)
+        return installer.install()
+
+    @classmethod
+    def install_from_maven(
+        cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None
+    ) -> Path | None:
+        installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
+        return installer.install()
+
+    @classmethod
     def labs_path(cls) -> Path:
         return Path.home() / ".databricks" / "labs"
 
