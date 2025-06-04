@@ -1,4 +1,5 @@
 import logging
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -11,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
+    bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    if bladerunner.exists():
+        shutil.rmtree(bladerunner)
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", bladerunner_artifact)
     # check execution
     config_path = TranspilerInstaller.transpilers_path() / "bladerunner" / "lib" / "config.yml"
