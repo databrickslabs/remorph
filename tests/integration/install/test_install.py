@@ -183,7 +183,7 @@ async def test_installs_and_runs_local_rct():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_local_bladerunner(blade_runner_artifact):
+async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
