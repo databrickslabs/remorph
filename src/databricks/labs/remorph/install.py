@@ -259,7 +259,10 @@ class WheelInstaller(TranspilerInstaller):
             # so falling back to something that works
             # for some reason this requires shell=True, so pass full cmd line
             cmd_line = f"{sys.executable} -m venv .venv"
-            run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
+            completed = run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+            if completed.returncode:
+                logger.error(f"Failed to create venv, error code: {completed.returncode}")
+            completed.check_returncode()
             self._site_packages = self._locate_site_packages()
         finally:
             os.chdir(cwd)
