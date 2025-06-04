@@ -100,9 +100,9 @@ const config: Config = {
           label: 'Guides',
           position: 'left',
           items: [
-            { label: 'Transpile', to: '/docs/transpile_guide/', },
-            { label: 'Reconcile', to: '/docs/reconcile/', },
-            { label: 'Assessment', to: '/docs/assessment/', }
+            { label: 'Assessment', to: '/docs/assessment/profiler', },
+            { label: 'Transpiler', to: '/docs/transpile/', },
+            { label: 'Reconciler', to: '/docs/reconcile/', },
           ],
         },
         {
