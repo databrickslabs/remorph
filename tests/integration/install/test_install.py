@@ -228,7 +228,7 @@ async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     if morpheus.exists():
         shutil.rmtree(morpheus)
     TranspilerInstaller.install_from_maven(
-        "morpheus", "com.databricks-labs", "databricks-morph-plugin", morpheus_artifact
+        "morpheus", "com.databricks.labs", "databricks-morph-plugin", morpheus_artifact
     )
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
