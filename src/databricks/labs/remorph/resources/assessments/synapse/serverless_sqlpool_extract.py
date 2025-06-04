@@ -23,13 +23,14 @@ def execute():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger(__name__)
     db_path, creds_file = arguments_loader(desc="Synapse Synapse Serverless SQL Pool Extract Script")
+
     cred_manager = create_credential_manager(creds_file)
     config = cred_manager.get_credentials("synapse")["workspace"]
 
     try:
         synapse_workspace_settings = get_config(creds_file)["synapse"]
         synapse_profiler_settings = synapse_workspace_settings["profiler"]
-
+        print(synapse_workspace_settings)
         tz_info = synapse_workspace_settings["workspace"]["tz_info"]
         workspace_tz = zoneinfo.ZoneInfo(tz_info)
         artifacts_client = get_synapse_artifacts_client(synapse_workspace_settings)
