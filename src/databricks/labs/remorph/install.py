@@ -85,6 +85,7 @@ class TranspilerInstaller(abc.ABC):
 
     @classmethod
     def get_local_artifact_version(cls, artifact: Path) -> str | None:
+        # TODO: Get the version from the metadata inside the artifact rather than relying on the filename.
         match = cls._version_pattern.search(artifact.stem)
         if not match:
             return None
@@ -562,11 +563,6 @@ class WorkspaceInstaller:
             cls.install_morpheus(path)
         elif "databricks_bb_plugin" in path.name:
             cls.install_bladerunner(path)
-        # don't automatically install RCT, but keep the ability to install it manually
-        elif "remorph_community_transpiler" in path.name:
-            local_name = "remorph-community-transpiler"
-            pypi_name = f"databricks-labs-{local_name}"
-            TranspilerInstaller.install_from_pypi(local_name, pypi_name, path)
         else:
             logger.fatal(f"Cannot install unsupported artifact: {artifact}")
 
