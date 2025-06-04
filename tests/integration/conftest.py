@@ -98,30 +98,3 @@ def mock_credentials():
     ):
         yield
 
-
-@pytest.fixture
-def bladerunner_artifact() -> Path:
-    artifact = (
-        Path(__file__).parent
-        / "resources"
-        / "transpiler_configs"
-        / "bladerunner"
-        / "wheel"
-        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
-    )
-    assert artifact.exists()
-    return artifact
-
-
-@pytest.fixture
-def morpheus_artifact() -> Path:
-    artifact = (
-        Path(__file__).parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "morpheus"
-        / "jar"
-        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
-    )
-    assert artifact.exists()
-    return artifact

@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
@@ -207,3 +208,29 @@ def report_tables_schema():
     )
 
     return recon_schema, metrics_schema, details_schema
+
+
+@pytest.fixture
+def bladerunner_artifact() -> Path:
+    artifact = (
+        Path("resources")
+        / "transpiler_configs"
+        / "bladerunner"
+        / "wheel"
+        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
+    )
+    assert artifact.exists()
+    return artifact
+
+
+@pytest.fixture
+def morpheus_artifact() -> Path:
+    artifact = (
+        Path("resources")
+        / "transpiler_configs"
+        / "morpheus"
+        / "jar"
+        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+    )
+    assert artifact.exists()
+    return artifact
