@@ -137,6 +137,9 @@ def format_transpiled(sql: str) -> str:
 
 
 async def test_installs_and_runs_local_rct():
+    # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
+    # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
+    # TODO: Fix to use a temporary location instead of the user's home directory.
     artifact = (
         Path(__file__).parent.parent.parent
         / "resources"
@@ -181,6 +184,9 @@ async def test_installs_and_runs_local_rct():
 
 
 async def test_installs_and_runs_local_bladerunner():
+    # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
+    # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
+    # TODO: Fix to use a temporary location instead of the user's home directory.
     artifact = (
         Path(__file__).parent.parent.parent
         / "resources"
@@ -224,6 +230,9 @@ async def test_installs_and_runs_local_bladerunner():
 
 
 async def test_installs_and_runs_local_morpheus():
+    # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
+    # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
+    # TODO: Fix to use a temporary location instead of the user's home directory.
     artifact = (
         Path(__file__).parent.parent.parent
         / "resources"
