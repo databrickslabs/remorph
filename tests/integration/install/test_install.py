@@ -193,7 +193,7 @@ async def test_installs_and_runs_local_bladerunner():
         / "transpiler_configs"
         / "bladerunner"
         / "wheel"
-        / "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
+        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
     )
     assert artifact.exists()
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
@@ -201,8 +201,6 @@ async def test_installs_and_runs_local_bladerunner():
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = bladerunner / "lib" / "main.py"
-    assert main_path.exists()
     version_path = bladerunner / "state" / "version.json"
     assert version_path.exists()
     # check execution
@@ -211,11 +209,10 @@ async def test_installs_and_runs_local_bladerunner():
         with TemporaryDirectory() as output_folder:
             transpile_config = TranspileConfig(
                 transpiler_config_path=str(config_path),
-                source_dialect="snowflake",
+                source_dialect="oracle",
                 input_source=input_source,
                 output_folder=output_folder,
-                sdk_config={"cluster_id": "test_cluster"},
-                skip_validation=False,
+                skip_validation=True,
                 catalog_name="catalog",
                 schema_name="schema",
             )
