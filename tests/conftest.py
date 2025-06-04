@@ -232,7 +232,7 @@ def morpheus_artifact() -> Path:
         / "transpiler_configs"
         / "morpheus"
         / "jar"
-        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+        / "databricks-morph-plugin-0.4.0.jar"
     )
     assert artifact.exists()
     return artifact

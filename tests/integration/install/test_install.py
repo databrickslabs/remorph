@@ -221,12 +221,12 @@ async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", morpheus_artifact)
+    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "databricks-morph-plugin", morpheus_artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     config_path = morpheus / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = morpheus / "lib" / "morpheus-lsp.jar"
+    main_path = morpheus / "lib" / "databricks-morph-plugin.jar"
     assert main_path.exists()
     version_path = morpheus / "state" / "version.json"
     assert version_path.exists()
