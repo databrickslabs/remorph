@@ -273,35 +273,6 @@ async def test_installs_and_runs_local_morpheus():
             assert transpiled == sql_code
 
 
-class PatchedMavenInstaller(MavenInstaller):
-
-    @classmethod
-    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str):
-        return "0.2.0"
-
-    @classmethod
-    def download_artifact_from_maven(
-        cls,
-        group_id: str,
-        artifact_id: str,
-        version: str,
-        target: Path,
-        classifier: str | None = None,
-        extension: str = "jar",
-    ) -> bool:
-        sample_jar = (
-            Path(__file__).parent.parent.parent
-            / "resources"
-            / "transpiler_configs"
-            / "morpheus"
-            / "jar"
-            / "databricks-morph-plugin-0.4.0.jar"
-        )
-        assert sample_jar.exists()
-        shutil.copyfile(sample_jar, target)
-        return True
-
-
 def test_java_version():
     version = WorkspaceInstaller.get_java_version()
     assert version >= 110
