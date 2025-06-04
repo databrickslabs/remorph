@@ -193,7 +193,7 @@ async def test_installs_and_runs_local_bladerunner():
         / "transpiler_configs"
         / "bladerunner"
         / "wheel"
-        / "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
+        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
     )
     assert artifact.exists()
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
@@ -201,8 +201,6 @@ async def test_installs_and_runs_local_bladerunner():
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = bladerunner / "lib" / "main.py"
-    assert main_path.exists()
     version_path = bladerunner / "state" / "version.json"
     assert version_path.exists()
     # check execution
@@ -211,7 +209,7 @@ async def test_installs_and_runs_local_bladerunner():
         with TemporaryDirectory() as output_folder:
             transpile_config = TranspileConfig(
                 transpiler_config_path=str(config_path),
-                source_dialect="snowflake",
+                source_dialect="oracle",
                 input_source=input_source,
                 output_folder=output_folder,
                 sdk_config={"cluster_id": "test_cluster"},
@@ -239,15 +237,15 @@ async def test_installs_and_runs_local_morpheus():
         / "transpiler_configs"
         / "morpheus"
         / "jar"
-        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+        / "databricks-morph-plugin-0.4.0.jar"
     )
     assert artifact.exists()
-    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", artifact)
+    TranspilerInstaller.install_from_maven("morpheus", "com.databricks-labs", "databricks-morph-plugin", artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     config_path = morpheus / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = morpheus / "lib" / "morpheus-lsp.jar"
+    main_path = morpheus / "lib" / "databricks-morph-plugin.jar"
     assert main_path.exists()
     version_path = morpheus / "state" / "version.json"
     assert version_path.exists()
