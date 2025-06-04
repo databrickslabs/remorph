@@ -126,8 +126,8 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
     mermaid: {
-      theme: {light: 'grey', dark: 'dark'},
-      },
+      theme: {light: 'neutral', dark: 'dark'},
+    },
     zoom: {
       selector: 'article img',
       background: {
