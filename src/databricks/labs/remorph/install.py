@@ -68,18 +68,6 @@ class TranspilerInstaller(abc.ABC):
         return cls.labs_path() / "remorph-transpilers"
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
-        installer = WheelInstaller(product_name, pypi_name, artifact)
-        return installer.install()
-
-    @classmethod
-    def install_from_maven(
-        cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None
-    ) -> Path | None:
-        installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
-        return installer.install()
-
-    @classmethod
     def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
         product_path = (cls.transpilers_path() if is_transpiler else cls.labs_path()) / product_name
         current_version_path = product_path / "state" / "version.json"
