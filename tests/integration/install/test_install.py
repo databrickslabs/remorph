@@ -187,7 +187,7 @@ async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", bladerunner_artifact)
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin", bladerunner_artifact)
     # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
@@ -203,7 +203,8 @@ async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
                 source_dialect="oracle",
                 input_source=input_source,
                 output_folder=output_folder,
-                skip_validation=True,
+                sdk_config={"cluster_id": "test_cluster"},
+                skip_validation=False,
                 catalog_name="catalog",
                 schema_name="schema",
             )
