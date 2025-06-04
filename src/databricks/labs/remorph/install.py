@@ -262,6 +262,12 @@ class WheelInstaller(TranspilerInstaller):
             completed = run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
             if completed.returncode:
                 logger.error(f"Failed to create venv, error code: {completed.returncode}")
+                if completed.stdout:
+                    for line in completed.stdout:
+                        logger.error(line)
+                if completed.stderr:
+                    for line in completed.stderr:
+                        logger.error(line)
             completed.check_returncode()
             self._site_packages = self._locate_site_packages()
         finally:
