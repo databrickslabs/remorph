@@ -7,8 +7,8 @@ from databricks.labs.remorph.install import TranspilerInstaller
 from databricks.labs.remorph.transpiler.execute import transpile
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
-
 logger = logging.getLogger(__name__)
+
 
 async def test_transpiles_informatica_with_sparksql(ws, blade_runner_artifact):
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", blade_runner_artifact)
@@ -29,5 +29,3 @@ async def test_transpiles_informatica_with_sparksql(ws, blade_runner_artifact):
         )
         result = await transpile(ws, lsp_engine, transpile_config)
         logger.info(result)
-
-
