@@ -228,9 +228,9 @@ class WheelInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir(parents=True)
+        self._product_path.mkdir(parents=True, exist_ok=True)
         self._install_path = self._product_path / "lib"
-        self._install_path.mkdir()
+        self._install_path.mkdir(exist_ok=True)
         try:
             result = self._unsafe_install_latest_version(version)
             logger.info(f"Successfully installed {self._pypi_name} v{version}")
