@@ -196,7 +196,7 @@ async def test_installs_and_runs_local_bladerunner():
         / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
     )
     assert artifact.exists()
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin", artifact)
     # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
@@ -240,7 +240,7 @@ async def test_installs_and_runs_local_morpheus():
         / "databricks-morph-plugin-0.4.0.jar"
     )
     assert artifact.exists()
-    TranspilerInstaller.install_from_maven("morpheus", "com.databricks-labs", "databricks-morph-plugin", artifact)
+    TranspilerInstaller.install_from_maven("morpheus", "com.databricks.labs", "databricks-morph-plugin", artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     config_path = morpheus / "lib" / "config.yml"
