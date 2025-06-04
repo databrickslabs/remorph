@@ -102,7 +102,7 @@ def mock_credentials():
 @pytest.fixture
 def bladerunner_artifact() -> Path:
     artifact = (
-        Path(__file__).parent.parent
+        Path(__file__).parent
         / "resources"
         / "transpiler_configs"
         / "bladerunner"
@@ -116,7 +116,7 @@ def bladerunner_artifact() -> Path:
 @pytest.fixture
 def morpheus_artifact() -> Path:
     artifact = (
-        Path(__file__).parent.parent.parent
+        Path(__file__).parent.parent
         / "resources"
         / "transpiler_configs"
         / "morpheus"
