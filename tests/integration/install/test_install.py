@@ -183,20 +183,11 @@ async def test_installs_and_runs_local_rct():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_local_bladerunner():
+async def test_installs_and_runs_local_bladerunner(blade_runner_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    artifact = (
-        Path(__file__).parent.parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "bladerunner"
-        / "wheel"
-        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
-    )
-    assert artifact.exists()
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", blade_runner_artifact)
     # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     config_path = bladerunner / "lib" / "config.yml"
@@ -226,20 +217,11 @@ async def test_installs_and_runs_local_bladerunner():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_local_morpheus():
+async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    artifact = (
-        Path(__file__).parent.parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "morpheus"
-        / "jar"
-        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
-    )
-    assert artifact.exists()
-    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", artifact)
+    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", morpheus_artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     config_path = morpheus / "lib" / "config.yml"

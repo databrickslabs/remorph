@@ -10,17 +10,8 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 logger = logging.getLogger(__name__)
 
-async def test_transpiles_informatica_with_sparksql(ws):
-    artifact = (
-        Path(__file__).parent.parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "bladerunner"
-        / "wheel"
-        / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
-    )
-    assert artifact.exists()
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
+async def test_transpiles_informatica_with_sparksql(ws, blade_runner_artifact):
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", blade_runner_artifact)
     # check execution
     config_path = TranspilerInstaller.transpilers_path() / "bladerunner" / "lib" / "config.yml"
     lsp_engine = LSPEngine.from_config_path(config_path)
