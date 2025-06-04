@@ -17,7 +17,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installation import Installation, JsonValue
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
@@ -32,7 +32,6 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
     LSPConfigOptionV1,
-    LSPPromptMethod,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
@@ -48,6 +47,14 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
+    def labs_path(cls) -> Path:
+        return Path.home() / ".databricks" / "labs"
+
+    @classmethod
+    def transpilers_path(cls) -> Path:
+        return cls.labs_path() / "remorph-transpilers"
+
+    @classmethod
     def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
         installer = PypiInstaller(product_name, pypi_name)
         return installer.install()
@@ -56,14 +63,6 @@ class TranspilerInstaller(abc.ABC):
     def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str) -> Path | None:
         installer = MavenInstaller(product_name, group_id, artifact_id)
         return installer.install()
-
-    @classmethod
-    def labs_path(cls) -> Path:
-        return Path.home() / ".databricks" / "labs"
-
-    @classmethod
-    def transpilers_path(cls) -> Path:
-        return cls.labs_path() / "remorph-transpilers"
 
     @classmethod
     def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
@@ -112,7 +111,7 @@ class TranspilerInstaller(abc.ABC):
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
             return []  # gracefully returns an empty list, since this can only happen during testing
-        return config.options.get(source_dialect, config.options.get("all", []))
+        return config.options_for_dialect(source_dialect)
 
     @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
@@ -614,9 +613,11 @@ class WorkspaceInstaller:
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options: dict[str, Any] | None = None
-        if transpiler_name and source_dialect:
-            transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
+        transpiler_options: dict[str, JsonValue] | None = None
+        if transpiler_config_path:
+            transpiler_options = self._prompt_for_transpiler_options(
+                cast(str, transpiler_name), cast(str, source_dialect)
+            )
         input_source: str | None = self._prompts.question(
             "Enter input SQL path (directory/file)", default=install_later
         )
@@ -642,19 +643,7 @@ class WorkspaceInstaller:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
         if len(config_options) == 0:
             return None
-        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
-
-    def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
-        if config_option.method == LSPPromptMethod.FORCE:
-            return config_option.default
-        if config_option.method == LSPPromptMethod.CONFIRM:
-            return self._prompts.confirm(config_option.prompt)
-        if config_option.method == LSPPromptMethod.QUESTION:
-            default = config_option.default if config_option.default else "None"
-            return self._prompts.question(config_option.prompt, default=default)
-        if config_option.method == LSPPromptMethod.CHOICE:
-            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
-        raise ValueError(f"Unsupported prompt method: {config_option.method}")
+        return {option.flag: option.prompt_for_value(self._prompts) for option in config_options}
 
     def _configure_catalog(
         self,
