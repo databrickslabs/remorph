@@ -91,19 +91,19 @@ def execute():
                     mode = "append"
 
             # Activity Extract:
-            # table_name = "sessions"
-            # prev_max_login_time = get_max_column_value_duckdb("login_time", table_name, db_path)
-            # session_query = SynapseQueries.list_sessions(prev_max_login_time)
+            table_name = "sessions"
+            prev_max_login_time = get_max_column_value_duckdb("login_time", table_name, db_path)
+            session_query = SynapseQueries.list_sessions(prev_max_login_time)
 
-            # session_result = connection.execute(text(session_query))
-            # save_resultset_to_db(session_result, table_name, db_path, mode="append")
+            session_result = connection.execute(text(session_query))
+            save_resultset_to_db(session_result, table_name, db_path, mode="append")
 
-            # table_name = "session_request"
-            # prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
-            # session_request_query = SynapseQueries.list_requests(prev_max_end_time)
+            table_name = "session_request"
+            prev_max_end_time = get_max_column_value_duckdb("end_time", table_name, db_path)
+            session_request_query = SynapseQueries.list_requests(prev_max_end_time)
 
-            # session_request_result = connection.execute(text(session_request_query))
-            # save_resultset_to_db(session_request_result, table_name, db_path, mode="append")
+            session_request_result = connection.execute(text(session_request_query))
+            save_resultset_to_db(session_request_result, table_name, db_path, mode="append")
 
             table_name = "serverless_query_stats"
             max_last_execution_time = get_max_column_value_duckdb("last_execution_time", table_name, db_path)
