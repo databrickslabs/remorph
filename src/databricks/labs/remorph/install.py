@@ -92,6 +92,7 @@ class TranspilerInstaller(abc.ABC):
         group = match.group(0)
         if not group:
             return None
+        # TODO: Update the regex to take care of these trimming scenarios.
         if group.startswith('-'):
             group = group[1:]
         if group.endswith("-py3"):
