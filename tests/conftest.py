@@ -213,7 +213,8 @@ def report_tables_schema():
 @pytest.fixture
 def bladerunner_artifact() -> Path:
     artifact = (
-        Path("resources")
+        Path(__file__).parent
+        / "resources"
         / "transpiler_configs"
         / "bladerunner"
         / "wheel"
@@ -226,7 +227,8 @@ def bladerunner_artifact() -> Path:
 @pytest.fixture
 def morpheus_artifact() -> Path:
     artifact = (
-        Path("resources")
+        Path(__file__).parent
+        / "resources"
         / "transpiler_configs"
         / "morpheus"
         / "jar"
