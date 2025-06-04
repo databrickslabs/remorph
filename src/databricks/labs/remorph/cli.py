@@ -283,7 +283,7 @@ def configure_secrets(w: WorkspaceClient):
 
 
 @remorph.command(is_unauthenticated=True)
-def install_assessment():
+def configure_database_profiler():
     """[Experimental] Install the Remorph Assessment package"""
     prompts = Prompts()
 

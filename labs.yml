@@ -49,30 +49,13 @@ commands:
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
   - name: aggregates-reconcile
     description: Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared between source and target data residing on Databricks.
-  - name: generate-lineage
-    description: "[INTERNAL] Utility to generate a lineage of the SQL files"
-    flags:
-      - name: transpiler-config-path
-        description: Path to the transpiler configuration file
-        default: sqlglot
-      - name: source-dialect
-        description: Dialect name
-        default: None
-      - name: input-source
-        description: Input SQL Folder or File
-      - name: output-folder
-        description: Directory to store the generated lineage file
-  - name: configure-secrets
-    description: Utility to setup Scope and Secrets on Databricks Workspace
-  - name: debug-me
-    description: "[INTERNAL] Debug SDK connectivity"
-  - name: install-assessment
-    description: "Install Assessment"
+  - name: configure-database-profiler
+    description: "Configure Database Profiler"
   - name: install-transpile
-    description: "Install Transpile"
+    description: "Install Necessary Transpiler Dependencies"
     flags:
       - name: artifact
         description: Local path to transpiler artifact
         default: null
   - name: install-reconcile
-    description: "Install Reconcile"
+    description: "Install Necessary Reconcile Dependencies"
