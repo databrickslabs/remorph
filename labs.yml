@@ -72,5 +72,9 @@ commands:
     description: "Install Assessment"
   - name: install-transpile
     description: "Install Transpile"
+    flags:
+      - name: artifact
+        description: Local path to transpiler artifact
+        default: null
   - name: install-reconcile
     description: "Install Reconcile"
