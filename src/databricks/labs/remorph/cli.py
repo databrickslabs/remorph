@@ -124,7 +124,9 @@ def transpile(
     checker.check_catalog_name(catalog_name)
     checker.check_schema_name(schema_name)
     config, engine = checker.check()
-    asyncio.run(_transpile(ctx, config, engine))
+    result = asyncio.run(_transpile(ctx, config, engine))
+    # DO NOT Modify this print statement, it is used by the CLI to display results in GO Table Template
+    print(json.dumps(result))
 
 
 class _TranspileConfigChecker:
@@ -311,7 +313,8 @@ async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: T
         logger.error(f"Error Transpiling: {str(error)}")
 
     # Table Template in labs.yml requires the status to be list of dicts Do not change this
-    print(json.dumps([status]))
+    logger.info(f"Remorph Transpiler encountered {len(status)} from given {config.input_source} files.")
+    return [status]
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
