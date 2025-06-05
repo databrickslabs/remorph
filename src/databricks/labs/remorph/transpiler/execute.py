@@ -257,7 +257,7 @@ async def _do_transpile(
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
 
-    # TODO: Refactor this so that errors are written while processing files instead of waiting until the end.
+    # TODO: Refactor this so that errors are written while transpiling instead of waiting until the end.
     if result.error_list and config.error_path is not None:
         with config.error_path.open("a", encoding="utf-8") as e:
             e.writelines(f"{err}\n" for err in result.error_list)
