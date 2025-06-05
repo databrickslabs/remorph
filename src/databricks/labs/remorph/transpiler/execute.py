@@ -47,7 +47,6 @@ class TranspilingContext:
     output_path: Path | None = None
     source_code: str | None = None
     transpiled_code: str | None = None
-    error_list: list[TranspileError] = dataclasses.field(default_factory=list)
 
 
 async def _process_one_file(context: TranspilingContext) -> tuple[int, list[TranspileError]]:
@@ -80,25 +79,25 @@ async def _process_one_file(context: TranspilingContext) -> tuple[int, list[Tran
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Finished transpiling file: {context.input_path} (result: {transpile_result})")
 
-    context.error_list.extend(transpile_result.error_list)
+    error_list = list(transpile_result.error_list)
     context = dataclasses.replace(context, transpiled_code=transpile_result.transpiled_code)
 
     output_path = cast(Path, context.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if _is_combined_result(transpile_result):
-        _process_combined_result(context)
+        _process_combined_result(context, error_list)
     else:
-        _process_single_result(context)
+        _process_single_result(context, error_list)
 
-    return transpile_result.success_count, context.error_list
+    return transpile_result.success_count, error_list
 
 
 def _is_combined_result(result: TranspileResult):
     return result.transpiled_code.startswith("Content-Type: multipart/mixed; boundary=")
 
 
-def _process_combined_result(context: TranspilingContext) -> None:
+def _process_combined_result(context: TranspilingContext, _error_list: list[TranspileError]) -> None:
     # TODO error handling
     parser = EmailParser()
     transpiled_code: str = cast(str, context.transpiled_code)
@@ -123,14 +122,14 @@ def _process_combined_part(context: TranspilingContext, part: Message) -> None:
     output.write_text(content, "utf-8")
 
 
-def _process_single_result(context: TranspilingContext) -> None:
+def _process_single_result(context: TranspilingContext, error_list: list[TranspileError]) -> None:
 
     output_code: str = context.transpiled_code or ""
 
-    if any(err.kind == ErrorKind.PARSING for err in context.error_list):
+    if any(err.kind == ErrorKind.PARSING for err in error_list):
         output_code = context.source_code or ""
 
-    if context.error_list:
+    if error_list:
         with_line_numbers = ""
         lines = output_code.split("\n")
         line_number_width = math.floor(math.log(len(lines), 10)) + 1
@@ -153,15 +152,15 @@ def _process_single_result(context: TranspilingContext) -> None:
                 context.input_path,
                 validation_result.exception_msg,
             )
-            context.error_list.append(error)
+            error_list.append(error)
         output_code = validation_result.validated_sql
 
     output_path = cast(Path, context.output_path)
     with output_path.open("w") as w:
-        w.write(_make_header(context.input_path, context.error_list))
+        w.write(_make_header(context.input_path, error_list))
         w.write(output_code)
 
-    logger.info(f"Processed file: {context.input_path} (errors: {len(context.error_list)})")
+    logger.info(f"Processed file: {context.input_path} (errors: {len(error_list)})")
 
 
 def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
@@ -234,7 +233,7 @@ async def _process_many_files(
         if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
-        context = dataclasses.replace(context, output_path=output_folder / file.name)
+        context = dataclasses.replace(context, input_path=file, output_path=output_folder / file.name)
         success_count, error_list = await _process_one_file(context)
         counter = counter + success_count
         all_errors.extend(error_list)
