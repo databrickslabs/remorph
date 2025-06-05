@@ -18,7 +18,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installation import Installation, JsonValue
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
@@ -33,7 +33,6 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
     LSPConfigOptionV1,
-    LSPPromptMethod,
 )
 
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
@@ -49,6 +48,14 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
+    def labs_path(cls) -> Path:
+        return Path.home() / ".databricks" / "labs"
+
+    @classmethod
+    def transpilers_path(cls) -> Path:
+        return cls.labs_path() / "remorph-transpilers"
+
+    @classmethod
     def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
         installer = WheelInstaller(product_name, pypi_name, artifact)
         return installer.install()
@@ -59,14 +66,6 @@ class TranspilerInstaller(abc.ABC):
     ) -> Path | None:
         installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
         return installer.install()
-
-    @classmethod
-    def labs_path(cls) -> Path:
-        return Path.home() / ".databricks" / "labs"
-
-    @classmethod
-    def transpilers_path(cls) -> Path:
-        return cls.labs_path() / "remorph-transpilers"
 
     @classmethod
     def get_installed_version(cls, product_name: str, is_transpiler=True) -> str | None:
@@ -133,7 +132,7 @@ class TranspilerInstaller(abc.ABC):
         config = cls.all_transpiler_configs().get(transpiler_name, None)
         if not config:
             return []  # gracefully returns an empty list, since this can only happen during testing
-        return config.options.get(source_dialect, config.options.get("all", []))
+        return config.options_for_dialect(source_dialect)
 
     @classmethod
     def _all_transpiler_configs(cls) -> Iterable[LSPConfig]:
@@ -229,9 +228,9 @@ class WheelInstaller(TranspilerInstaller):
         backup_path = Path(f"{self._product_path!s}-saved")
         if self._product_path.exists():
             os.rename(self._product_path, backup_path)
-        self._product_path.mkdir(parents=True)
+        self._product_path.mkdir(parents=True, exist_ok=True)
         self._install_path = self._product_path / "lib"
-        self._install_path.mkdir()
+        self._install_path.mkdir(exist_ok=True)
         try:
             result = self._unsafe_install_latest_version(version)
             logger.info(f"Successfully installed {self._pypi_name} v{version}")
@@ -252,18 +251,30 @@ class WheelInstaller(TranspilerInstaller):
         return self._post_install(version)
 
     def _create_venv(self) -> None:
-        self._venv = self._install_path / ".venv"
         cwd = os.getcwd()
         try:
-            os.chdir(self._install_path)
-            # using the venv module doesn't work (maybe it's not possible to create a venv from a venv ?)
-            # so falling back to something that works
-            # for some reason this requires shell=True, so pass full cmd line
-            cmd_line = f"{sys.executable} -m venv .venv"
-            run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=True)
-            self._site_packages = self._locate_site_packages()
+            self._unsafe_create_venv()
         finally:
             os.chdir(cwd)
+
+    def _unsafe_create_venv(self) -> None:
+        os.chdir(self._install_path)
+        # using the venv module doesn't work (maybe it's not possible to create a venv from a venv ?)
+        # so falling back to something that works
+        # for some reason this requires shell=True, so pass full cmd line
+        cmd_line = f"{sys.executable} -m venv .venv"
+        completed = run(cmd_line, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+        if completed.returncode:
+            logger.error(f"Failed to create venv, error code: {completed.returncode}")
+            if completed.stdout:
+                for line in completed.stdout:
+                    logger.error(line)
+            if completed.stderr:
+                for line in completed.stderr:
+                    logger.error(line)
+        completed.check_returncode()
+        self._venv = self._install_path / ".venv"
+        self._site_packages = self._locate_site_packages()
 
     def _locate_site_packages(self) -> Path:
         # can't use sysconfig because it only works for currently running python
@@ -470,7 +481,7 @@ class MavenInstaller(TranspilerInstaller):
                     rmtree(backup_path)
                 return self._product_path
         except (KeyError, ValueError) as e:
-            logger.error(f"Failed to install {self._product_name} v{version}", exc_info=e)
+            logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}", exc_info=e)
         rmtree(self._product_path)
         if backup_path.exists():
             os.rename(backup_path, self._product_path)
@@ -479,6 +490,7 @@ class MavenInstaller(TranspilerInstaller):
     def _unsafe_install_version(self, version: str) -> bool:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
         if self._artifact:
+            logger.debug(f"Copying '{self._artifact!s}' to '{jar_file_path!s}'")
             shutil.copyfile(self._artifact, jar_file_path)
         elif not self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path):
             logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
@@ -560,7 +572,7 @@ class WorkspaceInstaller:
         if not path.exists():
             logger.error(f"Could not locate artifact {artifact}")
             return
-        if "morpheus-lsp" in path.name:
+        if "databricks-morph-plugin" in path.name:
             cls.install_morpheus(path)
         elif "databricks_bb_plugin" in path.name:
             cls.install_bladerunner(path)
@@ -681,9 +693,11 @@ class WorkspaceInstaller:
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
-        transpiler_options: dict[str, Any] | None = None
-        if transpiler_name and source_dialect:
-            transpiler_options = self._prompt_for_transpiler_options(transpiler_name, source_dialect)
+        transpiler_options: dict[str, JsonValue] | None = None
+        if transpiler_config_path:
+            transpiler_options = self._prompt_for_transpiler_options(
+                cast(str, transpiler_name), cast(str, source_dialect)
+            )
         input_source: str | None = self._prompts.question(
             "Enter input SQL path (directory/file)", default=install_later
         )
@@ -709,19 +723,7 @@ class WorkspaceInstaller:
         config_options = TranspilerInstaller.transpiler_config_options(transpiler_name, source_dialect)
         if len(config_options) == 0:
             return None
-        return {cfg.flag: self._prompt_for_transpiler_option(cfg) for cfg in config_options}
-
-    def _prompt_for_transpiler_option(self, config_option: LSPConfigOptionV1) -> Any:
-        if config_option.method == LSPPromptMethod.FORCE:
-            return config_option.default
-        if config_option.method == LSPPromptMethod.CONFIRM:
-            return self._prompts.confirm(config_option.prompt)
-        if config_option.method == LSPPromptMethod.QUESTION:
-            default = config_option.default if config_option.default else "None"
-            return self._prompts.question(config_option.prompt, default=default)
-        if config_option.method == LSPPromptMethod.CHOICE:
-            return self._prompts.choice(config_option.prompt, cast(list[str], config_option.choices))
-        raise ValueError(f"Unsupported prompt method: {config_option.method}")
+        return {option.flag: option.prompt_for_value(self._prompts) for option in config_options}
 
     def _configure_catalog(
         self,
