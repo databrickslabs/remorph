@@ -35,6 +35,7 @@ from pygls.lsp.client import BaseLanguageClient
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import LSPConfigOptionV1, TranspileConfig, TranspileResult
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
+from databricks.labs.remorph.helpers.file_utils import is_sql_file, is_dbt_project_file
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 from databricks.labs.remorph.transpiler.transpile_status import (
     CodePosition,
@@ -536,3 +537,20 @@ class LSPEngine(TranspileEngine):
         params = TranspileDocumentParams(uri=file_path.as_uri(), language_id=LanguageKind.Sql)
         result = await self._client.transpile_document_async(params)
         return result
+
+    # TODO infer the below from config file
+    def is_supported_file(self, file: Path) -> bool:
+        if self._is_blade_runner():
+            return True
+        if self._is_morpheus():
+            return is_sql_file(file) or is_dbt_project_file(file)
+        # then only support sql
+        return is_sql_file(file)
+
+    # TODO remove this
+    def _is_blade_runner(self):
+        return self._config.remorph.name == "Bladerunner"
+
+    # TODO remove this
+    def _is_morpheus(self):
+        return self._config.remorph.name == "Morpheus"
