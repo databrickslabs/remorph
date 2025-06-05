@@ -7,4 +7,4 @@ remorph:
   command_line:
     - java
     - '-jar'
-    - morpheus-lsp.jar
+    - databricks-morph-plugin.jar
