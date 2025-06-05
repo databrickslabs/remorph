@@ -44,3 +44,6 @@ class TranspileEngine(abc.ABC):
             raise ValueError(
                 f"Invalid value for '--source-dialect': '{source_dialect}' is not one of {self.supported_dialects}."
             )
+
+    @abc.abstractmethod
+    def is_supported_file(self, file: Path) -> bool: ...

@@ -13,6 +13,11 @@ def is_sql_file(file: str | Path) -> bool:
     return file_extension.lower() in {".sql", ".ddl"}
 
 
+def is_dbt_project_file(file: Path):
+    # it's ok to hardcode the file name here, see https://docs.getdbt.com/reference/dbt_project.yml
+    return file.name == "dbt_project.yml"
+
+
 def make_dir(path: str | Path) -> None:
     """
     Creates a directory at the specified path if it does not already exist.
