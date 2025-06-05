@@ -157,7 +157,8 @@ class _TranspileConfigChecker:
     def __init__(self, config: TranspileConfig | None) -> None:
         if config is None:
             # TODO: Remove this; it triggers an immediate exit from Python. Return gracefully instead.
-            raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+            msg = "Transpiler configuration not found; use 'install-transpile' first to install and configure."
+            raise SystemExit(msg)
         self._config = config
         self._engine = None
 
