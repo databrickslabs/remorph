@@ -177,6 +177,14 @@ h3 {
       background-size: 1.4rem 1.4rem;
     }
   }
+
+  .menu__link--sublist-caret {
+    &:after {
+      width: 1rem;
+      height: 1rem;
+      background-size: 1.4rem 1.4rem;
+    }
+  }
 }
 
 .dropdown>.navbar__link:after {
