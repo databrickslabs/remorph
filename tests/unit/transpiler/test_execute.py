@@ -25,7 +25,7 @@ from databricks.sdk.core import Config
 
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from unit.conftest import path_to_resource
+from tests.unit.conftest import path_to_resource
 
 
 # pylint: disable=unspecified-encoding
@@ -359,10 +359,11 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     check_error_lines(status["error_log_file"], expected_errors)
 
 
-
 def test_server_decombines_workflow_output(mock_workspace_client, lsp_engine, transpile_config):
     with TemporaryDirectory() as output_folder:
         input_path = Path(path_to_resource("lsp_transpiler", "workflow.xml"))
-        transpile_config = dataclasses.replace(transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True)
+        transpile_config = dataclasses.replace(
+            transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True
+        )
         _status, _errors = transpile(mock_workspace_client, lsp_engine, transpile_config)
         assert (Path(output_folder) / "Jobs").is_dir()
