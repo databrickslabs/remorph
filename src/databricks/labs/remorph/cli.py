@@ -113,7 +113,7 @@ def transpile(
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
-    print(f"{ctx.transpile_config!s}")
+    logger.debug(f"Application transpiler config: {ctx.transpile_config}")
     checker = _TranspileConfigChecker(ctx.transpile_config, ctx.prompts)
     checker.check_input_source(input_source)
     checker.check_source_dialect(source_dialect)
