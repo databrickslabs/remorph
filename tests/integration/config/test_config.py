@@ -32,7 +32,7 @@ def test_stores_and_fetches_config(ws):
         input_source="some_source",
         output_folder="some_output",
         error_file_path="some_file",
-        transpiler_options={"b": "c"},
+        transpiler_options={"b": "c", "tech-target": "PYSPARK"},
         sdk_config={"c": "d"},
         skip_validation=True,
         catalog_name="some_catalog",
