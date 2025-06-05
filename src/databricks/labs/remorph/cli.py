@@ -108,7 +108,7 @@ def transpile(
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
-    logger.debug(f"Application transpiler config: {ctx.transpile_config}")
+    logger.debug(f"Preconfigured transpiler config: {ctx.transpile_config!r}")
     checker = _TranspileConfigChecker(ctx.transpile_config)
     checker.use_transpiler_config_path(transpiler_config_path)
     checker.use_source_dialect(source_dialect)
@@ -119,6 +119,7 @@ def transpile(
     checker.use_catalog_name(catalog_name)
     checker.use_schema_name(schema_name)
     config, engine = checker.check()
+    logger.debug(f"Final configuration for transpilation: {config!r}")
     asyncio.run(_transpile(ctx, config, engine))
 
 
