@@ -57,7 +57,7 @@ commands:
         default: sqlglot
       - name: source-dialect
         description: Dialect name
-        default: None
+        default: null
       - name: input-source
         description: Input SQL Folder or File
       - name: output-folder

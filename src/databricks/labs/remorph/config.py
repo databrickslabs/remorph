@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, Literal
 
 from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
@@ -69,38 +69,39 @@ class TranspileConfig:
     transpiler_options: JsonValue = None
 
     @property
-    def transpiler_path(self):
+    def transpiler_path(self) -> Path:
         return Path(self.transpiler_config_path)
 
     @property
-    def input_path(self):
+    def input_path(self) -> Path:
         if self.input_source is None:
             raise ValueError("Missing input source!")
         return Path(self.input_source)
 
     @property
-    def output_path(self):
+    def output_path(self) -> Path | None:
         return None if self.output_folder is None else Path(self.output_folder)
 
     @property
-    def error_path(self):
+    def error_path(self) -> Path | None:
         return Path(self.error_file_path) if self.error_file_path else None
 
     @property
-    def target_dialect(self):
+    def target_dialect(self) -> Literal["databricks"]:
         return "databricks"
 
     @classmethod
-    def v1_migrate(cls, raw: dict) -> dict:
+    def v1_migrate(cls, raw: dict[str, Any]) -> dict[str, Any]:
         raw["version"] = 2
         return raw
 
     @classmethod
-    def v2_migrate(cls, raw: dict) -> dict:
+    def v2_migrate(cls, raw: dict[str, Any]) -> dict[str, Any]:
         del raw["mode"]
         key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
         raw["version"] = 3
         raw["error_file_path"] = "error_log.txt"
+        # TODO: This will trigger errors further down the line; something better should be done.
         raw["transpiler_config_path"] = "remorph_transpiler_config.yml"
         return {key_mapping.get(key, key): value for key, value in raw.items()}
 
