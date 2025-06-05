@@ -178,6 +178,9 @@ jobs:
   end-to-end:
 
     runs-on: ${{ matrix.runner }}
+    env: # this is a temporary hack
+      DATABRICKS_HOST: any
+      DATABRICKS_TOKEN: any
 
     strategy:
       matrix:

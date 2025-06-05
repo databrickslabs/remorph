@@ -1,3 +1,4 @@
+import re
 import abc
 import dataclasses
 import shutil
@@ -48,13 +49,15 @@ TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 class TranspilerInstaller(abc.ABC):
 
     @classmethod
-    def install_from_pypi(cls, product_name: str, pypi_name: str) -> Path | None:
-        installer = PypiInstaller(product_name, pypi_name)
+    def install_from_pypi(cls, product_name: str, pypi_name: str, artifact: Path | None = None) -> Path | None:
+        installer = WheelInstaller(product_name, pypi_name, artifact)
         return installer.install()
 
     @classmethod
-    def install_from_maven(cls, product_name: str, group_id: str, artifact_id: str) -> Path | None:
-        installer = MavenInstaller(product_name, group_id, artifact_id)
+    def install_from_maven(
+        cls, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None
+    ) -> Path | None:
+        installer = MavenInstaller(product_name, group_id, artifact_id, artifact)
         return installer.install()
 
     @classmethod
@@ -77,6 +80,24 @@ class TranspilerInstaller(abc.ABC):
         if not version or not version.startswith("v"):
             return None
         return version[1:]
+
+    _version_pattern = re.compile(r"[_-](\d+(?:[.\-_]\w*\d+)+)")
+
+    @classmethod
+    def get_local_artifact_version(cls, artifact: Path) -> str | None:
+        # TODO: Get the version from the metadata inside the artifact rather than relying on the filename.
+        match = cls._version_pattern.search(artifact.stem)
+        if not match:
+            return None
+        group = match.group(0)
+        if not group:
+            return None
+        # TODO: Update the regex to take care of these trimming scenarios.
+        if group.startswith('-'):
+            group = group[1:]
+        if group.endswith("-py3"):
+            group = group[:-4]
+        return group
 
     @classmethod
     def all_transpiler_configs(cls) -> dict[str, LSPConfig]:
@@ -148,10 +169,10 @@ class TranspilerInstaller(abc.ABC):
             f.write("\n")
 
 
-class PypiInstaller(TranspilerInstaller):
+class WheelInstaller(TranspilerInstaller):
 
     @classmethod
-    def get_pypi_artifact_version(cls, product_name: str) -> str | None:
+    def get_latest_artifact_version_from_pypi(cls, product_name: str) -> str | None:
         try:
             with request.urlopen(f"https://pypi.org/pypi/{product_name}/json") as server:
                 text: bytes = server.read()
@@ -177,15 +198,20 @@ class PypiInstaller(TranspilerInstaller):
             logger.error("While downloading from pypi", exc_info=e)
             return -1
 
-    def __init__(self, product_name: str, pypi_name: str):
+    def __init__(self, product_name: str, pypi_name: str, artifact: Path | None = None):
         self._product_name = product_name
         self._pypi_name = pypi_name
+        self._artifact = artifact
 
     def install(self) -> Path | None:
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        latest_version = self.get_pypi_artifact_version(self._pypi_name)
+        latest_version = (
+            self.get_local_artifact_version(self._artifact)
+            if self._artifact
+            else self.get_latest_artifact_version_from_pypi(self._pypi_name)
+        )
         if latest_version is None:
             logger.warning(f"Could not determine the latest version of {self._pypi_name}")
             logger.error(f"Failed to install transpiler: {self._product_name}")
@@ -221,7 +247,7 @@ class PypiInstaller(TranspilerInstaller):
 
     def _unsafe_install_latest_version(self, version: str) -> Path | None:
         self._create_venv()
-        self._install_from_pip()
+        self._install_with_pip()
         self._copy_lsp_resources()
         return self._post_install(version)
 
@@ -260,19 +286,43 @@ class PypiInstaller(TranspilerInstaller):
                     return packages
         raise ValueError(f"Could not locate 'site-packages' for {self._venv!s}")
 
-    def _install_from_pip(self) -> None:
-        pip = self._locate_pip()
+    def _install_with_pip(self) -> None:
         cwd = os.getcwd()
         try:
             os.chdir(self._install_path)
-            pip = pip.relative_to(self._install_path)
-            target = self._site_packages.relative_to(self._install_path)
-            args = [str(pip), "install", self._pypi_name, "-t", str(target)]
-            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
-            # checking return code later makes debugging easier
-            completed.check_returncode()
+            # the way to call pip from python is highly sensitive to os and source type
+            if self._artifact:
+                self._install_local_artifact()
+            else:
+                self._install_remote_artifact()
         finally:
             os.chdir(cwd)
+
+    def _install_local_artifact(self) -> None:
+        pip = self._locate_pip()
+        pip = pip.relative_to(self._install_path)
+        target = self._site_packages.relative_to(self._install_path)
+        if sys.platform == "win32":
+            command = f"{pip!s} install {self._artifact!s} -t {target!s}"
+            completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+        else:
+            command = f"'{pip!s}' install '{self._artifact!s}' -t '{target!s}'"
+            completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+        # checking return code later makes debugging easier
+        completed.check_returncode()
+
+    def _install_remote_artifact(self) -> None:
+        pip = self._locate_pip()
+        pip = pip.relative_to(self._install_path)
+        target = self._site_packages.relative_to(self._install_path)
+        if sys.platform == "win32":
+            args = [str(pip), "install", self._pypi_name, "-t", str(target)]
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
+        else:
+            args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
+            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+        # checking return code later makes debugging easier
+        completed.check_returncode()
 
     def _locate_pip(self) -> Path:
         return self._venv / "Scripts" / "pip3.exe" if sys.platform == "win32" else self._venv / "bin" / "pip3"
@@ -376,16 +426,20 @@ class MavenInstaller(TranspilerInstaller):
         logger.info(f"Successfully installed: {group_id}:{artifact_id}:{version}")
         return True
 
-    def __init__(self, product_name: str, group_id: str, artifact_id: str):
+    def __init__(self, product_name: str, group_id: str, artifact_id: str, artifact: Path | None = None):
         self._product_name = product_name
         self._group_id = group_id
         self._artifact_id = artifact_id
+        self._artifact = artifact
 
     def install(self) -> Path | None:
         return self._install_checking_versions()
 
     def _install_checking_versions(self) -> Path | None:
-        latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
+        if self._artifact:
+            latest_version = self.get_local_artifact_version(self._artifact)
+        else:
+            latest_version = self.get_current_maven_artifact_version(self._group_id, self._artifact_id)
         if latest_version is None:
             logger.warning(f"Could not determine the latest version of Databricks {self._product_name} transpiler")
             logger.error("Failed to install transpiler: Databricks {self._product_name} transpiler")
@@ -424,8 +478,9 @@ class MavenInstaller(TranspilerInstaller):
 
     def _unsafe_install_version(self, version: str) -> bool:
         jar_file_path = self._install_path / f"{self._artifact_id}.jar"
-        success = self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path)
-        if not success:
+        if self._artifact:
+            shutil.copyfile(self._artifact, jar_file_path)
+        elif not self.download_artifact_from_maven(self._group_id, self._artifact_id, version, jar_file_path):
             logger.error(f"Failed to install Databricks {self._product_name} transpiler v{version}")
             return False
         self._copy_lsp_config(jar_file_path)
@@ -465,13 +520,11 @@ class WorkspaceInstaller:
             msg = "WorkspaceInstaller is not supposed to be executed in Databricks Runtime"
             raise SystemExit(msg)
 
-    def run(
-        self,
-        module: str,
-        config: RemorphConfigs | None = None,
-    ) -> RemorphConfigs:
+    def run(self, module: str, config: RemorphConfigs | None = None, artifact: str | None = None) -> RemorphConfigs:
         logger.debug(f"Initializing workspace installation for module: {module} (config: {config})")
-        if module in {"transpile", "all"}:
+        if module == "transpile" and artifact:
+            self.install_artifact(artifact)
+        elif module in {"transpile", "all"}:
             self.install_bladerunner()
             self.install_morpheus()
         if not config:
@@ -483,15 +536,15 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
-    def install_bladerunner(cls):
+    def install_bladerunner(cls, artifact: Path | None = None):
         local_name = "bladerunner"
         pypi_name = "databricks-bb-plugin"
-        TranspilerInstaller.install_from_pypi(local_name, pypi_name)
+        TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
     @classmethod
-    def install_morpheus(cls):
+    def install_morpheus(cls, artifact: Path | None = None):
         java_version = cls.get_java_version()
-        if java_version < 110:
+        if java_version is None or java_version < 110:
             logger.warning(
                 "This software requires Java 11 or above. Please install Java and re-run 'install-transpile'."
             )
@@ -499,7 +552,20 @@ class WorkspaceInstaller:
         product_name = "databricks-morph-plugin"
         group_id = "com.databricks.labs"
         artifact_id = product_name
-        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id)
+        TranspilerInstaller.install_from_maven(product_name, group_id, artifact_id, artifact)
+
+    @classmethod
+    def install_artifact(cls, artifact: str):
+        path = Path(artifact)
+        if not path.exists():
+            logger.error(f"Could not locate artifact {artifact}")
+            return
+        if "morpheus-lsp" in path.name:
+            cls.install_morpheus(path)
+        elif "databricks_bb_plugin" in path.name:
+            cls.install_bladerunner(path)
+        else:
+            logger.fatal(f"Cannot install unsupported artifact: {artifact}")
 
     @classmethod
     def get_java_version(cls) -> int | None:
@@ -611,6 +677,7 @@ class WorkspaceInstaller:
                     transpiler_name = None
             else:
                 transpiler_name = next(t for t in transpilers)
+                # TODO Change name for bladerunner
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
