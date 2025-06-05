@@ -176,11 +176,12 @@ class _TranspileConfigChecker:
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
         logger.debug(f"Checking config: {self!s}")
         # not using os.path.exists because it sometimes fails mysteriously...
-        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
+        transpiler_path = self._config.transpiler_path
+        if not transpiler_path or not transpiler_path.exists():
             raise_validation_exception(
                 f"Invalid value for '--transpiler-config-path': Path '{self._config.transpiler_config_path}' does not exist."
             )
-        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
+        engine = TranspileEngine.load_engine(transpiler_path)
         engine.check_source_dialect(self._config.source_dialect)
         if not self._config.input_source or not os.path.exists(self._config.input_source):
             raise_validation_exception(

@@ -57,7 +57,7 @@ class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 3
 
-    transpiler_config_path: str
+    transpiler_config_path: str | None = None
     source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
@@ -69,8 +69,8 @@ class TranspileConfig:
     transpiler_options: JsonValue = None
 
     @property
-    def transpiler_path(self):
-        return Path(self.transpiler_config_path)
+    def transpiler_path(self) -> Path | None:
+        return Path(self.transpiler_config_path) if self.transpiler_config_path is not None else None
 
     @property
     def input_path(self):
