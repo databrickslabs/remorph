@@ -4,6 +4,7 @@ import logging
 import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from time import sleep
 import pytest
 
@@ -219,3 +220,16 @@ async def test_client_translates_diagnostics(lsp_engine, transpile_config, resou
     await lsp_engine.shutdown()
     actual = [dataclasses.replace(error, path=Path(error.path.name), range=None) for error in result.error_list]
     assert actual == errors
+
+
+async def test_server_transpiles_workflow(lsp_engine, transpile_config):
+    with TemporaryDirectory() as output_folder:
+        transpile_config = dataclasses.replace(transpile_config, output_folder=output_folder)
+        sample_path = Path(path_to_resource("lsp_transpiler", "workflow.xml"))
+        await lsp_engine.initialize(transpile_config)
+        result = await lsp_engine.transpile(
+            transpile_config.source_dialect, "databricks", sample_path.read_text(encoding="utf-8"), sample_path
+        )
+        await lsp_engine.shutdown()
+        transpiled_path = Path(path_to_resource("lsp_transpiler", "transpiled_stuff.sql"))
+        assert result.transpiled_code == transpiled_path.read_text(encoding="utf-8")
