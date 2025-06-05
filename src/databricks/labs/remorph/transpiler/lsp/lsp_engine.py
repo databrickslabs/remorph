@@ -84,6 +84,9 @@ class LSPConfig:
     def name(self):
         return self.remorph.name
 
+    def options_for_dialect(self, source_dialect: str) -> list[LSPConfigOptionV1]:
+        return self.options.get("all", []) + self.options.get(source_dialect, [])
+
     @classmethod
     def load(cls, path: Path) -> LSPConfig:
         yaml_text = path.read_text()
@@ -419,6 +422,7 @@ class LSPEngine(TranspileEngine):
             workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
+        logger.debug(f"LSP init params: {params}")
         self._init_response = await self._client.initialize_async(params)
 
     async def _start_server(self):

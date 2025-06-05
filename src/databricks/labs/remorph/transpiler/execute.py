@@ -246,7 +246,7 @@ async def _do_transpile(
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
-    logger.debug(f"Transpiler results: {result}")
+    logger.info(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
@@ -282,7 +282,7 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
     """
 
     # Using reflection to set right value for _product_info for telemetry
-    product_info = getattr(workspace_client.config, '_product_info')
+    product_info = getattr(workspace_client.config, '_product_info', (None, None))
     if product_info[0] != "remorph":
         setattr(workspace_client.config, '_product_info', ('remorph', __version__))
 
