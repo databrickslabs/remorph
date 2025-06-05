@@ -396,7 +396,7 @@ def configure_secrets(w: WorkspaceClient):
 
 
 @remorph.command(is_unauthenticated=True)
-def install_assessment():
+def configure_database_profiler():
     """[Experimental] Install the Remorph Assessment package"""
     prompts = Prompts()
 
@@ -421,9 +421,9 @@ def install_transpile(w: WorkspaceClient, artifact: str | None = None):
 
 
 @remorph.command(is_unauthenticated=False)
-def install_reconcile(w: WorkspaceClient):
-    """Install the Remorph Reconcile package"""
-    with_user_agent_extra("cmd", "install-reconcile")
+def configure_reconcile(w: WorkspaceClient):
+    """Configure the Remorph Reconcile Package"""
+    with_user_agent_extra("cmd", "configure-reconcile")
     user = w.current_user
     logger.debug(f"User: {user}")
     dbsql_id = _create_warehouse(w)
