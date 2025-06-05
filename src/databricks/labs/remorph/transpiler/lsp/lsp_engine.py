@@ -493,8 +493,7 @@ class LSPEngine(TranspileEngine):
             "remorph": {
                 "source-dialect": config.source_dialect,
             },
-            "options": config.transpiler_options,
-            "custom": self._config.custom,
+            "custom": config.transpiler_options,
         }
 
     async def _await_for_transpile_capability(self):
