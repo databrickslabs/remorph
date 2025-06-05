@@ -257,16 +257,22 @@ def aggregates_reconcile(w: WorkspaceClient):
 
 
 @remorph.command
-def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
+def generate_lineage(w: WorkspaceClient, *, source_dialect: str | None = None, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
+    if not os.path.exists(input_source):
+        raise_validation_exception(f"Invalid path for '--input-source': Path '{input_source}' does not exist.")
+    if not os.path.exists(output_folder):
+        raise_validation_exception(f"Invalid path for '--output-folder': Path '{output_folder}' does not exist.")
+    if source_dialect is None:
+        raise_validation_exception("Value for '--source-dialect' must be provided.")
     engine = SqlglotEngine()
-    engine.check_source_dialect(source_dialect)
-    if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
-    if not os.path.exists(output_folder) or output_folder in {None, ""}:
-        raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
+    supported_dialects = engine.supported_dialects
+    if source_dialect not in supported_dialects:
+        supported_dialects_description = ", ".join(supported_dialects)
+        msg = f"Unsupported source dialect provided for '--source-dialect': '{source_dialect}' (supported: {supported_dialects_description})"
+        raise_validation_exception(msg)
 
     lineage_generator(engine, source_dialect, input_source, output_folder)
 
