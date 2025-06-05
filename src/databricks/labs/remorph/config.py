@@ -101,7 +101,6 @@ class TranspileConfig:
         key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
         raw["version"] = 3
         raw["error_file_path"] = "error_log.txt"
-        raw["transpiler_config_path"] = "remorph_transpiler_config.yml"
         return {key_mapping.get(key, key): value for key, value in raw.items()}
 
 
