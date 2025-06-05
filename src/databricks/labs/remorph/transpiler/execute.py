@@ -4,6 +4,7 @@ import logging
 import math
 from pathlib import Path
 from typing import cast, Any
+import itertools
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
@@ -15,7 +16,6 @@ from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
-    is_sql_file,
     make_dir,
 )
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
@@ -42,6 +42,16 @@ async def _process_one_file(
 ) -> tuple[int, list[TranspileError]]:
     logger.debug(f"Started processing file: {input_path}")
     error_list: list[TranspileError] = []
+
+    if not config.source_dialect:
+        error = TranspileError(
+            code="no-source-dialect-specified",
+            kind=ErrorKind.INTERNAL,
+            severity=ErrorSeverity.ERROR,
+            path=input_path,
+            message="No source dialect specified",
+        )
+        return 0, [error]
 
     with input_path.open("r") as f:
         source_code = remove_bom(f.read())
@@ -97,26 +107,40 @@ async def _process_one_file(
 
 
 def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
-    header = f"/*\n    Transpiled from {file_path}\n"
+    header = ""
     failed_producing_output = False
-    if errors:
+    diag_by_severity = {}
+
+    for severity, diags in itertools.groupby(errors, key=lambda x: x.severity):
+        diag_by_severity[severity] = list(diags)
+
+    if ErrorSeverity.ERROR in diag_by_severity:
+        header += f"/*\n    Failed transpilation of {file_path}\n"
         header += "\n    The following errors were found while transpiling:\n"
-        for diag in errors:
-            if diag.range:
-                line = diag.range.start.line + 1
-                column = (
-                    diag.range.start.character + 1 + 2
-                )  # + 1 to make it one-based, + 2 to take indentation into account
-                header += f"      - [{line}:{column}] {diag.message}\n"
-            else:
-                header += f"      - {diag.message}\n"
+        for diag in diag_by_severity[ErrorSeverity.ERROR]:
+            header += _append_diagnostic(diag)
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
+    else:
+        header += f"/*\n    Successfully transpiled from {file_path}\n"
+
+    if ErrorSeverity.WARNING in diag_by_severity:
+        header += "\n    The following warnings were found while transpiling:\n"
+        for diag in diag_by_severity[ErrorSeverity.WARNING]:
+            header += _append_diagnostic(diag)
 
     if failed_producing_output:
         header += "\n\n    Parsing errors prevented the converter from translating the input query.\n"
         header += "    We reproduce the input query unchanged below.\n\n"
 
     return header + "*/\n"
+
+
+def _append_diagnostic(diag: TranspileError) -> str:
+    if diag.range:
+        line = diag.range.start.line + 1
+        column = diag.range.start.character + 1 + 2  # + 1 to make it one-based, + 2 to take indentation into account
+        return f"      - [{line}:{column}] {diag.message}\n"
+    return f"      - {diag.message}\n"
 
 
 async def _process_many_files(
@@ -129,21 +153,17 @@ async def _process_many_files(
     counter = 0
     all_errors: list[TranspileError] = []
 
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
-        if not is_sql_file(file) and not is_dbt_project_file(file):
+        if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
         output_file_name = output_folder / file.name
         success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
         counter = counter + success_count
         all_errors.extend(error_list)
-
     return counter, all_errors
-
-
-def is_dbt_project_file(file: Path):
-    # it's ok to hardcode the file name here, see https://docs.getdbt.com/reference/dbt_project.yml
-    return file.name == "dbt_project.yml"
 
 
 async def _process_input_dir(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine):
@@ -158,7 +178,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
     for source_dir, _, files in dir_walk(input_path):
         relative_path = cast(Path, source_dir).relative_to(input_path)
         transpiled_dir = output_folder / relative_path
-        logger.debug(f"Transpiling sql files from folder: {source_dir!s} into {transpiled_dir!s}")
+        logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
         no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
         counter = counter + no_of_sqls
@@ -169,8 +189,8 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
 async def _process_input_file(
     config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine
 ) -> TranspileStatus:
-    if not is_sql_file(config.input_path):
-        msg = f"{config.input_source} is not a SQL file."
+    if not transpiler.is_supported_file(config.input_path):
+        msg = f"{config.input_source} is not a supported file."
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
@@ -191,6 +211,7 @@ async def transpile(
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
+    logger.info("Done transpiling.")
     return status, errors
 
 
@@ -225,7 +246,7 @@ async def _do_transpile(
         msg = f"{config.input_source} does not exist."
         logger.error(msg)
         raise FileNotFoundError(msg)
-    logger.debug(f"Transpiler results: {result}")
+    logger.info(f"Transpiler results: {result}")
 
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
@@ -261,7 +282,7 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
     """
 
     # Using reflection to set right value for _product_info for telemetry
-    product_info = getattr(workspace_client.config, '_product_info')
+    product_info = getattr(workspace_client.config, '_product_info', (None, None))
     if product_info[0] != "remorph":
         setattr(workspace_client.config, '_product_info', ('remorph', __version__))
 
@@ -294,7 +315,7 @@ def transpile_sql(
     engine: TranspileEngine = SqlglotEngine()
 
     transpiler_result = asyncio.run(
-        _transpile(engine, config.source_dialect, config.target_dialect, source_sql, Path("inline_sql"))
+        _transpile(engine, cast(str, config.source_dialect), config.target_dialect, source_sql, Path("inline_sql"))
     )
 
     if config.skip_validation:

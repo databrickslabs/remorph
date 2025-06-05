@@ -1,8 +1,10 @@
 import asyncio
+import dataclasses
 import json
 import os
 import time
 from pathlib import Path
+from typing import cast
 
 from databricks.sdk.core import with_user_agent_extra
 from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
@@ -10,23 +12,31 @@ from databricks.sdk import WorkspaceClient
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.blueprint.tui import Prompts
 
 from databricks.labs.bladespector.analyzer import Analyzer
 
+
+from databricks.labs.remorph.assessments.configure_assessment import (
+    create_assessment_configurator,
+    PROFILER_SOURCE_SYSTEM,
+)
+
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.assessments.configure_assessment import ConfigureAssessment
-from databricks.labs.remorph.config import TranspileConfig
-from databricks.labs.remorph.connections.credential_manager import create_credential_manager
-from databricks.labs.remorph.connections.env_getter import EnvGetter
+from databricks.labs.remorph.config import TranspileConfig, LSPConfigOptionV1
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
 from databricks.labs.remorph.install import WorkspaceInstaller
-from databricks.labs.remorph.lineage import lineage_generator
+from databricks.labs.remorph.install import TranspilerInstaller
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
+from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
+
+
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
 
@@ -91,58 +101,220 @@ def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
 @remorph.command
 def transpile(
     w: WorkspaceClient,
-    transpiler_config_path: str,
-    source_dialect: str,
-    input_source: str,
-    output_folder: str | None,
-    error_file_path: str | None,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+    transpiler_config_path: str | None = None,
+    source_dialect: str | None = None,
+    input_source: str | None = None,
+    output_folder: str | None = None,
+    error_file_path: str | None = None,
+    skip_validation: str | None = None,
+    catalog_name: str | None = None,
+    schema_name: str | None = None,
 ):
     """Transpiles source dialect to databricks dialect"""
-    with_user_agent_extra("cmd", "execute-transpile")
     ctx = ApplicationContext(w)
-    logger.debug(f"User: {ctx.current_user}")
-    default_config = ctx.transpile_config
-    if not default_config:
-        raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
-    _override_workspace_client_config(ctx, default_config.sdk_config)
-    engine = TranspileEngine.load_engine(Path(transpiler_config_path))
-    engine.check_source_dialect(source_dialect)
-    if not input_source or not os.path.exists(input_source):
-        raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
-    if not output_folder and default_config.output_folder:
-        output_folder = str(default_config.output_folder)
-    if not error_file_path and default_config.error_file_path:
-        error_file_path = str(default_config.error_file_path)
-    if skip_validation.lower() not in {"true", "false"}:
-        raise_validation_exception(
-            f"Invalid value for '--skip-validation': '{skip_validation}' is not one of 'true', 'false'."
-        )
+    logger.debug(f"Application transpiler config: {ctx.transpile_config}")
+    checker = _TranspileConfigChecker(ctx.transpile_config, ctx.prompts)
+    checker.check_input_source(input_source)
+    checker.check_source_dialect(source_dialect)
+    checker.check_transpiler_config_path(transpiler_config_path)
+    checker.check_transpiler_config_options()
+    checker.check_output_folder(output_folder)
+    checker.check_error_file_path(error_file_path)
+    checker.check_skip_validation(skip_validation)
+    checker.check_catalog_name(catalog_name)
+    checker.check_schema_name(schema_name)
+    config, engine = checker.check()
+    result = asyncio.run(_transpile(ctx, config, engine))
+    # DO NOT Modify this print statement, it is used by the CLI to display results in GO Table Template
+    print(json.dumps(result))
 
-    sdk_config = default_config.sdk_config if default_config.sdk_config else None
-    catalog_name = catalog_name if catalog_name else default_config.catalog_name
-    schema_name = schema_name if schema_name else default_config.schema_name
 
-    config = TranspileConfig(
-        transpiler_config_path=transpiler_config_path,
-        source_dialect=source_dialect.lower(),
-        input_source=input_source,
-        output_folder=output_folder,
-        error_file_path=error_file_path,
-        skip_validation=skip_validation.lower() == "true",  # convert to bool
-        catalog_name=catalog_name,
-        schema_name=schema_name,
-        sdk_config=sdk_config,
-    )
-    status, errors = asyncio.run(do_transpile(ctx.workspace_client, engine, config))
+class _TranspileConfigChecker:
 
+    def __init__(self, config: TranspileConfig | None, prompts: Prompts):
+        if not config:
+            raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+        self._config: TranspileConfig = config
+        self._prompts = prompts
+
+    def check_input_source(self, input_source: str | None):
+        if input_source == "None":
+            input_source = None
+        if not input_source:
+            input_source = self._config.input_source
+        if not input_source:
+            input_source = self._prompts.question("Enter input SQL path (directory/file)")
+        if not input_source:
+            raise_validation_exception("Missing '--input-source'")
+        if not os.path.exists(input_source):
+            raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
+        logger.debug(f"Setting input_source to '{input_source}'")
+        self._config = dataclasses.replace(self._config, input_source=input_source)
+
+    def check_source_dialect(self, source_dialect: str | None):
+        if source_dialect == "None":
+            source_dialect = None
+        if not source_dialect:
+            source_dialect = self._config.source_dialect
+        all_dialects = sorted(TranspilerInstaller.all_dialects())
+        if source_dialect and source_dialect not in all_dialects:
+            logger.error(f"'{source_dialect}' is not a supported dialect. Selecting a supported one...")
+            source_dialect = None
+        if not source_dialect:
+            source_dialect = self._prompts.choice("Select the source dialect:", all_dialects)
+        if not source_dialect:
+            raise_validation_exception("Missing '--source-dialect'")
+        logger.debug(f"Setting source_dialect to '{source_dialect}'")
+        self._config = dataclasses.replace(self._config, source_dialect=source_dialect)
+
+    def check_transpiler_config_path(self, transpiler_config_path: str | None):
+        if transpiler_config_path == "None":
+            transpiler_config_path = None
+        if not transpiler_config_path:
+            transpiler_config_path = self._config.transpiler_config_path
+        # we allow pointing to a loose transpiler config (i.e. not installed under .databricks)
+        if transpiler_config_path:
+            if not os.path.exists(transpiler_config_path):
+                logger.error(f"The transpiler configuration does not exist '{transpiler_config_path}'.")
+                transpiler_config_path = None
+        if transpiler_config_path:
+            config = LSPConfig.load(Path(transpiler_config_path))
+            if self._config.source_dialect not in config.remorph.dialects:
+                logger.error(f"The configured transpiler does not support dialect '{self._config.source_dialect}'.")
+                transpiler_config_path = None
+        if not transpiler_config_path:
+            transpiler_names = TranspilerInstaller.transpilers_with_dialect(cast(str, self._config.source_dialect))
+            if len(transpiler_names) > 1:
+                transpiler_name = self._prompts.choice("Select the transpiler:", list(transpiler_names))
+            else:
+                transpiler_name = next(name for name in transpiler_names)
+                logger.info(f"Remorph will use the {transpiler_name} transpiler")
+            transpiler_config_path = str(TranspilerInstaller.transpiler_config_path(transpiler_name))
+        logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
+        self._config = dataclasses.replace(self._config, transpiler_config_path=cast(str, transpiler_config_path))
+
+    def check_transpiler_config_options(self):
+        lsp_config = LSPConfig.load(Path(self._config.transpiler_config_path))
+        options_to_configure = lsp_config.options_for_dialect(self._config.source_dialect) or []
+        transpiler_options = self._config.transpiler_options or {}
+        if len(options_to_configure) == 0:
+            transpiler_options = None
+        else:
+            # TODO delete stale options ?
+            for option in options_to_configure:
+                self._check_transpiler_config_option(option, transpiler_options)
+        logger.debug(f"Setting transpiler_options to {transpiler_options}")
+        self._config = dataclasses.replace(self._config, transpiler_options=transpiler_options)
+
+    def _check_transpiler_config_option(self, option: LSPConfigOptionV1, values: dict[str, JsonValue]):
+        if option.flag in values.keys():
+            return
+        values[option.flag] = option.prompt_for_value(self._prompts)
+
+    def check_output_folder(self, output_folder: str | None):
+        if output_folder == "None":
+            output_folder = None
+        if not output_folder:
+            output_folder = self._config.output_folder
+        if not output_folder:
+            output_folder = self._prompts.question("Enter output directory", default="transpiled")
+        if not output_folder:
+            raise_validation_exception("Missing '--output-folder'")
+        if not os.path.exists(output_folder):
+            raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
+        logger.debug(f"Setting output_folder to '{output_folder}'")
+        self._config = dataclasses.replace(self._config, output_folder=output_folder)
+
+    def check_error_file_path(self, error_file_path: str | None):
+        if error_file_path == "None":
+            error_file_path = None
+        if not error_file_path:
+            error_file_path = self._config.error_file_path
+        if not error_file_path:
+            error_file_path = self._prompts.question("Enter error file path", default="errors.log")
+        if not error_file_path:
+            raise_validation_exception("Missing '--error-file-path'")
+        logger.debug(f"Setting error_file_path to '{error_file_path}'")
+        self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
+
+    def check_skip_validation(self, skip_validation_str: str | None):
+        skip_validation: bool | None = None
+        if skip_validation_str == "None":
+            skip_validation_str = None
+        if skip_validation_str is not None:
+            if skip_validation_str.lower() not in {"true", "false"}:
+                raise_validation_exception(
+                    f"Invalid value for '--skip-validation': '{skip_validation_str}' is not one of 'true', 'false'."
+                )
+            skip_validation = skip_validation_str.lower() == "true"
+        if skip_validation is None:
+            skip_validation = self._config.skip_validation
+        if skip_validation is None:
+            skip_validation = self._prompts.confirm(
+                "Would you like to validate the syntax and semantics of the transpiled queries?"
+            )
+        logger.debug(f"Setting skip_validation to '{skip_validation}'")
+        self._config = dataclasses.replace(self._config, skip_validation=skip_validation)
+
+    def check_catalog_name(self, catalog_name: str | None):
+        if self._config.skip_validation:
+            return
+        if catalog_name == "None":
+            catalog_name = None
+        if not catalog_name:
+            catalog_name = self._config.catalog_name
+        if not catalog_name:
+            raise_validation_exception(
+                "Missing '--catalog-name', please run 'databricks labs remorph install-transpile' to configure one"
+            )
+        logger.debug(f"Setting catalog_name to '{catalog_name}'")
+        self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
+
+    def check_schema_name(self, schema_name: str | None):
+        if self._config.skip_validation:
+            return
+        if schema_name == "None":
+            schema_name = None
+        if not schema_name:
+            schema_name = self._config.schema_name
+        if not schema_name:
+            raise_validation_exception(
+                "Missing '--schema-name', please run 'databricks labs remorph install-transpile' to configure one"
+            )
+        logger.debug(f"Setting schema_name to '{schema_name}'")
+        self._config = dataclasses.replace(self._config, schema_name=schema_name)
+
+    def check(self) -> tuple[TranspileConfig, TranspileEngine]:
+        logger.debug(f"Checking config: {self!s}")
+        # not using os.path.exists because it sometimes fails mysteriously...
+        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
+            raise_validation_exception(
+                f"Invalid value for '--transpiler-config-path': Path '{self._config.transpiler_config_path}' does not exist."
+            )
+        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
+        engine.check_source_dialect(self._config.source_dialect)
+        if not self._config.input_source or not os.path.exists(self._config.input_source):
+            raise_validation_exception(
+                f"Invalid value for '--input-source': Path '{self._config.input_source}' does not exist."
+            )
+        # 'transpiled' will be used as output_folder if not specified
+        # 'errors.log' will be used as errors file if not specified
+        return self._config, engine
+
+
+async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: TranspileEngine):
+    """Transpiles source dialect to databricks dialect"""
+    with_user_agent_extra("cmd", "execute-transpile")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
+    _override_workspace_client_config(ctx, config.sdk_config)
+    status, errors = await do_transpile(ctx.workspace_client, engine, config)
     for error in errors:
         logger.error(f"Error Transpiling: {str(error)}")
 
     # Table Template in labs.yml requires the status to be list of dicts Do not change this
-    print(json.dumps([status]))
+    logger.info(f"Remorph Transpiler encountered {len(status)} from given {config.input_source} files.")
+    return [status]
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
@@ -168,7 +340,8 @@ def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-reconcile")
     ctx = ApplicationContext(w)
-    logger.debug(f"User: {ctx.current_user}")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -183,7 +356,8 @@ def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-aggregates-reconcile")
     ctx = ApplicationContext(w)
-    logger.debug(f"User: {ctx.current_user}")
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     recon_runner = ReconcileRunner(
         ctx.workspace_client,
         ctx.installation,
@@ -223,25 +397,35 @@ def configure_secrets(w: WorkspaceClient):
 
 @remorph.command(is_unauthenticated=True)
 def install_assessment():
-    """Install the Remorph Assessment package"""
+    """[Experimental] Install the Remorph Assessment package"""
     prompts = Prompts()
-    credential = create_credential_manager("remorph", EnvGetter())
-    assessment = ConfigureAssessment(product_name="remorph", prompts=prompts)
-    assessment.run(cred_manager=credential)
+
+    # Prompt for source system
+    source_system = str(
+        prompts.choice("Please select the source system you want to configure", PROFILER_SOURCE_SYSTEM)
+    ).lower()
+
+    # Create appropriate assessment configurator
+    assessment = create_assessment_configurator(source_system=source_system, product_name="remorph", prompts=prompts)
+    assessment.run()
 
 
 @remorph.command()
-def install_transpile(w: WorkspaceClient):
-    """Install the Remorph Transpile package"""
+def install_transpile(w: WorkspaceClient, artifact: str | None = None):
+    """Install the Remorph Transpilers"""
     with_user_agent_extra("cmd", "install-transpile")
+    user = w.current_user
+    logger.debug(f"User: {user}")
     installer = _installer(w)
-    installer.run(module="transpile")
+    installer.run(module="transpile", artifact=artifact)
 
 
 @remorph.command(is_unauthenticated=False)
 def install_reconcile(w: WorkspaceClient):
     """Install the Remorph Reconcile package"""
     with_user_agent_extra("cmd", "install-reconcile")
+    user = w.current_user
+    logger.debug(f"User: {user}")
     dbsql_id = _create_warehouse(w)
     w.config.warehouse_id = dbsql_id
     installer = _installer(w)
@@ -250,15 +434,17 @@ def install_reconcile(w: WorkspaceClient):
 
 
 @remorph.command()
-def analyze(w: WorkspaceClient):
+def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     """Run the Analyzer"""
     with_user_agent_extra("cmd", "analyze")
     ctx = ApplicationContext(w)
     prompts = ctx.prompts
-    output_file = prompts.question("Enter path to output results file (with .xlsx extension)")
-    input_folder = prompts.question("Enter path to input sources folder")
+    output_file = report_file
+    input_folder = source_directory
     source_tech = prompts.choice("Select the source technology", Analyzer.supported_source_technologies())
     with_user_agent_extra("analyzer_source_tech", make_alphanum_or_semver(source_tech))
+    user = ctx.current_user
+    logger.debug(f"User: {user}")
     Analyzer.analyze(Path(input_folder), Path(output_file), source_tech)
 
 

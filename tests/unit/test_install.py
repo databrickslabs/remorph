@@ -1,3 +1,5 @@
+import datetime as dt
+import json
 from pathlib import Path
 from unittest.mock import create_autospec, patch
 
@@ -37,8 +39,11 @@ def ws():
     return w
 
 
-ALL_INSTALLED_DIALECTS = sorted(["tsql", "snowflake"])
-TRANSPILERS_FOR_SNOWFLAKE = sorted(["Remorph Community Transpiler", "Morpheus"])
+SET_IT_LATER = ["Set it later"]
+ALL_INSTALLED_DIALECTS_NO_LATER = sorted(["tsql", "snowflake"])
+ALL_INSTALLED_DIALECTS = SET_IT_LATER + ALL_INSTALLED_DIALECTS_NO_LATER
+TRANSPILERS_FOR_SNOWFLAKE_NO_LATER = sorted(["Remorph Community Transpiler", "Morpheus"])
+TRANSPILERS_FOR_SNOWFLAKE = SET_IT_LATER + TRANSPILERS_FOR_SNOWFLAKE_NO_LATER
 PATH_TO_TRANSPILER_CONFIG = "/some/path/to/config.yml"
 
 
@@ -51,18 +56,18 @@ def ws_installer():
         # (because the artifact is either missing or invalid)
         # TODO remove this once they are available and healthy !!!
         @classmethod
-        def install_bladerunner(cls):
+        def install_bladerunner(cls, artifact: Path | None = None):
             pass
 
         @classmethod
-        def install_morpheus(cls):
+        def install_morpheus(cls, artifact: Path | None = None):
             pass
 
         def _all_installed_dialects(self):
-            return ALL_INSTALLED_DIALECTS
+            return ALL_INSTALLED_DIALECTS_NO_LATER
 
         def _transpilers_with_dialect(self, dialect):
-            return TRANSPILERS_FOR_SNOWFLAKE
+            return TRANSPILERS_FOR_SNOWFLAKE_NO_LATER
 
         def _transpiler_config_path(self, transpiler):
             return PATH_TO_TRANSPILER_CONFIG
@@ -241,7 +246,7 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     config = workspace_installer.configure(module="transpile")
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-        transpiler_options={},
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -366,7 +371,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws_insta
 
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-        transpiler_options={},
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -429,7 +434,7 @@ def test_configure_transpile_installation_with_no_validation(ws, ws_installer):
 
     expected_morph_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-        transpiler_options={},
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -498,7 +503,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
     expected_config = RemorphConfigs(
         transpile=TranspileConfig(
             transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-            transpiler_options={},
+            transpiler_options=None,
             source_dialect="snowflake",
             input_source="/tmp/queries/snow",
             output_folder="/tmp/queries/databricks",
@@ -829,7 +834,7 @@ def test_configure_all_override_installation(ws_installer, ws):
 
     expected_transpile_config = TranspileConfig(
         transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-        transpiler_options={},
+        transpiler_options=None,
         source_dialect="snowflake",
         input_source="/tmp/queries/snow",
         output_folder="/tmp/queries/databricks",
@@ -961,7 +966,7 @@ def test_runs_upgrades_on_more_recent_version(ws_installer, ws):
         RemorphConfigs(
             transpile=TranspileConfig(
                 transpiler_config_path=PATH_TO_TRANSPILER_CONFIG,
-                transpiler_options={},
+                transpiler_options=None,
                 source_dialect="snowflake",
                 input_source="/tmp/queries/snow",
                 output_folder="/tmp/queries/databricks",
@@ -1279,3 +1284,34 @@ def test_runs_and_stores_choice_config_option(ws_installer, ws):
             "version": 3,
         },
     )
+
+
+def test_store_product_state(tmp_path) -> None:
+    """Verify the product state is stored after installing is correct."""
+
+    class MockTranspilerInstaller(TranspilerInstaller):
+        @classmethod
+        def store_product_state(cls, product_path: Path, version: str) -> None:
+            cls._store_product_state(product_path, version)
+
+    # Store the product state, capturing the time before and after so we can verify the timestamp it puts in there.
+    before = dt.datetime.now(tz=dt.timezone.utc)
+    MockTranspilerInstaller.store_product_state(tmp_path, "1.2.3")
+    after = dt.datetime.now(tz=dt.timezone.utc)
+
+    # Load the state that was just stored.
+    with (tmp_path / "state" / "version.json").open("r", encoding="utf-8") as f:
+        stored_state = json.load(f)
+
+    # Verify the timestamp first.
+    stored_date = stored_state["date"]
+    parsed_date = dt.datetime.fromisoformat(stored_date)
+    assert parsed_date.tzinfo is not None, "Stored date should be timezone-aware."
+    assert before <= parsed_date <= after, f"Stored date {stored_date} is not within the expected range."
+
+    # Verify the rest, now that we've checked the timestamp.
+    expected_state = {
+        "version": "v1.2.3",
+        "date": stored_date,
+    }
+    assert stored_state == expected_state
