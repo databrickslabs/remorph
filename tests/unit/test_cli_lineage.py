@@ -9,7 +9,7 @@ from databricks.labs.remorph import cli
 
 
 @pytest.fixture
-def temp_dirs_for_lineage(empty_input_source: Path, output_folder) -> tuple[Path, Path]:
+def temp_dirs_for_lineage(empty_input_source: Path, output_folder: Path) -> tuple[Path, Path]:
 
     sample_sql_file = empty_input_source / "sample.sql"
     sample_sql_content = """
@@ -19,6 +19,8 @@ def temp_dirs_for_lineage(empty_input_source: Path, output_folder) -> tuple[Path
     create table table5 select * from table3 join table4 on table3.id = table4.id;
     """
     sample_sql_file.write_text(sample_sql_content, encoding="utf-8")
+
+    output_folder.mkdir()
 
     return empty_input_source, output_folder
 
@@ -54,6 +56,7 @@ def test_generate_lineage_valid_input(mock_workspace_client_cli, temp_dirs_for_l
 def test_generate_lineage_with_invalid_dialect(
     mock_workspace_client_cli, empty_input_source: Path, output_folder: Path
 ) -> None:
+    output_folder.mkdir()
     expected_error = (
         r"Unsupported source dialect provided for '--source-dialect': 'invalid_dialect' \(supported: (\w+(, )?)+\)"
     )
@@ -67,6 +70,7 @@ def test_generate_lineage_with_invalid_dialect(
 
 
 def test_generate_lineage_invalid_input_source(mock_workspace_client_cli, output_folder: Path) -> None:
+    output_folder.mkdir()
     expected_error = "Invalid path for '--input-source': Path '/path/to/invalid/sql/file.sql' does not exist."
     with pytest.raises(ValueError, match=re.escape(expected_error)):
         cli.generate_lineage(
