@@ -3,7 +3,6 @@ import dataclasses
 import json
 import os
 import time
-import sys
 from pathlib import Path
 from typing import NoReturn, cast
 
@@ -113,7 +112,7 @@ def transpile(
 ):
     """Transpiles source dialect to databricks dialect"""
     ctx = ApplicationContext(w)
-    print(f"{ctx.transpile_config!s}")
+    logger.debug(f"Application transpiler config: {ctx.transpile_config}")
     checker = _TranspileConfigChecker(ctx.transpile_config, ctx.prompts)
     checker.check_input_source(input_source)
     checker.check_source_dialect(source_dialect)
@@ -448,6 +447,4 @@ def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
 
 
 if __name__ == "__main__":
-    if "--debug" in sys.argv:
-        logger.setLevel("DEBUG")
     remorph()
