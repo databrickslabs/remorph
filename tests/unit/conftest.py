@@ -420,6 +420,7 @@ def error_file(tmp_path: Path) -> Generator[Path, None, None]:
     yield file_path
     safe_remove_file(file_path)
 
+
 @pytest.fixture
 async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
     config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
@@ -427,5 +428,3 @@ async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
     yield engine
     if engine.is_alive:
         await engine.shutdown()
-
-

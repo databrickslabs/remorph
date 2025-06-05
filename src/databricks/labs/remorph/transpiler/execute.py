@@ -101,19 +101,26 @@ def _is_combined_result(result: TranspileResult):
 def _process_combined_result(context: TranspilingContext) -> None:
     # TODO error handling
     parser = EmailParser()
-    message: Message = parser.parsestr(context.transpiled_code)
+    transpiled_code: str = cast(str, context.transpiled_code)
+    message: Message = parser.parsestr(transpiled_code)
     for part in message.walk():
-        if part.get_content_type() != "text/plain":
-            continue
-        filename = part.get_filename()
-        folder = context.output_folder
-        segments = filename.split("/")
-        for segment in segments[:-1]:
-            folder = folder / segment
-            folder.mkdir(parents=True, exist_ok=True)
-        content = part.get_payload(decode=False)
-        output = folder / segments[-1]
-        output.write_text(content, "utf-8")
+        _process_combined_part(context, part)
+
+
+def _process_combined_part(context: TranspilingContext, part: Message) -> None:
+    if part.get_content_type() != "text/plain":
+        return
+    filename = part.get_filename()
+    content = part.get_payload(decode=False)
+    if not filename or not isinstance(content, str):
+        return
+    folder = context.output_folder
+    segments = filename.split("/")
+    for segment in segments[:-1]:
+        folder = folder / segment
+        folder.mkdir(parents=True, exist_ok=True)
+    output = folder / segments[-1]
+    output.write_text(content, "utf-8")
 
 
 def _process_single_result(context: TranspilingContext) -> None:
