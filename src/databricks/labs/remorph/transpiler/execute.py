@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import math
 from pathlib import Path
 from typing import cast, Any
 import itertools
@@ -112,7 +111,8 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
         header += f"/*\n    Failed transpilation of {file_path}\n"
         header += "\n    The following errors were found while transpiling:\n"
         for diag in diag_by_severity[ErrorSeverity.ERROR]:
-            line_numbers[diag.range.start.line] = 0
+            if diag.range:
+                line_numbers[diag.range.start.line] = 0
             header += _append_diagnostic(diag)
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
     else:
@@ -121,7 +121,8 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     if ErrorSeverity.WARNING in diag_by_severity:
         header += "\n    The following warnings were found while transpiling:\n"
         for diag in diag_by_severity[ErrorSeverity.WARNING]:
-            line_numbers[diag.range.start.line] = 0
+            if diag.range:
+                line_numbers[diag.range.start.line] = 0
             header += _append_diagnostic(diag)
 
     if failed_producing_output:
@@ -135,7 +136,7 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     for unshifted in line_numbers:
         line_numbers[unshifted] = header_line_count + unshifted + 1
 
-    return header.format(line_numbers = line_numbers)
+    return header.format(line_numbers=line_numbers)
 
 
 def _append_diagnostic(diag: TranspileError) -> str:
