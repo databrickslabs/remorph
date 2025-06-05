@@ -40,7 +40,8 @@ class TranspilingContext:
     validator: Validator | None
     transpiler: TranspileEngine
     input_path: Path
-    output_path: Path
+    output_folder: Path
+    output_path: Path | None = None
     source_code: str | None = None
     transpiled_code: str | None = None
     error_list: list[TranspileError] = dataclasses.field(default_factory=list)
@@ -79,14 +80,19 @@ async def _process_one_file(context: TranspilingContext) -> tuple[int, list[Tran
     context.error_list.extend(transpile_result.error_list)
     context = dataclasses.replace(context, transpiled_code=transpile_result.transpiled_code)
 
-    context.output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path = cast(Path, context.output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if transpile_result.transpiled_code.startswith("Content-Type: multipart/mixed; boundary="):
+    if _is_combined_result(transpile_result):
         _process_combined_result(context)
     else:
         _process_single_result(context)
 
     return transpile_result.success_count, context.error_list
+
+
+def _is_combined_result(result: TranspileResult):
+    return result.transpiled_code.startswith("Content-Type: multipart/mixed; boundary=")
 
 
 def _process_combined_result(context: TranspilingContext) -> None:
@@ -126,7 +132,8 @@ def _process_single_result(context: TranspilingContext) -> None:
             context.error_list.append(error)
         output_code = validation_result.validated_sql
 
-    with context.output_path.open("w") as w:
+    output_path = cast(Path, context.output_path)
+    with output_path.open("w") as w:
         w.write(_make_header(context.input_path, context.error_list))
         w.write(output_code)
 
@@ -187,22 +194,23 @@ async def _process_many_files(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
+    input_path: Path,
     output_folder: Path,
     files: list[Path],
 ) -> tuple[int, list[TranspileError]]:
     counter = 0
     all_errors: list[TranspileError] = []
 
+    context = TranspilingContext(
+        config=config, validator=validator, transpiler=transpiler, input_path=input_path, output_folder=output_folder
+    )
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
         if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
-        output_file_name = output_folder / file.name
-        context = TranspilingContext(
-            config=config, validator=validator, transpiler=transpiler, input_path=file, output_path=output_file_name
-        )
+        context = dataclasses.replace(context, output_path=output_folder / file.name)
         success_count, error_list = await _process_one_file(context)
         counter = counter + success_count
         all_errors.extend(error_list)
@@ -223,7 +231,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
         transpiled_dir = output_folder / relative_path
         logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
-        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
+        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, input_path, transpiled_dir, files)
         counter = counter + no_of_sqls
         error_list.extend(errors)
     return TranspileStatus(file_list, counter, error_list)
@@ -239,13 +247,18 @@ async def _process_input_file(
         return TranspileStatus([], 0, [])
     msg = f"Transpiling sql file: {config.input_path!s}"
     logger.info(msg)
-    output_path = config.output_path
-    if output_path is None:
-        output_path = config.input_path.parent / "transpiled"
-    make_dir(output_path)
-    output_file = output_path / config.input_path.name
+    output_folder = config.output_path
+    if output_folder is None:
+        output_folder = config.input_path.parent / "transpiled"
+    make_dir(output_folder)
+    output_file = output_folder / config.input_path.name
     context = TranspilingContext(
-        config=config, validator=validator, transpiler=transpiler, input_path=config.input_path, output_path=output_file
+        config=config,
+        validator=validator,
+        transpiler=transpiler,
+        input_path=config.input_path,
+        output_folder=output_folder,
+        output_path=output_file,
     )
     no_of_sqls, error_list = await _process_one_file(context)
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
