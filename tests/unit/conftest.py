@@ -2,7 +2,7 @@ import io
 import re
 import shutil
 from pathlib import Path
-from collections.abc import Sequence
+from collections.abc import Sequence, Generator
 from unittest.mock import create_autospec
 
 import pytest
@@ -292,7 +292,7 @@ def write_data_to_file(path: Path, content: str):
 
 
 @pytest.fixture
-def input_source(tmp_path: Path):
+def input_source(tmp_path: Path) -> Generator[Path, None, None]:
     source_dir = tmp_path / "remorph_source"
     safe_remove_dir(source_dir)  # should never be required but harmless
     make_dir(source_dir)
@@ -406,14 +406,15 @@ def input_source(tmp_path: Path):
 
 
 @pytest.fixture
-def output_folder(tmp_path: Path):
+def output_folder(tmp_path: Path) -> Generator[Path, None, None]:
+    # Only the parent of the output folder has to exist.
     output_dir = tmp_path / "remorph_transpiled"
     yield output_dir
     safe_remove_dir(output_dir)
 
 
 @pytest.fixture
-def error_file(tmp_path: Path):
+def error_file(tmp_path: Path) -> Generator[Path, None, None]:
     file_path = tmp_path / "transpile_errors.lst"
     yield file_path
     safe_remove_file(file_path)
