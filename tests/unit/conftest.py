@@ -406,6 +406,14 @@ def input_source(tmp_path: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
+def empty_input_source(tmp_path: Path) -> Generator[Path, None, None]:
+    source_dir = tmp_path / "remorph_source"
+    source_dir.mkdir()
+    yield source_dir
+    safe_remove_dir(source_dir)
+
+
+@pytest.fixture
 def output_folder(tmp_path: Path) -> Generator[Path, None, None]:
     # Only the parent of the output folder has to exist.
     output_dir = tmp_path / "remorph_transpiled"
