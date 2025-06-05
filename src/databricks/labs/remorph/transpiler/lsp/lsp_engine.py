@@ -422,6 +422,7 @@ class LSPEngine(TranspileEngine):
             workspace_folders=None,  # for now, we only support a single workspace = root_uri
             initialization_options=self._initialization_options(config),
         )
+        logger.debug(f"LSP init params: {params}")
         self._init_response = await self._client.initialize_async(params)
 
     async def _start_server(self):
