@@ -29,7 +29,7 @@ async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
             skip_validation=False,
             catalog_name="catalog",
             schema_name="schema",
-            transpiler_options={"tech-target": "SPARKSQL"},
+            transpiler_options={"target-tech": "SPARKSQL"},
         )
         result = await transpile(ws, lsp_engine, transpile_config)
         logger.info(result)
