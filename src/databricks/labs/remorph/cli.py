@@ -3,7 +3,6 @@ import dataclasses
 import json
 import os
 import time
-import sys
 from pathlib import Path
 from typing import cast
 
@@ -447,6 +446,4 @@ def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
 
 
 if __name__ == "__main__":
-    if "--debug" in sys.argv:
-        logger.setLevel("DEBUG")
     remorph()
