@@ -32,9 +32,10 @@ def pytest_collection_modifyitems(config, items):
     if os.getenv('TEST_ENV') == 'ACCEPTANCE':
         selected_items = []
         deselected_items = []
-        # Added only specific tests to run from acceptance.yml
+        # Add only specific tests to run from acceptance.yml
+        inclusions = { 'assessments', 'connections', 'discovery', 'transpile' }
         for item in items:
-            if 'tests/integration/reconcile' not in str(item.fspath) and 'tests/unit/' not in str(item.fspath):
+            if any(f"tests/integration/{inclusion}" in str(item.fspath) for inclusion in inclusions):
                 selected_items.append(item)
             else:
                 deselected_items.append(item)
