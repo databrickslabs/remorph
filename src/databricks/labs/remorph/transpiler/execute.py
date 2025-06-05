@@ -260,7 +260,7 @@ async def _do_transpile(
 
     if result.error_list and config.error_path is not None:
         with config.error_path.open("a", encoding="utf-8") as e:
-            e.writelines(f"{err!s}\n" for err in result.error_list)
+            e.writelines(f"{err}\n" for err in result.error_list)
         error_log_file = str(config.error_path)
     else:
         error_log_file = None
