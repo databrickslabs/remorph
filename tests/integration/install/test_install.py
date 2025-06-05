@@ -183,26 +183,17 @@ async def test_installs_and_runs_local_rct():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_local_bladerunner():
+async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    artifact = (
-        Path(__file__).parent.parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "bladerunner"
-        / "wheel"
-        / "databricks_labs_remorph_bladerunner-0.1.0-py3-none-any.whl"
-    )
-    assert artifact.exists()
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-labs-bladerunner", artifact)
-    # check file-level installation
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    if bladerunner.exists():
+        shutil.rmtree(bladerunner)
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin", bladerunner_artifact)
+    # check file-level installation
     config_path = bladerunner / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = bladerunner / "lib" / "main.py"
-    assert main_path.exists()
     version_path = bladerunner / "state" / "version.json"
     assert version_path.exists()
     # check execution
@@ -211,7 +202,7 @@ async def test_installs_and_runs_local_bladerunner():
         with TemporaryDirectory() as output_folder:
             transpile_config = TranspileConfig(
                 transpiler_config_path=str(config_path),
-                source_dialect="snowflake",
+                source_dialect="oracle",
                 input_source=input_source,
                 output_folder=output_folder,
                 sdk_config={"cluster_id": "test_cluster"},
@@ -229,25 +220,21 @@ async def test_installs_and_runs_local_bladerunner():
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_local_morpheus():
+async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
     # TODO: Fix to use a temporary location instead of the user's home directory.
-    artifact = (
-        Path(__file__).parent.parent.parent
-        / "resources"
-        / "transpiler_configs"
-        / "morpheus"
-        / "jar"
-        / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
+    morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
+    if morpheus.exists():
+        shutil.rmtree(morpheus)
+    TranspilerInstaller.install_from_maven(
+        "morpheus", "com.databricks.labs", "databricks-morph-plugin", morpheus_artifact
     )
-    assert artifact.exists()
-    TranspilerInstaller.install_from_maven("morpheus", "databricks-labs-remorph", "morpheus-lsp", artifact)
     # check file-level installation
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     config_path = morpheus / "lib" / "config.yml"
     assert config_path.exists()
-    main_path = morpheus / "lib" / "morpheus-lsp.jar"
+    main_path = morpheus / "lib" / "databricks-morph-plugin.jar"
     assert main_path.exists()
     version_path = morpheus / "state" / "version.json"
     assert version_path.exists()
@@ -273,35 +260,6 @@ async def test_installs_and_runs_local_morpheus():
             await lsp_engine.shutdown()
             transpiled = format_transpiled(result.transpiled_code)
             assert transpiled == sql_code
-
-
-class PatchedMavenInstaller(MavenInstaller):
-
-    @classmethod
-    def get_current_maven_artifact_version(cls, group_id: str, artifact_id: str):
-        return "0.2.0"
-
-    @classmethod
-    def download_artifact_from_maven(
-        cls,
-        group_id: str,
-        artifact_id: str,
-        version: str,
-        target: Path,
-        classifier: str | None = None,
-        extension: str = "jar",
-    ) -> bool:
-        sample_jar = (
-            Path(__file__).parent.parent.parent
-            / "resources"
-            / "transpiler_configs"
-            / "morpheus"
-            / "jar"
-            / "morpheus-lsp-0.2.0-SNAPSHOT-jar-with-dependencies.jar"
-        )
-        assert sample_jar.exists()
-        shutil.copyfile(sample_jar, target)
-        return True
 
 
 def test_java_version():
