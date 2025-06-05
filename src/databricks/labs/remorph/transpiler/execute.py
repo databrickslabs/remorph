@@ -66,7 +66,7 @@ async def _process_one_file(
 
     error_list.extend(transpile_result.error_list)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(exist_ok=True)
 
     output_code = transpile_result.transpiled_code
 
