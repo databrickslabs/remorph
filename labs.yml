@@ -52,10 +52,10 @@ commands:
   - name: configure-database-profiler
     description: "Configure Database Profiler"
   - name: install-transpile
-    description: "Install Necessary Transpiler Dependencies"
+    description: "Install & Configure Necessary Transpiler Dependencies"
     flags:
       - name: artifact
         description: Local path to transpiler artifact
         default: null
-  - name: install-reconcile
-    description: "Install Necessary Reconcile Dependencies"
+  - name: configure-reconcile
+    description: "Configure Necessary Reconcile Dependencies"
