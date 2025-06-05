@@ -4,6 +4,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import NoReturn
 
 from databricks.sdk.core import with_user_agent_extra
 from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
@@ -40,7 +41,7 @@ remorph = App(__file__)
 logger = get_logger(__file__)
 
 
-def raise_validation_exception(msg: str) -> Exception:
+def raise_validation_exception(msg: str) -> NoReturn:
     raise ValueError(msg)
 
 
