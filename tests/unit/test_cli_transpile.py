@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from unittest.mock import create_autospec, patch, PropertyMock, ANY, MagicMock
@@ -32,25 +33,32 @@ def stubbed_transpiler_config_path(tmp_path: Path) -> Path:
     return config_path
 
 
-def test_transpile_with_missing_installation(transpiler_config_path: Path) -> None:
+def test_transpile_with_missing_installation(
+    caplog, transpiler_config_path: Path, empty_input_source: Path, output_folder: Path
+) -> None:
     workspace_client = create_autospec(WorkspaceClient)
+    mock_transpile, patched_do_transpile = patch_do_transpile()
     with (
         patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
-        pytest.raises(SystemExit),
+        patch("databricks.labs.remorph.cli.do_transpile", new=patched_do_transpile),
+        caplog.at_level(logging.WARNING),
     ):
         mock_app_context.return_value.workspace_client = workspace_client
         mock_app_context.return_value.transpile_config = None
         cli.transpile(
-            workspace_client,
-            str(transpiler_config_path),
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "/path/to/errors.log",
-            "true",
-            "my_catalog",
-            "my_schema",
+            w=workspace_client,
+            transpiler_config_path=str(transpiler_config_path),
+            source_dialect="snowflake",
+            input_source=str(empty_input_source),
+            output_folder=str(output_folder),
         )
+
+    mock_transpile.assert_called_once()
+    warning_messages = [record.message for record in caplog.records if record.levelno == logging.WARNING]
+    assert (
+        "Missing workspace transpile configuration, use 'install-transpile' to reinstall and configure."
+        in warning_messages
+    )
 
 
 def patch_do_transpile():

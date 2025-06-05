@@ -156,9 +156,10 @@ class _TranspileConfigChecker:
 
     def __init__(self, config: TranspileConfig | None) -> None:
         if config is None:
-            # TODO: Remove this; it triggers an immediate exit from Python. Return gracefully instead.
-            msg = "Transpiler configuration not found; use 'install-transpile' first to install and configure."
-            raise SystemExit(msg)
+            logger.warning(
+                "Missing workspace transpile configuration, use 'install-transpile' to reinstall and configure."
+            )
+            config = TranspileConfig()
         self._config = config
         self._engine = None
 
@@ -175,8 +176,9 @@ class _TranspileConfigChecker:
 
     @property
     def _transpiler_config_path(self) -> Path:
-        # Path for the transpiler config file cannot be missing, it's mandatory on the config.
-        config_path = Path(self._config.transpiler_config_path)
+        config_path = self._config.transpiler_path
+        if config_path is None:
+            raise_validation_exception("Missing input source path, specify with '--transpiler_config_path'.")
         if not config_path.exists():
             msg = f"Invalid transpiler configuration path, does not exist: {config_path}"
             raise_validation_exception(msg)

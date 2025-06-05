@@ -696,7 +696,7 @@ class WorkspaceInstaller:
         )
 
         return TranspileConfig(
-            transpiler_config_path=str(transpiler_config_path),
+            transpiler_config_path=str(transpiler_config_path) if transpiler_config_path is not None else None,
             transpiler_options=transpiler_options,
             source_dialect=source_dialect,
             skip_validation=(not run_validation),
