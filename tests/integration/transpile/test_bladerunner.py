@@ -11,6 +11,7 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 logger = logging.getLogger(__name__)
 
 
+# TODO move this test to Bladerunner
 async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     if bladerunner.exists():
@@ -32,4 +33,5 @@ async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
             transpiler_options={"target-tech": "SPARKSQL"},
         )
         result = await transpile(ws, lsp_engine, transpile_config)
+        # purpose was to troubleshoot an issue with transpiler_options
         logger.info(result)
