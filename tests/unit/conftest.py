@@ -2,7 +2,7 @@ import io
 import re
 import shutil
 from pathlib import Path
-from collections.abc import Sequence
+from collections.abc import Sequence, AsyncGenerator
 from unittest.mock import create_autospec
 
 import pytest
@@ -17,6 +17,7 @@ from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
 from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
 from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
@@ -417,3 +418,13 @@ def error_file(tmp_path: Path):
     file_path = tmp_path / "transpile_errors.lst"
     yield file_path
     safe_remove_file(file_path)
+
+@pytest.fixture
+async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
+    config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
+    engine = LSPEngine.from_config_path(Path(config_path))
+    yield engine
+    if engine.is_alive:
+        await engine.shutdown()
+
+

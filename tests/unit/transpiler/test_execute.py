@@ -1,6 +1,8 @@
 import asyncio
+import dataclasses
 import re
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, cast
 from unittest.mock import create_autospec, patch
 
@@ -22,12 +24,14 @@ from databricks.labs.remorph.transpiler.execute import (
 from databricks.sdk.core import Config
 
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from unit.conftest import path_to_resource
 
 
 # pylint: disable=unspecified-encoding
 
 
-def transpile(workspace_client: WorkspaceClient, engine: SqlglotEngine, config: TranspileConfig):
+def transpile(workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig):
     return asyncio.run(do_transpile(workspace_client, engine, config))
 
 
@@ -353,3 +357,12 @@ def test_token_error_handling(input_source, error_file, mock_workspace_client):
     # check errors
     expected_errors = [{"path": f"{input_source}/queries/query5.sql", "message": "Token error Start:"}]
     check_error_lines(status["error_log_file"], expected_errors)
+
+
+
+def test_server_decombines_workflow_output(mock_workspace_client, lsp_engine, transpile_config):
+    with TemporaryDirectory() as output_folder:
+        input_path = Path(path_to_resource("lsp_transpiler", "workflow.xml"))
+        transpile_config = dataclasses.replace(transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True)
+        _status, _errors = transpile(mock_workspace_client, lsp_engine, transpile_config)
+        assert (Path(output_folder) / "Jobs").is_dir()
