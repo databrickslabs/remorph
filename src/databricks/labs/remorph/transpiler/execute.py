@@ -3,9 +3,10 @@ import datetime
 import logging
 import math
 from pathlib import Path
-from typing import cast, Any
+from typing import cast
 import itertools
 
+from databricks.labs.blueprint.installation import JsonObject
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
@@ -213,7 +214,7 @@ async def _process_input_file(
 
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[JsonObject, list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -223,7 +224,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[JsonObject, list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -257,15 +258,12 @@ async def _do_transpile(
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
 
-    error_log_path: Path | None = None
-    if result.error_list:
-        if config.error_path:
-            error_log_path = config.error_path
-        else:
-            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
-        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
+    if result.error_list and config.error_path is not None:
+        with config.error_path.open("a", encoding="utf-8") as e:
             e.writelines(f"{err!s}\n" for err in result.error_list)
+        error_log_file = str(config.error_path)
+    else:
+        error_log_file = None
 
     status = {
         "total_files_processed": len(result.file_list),
@@ -274,7 +272,7 @@ async def _do_transpile(
         "parsing_error_count": result.parsing_error_count,
         "validation_error_count": result.validation_error_count,
         "generation_error_count": result.generation_error_count,
-        "error_log_file": str(error_log_path),
+        "error_log_file": error_log_file,
     }
     logger.debug(f"Transpiler Status: {status}")
     return status, result.error_list
