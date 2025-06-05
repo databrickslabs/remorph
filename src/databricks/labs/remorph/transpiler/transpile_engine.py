@@ -38,3 +38,6 @@ class TranspileEngine(abc.ABC):
     @property
     @abc.abstractmethod
     def supported_dialects(self) -> list[str]: ...
+
+    @abc.abstractmethod
+    def is_supported_file(self, file: Path) -> bool: ...

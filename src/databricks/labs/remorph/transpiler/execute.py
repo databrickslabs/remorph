@@ -16,7 +16,6 @@ from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
-    is_sql_file,
     make_dir,
 )
 from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
@@ -157,7 +156,7 @@ async def _process_many_files(
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
-        if not is_sql_file(file) and not is_dbt_project_file(file):
+        if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
         output_file_name = output_folder / file.name
@@ -165,11 +164,6 @@ async def _process_many_files(
         counter = counter + success_count
         all_errors.extend(error_list)
     return counter, all_errors
-
-
-def is_dbt_project_file(file: Path):
-    # it's ok to hardcode the file name here, see https://docs.getdbt.com/reference/dbt_project.yml
-    return file.name == "dbt_project.yml"
 
 
 async def _process_input_dir(config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine):
@@ -195,8 +189,8 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
 async def _process_input_file(
     config: TranspileConfig, validator: Validator | None, transpiler: TranspileEngine
 ) -> TranspileStatus:
-    if not is_sql_file(config.input_path):
-        msg = f"{config.input_source} is not a SQL file."
+    if not transpiler.is_supported_file(config.input_path):
+        msg = f"{config.input_source} is not a supported file."
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
