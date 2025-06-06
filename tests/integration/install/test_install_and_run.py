@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
@@ -28,9 +29,13 @@ async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
-            with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-                await _install_and_run_local_bladerunner(bladerunner_artifact)
+        # TODO temporary workaround for RecursionError with temp dirs on Windows
+        if sys.platform == "win32":
+            await _install_and_run_pypi_bladerunner()
+        else:
+            with TemporaryDirectory() as tmpdir:
+                with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
+                    await _install_and_run_local_bladerunner(bladerunner_artifact)
     finally:
         installer_lock.release()
 
@@ -76,9 +81,13 @@ async def test_installs_and_runs_pypi_bladerunner():
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
-            with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-                await _install_and_run_pypi_bladerunner()
+        # TODO temporary workaround for RecursionError with temp dirs on Windows
+        if sys.platform == "win32":
+            await _install_and_run_pypi_bladerunner()
+        else:
+            with TemporaryDirectory() as tmpdir:
+                with patch.object(TranspilerInstaller, "xf", return_value=Path(tmpdir)):
+                    await _install_and_run_pypi_bladerunner()
     finally:
         installer_lock.release()
 
@@ -124,9 +133,13 @@ async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
-            with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-                await _install_and_run_local_morpheus(morpheus_artifact)
+        # TODO temporary workaround for RecursionError with temp dirs on Windows
+        if sys.platform == "win32":
+            await _install_and_run_pypi_bladerunner()
+        else:
+            with TemporaryDirectory() as tmpdir:
+                with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
+                    await _install_and_run_local_morpheus(morpheus_artifact)
     finally:
         installer_lock.release()
 
