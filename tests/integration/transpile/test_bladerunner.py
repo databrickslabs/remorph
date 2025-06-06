@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
     with TemporaryDirectory() as tmpdir:
         with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-            await _transpile_informatica_with_sparksql(ws)
+            await _transpile_informatica_with_sparksql(ws, bladerunner_artifact)
 
 
 async def _transpile_informatica_with_sparksql(ws: Any, bladerunner_artifact: Path):
