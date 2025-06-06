@@ -1,5 +1,9 @@
 import asyncio
+import dataclasses
 import logging
+import math
+from email.message import Message
+from email.parser import Parser as EmailParser
 from pathlib import Path
 from typing import cast
 import itertools
@@ -32,69 +36,130 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-async def _process_one_file(
-    config: TranspileConfig,
-    validator: Validator | None,
-    transpiler: TranspileEngine,
-    input_path: Path,
-    output_path: Path,
-) -> tuple[int, list[TranspileError]]:
-    logger.debug(f"Started processing file: {input_path}")
-    error_list: list[TranspileError] = []
+@dataclasses.dataclass
+class TranspilingContext:
+    config: TranspileConfig
+    validator: Validator | None
+    transpiler: TranspileEngine
+    input_path: Path
+    output_folder: Path
+    output_path: Path | None = None
+    source_code: str | None = None
+    transpiled_code: str | None = None
 
-    if not config.source_dialect:
+
+async def _process_one_file(context: TranspilingContext) -> tuple[int, list[TranspileError]]:
+
+    logger.debug(f"Started processing file: {context.input_path!s}")
+
+    if not context.config.source_dialect:
         error = TranspileError(
             code="no-source-dialect-specified",
             kind=ErrorKind.INTERNAL,
             severity=ErrorSeverity.ERROR,
-            path=input_path,
+            path=context.input_path,
             message="No source dialect specified",
         )
         return 0, [error]
 
-    with input_path.open("r") as f:
+    with context.input_path.open("r") as f:
         source_code = remove_bom(f.read())
+        context = dataclasses.replace(context, source_code=source_code)
 
     transpile_result = await _transpile(
-        transpiler, config.source_dialect, config.target_dialect, source_code, input_path
+        context.transpiler,
+        str(context.config.source_dialect),
+        context.config.target_dialect,
+        str(context.source_code),
+        context.input_path,
     )
+
     # Potentially expensive, only evaluate if debug is enabled
     if logger.isEnabledFor(logging.DEBUG):
-        logger.debug(f"Finished transpiling file: {input_path} (result: {transpile_result})")
+        logger.debug(f"Finished transpiling file: {context.input_path} (result: {transpile_result})")
 
-    error_list.extend(transpile_result.error_list)
+    error_list = list(transpile_result.error_list)
+    context = dataclasses.replace(context, transpiled_code=transpile_result.transpiled_code)
 
+    output_path = cast(Path, context.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    output_code = transpile_result.transpiled_code
+    if _is_combined_result(transpile_result):
+        _process_combined_result(context, error_list)
+    else:
+        _process_single_result(context, error_list)
+
+    return transpile_result.success_count, error_list
+
+
+def _is_combined_result(result: TranspileResult):
+    return result.transpiled_code.startswith("Content-Type: multipart/mixed; boundary=")
+
+
+def _process_combined_result(context: TranspilingContext, _error_list: list[TranspileError]) -> None:
+    # TODO error handling
+    parser = EmailParser()
+    transpiled_code: str = cast(str, context.transpiled_code)
+    message: Message = parser.parsestr(transpiled_code)
+    for part in message.walk():
+        _process_combined_part(context, part)
+
+
+def _process_combined_part(context: TranspilingContext, part: Message) -> None:
+    if part.get_content_type() != "text/plain":
+        return
+    filename = part.get_filename()
+    content = part.get_payload(decode=False)
+    if not filename or not isinstance(content, str):
+        return
+    folder = context.output_folder
+    segments = filename.split("/")
+    for segment in segments[:-1]:
+        folder = folder / segment
+        folder.mkdir(parents=True, exist_ok=True)
+    output = folder / segments[-1]
+    output.write_text(content, "utf-8")
+
+
+def _process_single_result(context: TranspilingContext, error_list: list[TranspileError]) -> None:
+
+    output_code: str = context.transpiled_code or ""
 
     if any(err.kind == ErrorKind.PARSING for err in error_list):
-        output_code = source_code
+        output_code = context.source_code or ""
 
-    if validator and not error_list:
-        logger.debug(f"Validating transpiled code for file: {input_path}")
-        validation_result = _validation(validator, config, transpile_result.transpiled_code)
+    if error_list:
+        with_line_numbers = ""
+        lines = output_code.split("\n")
+        line_number_width = math.floor(math.log(len(lines), 10)) + 1
+        for line_number, line in enumerate(lines, start=1):
+            with_line_numbers += f"/* {line_number:{line_number_width}d} */  {line}\n"
+        output_code = with_line_numbers
+
+    elif context.validator:
+        logger.debug(f"Validating transpiled code for file: {context.input_path}")
+        validation_result = _validation(context.validator, context.config, str(context.transpiled_code))
         # Potentially expensive, only evaluate if debug is enabled
         if logger.isEnabledFor(logging.DEBUG):
-            msg = f"Finished validating transpiled code for file: {input_path} (result: {validation_result})"
+            msg = f"Finished validating transpiled code for file: {context.input_path} (result: {validation_result})"
             logger.debug(msg)
         if validation_result.exception_msg is not None:
             error = TranspileError(
                 "VALIDATION_ERROR",
                 ErrorKind.VALIDATION,
                 ErrorSeverity.WARNING,
-                input_path,
+                context.input_path,
                 validation_result.exception_msg,
             )
             error_list.append(error)
         output_code = validation_result.validated_sql
 
+    output_path = cast(Path, context.output_path)
     with output_path.open("w") as w:
-        w.write(_make_header(input_path, error_list))
+        w.write(_make_header(context.input_path, error_list))
         w.write(output_code)
 
-    logger.info(f"Processed file: {input_path} (errors: {len(error_list)})")
-    return transpile_result.success_count, error_list
+    logger.info(f"Processed file: {context.input_path} (errors: {len(error_list)})")
 
 
 def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
@@ -151,12 +216,16 @@ async def _process_many_files(
     config: TranspileConfig,
     validator: Validator | None,
     transpiler: TranspileEngine,
+    input_path: Path,
     output_folder: Path,
     files: list[Path],
 ) -> tuple[int, list[TranspileError]]:
     counter = 0
     all_errors: list[TranspileError] = []
 
+    context = TranspilingContext(
+        config=config, validator=validator, transpiler=transpiler, input_path=input_path, output_folder=output_folder
+    )
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
@@ -166,8 +235,8 @@ async def _process_many_files(
         if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
-        output_file_name = output_folder / file.name
-        success_count, error_list = await _process_one_file(config, validator, transpiler, file, output_file_name)
+        context = dataclasses.replace(context, input_path=file, output_path=output_folder / file.name)
+        success_count, error_list = await _process_one_file(context)
         counter = counter + success_count
         all_errors.extend(error_list)
     return counter, all_errors
@@ -187,7 +256,7 @@ async def _process_input_dir(config: TranspileConfig, validator: Validator | Non
         transpiled_dir = output_folder / relative_path
         logger.debug(f"Transpiling files from folder: {source_dir} -> {transpiled_dir}")
         file_list.extend(files)
-        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, transpiled_dir, files)
+        no_of_sqls, errors = await _process_many_files(config, validator, transpiler, input_path, transpiled_dir, files)
         counter = counter + no_of_sqls
         error_list.extend(errors)
     return TranspileStatus(file_list, counter, error_list)
@@ -201,14 +270,22 @@ async def _process_input_file(
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
-    msg = f"Transpiling sql file: {config.input_path!s}"
+    msg = f"Transpiling file: {config.input_path!s}"
     logger.info(msg)
-    output_path = config.output_path
-    if output_path is None:
-        output_path = config.input_path.parent / "transpiled"
-    make_dir(output_path)
-    output_file = output_path / config.input_path.name
-    no_of_sqls, error_list = await _process_one_file(config, validator, transpiler, config.input_path, output_file)
+    output_folder = config.output_path
+    if output_folder is None:
+        output_folder = config.input_path.parent / "transpiled"
+    make_dir(output_folder)
+    output_file = output_folder / config.input_path.name
+    context = TranspilingContext(
+        config=config,
+        validator=validator,
+        transpiler=transpiler,
+        input_path=config.input_path,
+        output_folder=output_folder,
+        output_path=output_file,
+    )
+    no_of_sqls, error_list = await _process_one_file(context)
     return TranspileStatus([config.input_path], no_of_sqls, error_list)
 
 
