@@ -18,8 +18,7 @@ async def test_transpiles_all_dbt_project_files(ws):
 
 async def _transpile_all_dbt_project_files(ws: Any):
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
-    if morpheus.exists():
-        shutil.rmtree(morpheus)
+    assert not morpheus.exists()
     TranspilerInstaller.install_from_maven("morpheus", "com.databricks.labs", "databricks-morph-plugin")
     # check execution
     config_path = morpheus / "lib" / "config.yml"
