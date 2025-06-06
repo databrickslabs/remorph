@@ -253,12 +253,12 @@ class WheelInstaller(TranspilerInstaller):
     def _create_venv(self) -> None:
         cwd = os.getcwd()
         try:
+            os.chdir(self._install_path)
             self._unsafe_create_venv()
         finally:
             os.chdir(cwd)
 
     def _unsafe_create_venv(self) -> None:
-        os.chdir(self._install_path)
         # using the venv module doesn't work (maybe it's not possible to create a venv from a venv ?)
         # so falling back to something that works
         # for some reason this requires shell=True, so pass full cmd line
@@ -312,7 +312,8 @@ class WheelInstaller(TranspilerInstaller):
     def _install_local_artifact(self) -> None:
         pip = self._locate_pip()
         pip = pip.relative_to(self._install_path)
-        target = self._site_packages.relative_to(self._install_path)
+        target = self._site_packages
+        target = target.relative_to(self._install_path)
         if sys.platform == "win32":
             command = f"{pip!s} install {self._artifact!s} -t {target!s}"
             completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
@@ -325,13 +326,14 @@ class WheelInstaller(TranspilerInstaller):
     def _install_remote_artifact(self) -> None:
         pip = self._locate_pip()
         pip = pip.relative_to(self._install_path)
-        target = self._site_packages.relative_to(self._install_path)
+        target = self._site_packages
+        target = target.relative_to(self._install_path)
         if sys.platform == "win32":
             args = [str(pip), "install", self._pypi_name, "-t", str(target)]
             completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=False, check=False)
         else:
-            args = [f"'{pip!s}'", "install", self._pypi_name, "-t", f"'{target!s}'"]
-            completed = run(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
+            command = f"'{pip!s}' install {self._pypi_name} -t '{target!s}'"
+            completed = run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, shell=True, check=False)
         # checking return code later makes debugging easier
         completed.check_returncode()
 
