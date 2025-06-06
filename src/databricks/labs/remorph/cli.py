@@ -144,6 +144,7 @@ class _TranspileConfigChecker:
             input_source = self._config.input_source
         if not input_source:
             input_source = self._prompts.question("Enter input SQL path (directory/file)")
+            input_source = input_source.strip()
         if not input_source:
             raise_validation_exception("Missing '--input-source'")
         if not os.path.exists(input_source):
@@ -218,6 +219,7 @@ class _TranspileConfigChecker:
             output_folder = self._config.output_folder
         if not output_folder:
             output_folder = self._prompts.question("Enter output directory", default="transpiled")
+            output_folder = output_folder.strip()
         if not output_folder:
             raise_validation_exception("Missing '--output-folder'")
         if not os.path.exists(output_folder):
@@ -232,6 +234,7 @@ class _TranspileConfigChecker:
             error_file_path = self._config.error_file_path
         if not error_file_path:
             error_file_path = self._prompts.question("Enter error file path", default="errors.log")
+            error_file_path = error_file_path.strip()
         if not error_file_path:
             raise_validation_exception("Missing '--error-file-path'")
         logger.debug(f"Setting error_file_path to '{error_file_path}'")
