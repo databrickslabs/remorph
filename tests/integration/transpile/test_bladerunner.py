@@ -2,6 +2,8 @@ import logging
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
+from unittest.mock import patch
 
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller
@@ -12,6 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 async def test_transpiles_informatica_with_sparksql(ws):
+    with TemporaryDirectory() as tmpdir:
+        with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
+            await _transpile_informatica_with_sparksql(ws)
+
+
+async def _transpile_informatica_with_sparksql(ws: Any):
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
     if bladerunner.exists():
         shutil.rmtree(bladerunner)
