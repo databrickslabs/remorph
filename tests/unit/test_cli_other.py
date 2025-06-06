@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 
-from databricks.labs.blueprint.tui import MockPrompts, Prompts
+from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import LSPConfigOptionV1, LSPPromptMethod
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
