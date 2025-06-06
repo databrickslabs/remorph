@@ -229,6 +229,9 @@ async def _process_many_files(
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Processing next {len(files)} files: {files}")
     for file in files:
+        if file.name.startswith("."):
+            logger.debug(f"Ignored invisible file: {file}")
+            continue
         if not transpiler.is_supported_file(file):
             logger.debug(f"Ignored file: {file}")
             continue
