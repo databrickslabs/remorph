@@ -22,6 +22,13 @@ const Hero = () => {
       <div className="mt-12 flex flex-wrap justify-center flex-col md:flex-row gap-y-4 md:gap-y-4 md:gap-x-4">
         <Button
           variant="primary"
+          link="docs/overview/"
+          size="large"
+          label="Overview"
+          className="bg-[#1b3139] text-white rounded-none border-0 px-6 py-2 font-medium text-base leading-6"
+        />
+        <Button
+          variant="primary"
           link="/docs/installation"
           size="large"
           label="Get Started"
