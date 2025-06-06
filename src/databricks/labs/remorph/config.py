@@ -58,7 +58,10 @@ class LSPConfigOptionV1:
         if self.method == LSPPromptMethod.CONFIRM:
             return prompts.confirm(self.prompt)
         if self.method == LSPPromptMethod.QUESTION:
-            return prompts.question(self.prompt, default=self.default)
+            result = prompts.question(self.prompt, default=self.default)
+            if result == "<none>":
+                return None
+            return result
         if self.method == LSPPromptMethod.CHOICE:
             return prompts.choice(self.prompt, cast(list[str], self.choices))
         raise ValueError(f"Unsupported prompt method: {self.method}")
