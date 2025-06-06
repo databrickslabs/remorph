@@ -544,7 +544,7 @@ class LSPEngine(TranspileEngine):
 
     # TODO infer the below from config file
     def is_supported_file(self, file: Path) -> bool:
-        if self._is_blade_runner():
+        if self._is_bladerunner() or self._is_test_transpiler():
             return True
         if self._is_morpheus():
             return is_sql_file(file) or is_dbt_project_file(file)
@@ -552,7 +552,11 @@ class LSPEngine(TranspileEngine):
         return is_sql_file(file)
 
     # TODO remove this
-    def _is_blade_runner(self):
+    def _is_test_transpiler(self):
+        return self._config.remorph.name == "test-transpiler"
+
+    # TODO remove this
+    def _is_bladerunner(self):
         return self._config.remorph.name == "Bladerunner"
 
     # TODO remove this
