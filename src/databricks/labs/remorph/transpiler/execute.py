@@ -1,6 +1,5 @@
 import asyncio
 import dataclasses
-import datetime
 import logging
 import math
 from email.message import Message
