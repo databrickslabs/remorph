@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -45,6 +46,9 @@ async def _install_and_run_local_bladerunner(bladerunner_artifact: Path):
     # TODO: Test that running with legacy install upgrades it
     # check new install
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    # TODO temporary workaround for RecursionError with temp dirs on Windows
+    if sys.platform == "win32" and bladerunner.exists():
+        shutil.rmtree(bladerunner)
     assert not bladerunner.exists()
     # fresh install
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin", bladerunner_artifact)
@@ -97,6 +101,9 @@ async def _install_and_run_pypi_bladerunner():
     # TODO: Test that running with legacy install upgrades it
     # check new install
     bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    # TODO temporary workaround for RecursionError with temp dirs on Windows
+    if sys.platform == "win32" and bladerunner.exists():
+        shutil.rmtree(bladerunner)
     assert not bladerunner.exists()
     # fresh install
     TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin")
