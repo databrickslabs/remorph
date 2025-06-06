@@ -92,6 +92,11 @@ const config: Config = {
           label: "Why Remorph"
         },
         {
+          to: '/docs/overview/',
+          position: 'left',
+          label: "Overview"
+        },
+        {
           to: '/docs/installation/',
           position: 'left',
           label: "Get Started"
