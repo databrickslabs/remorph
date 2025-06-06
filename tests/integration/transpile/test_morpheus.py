@@ -8,6 +8,7 @@ from databricks.labs.remorph.transpiler.execute import transpile
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
+# TODO move this test to Morpheus
 async def test_transpiles_all_dbt_project_files(ws):
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
     if morpheus.exists():
@@ -32,3 +33,4 @@ async def test_transpiles_all_dbt_project_files(ws):
         assert (Path(output_folder) / "dbt_project.yml").exists()
         assert (Path(output_folder) / "sub" / "sub-query.sql").exists()
         assert (Path(output_folder) / "sub" / "dbt_project.yml").exists()
+        # TODO verify content
