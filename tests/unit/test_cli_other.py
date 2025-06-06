@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 
-from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.blueprint.tui import MockPrompts, Prompts
 from databricks.labs.remorph import cli
+from databricks.labs.remorph.config import LSPConfigOptionV1, LSPPromptMethod
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 
 
@@ -34,3 +35,16 @@ def test_cli_reconcile(mock_workspace_client):
 def test_cli_aggregates_reconcile(mock_workspace_client):
     with patch("databricks.labs.remorph.reconcile.runner.ReconcileRunner.run", return_value=True):
         cli.aggregates_reconcile(mock_workspace_client)
+
+
+def test_prompts_question():
+    option = LSPConfigOptionV1("param", LSPPromptMethod.QUESTION, "Some question", default="<none>")
+    prompts = MockPrompts({"Some question": ""})
+    response = option.prompt_for_value(prompts)
+    assert response is None
+    prompts = MockPrompts({"Some question": "<none>"})
+    response = option.prompt_for_value(prompts)
+    assert response is None
+    prompts = MockPrompts({"Some question": "something"})
+    response = option.prompt_for_value(prompts)
+    assert response == "something"
