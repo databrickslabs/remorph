@@ -1,6 +1,5 @@
 import asyncio
 import os
-from os import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
@@ -23,6 +22,7 @@ def format_transpiled(sql: str) -> str:
 # don't run installers in parallel
 installer_lock = asyncio.Lock()
 base_cwd = os.getcwd()
+
 
 async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     await installer_lock.acquire()
