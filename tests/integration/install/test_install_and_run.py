@@ -28,7 +28,7 @@ async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory() as tmpdir:
+        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
                 await _install_and_run_local_bladerunner(bladerunner_artifact)
     finally:
@@ -76,7 +76,7 @@ async def test_installs_and_runs_pypi_bladerunner():
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory() as tmpdir:
+        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
                 await _install_and_run_pypi_bladerunner()
     finally:
@@ -124,7 +124,7 @@ async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
-        with TemporaryDirectory() as tmpdir:
+        with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
                 await _install_and_run_local_morpheus(morpheus_artifact)
     finally:
