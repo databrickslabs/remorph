@@ -1,5 +1,4 @@
 import logging
-import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -11,6 +10,7 @@ from databricks.labs.remorph.transpiler.execute import transpile
 from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 logger = logging.getLogger(__name__)
+
 
 # TODO use artifact from PyPI once 0.1.5 is published
 async def test_transpiles_informatica_with_sparksql(ws, bladerunner_artifact):
