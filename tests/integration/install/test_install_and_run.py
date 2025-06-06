@@ -86,7 +86,7 @@ async def test_installs_and_runs_pypi_bladerunner():
             await _install_and_run_pypi_bladerunner()
         else:
             with TemporaryDirectory() as tmpdir:
-                with patch.object(TranspilerInstaller, "xf", return_value=Path(tmpdir)):
+                with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
                     await _install_and_run_pypi_bladerunner()
     finally:
         installer_lock.release()
