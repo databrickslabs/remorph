@@ -212,12 +212,18 @@ class _TranspileConfigChecker:
         values[option.flag] = option.prompt_for_value(self._prompts)
 
     def check_output_folder(self, output_folder: str | None):
+        default_folder = "transpiled"
         if output_folder == "None":
             output_folder = None
         if not output_folder:
             output_folder = self._config.output_folder
         if not output_folder:
-            output_folder = self._prompts.question("Enter output directory", default="transpiled")
+            output_folder = self._prompts.question("Enter output directory", default=default_folder)
+            if output_folder == "transpiled":
+                folder = Path(os.getcwd()) / default_folder
+                folder.mkdir(exist_ok=True)
+                logger.info(f"Output will be generated in {folder!s}")
+                output_folder = str(folder)
         if not output_folder:
             raise_validation_exception("Missing '--output-folder'")
         if not os.path.exists(output_folder):
