@@ -323,7 +323,7 @@ def test_configure_transpile_installation_no_override(mock_install_morpheus, moc
 def test_configure_transpile_installation_config_error_continue_install(ws_installer, ws):
     prompts = MockPrompts(
         {
-            r"Do you want to override the existing installation?": "no",
+            r"Do you want to override the existing installation?": "yes",
             r"Select the source dialect": ALL_INSTALLED_DIALECTS.index("snowflake"),
             r"Select the transpiler": TRANSPILERS_FOR_SNOWFLAKE.index("Morpheus"),
             r"Enter input SQL path.*": "/tmp/queries/snow",

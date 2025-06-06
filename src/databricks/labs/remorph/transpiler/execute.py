@@ -1,11 +1,10 @@
 import asyncio
-import datetime
 import logging
-import math
 from pathlib import Path
-from typing import cast, Any
+from typing import cast
 import itertools
 
+from databricks.labs.blueprint.installation import JsonObject
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     TranspileConfig,
@@ -72,14 +71,6 @@ async def _process_one_file(
     if any(err.kind == ErrorKind.PARSING for err in error_list):
         output_code = source_code
 
-    if error_list:
-        with_line_numbers = ""
-        lines = output_code.split("\n")
-        line_number_width = math.floor(math.log(len(lines), 10)) + 1
-        for line_number, line in enumerate(lines, start=1):
-            with_line_numbers += f"/* {line_number:{line_number_width}d} */  {line}\n"
-        output_code = with_line_numbers
-
     if validator and not error_list:
         logger.debug(f"Validating transpiled code for file: {input_path}")
         validation_result = _validation(validator, config, transpile_result.transpiled_code)
@@ -110,6 +101,7 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     header = ""
     failed_producing_output = False
     diag_by_severity = {}
+    line_numbers = {}
 
     for severity, diags in itertools.groupby(errors, key=lambda x: x.severity):
         diag_by_severity[severity] = list(diags)
@@ -118,6 +110,8 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
         header += f"/*\n    Failed transpilation of {file_path}\n"
         header += "\n    The following errors were found while transpiling:\n"
         for diag in diag_by_severity[ErrorSeverity.ERROR]:
+            if diag.range:
+                line_numbers[diag.range.start.line] = 0
             header += _append_diagnostic(diag)
             failed_producing_output = failed_producing_output or diag.kind == ErrorKind.PARSING
     else:
@@ -126,21 +120,31 @@ def _make_header(file_path: Path, errors: list[TranspileError]) -> str:
     if ErrorSeverity.WARNING in diag_by_severity:
         header += "\n    The following warnings were found while transpiling:\n"
         for diag in diag_by_severity[ErrorSeverity.WARNING]:
+            if diag.range:
+                line_numbers[diag.range.start.line] = 0
             header += _append_diagnostic(diag)
 
     if failed_producing_output:
         header += "\n\n    Parsing errors prevented the converter from translating the input query.\n"
         header += "    We reproduce the input query unchanged below.\n\n"
 
-    return header + "*/\n"
+    header += "*/\n"
+
+    header_line_count = header.count("\n")
+
+    for unshifted in line_numbers:
+        line_numbers[unshifted] = header_line_count + unshifted + 1
+
+    return header.format(line_numbers=line_numbers)
 
 
 def _append_diagnostic(diag: TranspileError) -> str:
+    message = diag.message.replace("{", "{{").replace("}", "}}")
     if diag.range:
-        line = diag.range.start.line + 1
-        column = diag.range.start.character + 1 + 2  # + 1 to make it one-based, + 2 to take indentation into account
-        return f"      - [{line}:{column}] {diag.message}\n"
-    return f"      - {diag.message}\n"
+        line = diag.range.start.line
+        column = diag.range.start.character + 1
+        return f"      - [{{line_numbers[{line}]}}:{column}] {message}\n"
+    return f"      - {message}\n"
 
 
 async def _process_many_files(
@@ -207,7 +211,7 @@ async def _process_input_file(
 
 async def transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[JsonObject, list[TranspileError]]:
     await engine.initialize(config)
     status, errors = await _do_transpile(workspace_client, engine, config)
     await engine.shutdown()
@@ -217,7 +221,7 @@ async def transpile(
 
 async def _do_transpile(
     workspace_client: WorkspaceClient, engine: TranspileEngine, config: TranspileConfig
-) -> tuple[dict[str, Any], list[TranspileError]]:
+) -> tuple[JsonObject, list[TranspileError]]:
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
@@ -251,15 +255,13 @@ async def _do_transpile(
     if not config.skip_validation:
         logger.info(f"SQL validation errors: {result.validation_error_count}")
 
-    error_log_path: Path | None = None
-    if result.error_list:
-        if config.error_path:
-            error_log_path = config.error_path
-        else:
-            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')
-            error_log_path = Path.cwd().joinpath(f"transpile_errors_{timestamp}.lst")
-        with cast(Path, error_log_path).open("a", encoding="utf-8") as e:
-            e.writelines(f"{err!s}\n" for err in result.error_list)
+    # TODO: Refactor this so that errors are written while transpiling instead of waiting until the end.
+    if result.error_list and config.error_path is not None:
+        with config.error_path.open("a", encoding="utf-8") as e:
+            e.writelines(f"{err}\n" for err in result.error_list)
+        error_log_file = str(config.error_path)
+    else:
+        error_log_file = None
 
     status = {
         "total_files_processed": len(result.file_list),
@@ -268,7 +270,7 @@ async def _do_transpile(
         "parsing_error_count": result.parsing_error_count,
         "validation_error_count": result.validation_error_count,
         "generation_error_count": result.generation_error_count,
-        "error_log_file": str(error_log_path),
+        "error_log_file": error_log_file,
     }
     logger.debug(f"Transpiler Status: {status}")
     return status, result.error_list
