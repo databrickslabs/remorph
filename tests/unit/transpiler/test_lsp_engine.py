@@ -223,8 +223,7 @@ async def test_client_translates_diagnostics(lsp_engine, transpile_config, resou
 
 async def test_large_file(lsp_engine, transpile_config):
     await lsp_engine.initialize(transpile_config)
-    data: str = "abcd" * (1024 * 1024) # 4 megs
-    result = await lsp_engine.transpile(
-        transpile_config.source_dialect, "databricks", data, Path("/large_file.sql"))
+    data: str = "abcd" * (1024 * 1024)  # 4 megs
+    result = await lsp_engine.transpile(transpile_config.source_dialect, "databricks", data, Path("/large_file.sql"))
     await lsp_engine.shutdown()
     assert result.transpiled_code == data.upper()
