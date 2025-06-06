@@ -2,6 +2,9 @@ import asyncio
 import dataclasses
 import datetime
 import logging
+import math
+from email.message import Message
+from email.parser import Parser as EmailParser
 from pathlib import Path
 from typing import cast
 import itertools
@@ -96,7 +99,21 @@ def _is_combined_result(result: TranspileResult):
 
 
 def _process_combined_result(context: TranspilingContext) -> None:
-    pass
+    # TODO error handling
+    parser = EmailParser()
+    message: Message = parser.parsestr(context.transpiled_code)
+    for part in message.walk():
+        if part.get_content_type() != "text/plain":
+            continue
+        filename = part.get_filename()
+        folder = context.output_folder
+        segments = filename.split("/")
+        for segment in segments[:-1]:
+            folder = folder / segment
+            folder.mkdir(parents=True, exist_ok=True)
+        content = part.get_payload(decode=False)
+        output = folder / segments[-1]
+        output.write_text(content, "utf-8")
 
 
 def _process_single_result(context: TranspilingContext) -> None:
@@ -245,7 +262,7 @@ async def _process_input_file(
         logger.warning(msg)
         # silently ignore non-sql files
         return TranspileStatus([], 0, [])
-    msg = f"Transpiling sql file: {config.input_path!s}"
+    msg = f"Transpiling file: {config.input_path!s}"
     logger.info(msg)
     output_folder = config.output_path
     if output_folder is None:

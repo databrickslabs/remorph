@@ -2,7 +2,6 @@ import asyncio
 import dataclasses
 import logging
 import os
-from collections.abc import AsyncGenerator
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import sleep
@@ -12,22 +11,10 @@ from lsprotocol.types import TextEdit, Range, Position
 
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import (
-    LSPEngine,
-    ChangeManager,
-)
+from databricks.labs.remorph.transpiler.lsp.lsp_engine import ChangeManager
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorSeverity, ErrorKind
 
 from tests.unit.conftest import path_to_resource
-
-
-@pytest.fixture
-async def lsp_engine() -> AsyncGenerator[LSPEngine, None]:
-    config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
-    engine = LSPEngine.from_config_path(Path(config_path))
-    yield engine
-    if engine.is_alive:
-        await engine.shutdown()
 
 
 async def test_initializes_lsp_server(lsp_engine, transpile_config):
@@ -231,5 +218,4 @@ async def test_server_transpiles_workflow(lsp_engine, transpile_config):
             transpile_config.source_dialect, "databricks", sample_path.read_text(encoding="utf-8"), sample_path
         )
         await lsp_engine.shutdown()
-        transpiled_path = Path(path_to_resource("lsp_transpiler", "transpiled_stuff.sql"))
-        assert result.transpiled_code == transpiled_path.read_text(encoding="utf-8")
+        assert result.transpiled_code.startswith("Content-Type: multipart/mixed; boundary=")
