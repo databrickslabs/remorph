@@ -220,6 +220,43 @@ async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
             assert transpiled == sql_code
 
 
+async def test_installs_and_runs_pypi_bladerunner():
+    # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
+    # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
+    # TODO: Fix to use a temporary location instead of the user's home directory.
+    bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    if bladerunner.exists():
+        shutil.rmtree(bladerunner)
+    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin")
+    # check file-level installation
+    config_path = bladerunner / "lib" / "config.yml"
+    assert config_path.exists()
+    version_path = bladerunner / "state" / "version.json"
+    assert version_path.exists()
+    # check execution
+    lsp_engine = LSPEngine.from_config_path(config_path)
+    with TemporaryDirectory() as input_source:
+        with TemporaryDirectory() as output_folder:
+            transpile_config = TranspileConfig(
+                transpiler_config_path=str(config_path),
+                source_dialect="oracle",
+                input_source=input_source,
+                output_folder=output_folder,
+                sdk_config={"cluster_id": "test_cluster"},
+                skip_validation=False,
+                catalog_name="catalog",
+                schema_name="schema",
+            )
+            await lsp_engine.initialize(transpile_config)
+            dialect = transpile_config.source_dialect
+            input_file = Path(input_source) / "some_query.sql"
+            sql_code = "select * from employees"
+            result = await lsp_engine.transpile(dialect, "databricks", sql_code, input_file)
+            await lsp_engine.shutdown()
+            transpiled = format_transpiled(result.transpiled_code)
+            assert transpiled == sql_code
+
+
 async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     # Note: This test currently uses the user's home-directory, and doesn't really test the install process if the
     # transpiler is already installed there: many install paths are a no-op if the transpiler is already installed.
