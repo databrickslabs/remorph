@@ -18,7 +18,7 @@ const Hero = () => {
       <p className="text-lg text-center text-balance">
           Remorph is a comprehensive toolkit designed to facilitate seamless migrations to Databricks.
       </p>
-      
+
       <div className="mt-12 flex flex-wrap justify-center flex-col md:flex-row gap-y-4 md:gap-y-4 md:gap-x-4">
         <Button
           variant="primary"
