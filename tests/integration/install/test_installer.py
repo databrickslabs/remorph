@@ -93,14 +93,15 @@ def test_lists_all_dialects(patched_transpiler_installer):
         'redshift',
         'snowflake',
         'synapse',
-        'teradata'
+        'teradata',
+        'tsql',
     }
 
 
 def test_lists_dialect_transpilers(patched_transpiler_installer):
     transpilers = patched_transpiler_installer.transpilers_with_dialect("snowflake")
     assert transpilers == {'Morpheus', 'Bladebridge'}
-    transpilers = patched_transpiler_installer.transpilers_with_dialect("presto")
+    transpilers = patched_transpiler_installer.transpilers_with_dialect("datastage")
     assert transpilers == {'Bladebridge'}
 
 
