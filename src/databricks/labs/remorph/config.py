@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from databricks.labs.blueprint.installation import JsonValue
+from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.remorph.transpiler.transpile_status import TranspileError
 from databricks.labs.remorph.reconcile.recon_config import Table
 
@@ -51,26 +52,41 @@ class LSPConfigOptionV1:
         default = data.get("default", None)
         return LSPConfigOptionV1(flag, method, prompt, choices, default)
 
+    def prompt_for_value(self, prompts: Prompts) -> JsonValue:
+        if self.method == LSPPromptMethod.FORCE:
+            return self.default
+        if self.method == LSPPromptMethod.CONFIRM:
+            return prompts.confirm(self.prompt)
+        if self.method == LSPPromptMethod.QUESTION:
+            default = self.default if self.default else "None"
+            result = prompts.question(self.prompt, default=default)
+            if result == "<none>":
+                return None
+            return result
+        if self.method == LSPPromptMethod.CHOICE:
+            return prompts.choice(self.prompt, cast(list[str], self.choices))
+        raise ValueError(f"Unsupported prompt method: {self.method}")
+
 
 @dataclass
 class TranspileConfig:
     __file__ = "config.yml"
     __version__ = 3
 
-    transpiler_config_path: str
+    transpiler_config_path: str | None = None
     source_dialect: str | None = None
     input_source: str | None = None
     output_folder: str | None = None
     error_file_path: str | None = None
     sdk_config: dict[str, str] | None = None
-    skip_validation: bool = False
+    skip_validation: bool | None = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     transpiler_options: JsonValue = None
 
     @property
-    def transpiler_path(self):
-        return Path(self.transpiler_config_path)
+    def transpiler_path(self) -> Path | None:
+        return Path(self.transpiler_config_path) if self.transpiler_config_path is not None else None
 
     @property
     def input_path(self):
@@ -101,7 +117,6 @@ class TranspileConfig:
         key_mapping = {"input_sql": "input_source", "output_folder": "output_path", "source": "source_dialect"}
         raw["version"] = 3
         raw["error_file_path"] = "error_log.txt"
-        raw["transpiler_config_path"] = "remorph_transpiler_config.yml"
         return {key_mapping.get(key, key): value for key, value in raw.items()}
 
 
