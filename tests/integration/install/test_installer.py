@@ -82,31 +82,18 @@ def test_lists_all_transpiler_names(patched_transpiler_installer):
 def test_lists_all_dialects(patched_transpiler_installer):
     dialects = patched_transpiler_installer.all_dialects()
     assert dialects == {
-        'abinitio',
-        'alteryx',
         'athena',
+        'bigquery',
         'datastage',
         'greenplum',
-        'hive',
-        'impala',
-        'informatica (big data edition)',
-        'informatica (desktop)',
+        'informatica (desktop edition)',
+        'mssql',
         'netezza',
-        'oozie',
         'oracle',
-        'pentaho',
-        'pig',
-        'presto',
         'redshift',
-        'sap hana',
-        'sas',
         'snowflake',
-        'ssis',
         'synapse',
-        'talend',
-        'teradata',
-        'tsql',
-        'vertica',
+        'teradata'
     }
 
 
