@@ -10,6 +10,7 @@ from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
 from databricks.labs.remorph.config import TranspileResult, TranspileConfig
+from databricks.labs.remorph.helpers.file_utils import is_sql_file
 from databricks.labs.remorph.helpers.string_utils import format_error_message
 from databricks.labs.remorph.transpiler.sqlglot import lca_utils
 from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
@@ -197,3 +198,6 @@ class SqlglotEngine(TranspileEngine):
 
     def _check_supported(self, source_dialect: Dialect, source_code: str, file_path: Path) -> TranspileError | None:
         return lca_utils.check_for_unsupported_lca(source_dialect, source_code, file_path)
+
+    def is_supported_file(self, file: Path) -> bool:
+        return is_sql_file(file)
