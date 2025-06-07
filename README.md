@@ -5,6 +5,6 @@ Databricks Labs Remorph
 -----
 
 ## **⚠️ This project is no longer maintained and is officially sunset!!!!
-## Please look out for instructions on using databrickslabs lakebridge
+#### Please look out for instructions on using databrickslabs lakebridge
 >
 > No further updates, bug fixes, or support will be provided for older remorph version, switch to lakebridge!!!
