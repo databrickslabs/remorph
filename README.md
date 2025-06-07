@@ -4,7 +4,7 @@ Databricks Labs Remorph
 
 -----
 
-## **⚠️ This project is no longer maintained and is officially sunset!!!!
-#### Please look out for instructions on using databrickslabs lakebridge
+## **⚠️ This project is no longer maintained and is officially sunset.
+#### For Databricks Migration tooling, please refer to [Databricks Labs Lakebridge](https://databrickslabs.github.io/lakebridge)
 >
-> No further updates, bug fixes, or support will be provided for older remorph version, switch to lakebridge!!!
+> No further updates, bug fixes, or support will be provided for Remorph, please use Lakebridge instead.
