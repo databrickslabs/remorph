@@ -56,7 +56,7 @@ def ws_installer():
         # (because the artifact is either missing or invalid)
         # TODO remove this once they are available and healthy !!!
         @classmethod
-        def install_bladerunner(cls, artifact: Path | None = None):
+        def install_bladebridge(cls, artifact: Path | None = None):
             pass
 
         @classmethod
@@ -273,10 +273,10 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     )
 
 
-@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_bladerunner")
+@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_bladebridge")
 @patch("databricks.labs.remorph.install.WorkspaceInstaller.install_morpheus")
-def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_bladerunner, ws):
-    mock_install_bladerunner.return_value = None
+def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_bladebridge, ws):
+    mock_install_bladebridge.return_value = None
     mock_install_morpheus.return_value = None
 
     prompts = MockPrompts(
