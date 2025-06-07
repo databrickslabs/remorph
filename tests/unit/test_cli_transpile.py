@@ -211,10 +211,12 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
 
 def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
-    cli.transpile(
-        ws,
-        source_dialect="invalid_dialect",
-    )
+    with pytest.raises(ValueError):
+        cli.transpile(
+            ws,
+            source_dialect="invalid_dialect",
+        )
+
     do_transpile.assert_called_once_with(
         ws,
         ANY,

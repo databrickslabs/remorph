@@ -539,7 +539,7 @@ class WorkspaceInstaller:
         if module == "transpile" and artifact:
             self.install_artifact(artifact)
         elif module in {"transpile", "all"}:
-            self.install_bladerunner()
+            self.install_bladebridge()
             self.install_morpheus()
         if not config:
             config = self.configure(module)
@@ -550,8 +550,8 @@ class WorkspaceInstaller:
         return config
 
     @classmethod
-    def install_bladerunner(cls, artifact: Path | None = None):
-        local_name = "bladerunner"
+    def install_bladebridge(cls, artifact: Path | None = None):
+        local_name = "bladebridge"
         pypi_name = "databricks-bb-plugin"
         TranspilerInstaller.install_from_pypi(local_name, pypi_name, artifact)
 
@@ -577,7 +577,7 @@ class WorkspaceInstaller:
         if "databricks-morph-plugin" in path.name:
             cls.install_morpheus(path)
         elif "databricks_bb_plugin" in path.name:
-            cls.install_bladerunner(path)
+            cls.install_bladebridge(path)
         else:
             logger.fatal(f"Cannot install unsupported artifact: {artifact}")
 
@@ -691,7 +691,7 @@ class WorkspaceInstaller:
                     transpiler_name = None
             else:
                 transpiler_name = next(t for t in transpilers)
-                # TODO Change name for bladerunner
+                # TODO Change name for bladebridge
                 logger.info(f"Remorph will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
