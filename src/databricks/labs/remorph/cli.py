@@ -4,7 +4,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import cast
+from typing import NoReturn, cast
 
 from databricks.sdk.core import with_user_agent_extra
 from databricks.sdk.service.sql import CreateWarehouseRequestWarehouseType
@@ -45,7 +45,7 @@ remorph = App(__file__)
 logger = get_logger(__file__)
 
 
-def raise_validation_exception(msg: str) -> Exception:
+def raise_validation_exception(msg: str) -> NoReturn:
     raise ValueError(msg)
 
 
@@ -144,6 +144,7 @@ class _TranspileConfigChecker:
             input_source = self._config.input_source
         if not input_source:
             input_source = self._prompts.question("Enter input SQL path (directory/file)")
+            input_source = input_source.strip()
         if not input_source:
             raise_validation_exception("Missing '--input-source'")
         if not os.path.exists(input_source):
@@ -212,12 +213,19 @@ class _TranspileConfigChecker:
         values[option.flag] = option.prompt_for_value(self._prompts)
 
     def check_output_folder(self, output_folder: str | None):
+        default_folder = "transpiled"
         if output_folder == "None":
             output_folder = None
         if not output_folder:
             output_folder = self._config.output_folder
         if not output_folder:
-            output_folder = self._prompts.question("Enter output directory", default="transpiled")
+            output_folder = self._prompts.question("Enter output directory", default=default_folder)
+            output_folder = output_folder.strip()
+            if output_folder == "transpiled":
+                folder = Path(os.getcwd()) / default_folder
+                folder.mkdir(exist_ok=True)
+                logger.info(f"Output will be generated in {folder!s}")
+                output_folder = str(folder)
         if not output_folder:
             raise_validation_exception("Missing '--output-folder'")
         if not os.path.exists(output_folder):
@@ -232,6 +240,7 @@ class _TranspileConfigChecker:
             error_file_path = self._config.error_file_path
         if not error_file_path:
             error_file_path = self._prompts.question("Enter error file path", default="errors.log")
+            error_file_path = error_file_path.strip()
         if not error_file_path:
             raise_validation_exception("Missing '--error-file-path'")
         logger.debug(f"Setting error_file_path to '{error_file_path}'")
@@ -287,11 +296,12 @@ class _TranspileConfigChecker:
     def check(self) -> tuple[TranspileConfig, TranspileEngine]:
         logger.debug(f"Checking config: {self!s}")
         # not using os.path.exists because it sometimes fails mysteriously...
-        if not self._config.transpiler_config_path or not Path(self._config.transpiler_config_path).exists():
+        transpiler_path = self._config.transpiler_path
+        if not transpiler_path or not transpiler_path.exists():
             raise_validation_exception(
                 f"Invalid value for '--transpiler-config-path': Path '{self._config.transpiler_config_path}' does not exist."
             )
-        engine = TranspileEngine.load_engine(Path(self._config.transpiler_config_path))
+        engine = TranspileEngine.load_engine(transpiler_path)
         engine.check_source_dialect(self._config.source_dialect)
         if not self._config.input_source or not os.path.exists(self._config.input_source):
             raise_validation_exception(
@@ -396,7 +406,7 @@ def configure_secrets(w: WorkspaceClient):
 
 
 @remorph.command(is_unauthenticated=True)
-def install_assessment():
+def configure_database_profiler():
     """[Experimental] Install the Remorph Assessment package"""
     prompts = Prompts()
 
@@ -421,9 +431,9 @@ def install_transpile(w: WorkspaceClient, artifact: str | None = None):
 
 
 @remorph.command(is_unauthenticated=False)
-def install_reconcile(w: WorkspaceClient):
-    """Install the Remorph Reconcile package"""
-    with_user_agent_extra("cmd", "install-reconcile")
+def configure_reconcile(w: WorkspaceClient):
+    """Configure the Remorph Reconcile Package"""
+    with_user_agent_extra("cmd", "configure-reconcile")
     user = w.current_user
     logger.debug(f"User: {user}")
     dbsql_id = _create_warehouse(w)

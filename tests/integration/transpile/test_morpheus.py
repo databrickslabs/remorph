@@ -1,6 +1,7 @@
-import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
+from unittest.mock import patch
 
 from databricks.labs.remorph.config import TranspileConfig
 from databricks.labs.remorph.install import TranspilerInstaller
@@ -9,9 +10,14 @@ from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
 
 
 async def test_transpiles_all_dbt_project_files(ws):
+    with TemporaryDirectory() as tmpdir:
+        with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
+            await _transpile_all_dbt_project_files(ws)
+
+
+async def _transpile_all_dbt_project_files(ws: Any):
     morpheus = TranspilerInstaller.transpilers_path() / "morpheus"
-    if morpheus.exists():
-        shutil.rmtree(morpheus)
+    assert not morpheus.exists()
     TranspilerInstaller.install_from_maven("morpheus", "com.databricks.labs", "databricks-morph-plugin")
     # check execution
     config_path = morpheus / "lib" / "config.yml"
