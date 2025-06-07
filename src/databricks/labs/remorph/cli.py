@@ -225,8 +225,11 @@ class _TranspileConfigChecker:
         error_file_path = error_file_path if error_file_path else self._config.error_file_path
         if not error_file_path or error_file_path == "None":
             raise_validation_exception("Missing '--error-file-path'")
+        if error_file_path == "errors.log":
+            error_file_path = str(Path.cwd() / "errors.log")
         if not os.path.exists(Path(error_file_path).parent):
             os.makedirs(Path(error_file_path).parent, exist_ok=True)
+
         logger.debug(f"Setting error_file_path to '{error_file_path}'")
         self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
 
