@@ -213,7 +213,8 @@ class _TranspileConfigChecker:
         values[option.flag] = option.prompt_for_value(self._prompts)
 
     def check_output_folder(self, output_folder: str | None):
-        if not output_folder or output_folder == "None":
+        output_folder = output_folder if output_folder else self._config.output_folder
+        if not output_folder:
             raise_validation_exception("Missing '--output-folder'")
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
@@ -221,6 +222,7 @@ class _TranspileConfigChecker:
         self._config = dataclasses.replace(self._config, output_folder=output_folder)
 
     def check_error_file_path(self, error_file_path: str | None):
+        error_file_path = error_file_path if error_file_path else self._config.error_file_path
         if not error_file_path or error_file_path == "None":
             raise_validation_exception("Missing '--error-file-path'")
         if not os.path.exists(Path(error_file_path).parent):
