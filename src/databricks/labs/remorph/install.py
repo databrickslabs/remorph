@@ -706,7 +706,13 @@ class WorkspaceInstaller:
         if input_source == install_later:
             input_source = None
         output_folder = self._prompts.question("Enter output directory", default="transpiled")
+        # When defaults are passed along we need to use absolute paths to avoid issues with relative paths
+        if output_folder == "transpiled":
+            output_folder = str(Path.cwd() / "transpiled")
         error_file_path = self._prompts.question("Enter error file path", default="errors.log")
+        if error_file_path == "errors.log":
+            error_file_path = str(Path.cwd() / "errors.log")
+
         run_validation = self._prompts.confirm(
             "Would you like to validate the syntax and semantics of the transpiled queries?"
         )
