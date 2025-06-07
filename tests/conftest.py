@@ -211,7 +211,7 @@ def report_tables_schema():
 
 
 @pytest.fixture
-def bladebridge() -> Path:
+def bladebridge_artifact() -> Path:
     artifact = (
         Path(__file__).parent
         / "resources"
