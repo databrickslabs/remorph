@@ -213,36 +213,18 @@ class _TranspileConfigChecker:
         values[option.flag] = option.prompt_for_value(self._prompts)
 
     def check_output_folder(self, output_folder: str | None):
-        default_folder = "transpiled"
-        if output_folder == "None":
-            output_folder = None
-        if not output_folder:
-            output_folder = self._config.output_folder
-        if not output_folder:
-            output_folder = self._prompts.question("Enter output directory", default=default_folder)
-            output_folder = output_folder.strip()
-            if output_folder == "transpiled":
-                folder = Path(os.getcwd()) / default_folder
-                folder.mkdir(exist_ok=True)
-                logger.info(f"Output will be generated in {folder!s}")
-                output_folder = str(folder)
-        if not output_folder:
+        if not output_folder or output_folder == "None":
             raise_validation_exception("Missing '--output-folder'")
         if not os.path.exists(output_folder):
-            raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
+            os.makedirs(output_folder, exist_ok=True)
         logger.debug(f"Setting output_folder to '{output_folder}'")
         self._config = dataclasses.replace(self._config, output_folder=output_folder)
 
     def check_error_file_path(self, error_file_path: str | None):
-        if error_file_path == "None":
-            error_file_path = None
-        if not error_file_path:
-            error_file_path = self._config.error_file_path
-        if not error_file_path:
-            error_file_path = self._prompts.question("Enter error file path", default="errors.log")
-            error_file_path = error_file_path.strip()
-        if not error_file_path:
+        if not error_file_path or error_file_path == "None":
             raise_validation_exception("Missing '--error-file-path'")
+        if not os.path.exists(Path(error_file_path).parent):
+            os.makedirs(Path(error_file_path).parent, exist_ok=True)
         logger.debug(f"Setting error_file_path to '{error_file_path}'")
         self._config = dataclasses.replace(self._config, error_file_path=error_file_path)
 
