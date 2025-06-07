@@ -786,7 +786,7 @@ def test_recon_for_report_type_is_data(
         data=[
             (
                 11111,
-                ((1, 1), (1, 0, "s_address,s_phone"), None),
+                (3, 3, (1, 1), (1, 0, "s_address,s_phone"), None),
                 (False, "remorph", ""),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -975,7 +975,7 @@ def test_recon_for_report_type_schema(
         schema=recon_schema,
     )
     expected_remorph_recon_metrics = mock_spark.createDataFrame(
-        data=[(22222, (None, None, True), (True, "remorph", ""), datetime(2024, 5, 23, 9, 21, 25, 122185))],
+        data=[(22222, (0, 0, None, None, True), (True, "remorph", ""), datetime(2024, 5, 23, 9, 21, 25, 122185))],
         schema=metrics_schema,
     )
     expected_remorph_recon_details = mock_spark.createDataFrame(
@@ -1187,7 +1187,7 @@ def test_recon_for_report_type_all(
         data=[
             (
                 33333,
-                ((1, 1), (1, 0, "s_address,s_phone"), False),
+                (3, 3, (1, 1), (1, 0, "s_address,s_phone"), False),
                 (False, "remorph", ""),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1458,7 +1458,7 @@ def test_recon_for_report_type_is_row(
         data=[
             (
                 33333,
-                ((2, 2), None, None),
+                (3, 3, (2, 2), None, None),
                 (False, "remorph", ""),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1599,7 +1599,7 @@ def test_schema_recon_with_data_source_exception(
         data=[
             (
                 33333,
-                (None, None, None),
+                (0, 0, None, None, None),
                 (
                     False,
                     "remorph",
@@ -1669,7 +1669,7 @@ def test_schema_recon_with_general_exception(
         data=[
             (
                 33333,
-                (None, None, None),
+                (0, 0, None, None, None),
                 (
                     False,
                     "remorph",
@@ -1740,7 +1740,7 @@ def test_data_recon_with_general_exception(
         data=[
             (
                 33333,
-                (None, None, None),
+                (3, 3, None, None, None),
                 (
                     False,
                     "remorph",
@@ -1811,7 +1811,7 @@ def test_data_recon_with_source_exception(
         data=[
             (
                 33333,
-                (None, None, None),
+                (3, 3, None, None, None),
                 (
                     False,
                     "remorph",
