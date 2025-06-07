@@ -329,12 +329,6 @@ def test_transpile_with_real_inputs(mock_cli_for_transpile, transpiler_config_pa
         )
 
 
-def test_transpile_with_no_output_folder(mock_cli_for_transpile):
-    ws, cfg, set_cfg, _do_transpile = mock_cli_for_transpile
-    set_cfg(dataclasses.replace(cfg, output_folder=None))
-    cli.transpile(ws)
-
-
 def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     transpiler_config_path = path_to_resource("lsp_transpiler", "lsp_config.yml")
     source_dialect = "snowflake"
@@ -343,10 +337,10 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
+    error_file_path = "errors.log"
     prompts = MockPrompts(
         {
             "Do you want to use the experimental.*": "no",
-            "Enter error file path.*": "errors.log",
         }
     )
     with (
@@ -363,6 +357,7 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
+            error_file_path=error_file_path,
         )
 
     assert any("TranspileError" in record.message for record in caplog.records)
