@@ -1,17 +1,31 @@
 [project]
-name = "databricks-labs-remorph"
-description = 'SQL code converter and data reconcilation tool for accelerating data onboarding to Databricks from EDW, CDW and other ETL sources.'
+name = "databricks-labs-lakebridge"
+description = 'Fast and predictable migrations to Databricks Lakehouse Platform. This tool is designed to help you migrate your data and workloads to the Databricks Lakehouse Platform in a fast, predictable, and reliable way. It provides a set of tools and utilities to help you reconcile your data and workloads, assess your current state, and plan your migration.',
 license-files = { paths = ["LICENSE", "NOTICE"] }
 keywords = ["Databricks"]
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["version"]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: Implementation :: CPython",
+maintainers = [
+    { name = "Databricks Labs", email = "labs-oss@databricks.com" },
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Environment :: Console",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+]
+
 dependencies = [
   "databricks-sdk~=0.51.0",
   "standard-distutils~=3.11.9; python_version>='3.11'",
@@ -27,9 +41,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/databrickslabs/remorph"
-Issues = "https://github.com/databrickslabs/remorph/issues"
-Source = "https://github.com/databrickslabs/remorph"
+Documentation = "https://github.com/databrickslabs/lakebridge"
+Issues = "https://github.com/databrickslabs/lakebridge/issues"
+Source = "https://github.com/databrickslabs/lakebridge"
 
 [build-system]
 requires = ["hatchling"]
@@ -40,7 +54,7 @@ sources = ["src"]
 include = ["src"]
 
 [tool.hatch.version]
-path = "src/databricks/labs/remorph/__about__.py"
+path = "src/databricks/labs/lakebridge/__about__.py"
 
 [tool.hatch.envs.default]
 python="3.10"
@@ -69,7 +83,7 @@ dependencies = [
 ]
 
 [project.entry-points.databricks]
-reconcile = "databricks.labs.remorph.reconcile.execute:main"
+reconcile = "databricks.labs.lakebridge.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
 test         = "pytest --cov src --cov-report=xml tests/unit"
@@ -88,7 +102,7 @@ verify       = ["black --check .",
 [tool.hatch.envs.sqlglot-latest]
 python="3.10"
 dependencies = [
-  "databricks-labs-remorph",
+  "databricks-labs-lakebridge",
   "sqlglot",
 ]
 
