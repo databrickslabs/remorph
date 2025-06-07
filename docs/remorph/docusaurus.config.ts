@@ -87,11 +87,6 @@ const config: Config = {
       },
       items: [
         {
-          to: '/docs/motivation/',
-          position: 'left',
-          label: "Why Remorph"
-        },
-        {
           to: '/docs/overview/',
           position: 'left',
           label: "Overview"
