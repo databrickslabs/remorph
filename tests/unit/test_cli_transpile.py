@@ -216,8 +216,7 @@ def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, trans
             ws,
             source_dialect="invalid_dialect",
         )
-
-    do_transpile.assert_called_once_with(
+        do_transpile.assert_called_once_with(
         ws,
         ANY,
         TranspileConfig(
