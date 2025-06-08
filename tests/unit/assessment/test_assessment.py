@@ -1,6 +1,6 @@
 import yaml
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.assessments.configure_assessment import (
+from databricks.labs.lakebridge.assessments.configure_assessment import (
     create_assessment_configurator,
     ConfigureSqlServerAssessment,
     ConfigureSynapseAssessment,
@@ -21,7 +21,7 @@ def test_configure_sqlserver_credentials(tmp_path):
         }
     )
     file = tmp_path / ".credentials.yml"
-    assessment = ConfigureSqlServerAssessment(product_name="remorph", prompts=prompts, credential_file=file)
+    assessment = ConfigureSqlServerAssessment(product_name="lakebridge", prompts=prompts, credential_file=file)
     assessment.run()
 
     expected_credentials = {
@@ -72,7 +72,7 @@ def test_configure_synapse_credentials(tmp_path):
         }
     )
     file = tmp_path / ".credentials.yml"
-    assessment = ConfigureSynapseAssessment(product_name="remorph", prompts=prompts, credential_file=file)
+    assessment = ConfigureSynapseAssessment(product_name="lakebridge", prompts=prompts, credential_file=file)
     assessment.run()
 
     expected_credentials = {
@@ -120,19 +120,19 @@ def test_create_assessment_configurator():
 
     # Test SQL Server configurator
     sql_server_configurator = create_assessment_configurator(
-        source_system="mssql", product_name="remorph", prompts=prompts
+        source_system="mssql", product_name="lakebridge", prompts=prompts
     )
     assert isinstance(sql_server_configurator, ConfigureSqlServerAssessment)
 
     # Test Synapse configurator
     synapse_configurator = create_assessment_configurator(
-        source_system="synapse", product_name="remorph", prompts=prompts
+        source_system="synapse", product_name="lakebridge", prompts=prompts
     )
     assert isinstance(synapse_configurator, ConfigureSynapseAssessment)
 
     # Test invalid source system
     try:
-        create_assessment_configurator(source_system="invalid", product_name="remorph", prompts=prompts)
+        create_assessment_configurator(source_system="invalid", product_name="lakebridge", prompts=prompts)
         assert False, "Expected ValueError for invalid source system"
     except ValueError as e:
         assert str(e) == "Unsupported source system: invalid"

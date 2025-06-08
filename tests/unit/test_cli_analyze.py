@@ -1,10 +1,10 @@
 from unittest.mock import create_autospec, patch
 
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph import cli
+from databricks.labs.lakebridge import cli
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.lakebridge.contexts.application import ApplicationContext
 
 
 def test_analyze():

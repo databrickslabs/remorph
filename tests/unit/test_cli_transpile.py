@@ -6,13 +6,13 @@ import os.path
 import pytest
 import yaml
 
-from databricks.labs.remorph import cli
+from databricks.labs.lakebridge import cli
 
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.lakebridge.config import TranspileConfig
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.lakebridge.contexts.application import ApplicationContext
 from tests.unit.conftest import path_to_resource
 
 TRANSPILERS_PATH = Path(__file__).parent.parent / "resources" / "transpiler_configs"
@@ -48,7 +48,7 @@ def stubbed_transpiler_config_path(tmp_path: Path) -> Path:
 
 def test_transpile_with_missing_installation(transpiler_config_path: Path) -> None:
     with (
-        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
+        patch("databricks.labs.lakebridge.cli.ApplicationContext", autospec=True) as mock_app_context,
         pytest.raises(SystemExit),
     ):
         workspace_client = create_autospec(WorkspaceClient)
@@ -85,9 +85,9 @@ def mock_cli_for_transpile(mock_workspace_client, transpiler_config_path):
     mock_app_context = create_autospec(ApplicationContext)
     with (
         patch("os.path.exists", side_effect=lambda path: path != "invalid_path"),
-        patch("databricks.labs.remorph.install.TranspilerInstaller.transpilers_path", return_value=TRANSPILERS_PATH),
-        patch("databricks.labs.remorph.cli.do_transpile", new=do_transpile),
-        patch("databricks.labs.remorph.cli.ApplicationContext", mock_app_context),
+        patch("databricks.labs.lakebridge.install.TranspilerInstaller.transpilers_path", return_value=TRANSPILERS_PATH),
+        patch("databricks.labs.lakebridge.cli.do_transpile", new=do_transpile),
+        patch("databricks.labs.lakebridge.cli.ApplicationContext", mock_app_context),
     ):
         default_config = TranspileConfig(
             transpiler_config_path=str(transpiler_config_path),
@@ -211,26 +211,27 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
 
 def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
-    cli.transpile(
-        ws,
-        source_dialect="invalid_dialect",
-    )
-    do_transpile.assert_called_once_with(
-        ws,
-        ANY,
-        TranspileConfig(
-            transpiler_config_path=str(transpiler_config_path),
-            source_dialect="snowflake",
-            input_source="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
-            error_file_path="/path/to/errors.log",
-            sdk_config=None,
-            skip_validation=True,
-            catalog_name="my_catalog",
-            schema_name="my_schema",
-            transpiler_options={"-experimental": False},
-        ),
-    )
+    with pytest.raises(ValueError):
+        cli.transpile(
+            ws,
+            source_dialect="invalid_dialect",
+        )
+        do_transpile.assert_called_once_with(
+            ws,
+            ANY,
+            TranspileConfig(
+                transpiler_config_path=str(transpiler_config_path),
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
+                output_folder="/path/to/output",
+                error_file_path="/path/to/errors.log",
+                sdk_config=None,
+                skip_validation=True,
+                catalog_name="my_catalog",
+                schema_name="my_schema",
+                transpiler_options={"-experimental": False},
+            ),
+        )
 
 
 def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
@@ -345,8 +346,10 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
     )
     with (
         caplog.at_level("ERROR"),
-        patch("databricks.labs.remorph.contexts.application.ApplicationContext.prompts", new_callable=lambda: prompts),
-        patch("databricks.labs.remorph.install.TranspilerInstaller.all_dialects", return_value=[source_dialect]),
+        patch(
+            "databricks.labs.lakebridge.contexts.application.ApplicationContext.prompts", new_callable=lambda: prompts
+        ),
+        patch("databricks.labs.lakebridge.install.TranspilerInstaller.all_dialects", return_value=[source_dialect]),
     ):
         cli.transpile(
             mock_workspace_client,
