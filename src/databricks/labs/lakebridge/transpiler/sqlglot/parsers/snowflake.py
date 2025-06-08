@@ -11,7 +11,7 @@ from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
-from databricks.labs.remorph.transpiler.sqlglot import local_expression
+from databricks.labs.lakebridge.transpiler.sqlglot import local_expression
 
 logger = logging.getLogger(__name__)
 # pylint: disable=protected-access

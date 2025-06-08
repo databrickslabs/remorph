@@ -16,7 +16,7 @@ from databricks.sdk.errors import (
 from databricks.sdk.retries import retried
 from databricks.sdk.service.dashboards import LifecycleState, Dashboard
 
-from databricks.labs.remorph.config import ReconcileConfig, ReconcileMetadataConfig
+from databricks.labs.lakebridge.config import ReconcileConfig, ReconcileMetadataConfig
 
 logger = logging.getLogger(__name__)
 

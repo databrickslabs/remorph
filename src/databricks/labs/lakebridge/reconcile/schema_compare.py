@@ -5,10 +5,10 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table
-from databricks.labs.remorph.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
-from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.reconcile.recon_config import Schema, Table
+from databricks.labs.lakebridge.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
+from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 

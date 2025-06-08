@@ -42,7 +42,7 @@ class JvmProxy:
             "java",
             "--class-path",
             f'{classes.as_posix()}:{classpath.read_text()}',
-            "com.databricks.labs.remorph.Main",
+            "com.databricks.labs.lakebridge.Main",
             sys.argv[1],
         ]
         with subprocess.Popen(

@@ -1,6 +1,6 @@
 [project]
 name = "databricks-labs-lakebridge"
-description = 'Fast and predictable migrations to Databricks Lakehouse Platform. This tool is designed to help you migrate your data and workloads to the Databricks Lakehouse Platform in a fast, predictable, and reliable way. It provides a set of tools and utilities to help you reconcile your data and workloads, assess your current state, and plan your migration.',
+description = 'Fast and predictable migrations to Databricks Lakehouse Platform. This tool is designed to help you migrate your data and workloads to the Databricks Lakehouse Platform in a fast, predictable, and reliable way. It provides a set of tools and utilities to help you reconcile your data and workloads, assess your current state, and plan your migration.'
 license-files = { paths = ["LICENSE", "NOTICE"] }
 keywords = ["Databricks"]
 readme = "README.md"

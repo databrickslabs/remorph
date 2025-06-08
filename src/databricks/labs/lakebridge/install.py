@@ -26,7 +26,7 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
-from databricks.labs.remorph.config import (
+from databricks.labs.lakebridge.config import (
     TranspileConfig,
     ReconcileConfig,
     DatabaseConfig,
@@ -35,10 +35,10 @@ from databricks.labs.remorph.config import (
     LSPConfigOptionV1,
 )
 
-from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
-from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
-from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
+from databricks.labs.lakebridge.deployment.configurator import ResourceConfigurator
+from databricks.labs.lakebridge.deployment.installation import WorkspaceInstallation
+from databricks.labs.lakebridge.reconcile.constants import ReconReportType, ReconSourceType
+from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
 
 logger = logging.getLogger(__name__)
 

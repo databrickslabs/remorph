@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.reconcile.constants import SamplingOptionMethod, SamplingSpecificationsType
+from databricks.labs.lakebridge.reconcile.constants import SamplingOptionMethod, SamplingSpecificationsType
 
 logger = logging.getLogger(__name__)
 

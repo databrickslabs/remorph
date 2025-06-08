@@ -3,7 +3,7 @@ from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
-from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
+from databricks.labs.lakebridge.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconIntermediatePersist,
 )

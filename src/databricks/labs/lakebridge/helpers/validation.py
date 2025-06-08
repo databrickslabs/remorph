@@ -2,7 +2,7 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.labs.remorph.config import TranspileConfig, ValidationResult
+from databricks.labs.lakebridge.config import TranspileConfig, ValidationResult
 from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ import logging
 from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.lakebridge.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
 from databricks.labs.remorph.helpers import db_sql
 

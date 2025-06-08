@@ -8,7 +8,7 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
-from databricks.labs.remorph.config import ReconcileConfig, TableRecon
+from databricks.labs.lakebridge.config import ReconcileConfig, TableRecon
 from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
 from databricks.labs.remorph.reconcile.recon_config import RECONCILE_OPERATION_NAME
 

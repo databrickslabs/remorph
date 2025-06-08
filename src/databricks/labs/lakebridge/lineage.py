@@ -2,9 +2,9 @@ import datetime
 import logging
 from pathlib import Path
 
-from databricks.labs.remorph.intermediate.dag import DAG
-from databricks.labs.remorph.intermediate.root_tables import RootTableAnalyzer
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.lakebridge.intermediate.dag import DAG
+from databricks.labs.lakebridge.intermediate.root_tables import RootTableAnalyzer
+from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 logger = logging.getLogger(__name__)
 

@@ -18,27 +18,27 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.bladespector.analyzer import Analyzer
 
 
-from databricks.labs.remorph.assessments.configure_assessment import (
+from databricks.labs.lakebridge.assessments.configure_assessment import (
     create_assessment_configurator,
     PROFILER_SOURCE_SYSTEM,
 )
 
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import TranspileConfig, LSPConfigOptionV1
-from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
-from databricks.labs.remorph.install import WorkspaceInstaller
-from databricks.labs.remorph.install import TranspilerInstaller
-from databricks.labs.remorph.reconcile.runner import ReconcileRunner
-from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
-from databricks.labs.remorph.transpiler.execute import transpile as do_transpile
+from databricks.labs.lakebridge.__about__ import __version__
+from databricks.labs.lakebridge.config import TranspileConfig, LSPConfigOptionV1
+from databricks.labs.lakebridge.contexts.application import ApplicationContext
+from databricks.labs.lakebridge.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.lakebridge.helpers.telemetry_utils import make_alphanum_or_semver
+from databricks.labs.lakebridge.install import WorkspaceInstaller
+from databricks.labs.lakebridge.install import TranspilerInstaller
+from databricks.labs.lakebridge.reconcile.runner import ReconcileRunner
+from databricks.labs.lakebridge.lineage import lineage_generator
+from databricks.labs.lakebridge.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
+from databricks.labs.lakebridge.transpiler.execute import transpile as do_transpile
 
 
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPConfig
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
+from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 
 
 remorph = App(__file__)
