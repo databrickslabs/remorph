@@ -8,15 +8,15 @@ const Hero = () => {
 
     <div className="w-full px-4 md:px-10 flex flex-col justify-center items-center">
       <div className="m-2">
-        <img src="img/logo.svg" alt="Remorph Logo" className="w-32 md:w-48" />
+        <img src="img/lakebridge-icon.svg" alt="Lakebridge Logo" className="w-32 md:w-48" />
       </div>
 
       <h1 className="text-4xl md:text-5xl text-center mb-6">
-        Remorph - Assisted Migration Toolkit
+        Lakebridge - Assisted Migration Toolkit
       </h1>
 
       <p className="text-lg text-center text-balance">
-          Remorph is a comprehensive toolkit designed to facilitate seamless migrations to Databricks.
+          Lakebridge is a comprehensive toolkit designed to facilitate seamless migrations to Databricks.
       </p>
 
       <div className="mt-12 flex flex-wrap justify-center flex-col md:flex-row gap-y-4 md:gap-y-4 md:gap-x-4">

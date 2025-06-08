@@ -5,20 +5,20 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Remorph',
+  title: 'Lakebridge',
   tagline: 'Simplified Data Migration Toolkit to ease Migration to Databricks',
   favicon: 'img/logo.svg',
 
   url: 'https://databrickslabs.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/remorph/',
+  baseUrl: '/lakebridge/',
   trailingSlash: true,
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'databrickslabs', // Usually your GitHub org/user name.
-  projectName: 'Remorph', // Usually your repo name.
+  projectName: 'Lakebridge', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
@@ -63,7 +63,7 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           exclude: ['**/*.md'],
           editUrl:
-            'https://github.com/databrickslabs/remorph/tree/main/docs/remorph/',
+            'https://github.com/databrickslabs/lakebridge/tree/main/docs/lakebridge/',
         },
         blog: false,
         theme: {
@@ -80,9 +80,9 @@ const config: Config = {
       respectPrefersColorScheme: false,
     },
     navbar: {
-      title: 'Remorph',
+      title: 'Lakebridge',
       logo: {
-        alt: 'Remorph',
+        alt: 'Lakebridge',
         src: 'img/logo.svg',
       },
       items: [
@@ -109,7 +109,7 @@ const config: Config = {
           label: 'Resources',
           position: 'left',
           items: [
-            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/remorph', }
+            { label: 'GitHub repository', href: 'https://github.com/databrickslabs/lakebridge', }
           ],
         },
         {

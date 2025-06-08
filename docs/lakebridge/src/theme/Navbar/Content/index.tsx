@@ -13,7 +13,7 @@ export default function ContentWrapper(props: Props): ReactNode {
   return (
     <>
       <Content {...props} />
-      {location.pathname !== "/remorph/" && (
+      {location.pathname !== "/lakebridge/" && (
         <div className={"navbar__inner"}>
           <SearchBar />
         </div>
