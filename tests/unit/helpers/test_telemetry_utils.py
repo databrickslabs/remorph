@@ -1,7 +1,7 @@
 import pytest
 from databricks.sdk.useragent import alphanum_pattern, semver_pattern
 
-from databricks.labs.remorph.helpers.telemetry_utils import make_alphanum_or_semver
+from databricks.labs.lakebridge.helpers.telemetry_utils import make_alphanum_or_semver
 
 
 @pytest.mark.parametrize(

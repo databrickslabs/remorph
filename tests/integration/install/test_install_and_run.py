@@ -8,9 +8,9 @@ from typing import cast
 from unittest.mock import patch
 
 
-from databricks.labs.remorph.config import TranspileConfig
-from databricks.labs.remorph.install import TranspilerInstaller
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.lakebridge.config import TranspileConfig
+from databricks.labs.lakebridge.install import TranspilerInstaller
+from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
 
 
 def format_transpiled(sql: str) -> str:
@@ -26,36 +26,36 @@ installer_lock = asyncio.Lock()
 base_cwd = os.getcwd()
 
 
-async def test_installs_and_runs_local_bladerunner(bladerunner_artifact):
+async def test_installs_and_runs_local_bladebridge(bladebridge_artifact):
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
         # TODO temporary workaround for RecursionError with temp dirs on Windows
         if sys.platform == "win32":
-            await _install_and_run_pypi_bladerunner()
+            await _install_and_run_pypi_bladebridge()
         else:
             with TemporaryDirectory() as tmpdir:
                 with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-                    await _install_and_run_local_bladerunner(bladerunner_artifact)
+                    await _install_and_run_local_bladebridge(bladebridge_artifact)
     finally:
         installer_lock.release()
 
 
-async def _install_and_run_local_bladerunner(bladerunner_artifact: Path):
+async def _install_and_run_local_bladebridge(bladebridge_artifact: Path):
     # TODO: Test that running with existing install does nothing
     # TODO: Test that running with legacy install upgrades it
     # check new install
-    bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    bladebridge = TranspilerInstaller.transpilers_path() / "bladebridge"
     # TODO temporary workaround for RecursionError with temp dirs on Windows
-    if sys.platform == "win32" and bladerunner.exists():
-        shutil.rmtree(bladerunner)
-    assert not bladerunner.exists()
+    if sys.platform == "win32" and bladebridge.exists():
+        shutil.rmtree(bladebridge)
+    assert not bladebridge.exists()
     # fresh install
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin", bladerunner_artifact)
+    TranspilerInstaller.install_from_pypi("bladebridge", "databricks-bb-plugin", bladebridge_artifact)
     # check file-level installation
-    config_path = bladerunner / "lib" / "config.yml"
+    config_path = bladebridge / "lib" / "config.yml"
     assert config_path.exists()
-    version_path = bladerunner / "state" / "version.json"
+    version_path = bladebridge / "state" / "version.json"
     assert version_path.exists()
     # check execution
     lsp_engine = LSPEngine.from_config_path(config_path)
@@ -81,36 +81,36 @@ async def _install_and_run_local_bladerunner(bladerunner_artifact: Path):
             assert transpiled == sql_code
 
 
-async def test_installs_and_runs_pypi_bladerunner():
+async def test_installs_and_runs_pypi_bladebridge():
     await installer_lock.acquire()
     os.chdir(base_cwd)
     try:
         # TODO temporary workaround for RecursionError with temp dirs on Windows
         if sys.platform == "win32":
-            await _install_and_run_pypi_bladerunner()
+            await _install_and_run_pypi_bladebridge()
         else:
             with TemporaryDirectory() as tmpdir:
                 with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):
-                    await _install_and_run_pypi_bladerunner()
+                    await _install_and_run_pypi_bladebridge()
     finally:
         installer_lock.release()
 
 
-async def _install_and_run_pypi_bladerunner():
+async def _install_and_run_pypi_bladebridge():
     # TODO: Test that running with existing install does nothing
     # TODO: Test that running with legacy install upgrades it
     # check new install
-    bladerunner = TranspilerInstaller.transpilers_path() / "bladerunner"
+    bladebridge = TranspilerInstaller.transpilers_path() / "bladebridge"
     # TODO temporary workaround for RecursionError with temp dirs on Windows
-    if sys.platform == "win32" and bladerunner.exists():
-        shutil.rmtree(bladerunner)
-    assert not bladerunner.exists()
+    if sys.platform == "win32" and bladebridge.exists():
+        shutil.rmtree(bladebridge)
+    assert not bladebridge.exists()
     # fresh install
-    TranspilerInstaller.install_from_pypi("bladerunner", "databricks-bb-plugin")
+    TranspilerInstaller.install_from_pypi("bladebridge", "databricks-bb-plugin")
     # check file-level installation
-    config_path = bladerunner / "lib" / "config.yml"
+    config_path = bladebridge / "lib" / "config.yml"
     assert config_path.exists()
-    version_path = bladerunner / "state" / "version.json"
+    version_path = bladebridge / "state" / "version.json"
     assert version_path.exists()
     # check execution
     lsp_engine = LSPEngine.from_config_path(config_path)
@@ -142,7 +142,7 @@ async def test_installs_and_runs_local_morpheus(morpheus_artifact):
     try:
         # TODO temporary workaround for RecursionError with temp dirs on Windows
         if sys.platform == "win32":
-            await _install_and_run_pypi_bladerunner()
+            await _install_and_run_pypi_bladebridge()
         else:
             with TemporaryDirectory() as tmpdir:
                 with patch.object(TranspilerInstaller, "labs_path", return_value=Path(tmpdir)):

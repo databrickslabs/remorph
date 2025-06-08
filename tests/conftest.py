@@ -15,7 +15,7 @@ from pyspark.sql.types import (
 )
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.lakebridge.reconcile.recon_config import (
     Table,
     JdbcReaderOptions,
     Transformation,
@@ -211,12 +211,12 @@ def report_tables_schema():
 
 
 @pytest.fixture
-def bladerunner_artifact() -> Path:
+def bladebridge_artifact() -> Path:
     artifact = (
         Path(__file__).parent
         / "resources"
         / "transpiler_configs"
-        / "bladerunner"
+        / "bladebridge"
         / "wheel"
         / "databricks_bb_plugin-0.1.4-py3-none-any.whl"
     )
