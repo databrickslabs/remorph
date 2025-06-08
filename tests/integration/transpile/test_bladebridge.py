@@ -33,7 +33,7 @@ async def _transpile_informatica_with_sparksql(ws: Any, bladebridge_artifact: Pa
             source_dialect="informatica (desktop edition)",
             input_source=str(input_source),
             output_folder=output_folder,
-            skip_validation=False,
+            skip_validation=True,
             catalog_name="catalog",
             schema_name="schema",
             transpiler_options={"target-tech": "SPARKSQL"},

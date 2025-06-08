@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Lakebridge',
   tagline: 'Simplified Data Migration Toolkit to ease Migration to Databricks',
-  favicon: 'img/logo.svg',
+  favicon: 'img/lakebridge-icon.svg',
 
   url: 'https://databrickslabs.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
@@ -83,7 +83,7 @@ const config: Config = {
       title: 'Lakebridge',
       logo: {
         alt: 'Lakebridge',
-        src: 'img/logo.svg',
+        src: 'img/lakebridge-icon.svg',
       },
       items: [
         {
