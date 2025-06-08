@@ -62,7 +62,7 @@ It is important to note that the transpiler isn't always able to know whether it
 
 ## Plugins overview
 
-Out of the box, Remorph comes with two transpilation plugins: Morpheus and Bladerunner. Each one has its own set of capabilities and levels of guarantee that we describe below.
+Out of the box, Remorph comes with two transpilation plugins: Morpheus and BladeBridge. Each one has its own set of capabilities and levels of guarantee that we describe below.
 
 ### Morpheus
 
@@ -81,9 +81,9 @@ Finally, being built on the assumption that the input SQL is correct, Morpheus d
 
 [^1]: some statistical functions may be implemented on Databricks using an algorithm that slightly differs from the one used on the source platform, making the respective results non strictly identical to one another (although the differences wouldn't be statistically significant). Also, if no ordering is specified, rows may come in different order on Databricks and the source platform. In every other case, both results should be strictly identical.
 
-### Bladerunner
+### BladeBridge
 
-**Bladerunner** is a flexible and extensible code conversion engine designed to accelerate modernization to Databricks. It supports a wide range of **ETL platforms** (e.g., Informatica, DataStage) and **SQL-based systems** (e.g., Oracle, Teradata, Netezza), accepting inputs in the form of exported metadata and scripts.
+**BladeBridge** is a flexible and extensible code conversion engine designed to accelerate modernization to Databricks. It supports a wide range of **ETL platforms** (e.g., Informatica, DataStage) and **SQL-based systems** (e.g., Oracle, Teradata, Netezza), accepting inputs in the form of exported metadata and scripts.
 
 The converter generates **Databricks-compatible outputs** including:
 
@@ -96,19 +96,21 @@ The converter generates **Databricks-compatible outputs** including:
 
 Internally, the execution is driven by **configuration files**, allowing users to define:
 
-- Source/target mappings  
-- Naming conventions  
-- Transformation preferences  
+- Source/target mappings
+- Naming conventions
+- Transformation preferences
 - Output formats
 
-Bladerunner is fully **extensible** — new converters can be added, and the output structure can be **customized** to meet project-specific requirements.
+BladeBridge is fully **extensible** — new converters can be added, and the output structure can be **customized** to meet project-specific requirements.
 
-Whether you're migrating a single job or thousands, Bladerunner delivers predictable, repeatable results optimized for the Databricks ecosystem.
+Whether you're migrating a single job or thousands, BladeBridge delivers predictable, repeatable results optimized for the Databricks ecosystem.
+
+More details about the BladeBridge converter [here](/docs/transpile/bladebridge_overview)
 
 ### Supported dialects
 
 <!-- old table
-| Dialect | Morpheus | Bladerunner |
+| Dialect | Morpheus | BladeBridge |
 |---------|----------|-------------|
 | Snowflake| :white_check_mark: | :white_check_mark: |
 | TSQL | :white_check_mark: | :white_check_mark: |
@@ -116,7 +118,7 @@ Whether you're migrating a single job or thousands, Bladerunner delivers predict
 -->
 
 
-| Dialect                 | Morpheus            | BladeRunner         |
+| Dialect                 | Morpheus            | BladeBridge         |
 |-------------------------|---------------------|---------------------|
 | Athena                  |                     | :white_check_mark: |
 | BigQuery                |                     | :white_check_mark: |
