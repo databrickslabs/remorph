@@ -224,7 +224,7 @@ def path_to_resource(*args: str) -> str:
 @pytest.fixture
 def mock_workspace_client():
     state = {
-        "/Users/foo/.remorph/config.yml": yaml.dump(
+        "/Users/foo/.lakebridge/config.yml": yaml.dump(
             {
                 'version': 3,
                 'catalog_name': 'transpiler',
@@ -234,7 +234,7 @@ def mock_workspace_client():
                 'sdk_config': {'cluster_id': 'test_cluster'},
             }
         ),
-        "/Users/foo/.remorph/recon_config.yml": yaml.dump(
+        "/Users/foo/.lakebridge/recon_config.yml": yaml.dump(
             {
                 'version': 1,
                 'source_schema': "src_schema",
