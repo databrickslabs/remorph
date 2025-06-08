@@ -62,7 +62,7 @@ def test_downloads_whl_from_pypi():
 @pytest.fixture()
 def patched_transpiler_installer(tmp_path: Path):
     resources_folder = Path(__file__).parent.parent.parent / "resources" / "transpiler_configs"
-    for transpiler in ("bladerunner", "morpheus"):
+    for transpiler in ("bladebridge", "morpheus"):
         target = tmp_path / transpiler
         target.mkdir(exist_ok=True)
         target = target / "lib"
@@ -76,45 +76,33 @@ def patched_transpiler_installer(tmp_path: Path):
 
 def test_lists_all_transpiler_names(patched_transpiler_installer):
     transpiler_names = patched_transpiler_installer.all_transpiler_names()
-    assert transpiler_names == {'Morpheus', 'Bladerunner'}
+    assert transpiler_names == {'Morpheus', 'Bladebridge'}
 
 
 def test_lists_all_dialects(patched_transpiler_installer):
     dialects = patched_transpiler_installer.all_dialects()
     assert dialects == {
-        'abinitio',
-        'alteryx',
         'athena',
+        'bigquery',
         'datastage',
         'greenplum',
-        'hive',
-        'impala',
-        'informatica (big data edition)',
-        'informatica (desktop)',
+        'informatica (desktop edition)',
+        'mssql',
         'netezza',
-        'oozie',
         'oracle',
-        'pentaho',
-        'pig',
-        'presto',
         'redshift',
-        'sap hana',
-        'sas',
         'snowflake',
-        'ssis',
         'synapse',
-        'talend',
         'teradata',
         'tsql',
-        'vertica',
     }
 
 
 def test_lists_dialect_transpilers(patched_transpiler_installer):
     transpilers = patched_transpiler_installer.transpilers_with_dialect("snowflake")
-    assert transpilers == {'Morpheus', 'Bladerunner'}
-    transpilers = patched_transpiler_installer.transpilers_with_dialect("presto")
-    assert transpilers == {'Bladerunner'}
+    assert transpilers == {'Morpheus', 'Bladebridge'}
+    transpilers = patched_transpiler_installer.transpilers_with_dialect("datastage")
+    assert transpilers == {'Bladebridge'}
 
 
 def check_valid_version(version: str):

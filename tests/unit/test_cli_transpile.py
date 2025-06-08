@@ -211,26 +211,27 @@ def test_transpile_with_invalid_transpiler_config_path(mock_cli_for_transpile):
 
 def test_transpile_with_invalid_transpiler_dialect(mock_cli_for_transpile, transpiler_config_path):
     ws, _cfg, _set_cfg, do_transpile = mock_cli_for_transpile
-    cli.transpile(
-        ws,
-        source_dialect="invalid_dialect",
-    )
-    do_transpile.assert_called_once_with(
-        ws,
-        ANY,
-        TranspileConfig(
-            transpiler_config_path=str(transpiler_config_path),
-            source_dialect="snowflake",
-            input_source="/path/to/sql/file.sql",
-            output_folder="/path/to/output",
-            error_file_path="/path/to/errors.log",
-            sdk_config=None,
-            skip_validation=True,
-            catalog_name="my_catalog",
-            schema_name="my_schema",
-            transpiler_options={"-experimental": False},
-        ),
-    )
+    with pytest.raises(ValueError):
+        cli.transpile(
+            ws,
+            source_dialect="invalid_dialect",
+        )
+        do_transpile.assert_called_once_with(
+            ws,
+            ANY,
+            TranspileConfig(
+                transpiler_config_path=str(transpiler_config_path),
+                source_dialect="snowflake",
+                input_source="/path/to/sql/file.sql",
+                output_folder="/path/to/output",
+                error_file_path="/path/to/errors.log",
+                sdk_config=None,
+                skip_validation=True,
+                catalog_name="my_catalog",
+                schema_name="my_schema",
+                transpiler_options={"-experimental": False},
+            ),
+        )
 
 
 def test_transpile_with_invalid_skip_validation(mock_cli_for_transpile):
