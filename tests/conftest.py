@@ -15,7 +15,7 @@ from pyspark.sql.types import (
 )
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.lakebridge.reconcile.recon_config import (
     Table,
     JdbcReaderOptions,
     Transformation,

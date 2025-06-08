@@ -8,7 +8,7 @@ from databricks.labs.blueprint.installation import MockInstallation
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import (
+from databricks.labs.lakebridge.config import (
     RemorphConfigs,
     ReconcileConfig,
     DatabaseConfig,
@@ -16,13 +16,13 @@ from databricks.labs.remorph.config import (
     LSPConfigOptionV1,
     LSPPromptMethod,
 )
-from databricks.labs.remorph.contexts.application import ApplicationContext
-from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
-from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
-from databricks.labs.remorph.install import WorkspaceInstaller, TranspilerInstaller
-from databricks.labs.remorph.config import TranspileConfig
+from databricks.labs.lakebridge.contexts.application import ApplicationContext
+from databricks.labs.lakebridge.deployment.configurator import ResourceConfigurator
+from databricks.labs.lakebridge.deployment.installation import WorkspaceInstallation
+from databricks.labs.lakebridge.install import WorkspaceInstaller, TranspilerInstaller
+from databricks.labs.lakebridge.config import TranspileConfig
 from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
-from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
+from databricks.labs.lakebridge.reconcile.constants import ReconSourceType, ReconReportType
 
 from tests.unit.conftest import path_to_resource
 
@@ -273,8 +273,8 @@ def test_configure_transpile_no_existing_installation(ws_installer, ws):
     )
 
 
-@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_bladebridge")
-@patch("databricks.labs.remorph.install.WorkspaceInstaller.install_morpheus")
+@patch("databricks.labs.lakebridge.install.WorkspaceInstaller.install_bladebridge")
+@patch("databricks.labs.lakebridge.install.WorkspaceInstaller.install_morpheus")
 def test_configure_transpile_installation_no_override(mock_install_morpheus, mock_install_bladebridge, ws):
     mock_install_bladebridge.return_value = None
     mock_install_morpheus.return_value = None
@@ -1019,7 +1019,7 @@ def test_runs_and_stores_confirm_config_option(ws_installer, ws):
 
     with (
         patch(
-            "databricks.labs.remorph.install.TranspilerInstaller.transpilers_path",
+            "databricks.labs.lakebridge.install.TranspilerInstaller.transpilers_path",
             return_value=Path(path_to_resource("transpiler_configs")),
         ),
     ):
