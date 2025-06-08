@@ -91,7 +91,7 @@ def main(*argv) -> None:
 
     w = WorkspaceClient()
 
-    installation = Installation.assume_user_home(w, "remorph")
+    installation = Installation.assume_user_home(w, "lakebridge")
 
     reconcile_config = installation.load(ReconcileConfig)
 

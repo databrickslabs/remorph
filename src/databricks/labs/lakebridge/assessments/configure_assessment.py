@@ -53,7 +53,7 @@ class AssessmentConfigurator(ABC):
         source = self._configure_credentials()
         logger.info(f"{source.capitalize()} details and credentials received.")
         if self.prompts.confirm(f"Do you want to test the connection to {source}?"):
-            cred_manager = create_credential_manager("remorph", EnvGetter())
+            cred_manager = create_credential_manager("lakebridge", EnvGetter())
             if cred_manager:
                 self._test_connection(source, cred_manager)
         logger.info(f"{source.capitalize()} Assessment Configuration Completed")

@@ -95,7 +95,7 @@ class PipelineClass:
 
         logging.debug(f"Executing Python script: {step.extract_source}")
         db_path = str(self.db_path_prefix / DB_NAME)
-        credential_config = str(cred_file("remorph"))
+        credential_config = str(cred_file("lakebridge"))
 
         # Create a temporary directory for the virtual environment
         with tempfile.TemporaryDirectory() as temp_dir:

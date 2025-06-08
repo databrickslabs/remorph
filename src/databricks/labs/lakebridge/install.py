@@ -42,7 +42,7 @@ from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
 
 logger = logging.getLogger(__name__)
 
-TRANSPILER_WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
+TRANSPILER_WAREHOUSE_PREFIX = "Lakebridge Transpiler Validation"
 
 
 class TranspilerInstaller(abc.ABC):
@@ -605,13 +605,13 @@ class WorkspaceInstaller:
     def configure(self, module: str) -> RemorphConfigs:
         match module:
             case "transpile":
-                logger.info("Configuring remorph `transpile`.")
+                logger.info("Configuring lakebridge `transpile`.")
                 return RemorphConfigs(self._configure_transpile(), None)
             case "reconcile":
-                logger.info("Configuring remorph `reconcile`.")
+                logger.info("Configuring lakebridge `reconcile`.")
                 return RemorphConfigs(None, self._configure_reconcile())
             case "all":
-                logger.info("Configuring remorph `transpile` and `reconcile`.")
+                logger.info("Configuring lakebridge `transpile` and `reconcile`.")
                 return RemorphConfigs(
                     self._configure_transpile(),
                     self._configure_reconcile(),
@@ -620,16 +620,14 @@ class WorkspaceInstaller:
                 raise ValueError(f"Invalid input: {module}")
 
     def _is_testing(self):
-        return self._product_info.product_name() != "remorph"
+        return self._product_info.product_name() != "lakebridge"
 
     def _configure_transpile(self) -> TranspileConfig:
         try:
             self._installation.load(TranspileConfig)
-            logger.info("Remorph `transpile` is already installed on this workspace.")
+            logger.info("Lakebridge `transpile` is already installed on this workspace.")
             if not self._prompts.confirm("Do you want to override the existing installation?"):
-                raise SystemExit(
-                    "Remorph `transpile` is already installed and no override has been requested. Exiting..."
-                )
+                raise SystemExit("Lak `transpile` is already installed and no override has been requested. Exiting...")
         except NotFound:
             logger.info("Couldn't find existing `transpile` installation")
         except (PermissionDenied, SerdeError, ValueError, AttributeError):
@@ -639,7 +637,7 @@ class WorkspaceInstaller:
             )
 
         config = self._configure_new_transpile_installation()
-        logger.info("Finished configuring remorph `transpile`.")
+        logger.info("Finished configuring lakebridge `transpile`.")
         return config
 
     def _configure_new_transpile_installation(self) -> TranspileConfig:
@@ -675,7 +673,7 @@ class WorkspaceInstaller:
     def _prompt_for_new_transpile_installation(self) -> TranspileConfig:
         install_later = "Set it later"
         # TODO tidy this up, logger might not display the below in console...
-        logger.info("Please answer a few questions to configure remorph `transpile`")
+        logger.info("Please answer a few questions to configure lakebridge `transpile`")
         all_dialects = [install_later] + self._all_installed_dialects()
         source_dialect: str | None = self._prompts.choice("Select the source dialect:", all_dialects, sort=False)
         if source_dialect == install_later:
@@ -692,7 +690,7 @@ class WorkspaceInstaller:
             else:
                 transpiler_name = next(t for t in transpilers)
                 # TODO Change name for bladebridge
-                logger.info(f"Remorph will use the {transpiler_name} transpiler")
+                logger.info(f"lakebridge will use the {transpiler_name} transpiler")
             if transpiler_name:
                 transpiler_config_path = self._transpiler_config_path(transpiler_name)
         transpiler_options: dict[str, JsonValue] | None = None
@@ -751,10 +749,10 @@ class WorkspaceInstaller:
     def _configure_reconcile(self) -> ReconcileConfig:
         try:
             self._installation.load(ReconcileConfig)
-            logger.info("Remorph `reconcile` is already installed on this workspace.")
+            logger.info("lakebridge `reconcile` is already installed on this workspace.")
             if not self._prompts.confirm("Do you want to override the existing installation?"):
                 raise SystemExit(
-                    "Remorph `reconcile` is already installed and no override has been requested. Exiting..."
+                    "lakebridge `reconcile` is already installed and no override has been requested. Exiting..."
                 )
         except NotFound:
             logger.info("Couldn't find existing `reconcile` installation")
@@ -765,7 +763,7 @@ class WorkspaceInstaller:
             )
 
         config = self._configure_new_reconcile_installation()
-        logger.info("Finished configuring remorph `reconcile`.")
+        logger.info("Finished configuring lakebridge `reconcile`.")
         return config
 
     def _configure_new_reconcile_installation(self) -> ReconcileConfig:
@@ -774,7 +772,7 @@ class WorkspaceInstaller:
         return default_config
 
     def _prompt_for_new_reconcile_installation(self) -> ReconcileConfig:
-        logger.info("Please answer a few questions to configure remorph `reconcile`")
+        logger.info("Please answer a few questions to configure lakebridge `reconcile`")
         data_source = self._prompts.choice(
             "Select the Data Source:", [source_type.value for source_type in ReconSourceType]
         )

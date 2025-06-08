@@ -14,7 +14,7 @@ from databricks.labs.lakebridge.reconcile.recon_config import RECONCILE_OPERATIO
 
 logger = logging.getLogger(__name__)
 
-_RECON_README_URL = "https://github.com/databrickslabs/remorph/blob/main/docs/recon_configurations/README.md"
+_RECON_README_URL = "https://github.com/databrickslabs/lakebridge/blob/main/docs/recon_configurations/README.md"
 
 
 class ReconcileRunner:
