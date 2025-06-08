@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 import pytest
 from pyspark.sql import SparkSession
-from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.lakebridge.__about__ import __version__
 
 
 logging.getLogger("tests").setLevel("DEBUG")
-logging.getLogger("databricks.labs.remorph").setLevel("DEBUG")
+logging.getLogger("databricks.labs.lakebridge").setLevel("DEBUG")
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def mock_spark() -> SparkSession:
 @pytest.fixture(scope="session")
 def mock_credentials():
     with patch(
-        'databricks.labs.remorph.connections.credential_manager._load_credentials',
+        'databricks.labs.lakebridge.connections.credential_manager._load_credentials',
         return_value={
             'secret_vault_type': 'env',
             'secret_vault_name': '',

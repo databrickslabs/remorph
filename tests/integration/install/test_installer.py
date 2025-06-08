@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from databricks.labs.remorph.install import TranspilerInstaller, MavenInstaller, WorkspaceInstaller, WheelInstaller
+from databricks.labs.lakebridge.install import TranspilerInstaller, MavenInstaller, WorkspaceInstaller, WheelInstaller
 
 
 @pytest.mark.skipif(os.environ.get("CI", "false") == "true", reason="Skipping in CI since we have no installed product")

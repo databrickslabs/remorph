@@ -1,6 +1,6 @@
 import yaml
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.assessments.configure_assessment import (
+from databricks.labs.lakebridge.assessments.configure_assessment import (
     create_assessment_configurator,
     ConfigureSqlServerAssessment,
     ConfigureSynapseAssessment,

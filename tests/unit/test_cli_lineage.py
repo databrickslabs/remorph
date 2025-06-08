@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 
-from databricks.labs.remorph import cli
+from databricks.labs.lakebridge import cli
 
 
 @pytest.fixture
