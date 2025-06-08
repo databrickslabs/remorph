@@ -557,7 +557,7 @@ class LSPEngine(TranspileEngine):
 
     # TODO remove this
     def _is_bladebridge(self):
-        return self._config.remorph.name == "bladebridge"
+        return self._config.remorph.name == "Bladebridge"
 
     # TODO remove this
     def _is_morpheus(self):
