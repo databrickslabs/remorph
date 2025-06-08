@@ -83,13 +83,52 @@ Finally, being built on the assumption that the input SQL is correct, Morpheus d
 
 ### Bladerunner
 
-TODO
+**Bladerunner** is a flexible and extensible code conversion engine designed to accelerate modernization to Databricks. It supports a wide range of **ETL platforms** (e.g., Informatica, DataStage) and **SQL-based systems** (e.g., Oracle, Teradata, Netezza), accepting inputs in the form of exported metadata and scripts.
+
+The converter generates **Databricks-compatible outputs** including:
+
+- **Notebooks** – with ETL logic translated into code cells
+- **Table & view definitions**
+- **Stored procedures**
+- **Spark SQL**
+- **PySpark scripts**
+- **Workflow definitions**
+
+Internally, the execution is driven by **configuration files**, allowing users to define:
+
+- Source/target mappings  
+- Naming conventions  
+- Transformation preferences  
+- Output formats
+
+Bladerunner is fully **extensible** — new converters can be added, and the output structure can be **customized** to meet project-specific requirements.
+
+Whether you're migrating a single job or thousands, Bladerunner delivers predictable, repeatable results optimized for the Databricks ecosystem.
 
 ### Supported dialects
 
+<!-- old table
 | Dialect | Morpheus | Bladerunner |
 |---------|----------|-------------|
 | Snowflake| :white_check_mark: | :white_check_mark: |
 | TSQL | :white_check_mark: | :white_check_mark: |
 | Teradata| :soon: | :white_check_mark: |
-TODO: complete this table
+-->
+
+
+| Dialect                 | Morpheus            | BladeRunner         |
+|-------------------------|---------------------|---------------------|
+| Athena                  |                     | :white_check_mark: |
+| BigQuery                |                     | :white_check_mark: |
+| DataStage               |                     | :white_check_mark: |
+| Greenplum              |                     | :white_check_mark: |
+| Informatica (Desktop)   |                     | :white_check_mark: |
+| MSSQL                   |                     | :white_check_mark: |
+| Netezza                 |                     | :white_check_mark: |
+| Oracle                  |                     | :white_check_mark: |
+| Redshift                |                     | :white_check_mark: |
+| Snowflake              | :white_check_mark:  | :white_check_mark: |
+| Synapse                 |                     | :white_check_mark: |
+| Teradata               | :soon:              | :white_check_mark: |
+| TSQL                    | :white_check_mark:  | :white_check_mark: |
+
