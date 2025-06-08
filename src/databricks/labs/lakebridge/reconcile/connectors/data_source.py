@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Schema
 
 logger = logging.getLogger(__name__)
 

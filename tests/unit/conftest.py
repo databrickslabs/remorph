@@ -16,12 +16,12 @@ from sqlglot.errors import SqlglotError, ParseError
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
-from databricks.labs.remorph.config import TranspileConfig
-from databricks.labs.remorph.helpers.file_utils import make_dir
-from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.remorph.transpiler.sqlglot.parsers.snowflake import Snowflake
+from databricks.labs.lakebridge.config import TranspileConfig
+from databricks.labs.lakebridge.helpers.file_utils import make_dir
+from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
+from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.lakebridge.transpiler.sqlglot.parsers.snowflake import Snowflake
 from databricks.sdk.core import Config
 
 from .transpiler.helpers.functional_test_cases import (

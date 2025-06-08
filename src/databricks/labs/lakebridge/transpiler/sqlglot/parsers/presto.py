@@ -5,7 +5,7 @@ from sqlglot.helper import seq_get
 from sqlglot.errors import ParseError
 from sqlglot.tokens import TokenType
 
-from databricks.labs.remorph.transpiler.sqlglot import local_expression
+from databricks.labs.lakebridge.transpiler.sqlglot import local_expression
 
 
 logger = logging.getLogger(__name__)

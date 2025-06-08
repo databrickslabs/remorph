@@ -5,13 +5,13 @@ import yaml
 
 from databricks.labs.blueprint.tui import Prompts
 
-from databricks.labs.remorph.connections.credential_manager import (
+from databricks.labs.lakebridge.connections.credential_manager import (
     cred_file as creds,
     CredentialManager,
     create_credential_manager,
 )
-from databricks.labs.remorph.connections.database_manager import DatabaseManager
-from databricks.labs.remorph.connections.env_getter import EnvGetter
+from databricks.labs.lakebridge.connections.database_manager import DatabaseManager
+from databricks.labs.lakebridge.connections.env_getter import EnvGetter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

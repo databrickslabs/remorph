@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from typing import Any
 
-from databricks.labs.remorph.discovery.table import TableDefinition
+from databricks.labs.lakebridge.discovery.table import TableDefinition
 
 
 class TableDefinitionService(ABC):

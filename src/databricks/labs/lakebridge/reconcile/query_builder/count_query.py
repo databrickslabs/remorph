@@ -3,8 +3,8 @@ import logging
 from sqlglot import Dialect
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.reconcile.query_builder.expression_generator import build_column, build_literal
-from databricks.labs.remorph.reconcile.recon_config import Table
+from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import build_column, build_literal
+from databricks.labs.lakebridge.reconcile.recon_config import Table
 
 logger = logging.getLogger(__name__)
 

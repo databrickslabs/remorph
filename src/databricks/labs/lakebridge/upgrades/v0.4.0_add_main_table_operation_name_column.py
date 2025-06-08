@@ -6,10 +6,10 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.lakebridge.contexts.application import ApplicationContext
-from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
-from databricks.labs.remorph.helpers import db_sql
+from databricks.labs.lakebridge.deployment.recon import RECON_JOB_NAME
+from databricks.labs.lakebridge.helpers import db_sql
 
-from databricks.labs.remorph.deployment.upgrade_common import (
+from databricks.labs.lakebridge.deployment.upgrade_common import (
     current_table_columns,
     installed_table_columns,
     recreate_table_sql,

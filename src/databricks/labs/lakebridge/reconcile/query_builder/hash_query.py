@@ -4,15 +4,15 @@ from functools import reduce
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
-from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
+from databricks.labs.lakebridge.reconcile.query_builder.base import QueryBuilder
+from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     build_column,
     concat,
     get_hash_transform,
     lower,
     transform_expression,
 )
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 
 logger = logging.getLogger(__name__)
 

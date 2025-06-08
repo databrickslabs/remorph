@@ -40,13 +40,13 @@ Import all the necessary modules.
 ```python
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.config import (
+from databricks.labs.lakebridge.config import (
     DatabaseConfig,
     ReconcileConfig,
     ReconcileMetadataConfig,
     TableRecon
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.lakebridge.reconcile.recon_config import (
     Table,
     ColumnMapping,
     ColumnThresholds,
@@ -55,11 +55,11 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Aggregate,
     Filters
 )
-from databricks.labs.remorph.reconcile.execute import (
+from databricks.labs.lakebridge.reconcile.execute import (
     recon,
     reconcile_aggregates
 )
-from databricks.labs.remorph.reconcile.exception import ReconciliationException
+from databricks.labs.lakebridge.reconcile.exception import ReconciliationException
 ```
 
 ## Configure Reconcile Properties
@@ -110,7 +110,7 @@ of Remorph.
 An Example of configuring the Reconcile properties:
 
 ```python
-from databricks.labs.remorph.config import (
+from databricks.labs.lakebridge.config import (
     DatabaseConfig,
     ReconcileConfig,
     ReconcileMetadataConfig
@@ -149,8 +149,8 @@ class TableRecon:
 An Example Table properties for reconciliation:
 
 ```python
-from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.lakebridge.config import TableRecon
+from databricks.labs.lakebridge.reconcile.recon_config import (
     Table,
     ColumnMapping,
     ColumnThresholds,
@@ -217,11 +217,11 @@ table_recon = TableRecon(
 To run Reconcile on the configured properties, use the `recon` method. you also need to pass a `WorkspaceClient` to `recon`.
 
 ```python
-from databricks.labs.remorph import __version__
+from databricks.labs.lakebridge import __version__
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.reconcile.execute import recon
-from databricks.labs.remorph.reconcile.exception import ReconciliationException
+from databricks.labs.lakebridge.reconcile.execute import recon
+from databricks.labs.lakebridge.reconcile.exception import ReconciliationException
 
 ws = WorkspaceClient(product="remorph", product_version=__version__)
 

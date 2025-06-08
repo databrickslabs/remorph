@@ -9,14 +9,14 @@ from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.lakebridge.config import DatabaseConfig, Table, ReconcileMetadataConfig
-from databricks.labs.remorph.reconcile.recon_config import TableThresholds
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
-from databricks.labs.remorph.reconcile.exception import (
+from databricks.labs.lakebridge.reconcile.recon_config import TableThresholds
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_key_from_dialect
+from databricks.labs.lakebridge.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
     CleanFromVolumeException,
 )
-from databricks.labs.remorph.reconcile.recon_output_config import (
+from databricks.labs.lakebridge.reconcile.recon_output_config import (
     DataReconcileOutput,
     ReconcileOutput,
     ReconcileProcessDuration,

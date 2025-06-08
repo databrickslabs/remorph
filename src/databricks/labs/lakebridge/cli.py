@@ -41,7 +41,7 @@ from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import Sqlglot
 from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 
 
-remorph = App(__file__)
+lakebridge = App(__file__)
 logger = get_logger(__file__)
 
 
@@ -65,7 +65,7 @@ def _installer(ws: WorkspaceClient) -> WorkspaceInstaller:
 def _create_warehouse(ws: WorkspaceClient) -> str:
 
     dbsql = ws.warehouses.create_and_wait(
-        name=f"remorph-warehouse-{time.time_ns()}",
+        name=f"lakebridge-warehouse-{time.time_ns()}",
         warehouse_type=CreateWarehouseRequestWarehouseType.PRO,
         cluster_size="Small",  # Adjust size as needed
         auto_stop_mins=30,  # Auto-stop after 30 minutes of inactivity
@@ -92,13 +92,13 @@ def _verify_workspace_client(ws: WorkspaceClient) -> WorkspaceClient:
 
     # Using reflection to set right value for _product_info for telemetry
     product_info = getattr(ws.config, '_product_info')
-    if product_info[0] != "remorph":
-        setattr(ws.config, '_product_info', ('remorph', __version__))
+    if product_info[0] != "lakebridge":
+        setattr(ws.config, '_product_info', ('lakebridge', __version__))
 
     return ws
 
 
-@remorph.command
+@lakebridge.command
 def transpile(
     w: WorkspaceClient,
     transpiler_config_path: str | None = None,
@@ -133,7 +133,7 @@ class _TranspileConfigChecker:
 
     def __init__(self, config: TranspileConfig | None, prompts: Prompts):
         if not config:
-            raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+            raise SystemExit("Installed transpile config not found. Please install lakebridge transpile first.")
         self._config: TranspileConfig = config
         self._prompts = prompts
 
@@ -189,7 +189,7 @@ class _TranspileConfigChecker:
                 transpiler_name = self._prompts.choice("Select the transpiler:", list(transpiler_names))
             else:
                 transpiler_name = next(name for name in transpiler_names)
-                logger.info(f"Remorph will use the {transpiler_name} transpiler")
+                logger.info(f"lakebridge will use the {transpiler_name} transpiler")
             transpiler_config_path = str(TranspilerInstaller.transpiler_config_path(transpiler_name))
         logger.debug(f"Setting transpiler_config_path to '{transpiler_config_path}'")
         self._config = dataclasses.replace(self._config, transpiler_config_path=cast(str, transpiler_config_path))
@@ -261,7 +261,7 @@ class _TranspileConfigChecker:
             catalog_name = self._config.catalog_name
         if not catalog_name:
             raise_validation_exception(
-                "Missing '--catalog-name', please run 'databricks labs remorph install-transpile' to configure one"
+                "Missing '--catalog-name', please run 'databricks labs lakebridge install-transpile' to configure one"
             )
         logger.debug(f"Setting catalog_name to '{catalog_name}'")
         self._config = dataclasses.replace(self._config, catalog_name=catalog_name)
@@ -275,7 +275,7 @@ class _TranspileConfigChecker:
             schema_name = self._config.schema_name
         if not schema_name:
             raise_validation_exception(
-                "Missing '--schema-name', please run 'databricks labs remorph install-transpile' to configure one"
+                "Missing '--schema-name', please run 'databricks labs lakebridge install-transpile' to configure one"
             )
         logger.debug(f"Setting schema_name to '{schema_name}'")
         self._config = dataclasses.replace(self._config, schema_name=schema_name)
@@ -310,7 +310,7 @@ async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: T
         logger.error(f"Error Transpiling: {str(error)}")
 
     # Table Template in labs.yml requires the status to be list of dicts Do not change this
-    logger.info(f"Remorph Transpiler encountered {len(status)} from given {config.input_source} files.")
+    logger.info(f"lakebridge Transpiler encountered {len(status)} from given {config.input_source} files.")
     return [status]
 
 
@@ -332,7 +332,7 @@ def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[s
         ctx.connect_config.cluster_id = cluster_id
 
 
-@remorph.command
+@lakebridge.command
 def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-reconcile")
@@ -348,7 +348,7 @@ def reconcile(w: WorkspaceClient):
     recon_runner.run(operation_name=RECONCILE_OPERATION_NAME)
 
 
-@remorph.command
+@lakebridge.command
 def aggregates_reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
     with_user_agent_extra("cmd", "execute-aggregates-reconcile")
@@ -365,7 +365,7 @@ def aggregates_reconcile(w: WorkspaceClient):
     recon_runner.run(operation_name=AGG_RECONCILE_OPERATION_NAME)
 
 
-@remorph.command
+@lakebridge.command
 def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
@@ -380,7 +380,7 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     lineage_generator(engine, source_dialect, input_source, output_folder)
 
 
-@remorph.command
+@lakebridge.command
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
     recon_conf = ReconConfigPrompts(w)
@@ -392,9 +392,9 @@ def configure_secrets(w: WorkspaceClient):
     recon_conf.prompt_and_save_connection_details()
 
 
-@remorph.command(is_unauthenticated=True)
+@lakebridge.command(is_unauthenticated=True)
 def configure_database_profiler():
-    """[Experimental] Install the Remorph Assessment package"""
+    """[Experimental] Install the lakebridge Assessment package"""
     prompts = Prompts()
 
     # Prompt for source system
@@ -403,13 +403,13 @@ def configure_database_profiler():
     ).lower()
 
     # Create appropriate assessment configurator
-    assessment = create_assessment_configurator(source_system=source_system, product_name="remorph", prompts=prompts)
+    assessment = create_assessment_configurator(source_system=source_system, product_name="lakebridge", prompts=prompts)
     assessment.run()
 
 
-@remorph.command()
+@lakebridge.command()
 def install_transpile(w: WorkspaceClient, artifact: str | None = None):
-    """Install the Remorph Transpilers"""
+    """Install the lakebridge Transpilers"""
     with_user_agent_extra("cmd", "install-transpile")
     user = w.current_user
     logger.debug(f"User: {user}")
@@ -417,9 +417,9 @@ def install_transpile(w: WorkspaceClient, artifact: str | None = None):
     installer.run(module="transpile", artifact=artifact)
 
 
-@remorph.command(is_unauthenticated=False)
+@lakebridge.command(is_unauthenticated=False)
 def configure_reconcile(w: WorkspaceClient):
-    """Configure the Remorph Reconcile Package"""
+    """Configure the lakebridge Reconcile Package"""
     with_user_agent_extra("cmd", "configure-reconcile")
     user = w.current_user
     logger.debug(f"User: {user}")
@@ -430,7 +430,7 @@ def configure_reconcile(w: WorkspaceClient):
     _remove_warehouse(w, dbsql_id)
 
 
-@remorph.command()
+@lakebridge.command()
 def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
     """Run the Analyzer"""
     with_user_agent_extra("cmd", "analyze")
@@ -446,4 +446,4 @@ def analyze(w: WorkspaceClient, source_directory: str, report_file: str):
 
 
 if __name__ == "__main__":
-    remorph()
+    lakebridge()

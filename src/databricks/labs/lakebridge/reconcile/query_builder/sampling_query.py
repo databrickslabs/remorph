@@ -4,9 +4,9 @@ import sqlglot.expressions as exp
 from pyspark.sql import DataFrame
 from sqlglot import select
 
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_key_from_dialect
-from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
-from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_key_from_dialect
+from databricks.labs.lakebridge.reconcile.query_builder.base import QueryBuilder
+from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
     _get_is_string,

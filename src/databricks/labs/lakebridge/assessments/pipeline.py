@@ -10,10 +10,10 @@ import logging
 import yaml
 import duckdb
 
-from databricks.labs.remorph.connections.credential_manager import cred_file
+from databricks.labs.lakebridge.connections.credential_manager import cred_file
 
-from databricks.labs.remorph.assessments.profiler_config import PipelineConfig, Step
-from databricks.labs.remorph.connections.database_manager import DatabaseManager
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step
+from databricks.labs.lakebridge.connections.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")

@@ -9,14 +9,14 @@ from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 from sqlglot.tokens import Token, TokenType
 
-from databricks.labs.remorph.config import TranspileResult, TranspileConfig
-from databricks.labs.remorph.helpers.file_utils import is_sql_file
-from databricks.labs.remorph.helpers.string_utils import format_error_message
-from databricks.labs.remorph.transpiler.sqlglot import lca_utils
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
-from databricks.labs.remorph.transpiler.transpile_status import TranspileError, ErrorKind, ErrorSeverity
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.lakebridge.config import TranspileResult, TranspileConfig
+from databricks.labs.lakebridge.helpers.file_utils import is_sql_file
+from databricks.labs.lakebridge.helpers.string_utils import format_error_message
+from databricks.labs.lakebridge.transpiler.sqlglot import lca_utils
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import SQLGLOT_DIALECTS
+from databricks.labs.lakebridge.transpiler.transpile_status import TranspileError, ErrorKind, ErrorSeverity
+from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 
 logger = logging.getLogger(__name__)
 

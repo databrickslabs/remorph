@@ -1,8 +1,8 @@
 from collections.abc import Iterable
 
-from databricks.labs.remorph.connections.database_manager import DatabaseManager
-from databricks.labs.remorph.discovery.table import TableDefinition, TableFQN, FieldInfo
-from databricks.labs.remorph.discovery.table_definition import TableDefinitionService
+from databricks.labs.lakebridge.connections.database_manager import DatabaseManager
+from databricks.labs.lakebridge.discovery.table import TableDefinition, TableFQN, FieldInfo
+from databricks.labs.lakebridge.discovery.table_definition import TableDefinitionService
 
 
 class TsqlTableDefinitionService(TableDefinitionService):

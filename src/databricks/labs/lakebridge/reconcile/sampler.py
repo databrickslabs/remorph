@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from databricks.labs.remorph.reconcile.constants import SamplingOptionMethod, SamplingSpecificationsType
-from databricks.labs.remorph.reconcile.recon_config import SamplingOptions, SamplingSpecifications
+from databricks.labs.lakebridge.reconcile.constants import SamplingOptionMethod, SamplingSpecificationsType
+from databricks.labs.lakebridge.reconcile.recon_config import SamplingOptions, SamplingSpecifications
 
 logger = logging.getLogger(__name__)
 

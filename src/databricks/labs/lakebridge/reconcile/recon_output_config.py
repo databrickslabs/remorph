@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.reconcile.recon_config import AggregateRule
+from databricks.labs.lakebridge.reconcile.recon_config import AggregateRule
 
 
 @dataclass

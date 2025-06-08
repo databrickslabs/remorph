@@ -10,7 +10,7 @@ from databricks.sdk.service.sql import (
     SpotInstancePolicy,
 )
 
-from databricks.labs.remorph.helpers.metastore import CatalogOperations
+from databricks.labs.lakebridge.helpers.metastore import CatalogOperations
 
 logger = logging.getLogger(__name__)
 

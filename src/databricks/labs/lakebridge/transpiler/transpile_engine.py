@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 from pathlib import Path
 
-from databricks.labs.remorph.config import TranspileResult, TranspileConfig
+from databricks.labs.lakebridge.config import TranspileResult, TranspileConfig
 
 
 class TranspileEngine(abc.ABC):
@@ -12,7 +12,7 @@ class TranspileEngine(abc.ABC):
         # TODO remove this once sqlglot transpiler is pluggable
         if str(transpiler_config_path) == "sqlglot":
             # pylint: disable=import-outside-toplevel, cyclic-import
-            from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+            from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
             return SqlglotEngine()
         if not transpiler_config_path.exists():
@@ -20,7 +20,7 @@ class TranspileEngine(abc.ABC):
                 f"Error: Invalid value for '--transpiler-config-path': '{str(transpiler_config_path)}', file does not exist."
             )
         # pylint: disable=import-outside-toplevel, cyclic-import
-        from databricks.labs.remorph.transpiler.lsp.lsp_engine import LSPEngine
+        from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
 
         return LSPEngine.from_config_path(transpiler_config_path)
 

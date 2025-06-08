@@ -12,9 +12,9 @@ from databricks.sdk.mixins.compute import SemVer
 from databricks.sdk.errors.platform import InvalidParameterValue, ResourceDoesNotExist
 
 from databricks.labs.lakebridge.config import RemorphConfigs
-from databricks.labs.remorph.deployment.recon import ReconDeployment
+from databricks.labs.lakebridge.deployment.recon import ReconDeployment
 
-logger = logging.getLogger("databricks.labs.remorph.install")
+logger = logging.getLogger("databricks.labs.lakebridge.install")
 
 
 class WorkspaceInstallation:

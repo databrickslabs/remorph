@@ -9,28 +9,28 @@ from typing import cast
 import itertools
 
 from databricks.labs.blueprint.installation import JsonObject
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import (
+from databricks.labs.lakebridge.__about__ import __version__
+from databricks.labs.lakebridge.config import (
     TranspileConfig,
     TranspileResult,
     ValidationResult,
 )
-from databricks.labs.remorph.helpers import db_sql
-from databricks.labs.remorph.helpers.execution_time import timeit
-from databricks.labs.remorph.helpers.file_utils import (
+from databricks.labs.lakebridge.helpers import db_sql
+from databricks.labs.lakebridge.helpers.execution_time import timeit
+from databricks.labs.lakebridge.helpers.file_utils import (
     dir_walk,
     make_dir,
 )
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import (
+from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.lakebridge.transpiler.transpile_status import (
     TranspileStatus,
     TranspileError,
     ErrorKind,
     ErrorSeverity,
 )
-from databricks.labs.remorph.helpers.string_utils import remove_bom
-from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.lakebridge.helpers.string_utils import remove_bom
+from databricks.labs.lakebridge.helpers.validation import Validator
+from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)

@@ -2,11 +2,11 @@ import logging
 import re
 from importlib.resources import files
 
-import databricks.labs.remorph.resources
+import databricks.labs.lakebridge.resources
 
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
-from databricks.labs.remorph.helpers import db_sql
+from databricks.labs.lakebridge.helpers import db_sql
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def table_original_query(table_name: str, full_table_name: str) -> str:
     Get the main table DDL from the main.sql file
     :return: str
     """
-    resources = files(databricks.labs.remorph.resources)
+    resources = files(databricks.labs.lakebridge.resources)
     query_dir = resources.joinpath("reconcile/queries/installation")
     return (
         query_dir.joinpath(f"{table_name}.sql")

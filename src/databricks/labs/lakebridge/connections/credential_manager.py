@@ -4,7 +4,7 @@ from typing import Protocol
 
 import yaml
 
-from databricks.labs.remorph.connections.env_getter import EnvGetter
+from databricks.labs.lakebridge.connections.env_getter import EnvGetter
 
 
 logger = logging.getLogger(__name__)

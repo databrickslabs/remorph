@@ -4,14 +4,14 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.lakebridge.reconcile.exception import ColumnMismatchException
-from databricks.labs.remorph.reconcile.recon_capture import (
+from databricks.labs.lakebridge.reconcile.recon_capture import (
     ReconIntermediatePersist,
 )
-from databricks.labs.remorph.reconcile.recon_output_config import (
+from databricks.labs.lakebridge.reconcile.recon_output_config import (
     DataReconcileOutput,
     MismatchOutput,
 )
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.lakebridge.reconcile.recon_config import (
     AggregateRule,
     ColumnMapping,
 )

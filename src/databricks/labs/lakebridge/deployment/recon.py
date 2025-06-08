@@ -8,11 +8,11 @@ from databricks.labs.blueprint.wheels import find_project_root
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue, NotFound
 
-import databricks.labs.remorph.resources
-from databricks.labs.remorph.config import ReconcileConfig
-from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
-from databricks.labs.remorph.deployment.job import JobDeployment
-from databricks.labs.remorph.deployment.table import TableDeployment
+import databricks.labs.lakebridge.resources
+from databricks.labs.lakebridge.config import ReconcileConfig
+from databricks.labs.lakebridge.deployment.dashboard import DashboardDeployment
+from databricks.labs.lakebridge.deployment.job import JobDeployment
+from databricks.labs.lakebridge.deployment.table import TableDeployment
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class ReconDeployment:
         logger.info("Deploying reconciliation metadata tables.")
         catalog = recon_config.metadata_config.catalog
         schema = recon_config.metadata_config.schema
-        resources = files(databricks.labs.remorph.resources)
+        resources = files(databricks.labs.lakebridge.resources)
         query_dir = resources.joinpath("reconcile/queries/installation")
 
         sqls_to_deploy = [
@@ -88,7 +88,9 @@ class ReconDeployment:
 
     def _deploy_dashboards(self, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation dashboards.")
-        dashboard_base_dir = find_project_root(__file__) / "src/databricks/labs/remorph/resources/reconcile/dashboards"
+        dashboard_base_dir = (
+            find_project_root(__file__) / "src/databricks/labs/lakebridge/resources/reconcile/dashboards"
+        )
         self._dashboard_deployer.deploy(dashboard_base_dir, recon_config)
 
     def _get_dashboards(self) -> list[tuple[str, str]]:

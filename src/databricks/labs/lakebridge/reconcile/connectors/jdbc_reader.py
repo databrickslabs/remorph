@@ -2,7 +2,7 @@ from typing import Any
 
 from pyspark.sql import SparkSession
 
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions
 
 
 class JDBCReaderMixin:

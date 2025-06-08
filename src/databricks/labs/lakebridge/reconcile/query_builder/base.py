@@ -4,13 +4,13 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.reconcile.exception import InvalidInputException
-from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
+from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
+from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
     transform_expression,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table, Aggregate
-from databricks.labs.remorph.transpiler.sqlglot.dialect_utils import get_dialect, SQLGLOT_DIALECTS
+from databricks.labs.lakebridge.reconcile.recon_config import Schema, Table, Aggregate
+from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect, SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 

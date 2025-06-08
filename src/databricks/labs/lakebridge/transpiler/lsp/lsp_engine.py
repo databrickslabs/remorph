@@ -33,11 +33,11 @@ from pygls.exceptions import FeatureRequestError
 from pygls.lsp.client import BaseLanguageClient
 
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.remorph.config import LSPConfigOptionV1, TranspileConfig, TranspileResult
-from databricks.labs.remorph.errors.exceptions import IllegalStateException
-from databricks.labs.remorph.helpers.file_utils import is_sql_file, is_dbt_project_file
-from databricks.labs.remorph.transpiler.transpile_engine import TranspileEngine
-from databricks.labs.remorph.transpiler.transpile_status import (
+from databricks.labs.lakebridge.config import LSPConfigOptionV1, TranspileConfig, TranspileResult
+from databricks.labs.lakebridge.errors.exceptions import IllegalStateException
+from databricks.labs.lakebridge.helpers.file_utils import is_sql_file, is_dbt_project_file
+from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
+from databricks.labs.lakebridge.transpiler.transpile_status import (
     CodePosition,
     CodeRange,
     ErrorKind,

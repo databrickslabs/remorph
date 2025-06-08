@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-from databricks.labs.remorph.helpers.file_utils import (
+from databricks.labs.lakebridge.helpers.file_utils import (
     get_sql_file,
     is_sql_file,
     read_file,
 )
-from databricks.labs.remorph.intermediate.dag import DAG
+from databricks.labs.lakebridge.intermediate.dag import DAG
 
-from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 logger = logging.getLogger(__name__)
 

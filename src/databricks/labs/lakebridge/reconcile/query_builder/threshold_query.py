@@ -3,8 +3,8 @@ import logging
 from sqlglot import expressions as exp
 from sqlglot import select
 
-from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
-from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
+from databricks.labs.lakebridge.reconcile.query_builder.base import QueryBuilder
+from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     anonymous,
     build_between,
     build_column,
@@ -16,8 +16,8 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_where_clause,
     coalesce,
 )
-from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds
-from databricks.labs.remorph.transpiler.sqlglot.generator.databricks import Databricks
+from databricks.labs.lakebridge.reconcile.recon_config import ColumnThresholds
+from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 
