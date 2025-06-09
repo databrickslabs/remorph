@@ -110,8 +110,11 @@ def _process_combined_part(context: TranspilingContext, part: Message) -> None:
         return
     filename = part.get_filename()
     content = part.get_payload(decode=False)
+    logger.debug(f"Processing file: {filename}")
+
     if not filename or not isinstance(content, str):
         return
+    filename = Path(filename).name
     folder = context.output_folder
     segments = filename.split("/")
     for segment in segments[:-1]:
