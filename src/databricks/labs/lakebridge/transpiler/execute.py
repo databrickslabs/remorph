@@ -108,8 +108,10 @@ def _process_combined_result(context: TranspilingContext, _error_list: list[Tran
 def _process_combined_part(context: TranspilingContext, part: Message) -> None:
     if part.get_content_type() != "text/plain":
         return
-    filename = part.get_filename()
+    filename = Path(part.get_filename()).name
     content = part.get_payload(decode=False)
+    logger.debug(f"Processing file: {filename}")
+
     if not filename or not isinstance(content, str):
         return
     folder = context.output_folder
