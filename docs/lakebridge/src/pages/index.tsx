@@ -12,7 +12,7 @@ const Hero = () => {
       </div>
 
       <h1 className="text-4xl md:text-5xl text-center mb-6">
-        Lakebridge - Assisted Migration Toolkit
+        Lakebridge - Fast, predictable migrations to Databricks
       </h1>
 
       <p className="text-lg text-center text-balance">

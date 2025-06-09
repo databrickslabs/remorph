@@ -5,7 +5,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# Remorph Reconciliation
+# Lakebridge Reconciliation
 
 Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data
 residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other Databricks
@@ -16,9 +16,9 @@ when comparing the source with the Databricks target.
 ### Execution Pre-Set Up
 >1. Setup the configuration file:
 
-Once the installation is done, a folder named **.remorph** will be created in the user workspace's home folder.
+Once the installation is done, a folder named **.lakebridge** will be created in the user workspace's home folder.
 To process the reconciliation for specific table sources, we must create a config file that gives the detailed required configurations for the table-specific ones.
-The file name should be in the format as below and created inside the **.remorph** folder.
+The file name should be in the format as below and created inside the **.lakebridge** folder.
 ```
 recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json
 
@@ -44,18 +44,18 @@ TO BE FIXED
 
 > 2. Setup the connection properties
 
-Remorph-Reconcile manages connection properties by utilizing secrets stored in the Databricks workspace.
+Lakebridge-Reconcile manages connection properties by utilizing secrets stored in the Databricks workspace.
 Below is the default secret naming convention for managing connection properties.
 
 **Note: When both the source and target are Databricks, a secret scope is not required.**
 
-**Default Secret Scope:** remorph_data_source
+**Default Secret Scope:** lakebridge_data_source
 
 | source     | scope              |
 |------------|--------------------|
-| snowflake  | remorph_snowflake  |
-| oracle     | remorph_oracle     |
-| databricks | remorph_databricks |
+| snowflake  | lakebridge_snowflake  |
+| oracle     | lakebridge_oracle     |
+| databricks | lakebridge_databricks |
 
 Below are the connection properties required for each source:
 
@@ -95,7 +95,7 @@ Below are the connection properties required for each source:
 ### Execution
 Execute the below command to initialize the reconcile process.
 ```bash
- databricks labs remorph reconcile
+ databricks labs lakebridge reconcile
 ```
 <img src={useBaseUrl('img/recon-run.gif')} alt="reconcile-run" />
 

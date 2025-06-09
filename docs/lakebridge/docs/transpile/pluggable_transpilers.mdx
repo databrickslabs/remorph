@@ -3,29 +3,29 @@ sidebar_position: 2
 title: Pluggable Transpiler
 ---
 
-Remorph _pluggable_ transpilers
+Lakebridge _pluggable_ transpilers
 ---
 
-`Remorph` transpiles source code using _pluggable_ transpilers.
+`Lakebridge` transpiles source code using _pluggable_ transpilers.
 They are pluggable in the sense that:
- - their code sits outside of the `remorph` code base
- - there can be more than 1 installed, although as of writing, `remorph` can only use 1 at a given point in time
- - `remorph` knows nothing about them until they are discovered at runtime
+ - their code sits outside of the `lakebridge` code base
+ - there can be more than 1 installed, although as of writing, `lakebridge` can only use 1 at a given point in time
+ - `lakebridge` knows nothing about them until they are discovered at runtime
 
-Communication between `remorph` and a transpiler is achieved using `LSP`, see for example [this starter](https://github.com/databrickslabs/remorph-plugin-starters/tree/python-sdk/python) to learn more about how this works.
+Communication between `lakebridge` and a transpiler is achieved using `LSP`, see for example [this starter](https://github.com/databrickslabs/lakebridge-plugin-starters/tree/python-sdk/python) to learn more about how this works.
 
-This document describes how `remorph` discovers and runs transpilers.
+This document describes how `lakebridge` discovers and runs transpilers.
 
-Although one could _in theory_ run a transpiler without access to the Databricks platform, `remorph` requires a valid Databricks install.
-Remorph leverages this by expecting transpilers to reside in the `.databricks` folder hierarchy, as follows:
+Although one could _in theory_ run a transpiler without access to the Databricks platform, `lakebridge` requires a valid Databricks install.
+Lakebridge leverages this by expecting transpilers to reside in the `.databricks` folder hierarchy, as follows:
 
 
 ```
 .databricks/
 ├── labs/
-│   ├── remorph-transpilers/
+│   ├── lakebridge-transpilers/
 │   │   ├── morpheus/
-│   │   ├── remorph-community-transpiler/
+│   │   ├── lakebridge-community-transpiler/
 │   │   ├── some-3rd-party-transpiler/
 ```
 
@@ -42,7 +42,7 @@ Each transpiler resides in its own dedicated sub-directory, whose name can be an
 A transpiler `lib` subdirectory _must_ comprise a `config.yml` file that follows the following structure:
 
 ```yaml
-remorph:
+lakebridge:
   version: 1 # mandatory, _must_ equal 1
   name: <name of the transpiler> # mandatory, can be different from the folder name
   dialects: # this section is mandatory and cannot be empty
@@ -64,18 +64,18 @@ custom: # this section is optional, it is passed to the transpiler at startup
     <key 1>: <value 1> # can be pretty much anything
 ```
 
-Databricks provides 2 transpilers: _Morpheus_, its advanced transpiler, and _RCT_ (Remorph Community Transpiler).
-These transpilers are installed by `remorph` itself as part of running the `install-transpile` command, as follows:
- - the latest _Morpheus_ is fetched from [Maven Central](https://central.sonatype.com/), and installed at `.databricks/labs/remorph-transpilers/morpheus/`.
- - the latest _RCT_ is fetched from [PyPi](https://pypi.org/), and installed at `.databricks/labs/remorph-transpilers/remorph-community-transpiler/`.
+Databricks provides 2 transpilers: _Morpheus_, its advanced transpiler, and _RCT_ (Lakebridge Community Transpiler).
+These transpilers are installed by `lakebridge` itself as part of running the `install-transpile` command, as follows:
+ - the latest _Morpheus_ is fetched from [Maven Central](https://central.sonatype.com/), and installed at `.databricks/labs/lakebridge-transpilers/morpheus/`.
+ - the latest _RCT_ is fetched from [PyPi](https://pypi.org/), and installed at `.databricks/labs/lakebridge-transpilers/lakebridge-community-transpiler/`.
 
 Installing 3rd party transpilers is the responsibility of their provider.
 
-When `remorph` is configured, it scans the `remorph-transpilers` directory, and collects available source dialects and corresponding transpilers, such that the user can configure them as wished.
+When `lakebridge` is configured, it scans the `lakebridge-transpilers` directory, and collects available source dialects and corresponding transpilers, such that the user can configure them as wished.
 
-When a user runs the _transpile_ command, `remorph` sets the working directory to the configured transpiler, appends the configured environment variables, and runs the configured command line.
+When a user runs the _transpile_ command, `lakebridge` sets the working directory to the configured transpiler, appends the configured environment variables, and runs the configured command line.
 
-The transpiler is an LSP Server i.e. it listens to commands from _remorph_ until it is instructed to exit.
+The transpiler is an LSP Server i.e. it listens to commands from _lakebridge_ until it is instructed to exit.
 
 ---
 Manually installing a transpiler
@@ -83,7 +83,7 @@ Manually installing a transpiler
 
 There are situations where an installer may fail: security rules preventing downloads, pre-releases...
 Following the above steps, it is straightforward to manually install a transpiler, by:
- - creating the transpiler folder in the `.databricks/labs/remorph-transpilers/` directory
+ - creating the transpiler folder in the `.databricks/labs/lakebridge-transpilers/` directory
  - creating the `lib` and `state` sub-folders
  - creating a `config.yml` file in the `lib` folder (see details above)
  - creating a `version.json` file in the `state` folder with content like:

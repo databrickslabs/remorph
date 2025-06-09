@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 
-This page gives you a comprehensive guide on how to configure and run the Reconcile utility of Remorph on your Databricks
+This page gives you a comprehensive guide on how to configure and run the Reconcile utility of Lakebridge on your Databricks
 workspace using Databricks notebook.
 
 ## Installation
@@ -20,13 +20,13 @@ using the following command:
 <Tabs>
     <TabItem value="python" label="GitHub" default>
         ```python
-        %pip install git+https://github.com/databrickslabs/remorph
+        %pip install git+https://github.com/databrickslabs/lakebridge
         dbutils.library.restartPython()
         ```
     </TabItem>
     <TabItem value="shell" label="PyPi">
         ```python
-        %pip install databricks-labs-remorph
+        %pip install databricks-labs-lakebridge
         dbutils.library.restartPython()
         ```
     </TabItem>
@@ -100,12 +100,12 @@ metadata details for reconciliation. expects a `ReconcileMetadataConfig` object.
 ```python
 @dataclass
 class ReconcileMetadataConfig:
-    catalog: str = "remorph"
+    catalog: str = "lakebridge"
     schema: str = "reconcile"
     volume: str = "reconcile_volume"
 ```
 If not set the default values will be used to store the metadata. The default resources are created during the installation
-of Remorph.
+of Lakebridge.
 
 An Example of configuring the Reconcile properties:
 
@@ -126,7 +126,7 @@ reconcile_config = ReconcileConfig(
                                          target_schema="target_databricks_schema"
                           ),
          metadata_config = ReconcileMetadataConfig(
-              catalog = "remorph_metadata",
+              catalog = "lakebridge_metadata",
               schema= "reconcile"
          )
     )
@@ -223,7 +223,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.labs.lakebridge.reconcile.execute import recon
 from databricks.labs.lakebridge.reconcile.exception import ReconciliationException
 
-ws = WorkspaceClient(product="remorph", product_version=__version__)
+ws = WorkspaceClient(product="lakebridge", product_version=__version__)
 
 
 try:
@@ -251,6 +251,6 @@ except Exception as e:
 
 ## Visualization
 
-When you [install](../installation.mdx) remorph using databricks cli, it deploys an AI/BI Dashboard on your workspace.
+When you [install](../installation.mdx) Lakebridge using databricks cli, it deploys an AI/BI Dashboard on your workspace.
 This dashboard gives you a detailed report of all the reconciliation runs on your workspace. After every reconciliation run, you get a
 `recon_id`. You can use this recon_id to drill down into the details of that particular reconciliation run on the dashboard.
