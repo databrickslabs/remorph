@@ -366,4 +366,5 @@ def test_server_decombines_workflow_output(mock_workspace_client, lsp_engine, tr
             transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True
         )
         _status, _errors = transpile(mock_workspace_client, lsp_engine, transpile_config)
-        assert (Path(output_folder) / "Jobs").is_dir()
+
+        assert any(Path(output_folder).glob("*.json")), "No .json file found in output_folder"
