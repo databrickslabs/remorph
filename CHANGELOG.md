@@ -1,5 +1,74 @@
 # Version changelog
 
+## 0.10.0
+# 🚀 Lakebridge v0.10.0 – The Bridge to Databricks Awaits! 🌉
+
+Welcome to the inaugural release of **Lakebridge**, your all-in-one, open-source toolkit for seamless SQL migration to Databricks! Whether you're staring down a mountain of legacy SQL or just want to make sure your data lands safely on the other side, Lakebridge is here to make your journey smooth, insightful, and even a little bit fun.
+
+---
+
+## ✨ What's Inside Lakebridge v0.10.0?
+
+### 🕵️ Pre-migration Assessment: Know Before You Go
+
+- **Profiler**: Connects to your existing SQL environment and delivers a detailed report on workload size, complexity, and features used.
+- **Analyzer**: Scans your SQL code and orchestration, highlighting potential migration challenges and estimating the effort required.
+
+
+### 🔄 SQL Conversion: Dialect Dilemmas, Solved
+
+- **Transpilers Galore**: Choose between the battle-tested **BladeBridge** or the next-gen **Morpheus** (with experimental dbt support!) to convert your SQL and ETL code from a variety of platforms, including:
+    - DataStage
+    - Informatica (Cloud, PC)
+    - Netezza
+    - Oracle (incl. ADS \& Exadata)
+    - Snowflake
+    - SQL Server (incl. Synapse)
+    - Teradata
+- **SQL \& ETL/Orchestration Translation**: Move more than just queries—bring your workflows, too!
+- **Error Highlighting \& Compatibility Warnings**: Because nobody likes a silent failure.
+
+
+### 🧮 Post-migration Reconciliation: Trust, but Verify
+
+- **Automated Data Reconciliation**: Compare source and Databricks tables to ensure your data made the leap intact.
+- **Supports Multiple Sources**: Snowflake, Oracle, and Databricks—more to come!
+- **Discrepancy Detection**: Find mismatches before your users do.
+
+---
+
+## 🛠️ Installation: As Easy as Copy-Paste
+
+```bash
+databricks labs install lakebridge
+```
+
+Python 3.10+, Java 11, and the Databricks CLI are your only prerequisites. Windows, Mac, or Linux—Lakebridge welcomes all!
+
+---
+
+## 🧑‍💻 Why Lakebridge?
+
+- **Comprehensive**: Handles every phase of migration, from assessment to reconciliation.
+- **Flexible**: Supports multiple SQL dialects and ETL platforms.
+- **Open Source**: Built by Databricks Labs, improved by the community.
+- **Witty Documentation**: Because migration shouldn't be boring.
+
+---
+
+## 💬 Get Involved!
+
+Spotted a bug? Have a feature idea? Want to contribute? Open an issue or pull request—let's build the future of SQL migration together!
+
+---
+
+Thank you for joining us at the start of this journey.
+
+**Happy Migration! 🚀**
+
+*— The Lakebridge Team*
+
+
 ## 0.9.0
 
 *  Added support for format_datetime function in presto to Databricks ([#1250](https://github.com/databrickslabs/remorph/issues/1250)). A new `format_datetime` function has been added to the `Parser` class in the `presto.py` file to provide support for formatting datetime values in Presto on Databricks. This function utilizes the `DateFormat.from_arg_list` method from the `local_expression` module to format datetime values according to a specified format string. To ensure compatibility and consistency between Presto and Databricks, a new test file `test_format_datetime_1.sql` has been added, containing SQL queries that demonstrate the usage of the `format_datetime` function in Presto and its equivalent in Databricks, `DATE_FORMAT`. This standalone change adds new functionality without modifying any existing code.
