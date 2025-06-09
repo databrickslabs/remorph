@@ -6,7 +6,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 Overview
 ========
 
-Remorph is a comprehensive toolkit designed to help you manage all phases of your SQL migration, from initially surveying your existing landscape through to translation of SQL and final data reconciliation.
+Lakebridge is a comprehensive toolkit designed to help you manage all phases of your SQL migration, from initially surveying your existing landscape through to translation of SQL and final data reconciliation.
 
 <div style={{textAlign: 'center'}}>
 ```mermaid
@@ -45,7 +45,7 @@ For migrating your SQL workloads we provide transpilers that can:
  - Translate SQL code from a variety of source platforms to Databricks SQL.
  - Translation some orchestration and ETL code to Databricks SQL.
 
-Internally, Remorph can use two different transpilers:
+Internally, Lakebridge can use two different transpilers:
 
  - *BladeBridge*, a mature transpiler that can handle a wide range of source dialects as well as some ETL/orchestration.
  - *Morpheus*, a next-generation transpiler that currently handles a smaller set of dialects, but includes experimental support for dbt.
@@ -67,7 +67,7 @@ For more information on using the transpiler, refer to the [Transpile][3].
 Post-migration Reconciliation
 -----------------------------
 
-During the migration process, datasets are often transferred from the existing source platform into Databricks. Remorph's reconciler is designed to help you ensure that the data in Databricks matches that of the source system, bearing in mind that both might be part of live environments.
+During the migration process, datasets are often transferred from the existing source platform into Databricks. Lakebridge's reconciler is designed to help you ensure that the data in Databricks matches that of the source system, bearing in mind that both might be part of live environments.
 
 For more information on using the data reconciliation tools, refer to the [Reconcile][4] documentation.
 

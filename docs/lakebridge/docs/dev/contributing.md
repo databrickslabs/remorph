@@ -22,7 +22,7 @@ justified, such as when a well-established and actively maintained library provi
 or specialized functionality unavailable in standard libraries.
 
 ## GPG signing
-The Remorph project requires any commit to be signed-off using GPG signing.
+The Lakebridge project requires any commit to be signed-off using GPG signing.
 Before you submit any commit, please make sure you are properly setup, as follows.
 
 If you don't already have one, create a GPG key:
@@ -92,7 +92,7 @@ unit test coverage suite and the clear difference between _unit tests_ and _inte
 
 ## JVM Proxy
 
-In order to use this, you have to install `remorph` on any workspace via `databricks labs install .`,
+In order to use this, you have to install `lakebridge` on any workspace via `databricks labs install .`,
 so that `.databricks-login.json` file gets created with the following contents:
 
 ```
@@ -103,11 +103,11 @@ so that `.databricks-login.json` file gets created with the following contents:
 ```
 
 then run `make dev-cli` to collect classpath information. And then invoke commands,
-like `databricks labs remorph debug-script --name file`. Add `--debug` flag to recompile project each run.
+like `databricks labs lakebridge debug-script --name file`. Add `--debug` flag to recompile project each run.
 
 Example output is:
 ```text
-databricks labs remorph debug-script --name foo
+databricks labs lakebridge debug-script --name foo
 21:57:42  INFO [databricks.sdk] Using Azure CLI authentication with AAD tokens
 21:57:42  WARN [databricks.sdk] azure_workspace_resource_id field not provided. It is recommended to specify this field in the Databricks configuration to avoid authentication errors.
 Debugging script...
@@ -131,7 +131,7 @@ brew install wget
 Once you are done with cloning this project to your local machine, you may follow the steps
 mentioned below.
 
-* We recommend using `pyenv` as Python Version Manager. While Remorph is currently developed and built on
+* We recommend using `pyenv` as Python Version Manager. While Lakebridge is currently developed and built on
 `Python 3.10`, having a version management tool like `pyenv` gives us the flexibility to manage the python versions easily for
 future enhancements while maintaining the standards.
 
@@ -182,7 +182,7 @@ You may download and install it from: [IntelliJ IDEA](https://www.jetbrains.com/
 Configure your IDE to:
  - use this Python venv path so that you work within the virtual environment when developing the project:
 
-<img src={useBaseUrl('img/remorph_intellij.gif')} alt="IDE" />
+<img src={useBaseUrl('img/lakebridge_intellij.gif')} alt="IDE" />
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:
 ```shell
@@ -199,7 +199,7 @@ make lint test
 
 Here are the example steps to submit your first contribution:
 
-1. Make a Fork from remorph repo (if you really want to contribute)
+1. Make a Fork from lakebridge repo (if you really want to contribute)
 2. `git clone`
 3. `git checkout main` (or `gcm` if you're using [ohmyzsh](https://ohmyz.sh/)).
 4. `git pull` (or `gl` if you're using [ohmyzsh](https://ohmyz.sh/)).

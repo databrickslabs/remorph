@@ -6,15 +6,15 @@ title: Transpilation overview
 Transpilation overview
 ---
 
-Remorph's transpilation module offers a pluggable mechanism for transpiling SQL files written in any supported source dialect into their equivalent in Databricks SQL.
+Lakebridge's transpilation module offers a pluggable mechanism for transpiling SQL files written in any supported source dialect into their equivalent in Databricks SQL.
 
 When invoked with the following command line:
 
 ```bash
-databricks labs remorph transpile --source-dialect snowflake --input-source /path/to/input --output-folder /path/to/output --transpiler-config-path /path/to/config
+databricks labs lakebridge transpile --source-dialect snowflake --input-source /path/to/input --output-folder /path/to/output --transpiler-config-path /path/to/config
 ```
 
-Remorph will (recursively) scan `/path/to/input`, looking for `.sql` files, and for each such file it will produce a corresponding file (with the same relative path) under `/path/to/output`.
+Lakebridge will (recursively) scan `/path/to/input`, looking for `.sql` files, and for each such file it will produce a corresponding file (with the same relative path) under `/path/to/output`.
 
 If for example we have the following `/path/to/input/foo/bar/silly.sql` file:
 
@@ -36,7 +36,7 @@ Notice how thee transpiler adds a header comment at the top of the transpile fil
 As a matter of fact, transpilation could fail for various reasons:
 - the input code may contain constructs that have no equivalent in Databricks SQL,
 - the selected transpilation plugin may be missing an implementation (or have a bug),
-- less likely, the input code may be incorrect, making the transpilation plugin unable to parse it (Remorph is built on the assumption that the code you feed it is correct).
+- less likely, the input code may be incorrect, making the transpilation plugin unable to parse it (Lakebridge is built on the assumption that the code you feed it is correct).
 
 In such cases, the header comment will contain the list of errors encountered during transpilation in an attempt at making it easier for you to fix the transpiled code manually.
 
@@ -62,7 +62,7 @@ It is important to note that the transpiler isn't always able to know whether it
 
 ## Plugins overview
 
-Out of the box, Remorph comes with two transpilation plugins: Morpheus and BladeBridge. Each one has its own set of capabilities and levels of guarantee that we describe below.
+Out of the box, Lakebridge comes with two transpilation plugins: Morpheus and BladeBridge. Each one has its own set of capabilities and levels of guarantee that we describe below.
 
 ### Morpheus
 
