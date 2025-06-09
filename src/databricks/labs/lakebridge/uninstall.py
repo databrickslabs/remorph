@@ -21,7 +21,7 @@ if __name__ == "__main__":
     run(
         ApplicationContext(
             WorkspaceClient(
-                product="remorph",
+                product="lakebridge",
                 product_version=__version__,
             )
         )
