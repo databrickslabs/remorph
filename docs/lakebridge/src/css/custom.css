@@ -38,14 +38,6 @@ html[data-theme="dark"] {
   --ifm-color-primary: #4299e0;
 }
 
-.main-page {
-  --ifm-navbar-height: 3.75rem;
-}
-
-.docs-page {
-  --ifm-navbar-height: 6.8rem;
-}
-
 .font-sans {
   font-family: "DM Sans", sans-serif;
   font-style: normal;
@@ -104,25 +96,6 @@ button {
 
       .navbar__item {
         padding: 0 var(--ifm-navbar-item-padding-horizontal);
-      }
-    }
-
-    .navbar__search {
-      .navbar__search-input {
-        width: calc(var(--doc-sidebar-width) - 2rem);
-        background-position: right 1rem center;
-        padding: 0 2.25rem 0 1rem;
-        border-radius: 0.25rem;
-        font-size: .875rem;
-        font-weight: 400;
-      }
-    }
-
-    &:first-child {
-      flex: 55%;
-
-      .navbar__search {
-        display: none;
       }
     }
   }
