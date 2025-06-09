@@ -8,11 +8,13 @@ from databricks.labs.lakebridge.contexts.application import ApplicationContext
 
 
 def test_analyze():
+    #TODO: Currently it randomly relies on prompt number 5, that is SQL,
+    # we need to make it more stable by relying on dynamic prompts
     prompts = MockPrompts(
         {
-            r"Select the source technology": "3",
+            r"Select the source technology": "5",
         }
     )
     with patch.object(ApplicationContext, "prompts", prompts):
         ws = create_autospec(WorkspaceClient)
-        cli.analyze(ws, "/tmp/analyzer/snowflake", "/tmp/analyzer/databricks")
+        cli.analyze(ws, "/tmp/analyzer/snowflake", "/tmp/analyzer/databricks/")
