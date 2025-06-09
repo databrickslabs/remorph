@@ -6,7 +6,6 @@ from databricks.labs.lakebridge import cli
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.lakebridge.contexts.application import ApplicationContext
-from databricks.labs.bladespector.analyzer import Analyzer
 
 
 def test_analyze():
