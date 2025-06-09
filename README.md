@@ -1,10 +1,7 @@
 Databricks Labs Lakebridge
 ---
-![Databricks Labs Lakebridge White](/docs/remorph/static/img/lakebridge-lockup-white-background.svg)
+![Databricks Labs Lakebridge White](/docs/lakebridge/static/img/lakebridge-lockup-white-background.svg)
 
-
-
-![Databricks Labs Lakebridge Transparent](/docs/remorph/static/img/lakebridge-lockup-no-db.svg)
 
 [![build](https://github.com/databrickslabs/remorph/actions/workflows/push.yml/badge.svg)](https://github.com/databrickslabs/remorph/actions/workflows/push.yml)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/databricks-labs-remorph?cacheSeconds=3600)
