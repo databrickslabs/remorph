@@ -40,7 +40,6 @@ from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
 from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 
-from src.databricks.labs.lakebridge.transpiler.transpile_status import ErrorSeverity
 
 lakebridge = App(__file__)
 logger = get_logger(__file__)
