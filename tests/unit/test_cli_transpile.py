@@ -364,3 +364,4 @@ def test_transpile_prints_errors(caplog, tmp_path, mock_workspace_client):
         )
 
     assert any(str(input_source) in record.message for record in caplog.records)
+
