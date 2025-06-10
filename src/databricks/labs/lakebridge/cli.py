@@ -2,7 +2,6 @@ import asyncio
 import dataclasses
 import itertools
 import json
-import logging
 import os
 import time
 from pathlib import Path
@@ -309,9 +308,11 @@ async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: T
     logger.debug(f"User: {user}")
     _override_workspace_client_config(ctx, config.sdk_config)
     status, errors = await do_transpile(ctx.workspace_client, engine, config)
-    for path, errors in itertools.groupby(errors, key= lambda x: x.path):
+    for path, errors in itertools.groupby(errors, key=lambda x: x.path):
         errs = list(errors)
-        errors_by_severity = {severity.name:len(list(errors)) for severity, errors in itertools.groupby(errs, key= lambda x: x.severity)}
+        errors_by_severity = {
+            severity.name: len(list(errors)) for severity, errors in itertools.groupby(errs, key=lambda x: x.severity)
+        }
         reports = []
         for severity in [ErrorSeverity.ERROR, ErrorSeverity.WARNING]:
             if severity.name in errors_by_severity:
