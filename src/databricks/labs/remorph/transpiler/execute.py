@@ -24,7 +24,7 @@ from databricks.labs.remorph.transpiler.transpile_status import (
     ErrorKind,
     ErrorSeverity,
 )
-from databricks.labs.remorph.helpers.string_utils import remove_bom
+from databricks.labs.remorph.helpers.file_utils import read_file
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
@@ -52,8 +52,7 @@ async def _process_one_file(
         )
         return 0, [error]
 
-    with input_path.open("r") as f:
-        source_code = remove_bom(f.read())
+    source_code = read_file(input_path)
 
     transpile_result = await _transpile(
         transpiler, config.source_dialect, config.target_dialect, source_code, input_path
