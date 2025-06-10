@@ -2,9 +2,9 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from databricks.labs.remorph.assessments.pipeline import PipelineClass, DB_NAME, StepExecutionStatus
+from databricks.labs.lakebridge.assessments.pipeline import PipelineClass, DB_NAME, StepExecutionStatus
 
-from databricks.labs.remorph.assessments.profiler_config import Step, PipelineConfig
+from databricks.labs.lakebridge.assessments.profiler_config import Step, PipelineConfig
 from ..connections.helpers import get_db_manager
 
 

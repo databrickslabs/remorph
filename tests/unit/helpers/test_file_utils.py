@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from databricks.labs.remorph.helpers.file_utils import (
+from databricks.labs.lakebridge.helpers.file_utils import (
     dir_walk,
     is_sql_file,
     make_dir,
