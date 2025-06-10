@@ -58,7 +58,7 @@ def get_sql_file(input_path: str | Path) -> Generator[Path, None, None]:
 def read_file(filepath: str | Path) -> str:
     """
     Reads the contents of the given file and returns it as a string.
-    :param filename: Input File Path
+    :param filepath: Input File Path
     :return: File Contents as String
     """
     file_path = Path(filepath) if isinstance(filepath, str) else filepath
@@ -67,20 +67,25 @@ def read_file(filepath: str | Path) -> str:
 
 
 def detect_encoding(file_path: Path) -> str:
+    """
+    detects the encoding of the given file and returns it as a string.
+    :param file_path: Input File Path
+    :return: File Encoding as String
+    """
     with open(file_path, "rb") as f:
         # check is starts with BOM
-        bytes = f.read(6)
-        if bytes[0:3] == codecs.BOM_UTF8:
+        data = f.read(6)
+        if data[0:3] == codecs.BOM_UTF8:
             return "utf-8"
-        if bytes[0:4] == codecs.BOM_UTF32_BE:
+        if data[0:4] == codecs.BOM_UTF32_BE:
             return "utf-32-be"
-        if bytes[0:4] == codecs.BOM_UTF32_LE:
+        if data[0:4] == codecs.BOM_UTF32_LE:
             return "utf-32-le"
-        if bytes[0:2] == codecs.BOM_UTF16_BE:
+        if data[0:2] == codecs.BOM_UTF16_BE:
             return "utf-16-be"
-        if bytes[0:2] == codecs.BOM_UTF16_LE:
+        if data[0:2] == codecs.BOM_UTF16_LE:
             return "utf-16-le"
-        if bytes[0:5].decode("ascii") == "<?xml":
+        if data[0:5].decode("ascii") == "<?xml":
             return _detect_xml_encoding(file_path)
         # assume utf-8 by default
         return "utf-8"
@@ -90,10 +95,10 @@ def _detect_xml_encoding(file_path: Path):
     with open(file_path, "r", encoding="ascii") as f:
         line = f.readline()
         match = re.search("<\\?xml( +([a-z]+)=\"([^\"]+)\")* *\\?>", line)
-        groups = match.groups()
-        was_encoding = False
-        for group in match.groups():
-            if was_encoding:
-                return group
-            was_encoding = group == "encoding"
+        if match:
+            was_encoding = False
+            for group in match.groups():
+                if was_encoding:
+                    return group
+                was_encoding = group == "encoding"
         return "utf-8"

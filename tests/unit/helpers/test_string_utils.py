@@ -1,5 +1,3 @@
-import codecs
-
 from databricks.labs.remorph.helpers.string_utils import refactor_hexadecimal_chars, format_error_message
 
 
