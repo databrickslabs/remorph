@@ -40,6 +40,7 @@ from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
 from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 
+from src.databricks.labs.lakebridge.transpiler.transpile_status import ErrorSeverity
 
 lakebridge = App(__file__)
 logger = get_logger(__file__)
@@ -307,7 +308,13 @@ async def _transpile(ctx: ApplicationContext, config: TranspileConfig, engine: T
     _override_workspace_client_config(ctx, config.sdk_config)
     status, errors = await do_transpile(ctx.workspace_client, engine, config)
     for error in errors:
-        logger.error(f"Error Transpiling: {str(error)}")
+        msg = f"{error.path}: {error.message}"
+        if error.severity.name == "ERROR":
+            logger.error(msg)
+        elif error.severity.name == "WARNING":
+            logger.warning(msg)
+        elif error.severity.name == "INFO":
+            logger.info(msg)
 
     # Table Template in labs.yml requires the status to be list of dicts Do not change this
     logger.info(f"lakebridge Transpiler encountered {len(status)} from given {config.input_source} files.")
