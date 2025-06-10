@@ -1,7 +1,6 @@
 import asyncio
 import dataclasses
 import logging
-import math
 from email.message import Message
 from email.parser import Parser as EmailParser
 from pathlib import Path
