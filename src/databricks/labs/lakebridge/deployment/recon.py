@@ -46,7 +46,7 @@ class ReconDeployment:
         logger.info("Installing reconcile components.")
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
-        #TODO INVESTIGATE: Why is this needed?
+        # TODO INVESTIGATE: Why is this needed?
         remorph_wheel_path = [whl for whl in wheel_paths if "lakebridge" in whl][0]
         self._deploy_jobs(recon_config, remorph_wheel_path)
         self._install_state.save()
