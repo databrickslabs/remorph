@@ -10,24 +10,24 @@ All the major ETL platforms provide some kind of export of their code repositori
 
 ## PowerCenter
 
-* **Overview**
-To run the BladeBridge analyzer or converters on Informatica XMLs, the XML file first need to be extracted out of the PowerCenter repository. Typically, it is easier to deal with the analysis and conversion of a relatively granular level, so extracting the artifacts at the workflow level is advisable.  Objects can be exported from Powercenter Repository Manager or using *pmrep* command
+* **Overview**<br/>
+  To run the BladeBridge analyzer or converters on Informatica XMLs, the XML file first need to be extracted out of the PowerCenter repository. Typically, it is easier to deal with the analysis and conversion of a relatively granular level, so extracting the artifacts at the workflow level is advisable.  Objects can be exported from Powercenter Repository Manager or using *pmrep* command
 
-* **Metadata Extraction**
-To extract the metadata out of PowerCenter repository, use the following commands:
+* **Metadata Extraction**<br/>
+  To extract the metadata out of PowerCenter repository, use the following commands:
 
-* **Connect to repository**
+* **Connect to repository**<br/>
 `pmrep connect <list of credentials>`
 
-* **Get the list of folders**
+* **Get the list of folders**<br/>
 `pmrep listobjects -o FOLDER`
 
-* **For each folder, get the list of workflows**
+* **For each folder, get the list of workflows**<br/>
 `pmrep listobjects -o WORKFLOW -f <your folder name>`
 
-* **Workflow extraction**
-Create a batch script with the following command template for each folder.
-Note: Excel can be used to create the script with the following command.
+* **Workflow extraction**<br/>
+  Create a batch script with the following command template for each folder.
+  Note: Excel can be used to create the script with the following command:
 `pmrep objectexport -n workflow_name -o WORKFLOW -f folder_name -b -r -m -s -u path-to-output-file`
 
 ## DataStage
