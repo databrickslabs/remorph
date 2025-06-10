@@ -3,7 +3,7 @@ from sqlglot import expressions as exp
 from sqlglot import parse_one
 from sqlglot.expressions import Column
 
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     array_sort,
     array_to_string,
@@ -28,6 +28,11 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
 )
 
 
+@pytest.fixture
+def expr():
+    yield parse_one("SELECT col1 FROM DUAL", read="databricks")
+
+
 def test_coalesce(expr):
     assert coalesce(expr, "NA", True).sql() == "SELECT COALESCE(col1, 'NA') FROM DUAL"
     assert coalesce(expr, "0", False).sql() == "SELECT COALESCE(col1, 0) FROM DUAL"
@@ -42,11 +47,11 @@ def test_trim(expr):
 
 
 def test_json_format():
-    expr = parse_one("SELECT col1 FROM DUAL")
+    parsed = parse_one("SELECT col1 FROM DUAL")
 
-    assert json_format(expr).sql() == "SELECT JSON_FORMAT(col1) FROM DUAL"
-    assert json_format(expr).sql(dialect="databricks") == "SELECT TO_JSON(col1) FROM DUAL"
-    assert json_format(expr).sql(dialect="snowflake") == "SELECT JSON_FORMAT(col1) FROM DUAL"
+    assert json_format(parsed).sql() == "SELECT JSON_FORMAT(col1) FROM DUAL"
+    assert json_format(parsed).sql(dialect="databricks") == "SELECT TO_JSON(col1) FROM DUAL"
+    assert json_format(parsed).sql(dialect="snowflake") == "SELECT JSON_FORMAT(col1) FROM DUAL"
 
 
 def test_sort_array(expr):

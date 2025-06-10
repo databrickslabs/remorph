@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 import pytz
+from sqlglot.dialects import Databricks, Snowflake
 
 from databricks.labs.lakebridge.coverage.commons import (
     ReportEntry,
@@ -17,8 +18,6 @@ from databricks.labs.lakebridge.coverage.commons import (
     get_supported_sql_files,
     write_json_line,
 )
-from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.lakebridge.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 
 def test_get_supported_sql_files(tmp_path):

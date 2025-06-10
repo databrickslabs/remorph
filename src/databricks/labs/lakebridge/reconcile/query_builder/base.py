@@ -4,13 +4,13 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect_name, get_dialect
 from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
 from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
     transform_expression,
 )
 from databricks.labs.lakebridge.reconcile.recon_config import Schema, Table, Aggregate
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect, SQLGLOT_DIALECTS
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +21,16 @@ class QueryBuilder(ABC):
         table_conf: Table,
         schema: list[Schema],
         layer: str,
-        engine: Dialect,
+        dialect: Dialect,
     ):
         self._table_conf = table_conf
         self._schema = schema
         self._layer = layer
-        self._engine = engine
+        self._dialect = dialect
 
     @property
-    def engine(self) -> Dialect:
-        return self._engine
+    def dialect(self) -> Dialect:
+        return self._dialect
 
     @property
     def layer(self) -> str:
@@ -93,7 +93,7 @@ class QueryBuilder(ABC):
 
     def _user_transformer(self, node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
         if isinstance(node, exp.Column) and user_transformations:
-            dialect = self.engine if self.layer == "source" else get_dialect("databricks")
+            dialect = self._dialect if self.layer == "source" else get_dialect("databricks")
             column_name = node.name
             if column_name in user_transformations.keys():
                 return parse_one(user_transformations.get(column_name, column_name), read=dialect)
@@ -108,13 +108,11 @@ class QueryBuilder(ABC):
         return with_transform
 
     @staticmethod
-    def _default_transformer(node: exp.Expression, schema: list[Schema], source: Dialect) -> exp.Expression:
+    def _default_transformer(node: exp.Expression, schema: list[Schema], dialect: Dialect) -> exp.Expression:
 
         def _get_transform(datatype: str):
-            source_dialects = [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
-            source_dialect = source_dialects[0] if source_dialects else "universal"
-
-            source_mapping = DataType_transform_mapping.get(source_dialect, {})
+            dialect_name = get_dialect_name(dialect)
+            source_mapping = DataType_transform_mapping.get(dialect_name, {})
 
             if source_mapping.get(datatype.upper()) is not None:
                 return source_mapping.get(datatype.upper())

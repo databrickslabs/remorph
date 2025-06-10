@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 from sqlglot import parse_one
 
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
-from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.lakebridge.transpiler.sqlglot.lca_utils import check_for_unsupported_lca
+from databricks.labs.lakebridge.reconcile.dialects.databricks import Databricks
+from databricks.labs.lakebridge.reconcile.dialects.lca_utils import check_for_unsupported_lca
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 
 
 def test_query_with_no_unsupported_lca_usage():

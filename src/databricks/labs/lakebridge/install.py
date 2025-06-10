@@ -38,7 +38,7 @@ from databricks.labs.lakebridge.config import (
 from databricks.labs.lakebridge.deployment.configurator import ResourceConfigurator
 from databricks.labs.lakebridge.deployment.installation import WorkspaceInstallation
 from databricks.labs.lakebridge.reconcile.constants import ReconReportType, ReconSourceType
-from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
+from databricks.labs.lakebridge.transpiler.lsp_engine import LSPConfig
 
 logger = logging.getLogger(__name__)
 

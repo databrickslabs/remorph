@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from databricks.labs.lakebridge.config import TranspileConfig
-from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.lakebridge.transpiler.lsp_engine import LSPEngine
 
 
 @asynccontextmanager

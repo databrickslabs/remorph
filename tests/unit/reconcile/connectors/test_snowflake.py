@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.lakebridge.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException, InvalidSnowflakePemPrivateKey
 from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient

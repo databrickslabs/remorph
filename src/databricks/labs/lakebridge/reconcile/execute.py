@@ -14,7 +14,6 @@ from databricks.labs.lakebridge.config import (
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.lakebridge.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -23,6 +22,7 @@ from databricks.labs.lakebridge.reconcile.compare import (
 )
 from databricks.labs.lakebridge.reconcile.connectors.data_source import DataSource
 from databricks.labs.lakebridge.reconcile.connectors.source_adapter import create_adapter
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,

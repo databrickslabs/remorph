@@ -1,4 +1,3 @@
-import asyncio
 import dataclasses
 import logging
 from email.message import Message
@@ -15,7 +14,6 @@ from databricks.labs.lakebridge.config import (
     ValidationResult,
 )
 from databricks.labs.lakebridge.helpers import db_sql
-from databricks.labs.lakebridge.helpers.execution_time import timeit
 from databricks.labs.lakebridge.helpers.file_utils import (
     dir_walk,
     make_dir,
@@ -29,7 +27,6 @@ from databricks.labs.lakebridge.transpiler.transpile_status import (
 )
 from databricks.labs.lakebridge.helpers.string_utils import remove_bom
 from databricks.labs.lakebridge.helpers.validation import Validator
-from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -377,41 +374,3 @@ def _validation(
     sql: str,
 ) -> ValidationResult:
     return validator.validate_format_result(config, sql)
-
-
-@timeit
-def transpile_sql(
-    workspace_client: WorkspaceClient,
-    config: TranspileConfig,
-    source_sql: str,
-) -> tuple[TranspileResult, ValidationResult | None]:
-    """[Experimental] Transpile a single SQL query from one dialect to another."""
-    ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
-
-    engine: TranspileEngine = SqlglotEngine()
-
-    transpiler_result = asyncio.run(
-        _transpile(engine, cast(str, config.source_dialect), config.target_dialect, source_sql, Path("inline_sql"))
-    )
-
-    if config.skip_validation:
-        return transpiler_result, None
-
-    sql_backend = db_sql.get_sql_backend(ws_client)
-    logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
-    validator = Validator(sql_backend)
-    return transpiler_result, _validation(validator, config, transpiler_result.transpiled_code)
-
-
-@timeit
-def transpile_column_exp(
-    workspace_client: WorkspaceClient,
-    config: TranspileConfig,
-    expressions: list[str],
-) -> list[tuple[TranspileResult, ValidationResult | None]]:
-    """[Experimental] Transpile a list of SQL expressions from one dialect to another."""
-    config.skip_validation = True
-    result = []
-    for sql in expressions:
-        result.append(transpile_sql(workspace_client, config, sql))
-    return result

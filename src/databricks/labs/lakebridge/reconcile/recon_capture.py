@@ -9,8 +9,8 @@ from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.lakebridge.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect_name
 from databricks.labs.lakebridge.reconcile.recon_config import TableThresholds
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_key_from_dialect
 from databricks.labs.lakebridge.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
@@ -260,16 +260,16 @@ class ReconCapture:
         recon_process_duration: ReconcileProcessDuration,
         operation_name: str = "reconcile",
     ) -> None:
-        source_dialect_key = get_key_from_dialect(self.source_dialect)
+        dialect_name = get_dialect_name(self.source_dialect)
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
                 case
-                    when '{source_dialect_key}' = 'databricks' then 'Databricks'
-                    when '{source_dialect_key}' = 'snowflake' then 'Snowflake'
-                    when '{source_dialect_key}' = 'oracle' then 'Oracle'
-                    else '{source_dialect_key}'
+                    when '{dialect_name}' = 'databricks' then 'Databricks'
+                    when '{dialect_name}' = 'snowflake' then 'Snowflake'
+                    when '{dialect_name}' = 'oracle' then 'Oracle'
+                    else '{dialect_name}'
                 end as source_type,
                 named_struct(
                     'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end,

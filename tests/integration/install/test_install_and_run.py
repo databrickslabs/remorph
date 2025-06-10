@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from databricks.labs.lakebridge.config import TranspileConfig
 from databricks.labs.lakebridge.install import TranspilerInstaller
-from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.lakebridge.transpiler.lsp_engine import LSPEngine
 
 
 def format_transpiled(sql: str) -> str:
