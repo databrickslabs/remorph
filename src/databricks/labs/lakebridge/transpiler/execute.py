@@ -131,14 +131,6 @@ def _process_single_result(context: TranspilingContext, error_list: list[Transpi
     if any(err.kind == ErrorKind.PARSING for err in error_list):
         output_code = context.source_code or ""
 
-    if error_list:
-        with_line_numbers = ""
-        lines = output_code.split("\n")
-        line_number_width = math.floor(math.log(len(lines), 10)) + 1
-        for line_number, line in enumerate(lines, start=1):
-            with_line_numbers += f"/* {line_number:{line_number_width}d} */  {line}\n"
-        output_code = with_line_numbers
-
     elif context.validator:
         logger.debug(f"Validating transpiled code for file: {context.input_path}")
         validation_result = _validation(context.validator, context.config, str(context.transpiled_code))
