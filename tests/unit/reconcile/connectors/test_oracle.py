@@ -98,7 +98,7 @@ def test_get_schema():
     # create object for SnowflakeDataSource
     ords = OracleDataSource(engine, spark, ws, scope)
     # call test method
-    ords.get_schema(None, "data", "employee")
+    ords.get_column_types(None, "data", "employee")
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option().option().option.assert_called_with(
@@ -174,4 +174,4 @@ def test_get_schema_exception_handling():
                                                   FROM ALL_TAB_COLUMNS
                                 WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' """,
     ):
-        ords.get_schema(None, "data", "employee")
+        ords.get_column_types(None, "data", "employee")

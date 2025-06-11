@@ -7,7 +7,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.sampling_query import (
 from databricks.labs.lakebridge.reconcile.recon_config import (
     ColumnMapping,
     Filters,
-    Schema,
+    ColumnType,
     Transformation,
     Layer,
 )
@@ -112,13 +112,13 @@ def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_
     )
 
     sch = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "nvarchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "nchar"),
+        ColumnType("s_suppkey", "number"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_address", "varchar"),
+        ColumnType("s_nationkey", "number"),
+        ColumnType("s_phone", "nvarchar"),
+        ColumnType("s_acctbal", "number"),
+        ColumnType("s_comment", "nchar"),
     ]
 
     src_actual = SamplingQueryBuilder(conf, sch, Layer.SOURCE, get_dialect("oracle")).build_query(df)
@@ -172,13 +172,13 @@ def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
     df = spark.createDataFrame([(1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1')], schema=df_schema)
 
     schema = [
-        Schema("s_suppkey", "bigint"),
-        Schema("s_name", "string"),
-        Schema("s_address", "string"),
-        Schema("s_nationkey", "bigint"),
-        Schema("s_phone", "string"),
-        Schema("s_acctbal", "bigint"),
-        Schema("s_comment", "string"),
+        ColumnType("s_suppkey", "bigint"),
+        ColumnType("s_name", "string"),
+        ColumnType("s_address", "string"),
+        ColumnType("s_nationkey", "bigint"),
+        ColumnType("s_phone", "string"),
+        ColumnType("s_acctbal", "bigint"),
+        ColumnType("s_comment", "string"),
     ]
 
     conf = table_mapping_factory(join_columns=["s_suppkey", "s_nationkey"])
@@ -270,9 +270,13 @@ def test_build_query_for_snowflake_without_transformations(spark_session, table_
 
 def test_build_query_for_snowflake_src_for_non_integer_primary_keys(spark_session, table_mapping_factory):
     spark = spark_session
-    sch = [Schema("s_suppkey", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey", "number")]
+    sch = [ColumnType("s_suppkey", "varchar"), ColumnType("s_name", "varchar"), ColumnType("s_nationkey", "number")]
 
-    sch_with_alias = [Schema("s_suppkey_t", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey_t", "number")]
+    sch_with_alias = [
+        ColumnType("s_suppkey_t", "varchar"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_nationkey_t", "number"),
+    ]
     df_schema = StructType(
         [
             StructField('s_suppkey', StringType()),

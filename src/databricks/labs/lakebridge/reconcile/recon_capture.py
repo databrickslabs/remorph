@@ -591,25 +591,25 @@ class ReconCapture:
         self,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         record_count: ReconcileRecordCount,
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration)
         self._insert_into_metrics_table(
-            recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf, record_count
+            recon_table_id, data_reconcile_output, schema_reconcile_output, table_mapping, record_count
         )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
 
     def store_aggregates_metrics(
         self,
-        table_conf: TableMapping,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         reconcile_agg_output_list: list[AggregateQueryOutput],
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration, 'aggregates-reconcile')
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration, 'aggregates-reconcile')
         self._insert_into_rules_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_metrics_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_details_table(

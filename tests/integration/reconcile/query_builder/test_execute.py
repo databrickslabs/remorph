@@ -313,7 +313,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         get_dialect("databricks"),
         spark_session,
         ReconcileMetadataConfig(),
-    ).reconcile_schema(src_schema, tgt_schema, table_mapping_with_opts)
+    ).reconcile_schema(table_mapping_with_opts, src_schema, tgt_schema)
     expected_schema_reconcile = spark_session.createDataFrame(
         [
             Row(

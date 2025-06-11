@@ -7,7 +7,7 @@ from sqlglot import Dialect, parse_one
 from sqlglot.dialects import Databricks
 
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
-from databricks.labs.lakebridge.reconcile.recon_config import Schema, TableMapping
+from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableMapping
 from databricks.labs.lakebridge.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
 
 logger = logging.getLogger(__name__)
@@ -34,11 +34,11 @@ class SchemaCompare:
     @classmethod
     def _build_master_schema(
         cls,
-        source_schema: list[Schema],
-        databricks_schema: list[Schema],
+        src_col_types: list[ColumnType],
+        tgt_col_types: list[ColumnType],
         table_mapping: TableMapping,
     ) -> list[SchemaMatchResult]:
-        master_schema = source_schema
+        master_schema = src_col_types
         if table_mapping.select_columns:
             master_schema = [schema for schema in master_schema if schema.column_name in table_mapping.select_columns]
         if table_mapping.drop_columns:
@@ -55,7 +55,7 @@ class SchemaCompare:
                 databricks_datatype=next(
                     (
                         tgt.data_type
-                        for tgt in databricks_schema
+                        for tgt in tgt_col_types
                         if tgt.column_name == target_column_map.get(s.column_name, s.column_name)
                     ),
                     "",
@@ -103,8 +103,8 @@ class SchemaCompare:
 
     def compare(
         self,
-        source_schema: list[Schema],
-        databricks_schema: list[Schema],
+        src_col_types: list[ColumnType],
+        tgt_col_types: list[ColumnType],
         source: Dialect,
         table_mapping: TableMapping,
     ) -> SchemaReconcileOutput:
@@ -115,7 +115,7 @@ class SchemaCompare:
         Returns:
             SchemaReconcileOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
-        master_schema = self._build_master_schema(source_schema, databricks_schema, table_mapping)
+        master_schema = self._build_master_schema(src_col_types, tgt_col_types, table_mapping)
         for master in master_schema:
             if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)

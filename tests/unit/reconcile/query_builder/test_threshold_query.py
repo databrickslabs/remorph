@@ -9,7 +9,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.threshold_query import (
 )
 from databricks.labs.lakebridge.reconcile.recon_config import (
     JdbcReaderOptions,
-    Schema,
+    ColumnType,
     ColumnThresholds,
     Transformation,
     Layer,
@@ -21,7 +21,7 @@ def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, 
     table_conf = table_mapping_with_opts
     # schema
     table_schema, _ = table_schema
-    table_schema.append(Schema("s_suppdate", "timestamp"))
+    table_schema.append(ColumnType("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
         table_conf, table_schema, "source", get_dialect("oracle")
     ).build_comparison_query()
@@ -50,7 +50,7 @@ def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts,
 
     # schema
     table_schema, _ = table_schema
-    table_schema.append(Schema("s_suppdate", "timestamp"))
+    table_schema.append(ColumnType("s_suppdate", "timestamp"))
 
     comparison_query = ThresholdQueryBuilder(
         table_conf, table_schema, "target", get_dialect("databricks")
@@ -110,8 +110,8 @@ def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, 
     ]
     table_conf.filters = None
     src_schema, tgt_schema = table_schema
-    src_schema.append(Schema("s_suppdate", "timestamp"))
-    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+    src_schema.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
     src_query = ThresholdQueryBuilder(
         table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")
     ).build_threshold_query()
@@ -135,8 +135,8 @@ def test_build_expression_type_raises_value_error(table_mapping_with_opts, table
     ]
     table_conf.filters = None
     src_schema, tgt_schema = table_schema
-    src_schema.append(Schema("s_suppdate", "timestamp"))
-    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+    src_schema.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(ValueError):
         ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
@@ -146,8 +146,8 @@ def test_test_no_join_columns_raise_exception(table_mapping_with_opts, table_sch
     table_conf = table_mapping_with_opts
     table_conf.join_columns = None
     src_schema, tgt_schema = table_schema
-    src_schema.append(Schema("s_suppdate", "timestamp"))
-    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+    src_schema.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(InvalidInputException):
         ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()

@@ -241,9 +241,9 @@ class TableMapping:
             return self.to_tgt_col_map.get(column_name, column_name)
         return column_name
 
-    def get_select_columns(self, schema: list[Schema], layer: Layer) -> set[str]:
+    def get_select_columns(self, col_types: list[ColumnType], layer: Layer) -> set[str]:
         if self.select_columns is None:
-            return {sch.column_name for sch in schema}
+            return {sch.column_name for sch in col_types}
         if self.to_src_col_map:
             return self.get_src_to_tgt_col_mapping_list(self.select_columns, layer)
         return set(self.select_columns)
@@ -296,7 +296,7 @@ class TableMapping:
 
 
 @dataclass
-class Schema:
+class ColumnType:
     column_name: str
     data_type: str
 
