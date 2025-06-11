@@ -4,6 +4,7 @@ import logging
 
 from dataclasses import dataclass
 from collections.abc import Callable
+from enum import Enum
 
 from sqlglot import expressions as exp
 
@@ -174,6 +175,11 @@ def to_lower_case(input_list: list[str]) -> list[str]:
     return [element.lower() for element in input_list]
 
 
+class Layer(Enum):
+    SOURCE = "source"
+    TARGET = "target"
+
+
 @dataclass
 class TableMapping:
     source_name: str
@@ -209,15 +215,15 @@ class TableMapping:
             return {c.target_name: c.source_name for c in self.column_mapping}
         return None
 
-    def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: str) -> set[str]:
-        if layer == "source":
+    def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: Layer) -> set[str]:
+        if layer is Layer.SOURCE:
             return set(cols)
         if self.to_src_col_map:
             return {self.to_src_col_map.get(col, col) for col in cols}
         return set(cols)
 
-    def get_layer_src_to_tgt_col_mapping(self, column_name: str, layer: str) -> str:
-        if layer == "source":
+    def get_layer_src_to_tgt_col_mapping(self, column_name: str, layer: Layer) -> str:
+        if layer is Layer.SOURCE:
             return column_name
         if self.to_src_col_map:
             return self.to_src_col_map.get(column_name, column_name)
@@ -228,38 +234,38 @@ class TableMapping:
             return {self.to_tgt_col_map.get(col, col) for col in cols}
         return set(cols)
 
-    def get_layer_tgt_to_src_col_mapping(self, column_name: str, layer: str) -> str:
-        if layer == "source":
+    def get_layer_tgt_to_src_col_mapping(self, column_name: str, layer: Layer) -> str:
+        if layer is Layer.SOURCE:
             return column_name
         if self.to_tgt_col_map:
             return self.to_tgt_col_map.get(column_name, column_name)
         return column_name
 
-    def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
+    def get_select_columns(self, schema: list[Schema], layer: Layer) -> set[str]:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
         if self.to_src_col_map:
             return self.get_src_to_tgt_col_mapping_list(self.select_columns, layer)
         return set(self.select_columns)
 
-    def get_threshold_columns(self, layer: str) -> set[str]:
+    def get_threshold_columns(self, layer: Layer) -> set[str]:
         if self.column_thresholds is None:
             return set()
         return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.column_thresholds}
 
-    def get_join_columns(self, layer: str) -> set[str] | None:
+    def get_join_columns(self, layer: Layer) -> set[str] | None:
         if self.join_columns is None:
             return None
         return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
-    def get_drop_columns(self, layer: str) -> set[str]:
+    def get_drop_columns(self, layer: Layer) -> set[str]:
         if self.drop_columns is None:
             return set()
         return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
 
-    def get_transformation_dict(self, layer: str) -> dict[str, str]:
+    def get_transformation_dict(self, layer: Layer) -> dict[str, str]:
         if self.transformations:
-            if layer == "source":
+            if layer is Layer.SOURCE:
                 return {
                     trans.column_name: (trans.source if trans.source else trans.column_name)
                     for trans in self.transformations
@@ -272,18 +278,21 @@ class TableMapping:
             }
         return {}
 
-    def get_partition_column(self, layer: str) -> set[str]:
-        if self.jdbc_reader_options and layer == "source":
+    def get_partition_column(self, layer: Layer) -> set[str]:
+        if self.jdbc_reader_options and layer is Layer.SOURCE:
             if self.jdbc_reader_options.partition_column:
                 return {self.jdbc_reader_options.partition_column}
         return set()
 
-    def get_filter(self, layer: str) -> str | None:
+    def get_filter(self, layer: Layer) -> str | None:
         if self.filters is None:
             return None
-        if layer == "source":
+        if layer is Layer.SOURCE:
             return self.filters.source
         return self.filters.target
+
+    def get_table_name(self, layer: Layer) -> str:
+        return self.source_name if layer is Layer.SOURCE else self.target_name
 
 
 @dataclass
@@ -356,7 +365,7 @@ class AggregateRule:
 
 @dataclass
 class AggregateQueryRules:
-    layer: str
+    layer: Layer
     group_by_columns: list[str] | None
     group_by_columns_as_str: str
     query: str

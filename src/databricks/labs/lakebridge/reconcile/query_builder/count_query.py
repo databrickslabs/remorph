@@ -4,7 +4,7 @@ from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import build_column, build_literal
-from databricks.labs.lakebridge.reconcile.recon_config import TableMapping
+from databricks.labs.lakebridge.reconcile.recon_config import TableMapping, Layer
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class CountQueryBuilder:
     def __init__(
         self,
         table_mapping: TableMapping,
-        layer: str,
+        layer: Layer,
         engine: Dialect,
     ):
         self._table_mapping = table_mapping
