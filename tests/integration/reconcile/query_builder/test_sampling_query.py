@@ -49,7 +49,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_factory, table_
         transformations=[Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)")],
     )
 
-    src_actual = SamplingQueryBuilder(conf, sch, "source", get_dialect("snowflake")).build_query(df)
+    src_actual = SamplingQueryBuilder(conf, sch, Layer.SOURCE, get_dialect("snowflake")).build_query(df)
 
     src_expected = (
         "WITH recon AS (SELECT CAST(11 AS number) AS s_nationkey, CAST(1 AS number) "
