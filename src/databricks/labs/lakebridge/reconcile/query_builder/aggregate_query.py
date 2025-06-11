@@ -11,7 +11,8 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
 from databricks.labs.lakebridge.reconcile.recon_config import (
     Aggregate,
     AggregateQueryRules,
-    AggregateRule, Layer,
+    AggregateRule,
+    Layer,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ class AggregateQueryBuilder(QueryBuilder):
 
             # Create a new alias with layer, agg_type and original column name,
             # ex: source_min_pid, target_max_product_id
-            layer_agg_type_col_alias = f"{self.layer}_{agg_type}_{org_col_name}".lower()
+            layer_agg_type_col_alias = f"{self.layer.value}_{agg_type}_{org_col_name}".lower()
 
             # Get the Transformed column name without the alias
             col_name = transformed_col.sql().replace(f"AS {transformed_col.alias}", '').strip()

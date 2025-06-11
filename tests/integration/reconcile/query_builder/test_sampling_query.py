@@ -8,7 +8,8 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
     ColumnMapping,
     Filters,
     Schema,
-    Transformation, Layer,
+    Transformation,
+    Layer,
 )
 
 

@@ -14,7 +14,7 @@ from databricks.labs.lakebridge.reconcile.recon_output_config import (
     AggregateQueryOutput,
 )
 from databricks.labs.lakebridge.reconcile.recon_capture import generate_final_reconcile_aggregate_output
-from tests.integration.reconcile.test_aggregates_reconcile import expected_reconcile_output_dict, expected_rule_output
+from .common import expected_rule_output, expected_reconcile_output_dict
 
 
 def remove_directory_recursively(directory_path):
