@@ -12,6 +12,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     _get_is_string,
     build_join_clause,
 )
+from databricks.labs.lakebridge.reconcile.recon_config import Layer
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class SamplingQueryBuilder(QueryBuilder):
     def build_query(self, df: DataFrame):
         self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
         join_columns = self.join_columns if self.join_columns else set()
-        if self.layer == "source":
+        if self.layer is Layer.SOURCE:
             key_cols = sorted(join_columns)
         else:
             key_cols = sorted(self.table_mapping.get_tgt_to_src_col_mapping_list(join_columns))
@@ -66,7 +67,7 @@ class SamplingQueryBuilder(QueryBuilder):
 
         sql_with_transforms = self.add_transformations(cols_with_alias, self._dialect)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
-        if self.layer == "source":
+        if self.layer is Layer.SOURCE:
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
         else:
             with_select = [

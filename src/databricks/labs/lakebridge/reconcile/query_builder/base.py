@@ -93,7 +93,7 @@ class QueryBuilder(ABC):
 
     def _user_transformer(self, node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
         if isinstance(node, exp.Column) and user_transformations:
-            dialect = self._dialect if self.layer == "source" else get_dialect("databricks")
+            dialect = self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
             column_name = node.name
             if column_name in user_transformations.keys():
                 return parse_one(user_transformations.get(column_name, column_name), read=dialect)

@@ -61,7 +61,7 @@ class HashQueryBuilder(QueryBuilder):
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
-        dialect = self._dialect if self.layer == "source" else get_dialect("databricks")
+        dialect = self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
             .from_(":tbl")
@@ -79,7 +79,7 @@ class HashQueryBuilder(QueryBuilder):
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
         cols_with_transform = self.add_transformations(
-            cols_with_alias, self._dialect if self.layer == "source" else get_dialect("databricks")
+            cols_with_alias, self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
         )
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
         concat_expr = concat(list(col_exprs))
