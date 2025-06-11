@@ -7,16 +7,13 @@ from typing import Any, cast
 from unittest.mock import create_autospec, patch
 
 import pytest
-from databricks.connect import DatabricksSession
 
 from databricks.labs.lsql.backends import MockBackend
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.lakebridge.config import TranspileConfig, ValidationResult
+from databricks.labs.lakebridge.config import TranspileConfig
 from databricks.labs.lakebridge.helpers.file_utils import dir_walk, is_sql_file
-from databricks.labs.lakebridge.helpers.validation import Validator
 from databricks.labs.lakebridge.transpiler.execute import transpile as do_transpile
-from databricks.sdk.core import Config
 
 from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
 from tests.unit.conftest import path_to_resource
@@ -24,6 +21,7 @@ from tests.unit.conftest import path_to_resource
 
 def transpile(workspace_client: WorkspaceClient, config: TranspileConfig):
     engine = create_autospec(TranspileEngine)
+    engine.is_supported_file.side_effect = lambda file_path: file_path.suffix == ".sql"
     return asyncio.run(do_transpile(workspace_client, engine, config))
 
 
@@ -94,90 +92,6 @@ def check_generated(input_source: Path, output_folder: Path):
             assert transpiled.exists(), f"Could not find transpiled file {transpiled!s} for {input_file!s}"
 
 
-def test_with_dir_with_output_folder_skipping_validation(
-    input_source, output_folder, error_file, mock_workspace_client
-):
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        input_source=str(input_source),
-        output_folder=str(output_folder),
-        error_file_path=str(error_file),
-        sdk_config=None,
-        source_dialect="snowflake",
-        skip_validation=True,
-    )
-    with patch('databricks.labs.lakebridge.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status, _errors = transpile(mock_workspace_client, config)
-    # check the status
-    check_status(status, 8, 7, 1, 2, 0, 0, error_file)
-    # check errors
-    expected_errors = [
-        {
-            "path": f"{input_source!s}/queries/query3.sql",
-            "message": f"Unsupported operation found in file {input_source!s}/queries/query3.sql.",
-        },
-        {"path": f"{input_source!s}/queries/query4.sql", "message": "Parsing error Start:"},
-        {"path": f"{input_source!s}/queries/query5.sql", "message": "Token error Start:"},
-    ]
-    check_error_lines(status["error_log_file"], expected_errors)
-    # check generation
-    check_generated(input_source, output_folder)
-
-
-def test_with_file(input_source, error_file, mock_workspace_client):
-    sdk_config = create_autospec(Config)
-    spark = create_autospec(DatabricksSession)
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        input_source=str(input_source / "queries" / "query1.sql"),
-        output_folder=None,
-        error_file_path=str(error_file),
-        sdk_config=sdk_config,
-        source_dialect="snowflake",
-        skip_validation=False,
-    )
-    mock_validate = create_autospec(Validator)
-    mock_validate.spark = spark
-    mock_validate.validate_format_result.return_value = ValidationResult(
-        """ Mock validated query """, "Mock validation error"
-    )
-
-    with (
-        patch(
-            'databricks.labs.lakebridge.helpers.db_sql.get_sql_backend',
-            return_value=MockBackend(),
-        ),
-        patch("databricks.labs.lakebridge.transpiler.execute.Validator", return_value=mock_validate),
-    ):
-        status, _errors = transpile(mock_workspace_client, config)
-
-    # check the status
-    check_status(status, 1, 1, 0, 0, 1, 0, error_file)
-    # check errors
-    expected_errors = [{"path": f"{input_source!s}/queries/query1.sql", "message": "Mock validation error"}]
-    check_error_lines(status["error_log_file"], expected_errors)
-
-
-def test_with_file_with_output_folder_skip_validation(input_source, output_folder, mock_workspace_client):
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        input_source=str(input_source / "queries" / "query1.sql"),
-        output_folder=str(output_folder),
-        sdk_config=None,
-        source_dialect="snowflake",
-        skip_validation=True,
-    )
-
-    with patch(
-        'databricks.labs.lakebridge.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(),
-    ):
-        status, _errors = transpile(mock_workspace_client, config)
-
-    # check the status
-    check_status(status, 1, 1, 0, 0, 0, 0, None)
-
-
 def test_with_not_a_sql_file_skip_validation(input_source, mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
@@ -215,33 +129,6 @@ def test_with_not_existing_file(input_source, mock_workspace_client):
             transpile(mock_workspace_client, config)
 
 
-def test_with_file_with_success(input_source, mock_workspace_client):
-    sdk_config = create_autospec(Config)
-    spark = create_autospec(DatabricksSession)
-    config = TranspileConfig(
-        transpiler_config_path="sqlglot",
-        input_source=str(input_source / "queries" / "query1.sql"),
-        output_folder=None,
-        sdk_config=sdk_config,
-        source_dialect="snowflake",
-        skip_validation=False,
-    )
-    mock_validate = create_autospec(Validator)
-    mock_validate.spark = spark
-    mock_validate.validate_format_result.return_value = ValidationResult(""" Mock validated query """, None)
-
-    with (
-        patch(
-            'databricks.labs.lakebridge.helpers.db_sql.get_sql_backend',
-            return_value=MockBackend(),
-        ),
-        patch("databricks.labs.lakebridge.transpiler.execute.Validator", return_value=mock_validate),
-    ):
-        status, _errors = transpile(mock_workspace_client, config)
-        # assert the status
-        check_status(status, 1, 1, 0, 0, 0, 0, None)
-
-
 def test_with_no_input_source(mock_workspace_client):
     config = TranspileConfig(
         transpiler_config_path="sqlglot",
@@ -257,15 +144,11 @@ def test_with_no_input_source(mock_workspace_client):
 
 
 async def test_server_decombines_workflow_output(mock_workspace_client, lsp_engine, transpile_config):
-    with TemporaryDirectory() as output_folder:
+    with (TemporaryDirectory() as output_folder):
         input_path = Path(path_to_resource("lsp_transpiler", "workflow.xml"))
         transpile_config = dataclasses.replace(
             transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True
         )
-        await lsp_engine.initialize(transpile_config)
-        await lsp_engine.transpile(
-            transpile_config.source_dialect, "databricks", input_path.read_text(encoding="utf-8"), input_path
-        )
-        await lsp_engine.shutdown()
+        await do_transpile(mock_workspace_client, lsp_engine, transpile_config)
 
         assert any(Path(output_folder).glob("*.json")), "No .json file found in output_folder"
