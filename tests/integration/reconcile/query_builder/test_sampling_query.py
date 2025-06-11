@@ -13,8 +13,8 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_mapping_factory, table_schema):
-    spark = mock_spark
+def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, table_schema):
+    spark = spark_session
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -82,8 +82,8 @@ def test_build_query_for_snowflake_src(mock_spark, table_mapping_factory, table_
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_mapping_factory, table_schema, column_mapping):
-    spark = mock_spark
+def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_schema, column_mapping):
+    spark = spark_session
     _, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -156,8 +156,8 @@ def test_build_query_for_oracle_src(mock_spark, table_mapping_factory, table_sch
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_databricks_src(mock_spark, table_mapping_factory):
-    spark = mock_spark
+def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
+    spark = spark_session
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -197,8 +197,8 @@ def test_build_query_for_databricks_src(mock_spark, table_mapping_factory):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(mock_spark, table_mapping_factory, table_schema):
-    spark = mock_spark
+def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_factory, table_schema):
+    spark = spark_session
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -268,8 +268,8 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_map
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_mapping_factory):
-    spark = mock_spark
+def test_build_query_for_snowflake_src_for_non_integer_primary_keys(spark_session, table_mapping_factory):
+    spark = spark_session
     sch = [Schema("s_suppkey", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey", "number")]
 
     sch_with_alias = [Schema("s_suppkey_t", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey_t", "number")]

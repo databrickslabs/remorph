@@ -121,7 +121,7 @@ def _trigger_recon(
     try:
         recon_output = recon(
             ws=w,
-            spark=DatabricksSession.builder.getOrCreate(),
+            spark_session=DatabricksSession.builder.getOrCreate(),
             reco_mappings=reco_mappings,
             reconcile_config=reconcile_config,
         )
@@ -157,7 +157,7 @@ def _trigger_reconcile_aggregates(
     try:
         recon_output = reconcile_aggregates(
             ws=ws,
-            spark=DatabricksSession.builder.getOrCreate(),
+            spark_session=DatabricksSession.builder.getOrCreate(),
             schema_mapping=schema_mapping,
             reconcile_config=reconcile_config,
         )
@@ -170,7 +170,7 @@ def _trigger_reconcile_aggregates(
 
 def recon(
     ws: WorkspaceClient,
-    spark: SparkSession,
+    spark_session: SparkSession,
     reco_mappings: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
@@ -190,7 +190,7 @@ def recon(
 
     source, target = initialise_data_source(
         engine=get_dialect(reconcile_config.data_source),
-        spark=spark,
+        spark_session=spark_session,
         ws=ws_client,
         secret_scope=reconcile_config.secret_scope,
     )
@@ -202,9 +202,9 @@ def recon(
         target,
         reconcile_config.database_config,
         report_type,
-        SchemaCompare(spark=spark),
+        SchemaCompare(spark_session=spark_session),
         get_dialect(reconcile_config.data_source),
-        spark,
+        spark_session,
         metadata_config=reconcile_config.metadata_config,
     )
 
@@ -215,7 +215,7 @@ def recon(
         report_type=report_type,
         source_dialect=get_dialect(reconcile_config.data_source),
         ws=ws_client,
-        spark=spark,
+        spark_session=spark_session,
         metadata_config=reconcile_config.metadata_config,
         local_test_run=local_test_run,
     )
@@ -254,13 +254,13 @@ def recon(
         )
         if report_type != "schema":
             ReconIntermediatePersist(
-                spark=spark, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
+                spark_session=spark_session, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
             ).clean_unmatched_df_from_volume()
 
     return _verify_successful_reconciliation(
         generate_final_reconcile_output(
             recon_id=recon_id,
-            spark=spark,
+            spark_session=spark_session,
             metadata_config=reconcile_config.metadata_config,
             local_test_run=local_test_run,
         )
@@ -295,12 +295,14 @@ def generate_volume_path(table_conf: TableMapping, metadata_config: ReconcileMet
 
 def initialise_data_source(
     ws: WorkspaceClient,
-    spark: SparkSession,
+    spark_session: SparkSession,
     engine: Dialect,
     secret_scope: str,
 ):
-    source = create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
-    target = create_adapter(engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope)
+    source = create_adapter(engine=engine, spark_session=spark_session, ws=ws, secret_scope=secret_scope)
+    target = create_adapter(
+        engine=get_dialect("databricks"), spark_session=spark_session, ws=ws, secret_scope=secret_scope
+    )
 
     return source, target
 
@@ -325,7 +327,7 @@ def _get_missing_data(
 
 def reconcile_aggregates(
     ws: WorkspaceClient,
-    spark: SparkSession,
+    spark_session: SparkSession,
     schema_mapping: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
@@ -349,7 +351,7 @@ def reconcile_aggregates(
     # Read the reconcile_config and initialise the source and target data sources. Target is always Databricks
     source, target = initialise_data_source(
         engine=get_dialect(reconcile_config.data_source),
-        spark=spark,
+        spark_session=spark_session,
         ws=ws_client,
         secret_scope=reconcile_config.secret_scope,
     )
@@ -363,9 +365,9 @@ def reconcile_aggregates(
         target,
         reconcile_config.database_config,
         report_type,
-        SchemaCompare(spark=spark),
+        SchemaCompare(spark_session=spark_session),
         get_dialect(reconcile_config.data_source),
-        spark,
+        spark_session,
         metadata_config=reconcile_config.metadata_config,
     )
 
@@ -376,7 +378,7 @@ def reconcile_aggregates(
         report_type=report_type,
         source_dialect=get_dialect(reconcile_config.data_source),
         ws=ws_client,
-        spark=spark,
+        spark_session=spark_session,
         metadata_config=reconcile_config.metadata_config,
         local_test_run=local_test_run,
     )
@@ -414,7 +416,7 @@ def reconcile_aggregates(
 
         (
             ReconIntermediatePersist(
-                spark=spark,
+                spark_session=spark_session,
                 path=generate_volume_path(table_conf, reconcile_config.metadata_config),
             ).clean_unmatched_df_from_volume()
         )
@@ -422,7 +424,7 @@ def reconcile_aggregates(
     return _verify_successful_reconciliation(
         generate_final_reconcile_aggregate_output(
             recon_id=recon_id,
-            spark=spark,
+            spark_session=spark_session,
             metadata_config=reconcile_config.metadata_config,
             local_test_run=local_test_run,
         ),
@@ -440,7 +442,7 @@ class Reconciliation:
         report_type: str,
         schema_comparator: SchemaCompare,
         source_engine: Dialect,
-        spark: SparkSession,
+        spark_session: SparkSession,
         metadata_config: ReconcileMetadataConfig,
     ):
         self._source = source
@@ -450,7 +452,7 @@ class Reconciliation:
         self._schema_comparator = schema_comparator
         self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
-        self._spark = spark
+        self._spark_session = spark_session
         self._metadata_config = metadata_config
 
     def reconcile_data(
@@ -520,7 +522,7 @@ class Reconciliation:
             target=tgt_data,
             key_columns=table_conf.join_columns,
             report_type=self._report_type,
-            spark=self._spark,
+            spark_session=self._spark_session,
             path=volume_path,
         )
 
@@ -638,7 +640,7 @@ class Reconciliation:
                     source=src_data,
                     target=tgt_data,
                     key_columns=src_query_with_rules.group_by_columns,
-                    spark=self._spark,
+                    spark_session=self._spark_session,
                     path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
                 )
             except DataSourceRuntimeException as e:

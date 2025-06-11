@@ -53,12 +53,12 @@ class SQLServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     def __init__(
         self,
         engine: Dialect,
-        spark: SparkSession,
+        spark_session: SparkSession,
         ws: WorkspaceClient,
         secret_scope: str,
     ):
         self._engine = engine
-        self._spark = spark
+        self._spark_session = spark_session
         self._ws = ws
         self._secret_scope = secret_scope
 

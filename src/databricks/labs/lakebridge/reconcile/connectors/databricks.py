@@ -39,12 +39,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
     def __init__(
         self,
         engine: Dialect,
-        spark: SparkSession,
+        spark_session: SparkSession,
         ws: WorkspaceClient,
         secret_scope: str,
     ):
         self._engine = engine
-        self._spark = spark
+        self._spark_session = spark_session
         self._ws = ws
         self._secret_scope = secret_scope
 
@@ -64,7 +64,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         table_with_namespace = f"{namespace_catalog}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
-            df = self._spark.sql(table_query)
+            df = self._spark_session.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
@@ -80,7 +80,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         try:
             logger.debug(f"Fetching schema using query: \n`{schema_query}`")
             logger.info(f"Fetching Schema: Started at: {datetime.now()}")
-            schema_metadata = self._spark.sql(schema_query).where("col_name not like '#%'").distinct().collect()
+            schema_metadata = self._spark_session.sql(schema_query).where("col_name not like '#%'").distinct().collect()
             logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
