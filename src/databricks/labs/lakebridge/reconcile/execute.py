@@ -10,7 +10,7 @@ from sqlglot import Dialect
 
 from databricks.labs.lakebridge.config import (
     DatabaseConfig,
-    SchemaMapping,
+    ReconciliationMappings,
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
@@ -105,24 +105,24 @@ def main(*argv) -> None:
 
     logger.info(f"Loading {filename} from Databricks Workspace...")
 
-    schema_mapping = installation.load(type_ref=SchemaMapping, filename=filename)
+    reco_mappings = installation.load(type_ref=ReconciliationMappings, filename=filename)
 
     if operation_name == AGG_RECONCILE_OPERATION_NAME:
-        return _trigger_reconcile_aggregates(w, schema_mapping, reconcile_config)
+        return _trigger_reconcile_aggregates(w, reco_mappings, reconcile_config)
 
-    return _trigger_recon(w, schema_mapping, reconcile_config)
+    return _trigger_recon(w, reco_mappings, reconcile_config)
 
 
 def _trigger_recon(
     w: WorkspaceClient,
-    schema_mapping: SchemaMapping,
+    reco_mappings: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
 ):
     try:
         recon_output = recon(
             ws=w,
             spark=DatabricksSession.builder.getOrCreate(),
-            schema_mapping=schema_mapping,
+            reco_mappings=reco_mappings,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
@@ -134,7 +134,7 @@ def _trigger_recon(
 
 def _trigger_reconcile_aggregates(
     ws: WorkspaceClient,
-    schema_mapping: SchemaMapping,
+    schema_mapping: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
 ):
     """
@@ -171,7 +171,7 @@ def _trigger_reconcile_aggregates(
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
-    schema_mapping: SchemaMapping,
+    reco_mappings: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ) -> ReconcileOutput:
@@ -220,7 +220,7 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in schema_mapping.table_mappings:
+    for table_conf in reco_mappings.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
@@ -326,7 +326,7 @@ def _get_missing_data(
 def reconcile_aggregates(
     ws: WorkspaceClient,
     spark: SparkSession,
-    schema_mapping: SchemaMapping,
+    schema_mapping: ReconciliationMappings,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ):
