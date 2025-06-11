@@ -26,6 +26,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     to_char,
     trim,
 )
+from databricks.labs.lakebridge.reconcile.recon_config import Layer
 
 
 @pytest.fixture
@@ -129,13 +130,10 @@ def test_lower(expr):
 
 
 def test_get_hash_transform():
-    assert isinstance(get_hash_transform(get_dialect("snowflake"), "source"), list) is True
+    assert isinstance(get_hash_transform(get_dialect("snowflake"), Layer.SOURCE), list) is True
 
     with pytest.raises(ValueError):
-        get_hash_transform(get_dialect("trino"), "source")
-
-    with pytest.raises(ValueError):
-        get_hash_transform(get_dialect("snowflake"), "sourc")
+        get_hash_transform(get_dialect("trino"), Layer.SOURCE)
 
 
 def test_build_from_clause():
