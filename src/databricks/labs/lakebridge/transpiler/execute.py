@@ -162,7 +162,7 @@ def make_header(file_path: Path, errors: list[TranspileError]) -> str:
     diag_by_severity = {
         severity.name: list(diags) for severity, diags in itertools.groupby(errors, key=lambda x: x.severity)
     }
-    line_numbers = {}
+    line_numbers: dict[int, int] = {}
 
     if ErrorSeverity.ERROR.name in diag_by_severity:
         header += f"/*\n    Failed transpilation of {file_path}\n"
@@ -196,9 +196,9 @@ def _append_diagnostics(diagnostics: list[TranspileError], line_numbers: dict) -
     header = ""
     grouped_by_message = {msg: list(diags) for msg, diags in itertools.groupby(diagnostics, lambda x: x.message)}
     for msg, occurrences in grouped_by_message.items():
-        for o in occurrences:
-            if o.range:
-                line_numbers.update({o.range.start.line: 0})
+        for occurrence in occurrences:
+            if occurrence.range:
+                line_numbers.update({occurrence.range.start.line: 0})
         header += _append_diagnostic(msg, occurrences)
     return header
 
