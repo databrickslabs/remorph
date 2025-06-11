@@ -121,7 +121,7 @@ class TranspileConfig:
 
 
 @dataclass
-class TableRecon:
+class SchemaMapping:
     __file__ = "recon_config.yml"
     __version__ = 1
 

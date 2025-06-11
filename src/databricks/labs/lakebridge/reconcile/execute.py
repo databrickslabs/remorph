@@ -10,7 +10,7 @@ from sqlglot import Dialect
 
 from databricks.labs.lakebridge.config import (
     DatabaseConfig,
-    TableRecon,
+    SchemaMapping,
     ReconcileConfig,
     ReconcileMetadataConfig,
 )
@@ -104,24 +104,24 @@ def main(*argv) -> None:
 
     logger.info(f"Loading {filename} from Databricks Workspace...")
 
-    table_recon = installation.load(type_ref=TableRecon, filename=filename)
+    schema_mapping = installation.load(type_ref=SchemaMapping, filename=filename)
 
     if operation_name == AGG_RECONCILE_OPERATION_NAME:
-        return _trigger_reconcile_aggregates(w, table_recon, reconcile_config)
+        return _trigger_reconcile_aggregates(w, schema_mapping, reconcile_config)
 
-    return _trigger_recon(w, table_recon, reconcile_config)
+    return _trigger_recon(w, schema_mapping, reconcile_config)
 
 
 def _trigger_recon(
     w: WorkspaceClient,
-    table_recon: TableRecon,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
 ):
     try:
         recon_output = recon(
             ws=w,
             spark=DatabricksSession.builder.getOrCreate(),
-            table_recon=table_recon,
+            schema_mapping=schema_mapping,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
@@ -133,7 +133,7 @@ def _trigger_recon(
 
 def _trigger_reconcile_aggregates(
     ws: WorkspaceClient,
-    table_recon: TableRecon,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
 ):
     """
@@ -145,7 +145,7 @@ def _trigger_reconcile_aggregates(
 
     Parameters:
     - ws (WorkspaceClient): The workspace client used to interact with Databricks workspaces.
-    - table_recon (TableRecon): Configuration for the table reconciliation process, including source and target details.
+    - schema_mapping (TableRecon): Configuration for the table reconciliation process, including source and target details.
     - reconcile_config (ReconcileConfig): General configuration for the reconciliation process,
                                                                     including database and table settings.
 
@@ -157,7 +157,7 @@ def _trigger_reconcile_aggregates(
         recon_output = reconcile_aggregates(
             ws=ws,
             spark=DatabricksSession.builder.getOrCreate(),
-            table_recon=table_recon,
+            schema_mapping=schema_mapping,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
@@ -170,7 +170,7 @@ def _trigger_reconcile_aggregates(
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
-    table_recon: TableRecon,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ) -> ReconcileOutput:
@@ -219,7 +219,7 @@ def recon(
         local_test_run=local_test_run,
     )
 
-    for table_conf in table_recon.table_mappings:
+    for table_conf in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
@@ -325,7 +325,7 @@ def _get_missing_data(
 def reconcile_aggregates(
     ws: WorkspaceClient,
     spark: SparkSession,
-    table_recon: TableRecon,
+    schema_mapping: SchemaMapping,
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ):
@@ -381,7 +381,7 @@ def reconcile_aggregates(
     )
 
     # Get the Aggregated Reconciliation Output for each table
-    for table_conf in table_recon.table_mappings:
+    for table_conf in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         try:
             src_schema, tgt_schema = _get_schema(
@@ -397,7 +397,7 @@ def reconcile_aggregates(
 
         table_reconcile_agg_output_list: list[AggregateQueryOutput] = _run_reconcile_aggregates(
             reconciler=reconciler,
-            table_conf=table_conf,
+            table_mapping=table_conf,
             src_schema=src_schema,
             tgt_schema=tgt_schema,
         )
@@ -904,12 +904,12 @@ def _run_reconcile_schema(
 
 def _run_reconcile_aggregates(
     reconciler: Reconciliation,
-    table_conf: TableMapping,
+    table_mapping: TableMapping,
     src_schema: list[Schema],
     tgt_schema: list[Schema],
 ) -> list[AggregateQueryOutput]:
     try:
-        return reconciler.reconcile_aggregates(table_conf, src_schema, tgt_schema)
+        return reconciler.reconcile_aggregates(table_mapping, src_schema, tgt_schema)
     except DataSourceRuntimeException as e:
         return [AggregateQueryOutput(reconcile_output=DataReconcileOutput(exception=str(e)), rule=None)]
 
