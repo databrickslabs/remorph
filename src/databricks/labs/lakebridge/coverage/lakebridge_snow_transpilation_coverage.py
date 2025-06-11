@@ -1,9 +1,9 @@
 from pathlib import Path
 
+from sqlglot.dialects import Snowflake, Databricks
+
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.lakebridge.coverage import commons
-from databricks.labs.lakebridge.transpiler.sqlglot.generator.databricks import Databricks
-from databricks.labs.lakebridge.transpiler.sqlglot.parsers.snowflake import Snowflake
 
 if __name__ == "__main__":
     input_dir = commons.get_env_var("INPUT_DIR_PARENT", required=True)

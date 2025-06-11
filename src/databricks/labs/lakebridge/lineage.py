@@ -4,7 +4,6 @@ from pathlib import Path
 
 from databricks.labs.lakebridge.intermediate.dag import DAG
 from databricks.labs.lakebridge.intermediate.root_tables import RootTableAnalyzer
-from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +20,13 @@ def _generate_dot_file_contents(dag: DAG) -> str:
     return _lineage_str
 
 
-def lineage_generator(engine: SqlglotEngine, source_dialect: str, input_source: str, output_folder: str):
+def lineage_generator(source_dialect: str, input_source: str, output_folder: str):
     input_sql_path = Path(input_source)
     output_folder = output_folder if output_folder.endswith('/') else output_folder + '/'
 
     msg = f"Processing for SQLs at this location: {input_sql_path}"
     logger.info(msg)
-    root_table_analyzer = RootTableAnalyzer(engine, source_dialect, input_sql_path)
+    root_table_analyzer = RootTableAnalyzer(source_dialect, input_sql_path)
     generated_dag = root_table_analyzer.generate_lineage_dag()
     lineage_file_content = _generate_dot_file_contents(generated_dag)
 

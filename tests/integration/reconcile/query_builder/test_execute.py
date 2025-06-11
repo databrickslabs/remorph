@@ -14,10 +14,10 @@ from databricks.labs.lakebridge.config import (
     ReconcileMetadataConfig,
     ReconcileConfig,
 )
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.lakebridge.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.lakebridge.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.lakebridge.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,

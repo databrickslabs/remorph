@@ -10,7 +10,7 @@ import pytest
 from databricks.labs.lakebridge.config import TranspileConfig
 from databricks.labs.lakebridge.install import TranspilerInstaller
 from databricks.labs.lakebridge.transpiler.execute import transpile
-from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPEngine
+from databricks.labs.lakebridge.transpiler.lsp_engine import LSPEngine
 
 logger = logging.getLogger(__name__)
 

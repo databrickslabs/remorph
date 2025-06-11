@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.lakebridge.reconcile.connectors.oracle import OracleDataSource
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient

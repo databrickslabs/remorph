@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.recon_config import ColumnMapping, Schema, Table
 from databricks.labs.lakebridge.reconcile.schema_compare import SchemaCompare
 

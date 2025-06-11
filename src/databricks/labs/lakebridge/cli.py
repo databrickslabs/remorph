@@ -31,16 +31,13 @@ from databricks.labs.lakebridge.helpers.recon_config_utils import ReconConfigPro
 from databricks.labs.lakebridge.helpers.telemetry_utils import make_alphanum_or_semver
 from databricks.labs.lakebridge.install import WorkspaceInstaller
 from databricks.labs.lakebridge.install import TranspilerInstaller
+from databricks.labs.lakebridge.reconcile.dialects.utils import dialect_exists
 from databricks.labs.lakebridge.reconcile.runner import ReconcileRunner
 from databricks.labs.lakebridge.lineage import lineage_generator
 from databricks.labs.lakebridge.reconcile.recon_config import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
 from databricks.labs.lakebridge.transpiler.execute import transpile as do_transpile
-
-
-from databricks.labs.lakebridge.transpiler.lsp.lsp_engine import LSPConfig
-from databricks.labs.lakebridge.transpiler.sqlglot.sqlglot_engine import SqlglotEngine
+from databricks.labs.lakebridge.transpiler.lsp_engine import LSPConfig, LSPEngine
 from databricks.labs.lakebridge.transpiler.transpile_engine import TranspileEngine
-
 
 lakebridge = App(__file__)
 logger = get_logger(__file__)
@@ -289,7 +286,7 @@ class _TranspileConfigChecker:
             raise_validation_exception(
                 f"Invalid value for '--transpiler-config-path': Path '{self._config.transpiler_config_path}' does not exist."
             )
-        engine = TranspileEngine.load_engine(transpiler_path)
+        engine = LSPEngine.from_config_path(transpiler_path)
         engine.check_source_dialect(self._config.source_dialect)
         if not self._config.input_source or not os.path.exists(self._config.input_source):
             raise_validation_exception(
@@ -373,14 +370,14 @@ def generate_lineage(w: WorkspaceClient, source_dialect: str, input_source: str,
     """[Experimental] Generates a lineage of source SQL files or folder"""
     ctx = ApplicationContext(w)
     logger.debug(f"User: {ctx.current_user}")
-    engine = SqlglotEngine()
-    engine.check_source_dialect(source_dialect)
+    if not source_dialect or not dialect_exists(source_dialect):
+        raise_validation_exception(f"Invalid value for '--source-dialect': {source_dialect}.")
     if not input_source or not os.path.exists(input_source):
         raise_validation_exception(f"Invalid value for '--input-source': Path '{input_source}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(f"Invalid value for '--output-folder': Path '{output_folder}' does not exist.")
 
-    lineage_generator(engine, source_dialect, input_source, output_folder)
+    lineage_generator(source_dialect, input_source, output_folder)
 
 
 @lakebridge.command

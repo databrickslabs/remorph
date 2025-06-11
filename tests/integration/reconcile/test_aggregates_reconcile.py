@@ -10,8 +10,8 @@ from pyspark.testing import assertDataFrameEqual
 from pyspark.sql import Row
 
 from databricks.labs.lakebridge.config import DatabaseConfig, ReconcileMetadataConfig
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 from databricks.labs.lakebridge.reconcile.connectors.data_source import MockDataSource
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.execute import Reconciliation, main
 from databricks.labs.lakebridge.reconcile.recon_config import (
     Aggregate,

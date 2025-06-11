@@ -1,4 +1,4 @@
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMapping, Transformation
 
