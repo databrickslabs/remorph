@@ -11,7 +11,8 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
     JdbcReaderOptions,
     Schema,
     ColumnThresholds,
-    Transformation, Layer,
+    Transformation,
+    Layer,
 )
 
 
@@ -82,7 +83,9 @@ def test_build_threshold_query_with_single_threshold(table_mapping_with_opts, ta
         Transformation(column_name="s_acctbal", source="cast(s_acctbal as number)", target="cast(s_acctbal_t as int)")
     ]
     src_schema, tgt_schema = table_schema
-    src_query = ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_threshold_query()
+    src_query = ThresholdQueryBuilder(
+        table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")
+    ).build_threshold_query()
     target_query = ThresholdQueryBuilder(
         table_conf, tgt_schema, Layer.TARGET, get_dialect("databricks")
     ).build_threshold_query()
@@ -109,7 +112,9 @@ def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, 
     src_schema, tgt_schema = table_schema
     src_schema.append(Schema("s_suppdate", "timestamp"))
     tgt_schema.append(Schema("s_suppdate", "timestamp"))
-    src_query = ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_threshold_query()
+    src_query = ThresholdQueryBuilder(
+        table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")
+    ).build_threshold_query()
     target_query = ThresholdQueryBuilder(
         table_conf, tgt_schema, Layer.TARGET, get_dialect("databricks")
     ).build_threshold_query()
