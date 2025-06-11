@@ -144,7 +144,7 @@ def test_with_no_input_source(mock_workspace_client):
 
 
 async def test_server_decombines_workflow_output(mock_workspace_client, lsp_engine, transpile_config):
-    with (TemporaryDirectory() as output_folder):
+    with TemporaryDirectory() as output_folder:
         input_path = Path(path_to_resource("lsp_transpiler", "workflow.xml"))
         transpile_config = dataclasses.replace(
             transpile_config, input_source=input_path, output_folder=output_folder, skip_validation=True
