@@ -89,6 +89,9 @@ class LSPConfig:
 
     @classmethod
     def load(cls, path: Path) -> LSPConfig:
+        #
+        if not path.exists():
+            raise ValueError(f"Error: Invalid value for '--transpiler-config-path': '{path!s}', file does not exist.")
         yaml_text = path.read_text()
         data = yaml.safe_load(yaml_text)
         if not isinstance(data, dict):
