@@ -38,7 +38,7 @@ class SamplingQueryBuilder(QueryBuilder):
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in cols
         ]
 
@@ -53,14 +53,14 @@ class SamplingQueryBuilder(QueryBuilder):
         if self.layer == "source":
             key_cols = sorted(join_columns)
         else:
-            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
+            key_cols = sorted(self.table_mapping.get_tgt_to_src_col_mapping_list(join_columns))
         keys_df = df.select(*key_cols)
         with_clause = self._get_with_clause(keys_df)
 
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in cols
         ]
 
@@ -71,7 +71,7 @@ class SamplingQueryBuilder(QueryBuilder):
         else:
             with_select = [
                 build_column(this=col, table_name="src")
-                for col in sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
+                for col in sorted(self.table_mapping.get_tgt_to_src_col_mapping_list(cols))
             ]
 
         join_clause = SamplingQueryBuilder._get_join_clause(key_cols)

@@ -7,7 +7,7 @@ import pytest
 from databricks.labs.lakebridge.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException
-from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Table
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, TableMapping
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
 
@@ -49,7 +49,7 @@ def test_read_data_with_options():
     # create object for SnowflakeDataSource
     ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -127,7 +127,7 @@ def test_read_data_exception_handling():
     engine, spark, ws, scope = initial_setup()
     ords = OracleDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,

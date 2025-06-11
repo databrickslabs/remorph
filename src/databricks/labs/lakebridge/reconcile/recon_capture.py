@@ -8,7 +8,7 @@ from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.lakebridge.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.lakebridge.config import DatabaseConfig, TableMapping, ReconcileMetadataConfig
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect_name
 from databricks.labs.lakebridge.reconcile.recon_config import TableThresholds
 from databricks.labs.lakebridge.reconcile.exception import (
@@ -241,7 +241,7 @@ class ReconCapture:
 
     def _generate_recon_main_id(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
     ) -> int:
         full_source_table = (
             f"{self.database_config.source_schema}.{table_conf.source_name}"
@@ -256,7 +256,7 @@ class ReconCapture:
     def _insert_into_main_table(
         self,
         recon_table_id: int,
-        table_conf: Table,
+        table_conf: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         operation_name: str = "reconcile",
     ) -> None:
@@ -291,7 +291,7 @@ class ReconCapture:
 
     @classmethod
     def _is_mismatch_within_threshold_limits(
-        cls, data_reconcile_output: DataReconcileOutput, table_conf: Table, record_count: ReconcileRecordCount
+        cls, data_reconcile_output: DataReconcileOutput, table_conf: TableMapping, record_count: ReconcileRecordCount
     ):
         total_mismatch_count = (
             data_reconcile_output.mismatch_count + data_reconcile_output.threshold_output.threshold_mismatch_count
@@ -330,7 +330,7 @@ class ReconCapture:
         recon_table_id: int,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: Table,
+        table_conf: TableMapping,
         record_count: ReconcileRecordCount,
     ) -> None:
         status = False
@@ -589,7 +589,7 @@ class ReconCapture:
         self,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: Table,
+        table_conf: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         record_count: ReconcileRecordCount,
     ) -> None:
@@ -602,7 +602,7 @@ class ReconCapture:
 
     def store_aggregates_metrics(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         reconcile_agg_output_list: list[AggregateQueryOutput],
     ) -> None:

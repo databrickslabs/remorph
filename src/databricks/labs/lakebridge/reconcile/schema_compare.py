@@ -7,7 +7,7 @@ from sqlglot import Dialect, parse_one
 from sqlglot.dialects import Databricks
 
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
-from databricks.labs.lakebridge.reconcile.recon_config import Schema, Table
+from databricks.labs.lakebridge.reconcile.recon_config import Schema, TableMapping
 from databricks.labs.lakebridge.reconcile.recon_output_config import SchemaMatchResult, SchemaReconcileOutput
 
 logger = logging.getLogger(__name__)
@@ -36,15 +36,17 @@ class SchemaCompare:
         cls,
         source_schema: list[Schema],
         databricks_schema: list[Schema],
-        table_conf: Table,
+        table_mapping: TableMapping,
     ) -> list[SchemaMatchResult]:
         master_schema = source_schema
-        if table_conf.select_columns:
-            master_schema = [schema for schema in master_schema if schema.column_name in table_conf.select_columns]
-        if table_conf.drop_columns:
-            master_schema = [sschema for sschema in master_schema if sschema.column_name not in table_conf.drop_columns]
+        if table_mapping.select_columns:
+            master_schema = [schema for schema in master_schema if schema.column_name in table_mapping.select_columns]
+        if table_mapping.drop_columns:
+            master_schema = [
+                sschema for sschema in master_schema if sschema.column_name not in table_mapping.drop_columns
+            ]
 
-        target_column_map = table_conf.to_src_col_map or {}
+        target_column_map = table_mapping.to_src_col_map or {}
         master_schema_match_res = [
             SchemaMatchResult(
                 source_column=s.column_name,
@@ -104,7 +106,7 @@ class SchemaCompare:
         source_schema: list[Schema],
         databricks_schema: list[Schema],
         source: Dialect,
-        table_conf: Table,
+        table_mapping: TableMapping,
     ) -> SchemaReconcileOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
@@ -113,7 +115,7 @@ class SchemaCompare:
         Returns:
             SchemaReconcileOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
-        master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
+        master_schema = self._build_master_schema(source_schema, databricks_schema, table_mapping)
         for master in master_schema:
             if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)

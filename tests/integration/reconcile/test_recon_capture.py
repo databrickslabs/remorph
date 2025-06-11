@@ -27,7 +27,7 @@ from databricks.labs.lakebridge.reconcile.recon_output_config import (
     ReconcileRecordCount,
 )
 from databricks.labs.lakebridge.reconcile.recon_config import (
-    Table,
+    TableMapping,
     TableThresholds,
     TableThresholdBoundsException,
 )
@@ -110,7 +110,7 @@ def data_prep(spark: SparkSession):
         threshold_output=threshold,
     )
     schema_output = SchemaReconcileOutput(is_valid=True, compare_df=schema_df)
-    table_conf = Table(source_name="supplier", target_name="target_supplier")
+    table_conf = TableMapping(source_name="supplier", target_name="target_supplier")
     reconcile_process = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
     )

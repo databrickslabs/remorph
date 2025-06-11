@@ -8,7 +8,7 @@ from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.recon_capture import (
     ReconCapture,
 )
-from databricks.labs.lakebridge.reconcile.recon_config import Table
+from databricks.labs.lakebridge.reconcile.recon_config import TableMapping
 from databricks.labs.lakebridge.reconcile.recon_output_config import (
     ReconcileProcessDuration,
     AggregateQueryOutput,
@@ -29,7 +29,7 @@ def remove_directory_recursively(directory_path):
 
 
 def agg_data_prep(spark: SparkSession):
-    table_conf = Table(source_name="supplier", target_name="target_supplier")
+    table_conf = TableMapping(source_name="supplier", target_name="target_supplier")
     reconcile_process_duration = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
     )

@@ -16,7 +16,7 @@ from pyspark.sql.types import (
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 from databricks.labs.lakebridge.reconcile.recon_config import (
-    Table,
+    TableMapping,
     JdbcReaderOptions,
     Transformation,
     ColumnThresholds,
@@ -47,8 +47,8 @@ def column_mapping():
 
 
 @pytest.fixture
-def table_conf_with_opts(column_mapping):
-    return Table(
+def table_mapping_with_opts(column_mapping):
+    return TableMapping(
         source_name="supplier",
         target_name="target_supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -74,9 +74,9 @@ def table_conf_with_opts(column_mapping):
 
 
 @pytest.fixture
-def table_conf():
-    def _table_conf(**kwargs):
-        return Table(
+def table_mapping_factory():
+    def _table_mapping(**kwargs):
+        return TableMapping(
             source_name="supplier",
             target_name="supplier",
             jdbc_reader_options=kwargs.get('jdbc_reader_options', None),
@@ -89,7 +89,7 @@ def table_conf():
             filters=kwargs.get('filters', None),
         )
 
-    return _table_conf
+    return _table_mapping
 
 
 @pytest.fixture

@@ -59,15 +59,15 @@ def query_store(mock_spark):
 
 def test_reconcile_aggregate_data_missing_records(
     mock_spark,
-    table_conf_with_opts,
+    table_mapping_with_opts,
     table_schema,
     query_store,
     tmp_path: Path,
 ):
     src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_conf_with_opts.aggregates = [Aggregate(type="MIN", agg_columns=["s_acctbal"])]
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    table_mapping_with_opts.aggregates = [Aggregate(type="MIN", agg_columns=["s_acctbal"])]
 
     source_dataframe_repository = {
         (
@@ -113,7 +113,7 @@ def test_reconcile_aggregate_data_missing_records(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_aggregates(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_aggregates(table_mapping_with_opts, src_schema, tgt_schema)
 
         assert len(actual) == 1
 
@@ -260,15 +260,15 @@ def _compare_reconcile_output(actual_reconcile_output: DataReconcileOutput, expe
 
 def test_reconcile_aggregate_data_mismatch_and_missing_records(
     mock_spark,
-    table_conf_with_opts,
+    table_mapping_with_opts,
     table_schema,
     query_store,
     tmp_path: Path,
 ):
     src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_conf_with_opts.aggregates = [
+    table_mapping_with_opts.drop_columns = ["s_acctbal"]
+    table_mapping_with_opts.column_thresholds = None
+    table_mapping_with_opts.aggregates = [
         Aggregate(type="SUM", agg_columns=["s_acctbal"], group_by_columns=["s_nationkey"]),
         Aggregate(type="COUNT", agg_columns=["s_name"], group_by_columns=["s_nationkey"]),
     ]
@@ -320,7 +320,7 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             get_dialect("databricks"),
             mock_spark,
             ReconcileMetadataConfig(),
-        ).reconcile_aggregates(table_conf_with_opts, src_schema, tgt_schema)
+        ).reconcile_aggregates(table_mapping_with_opts, src_schema, tgt_schema)
 
         assert len(actual_list) == 2
 

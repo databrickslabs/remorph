@@ -38,9 +38,9 @@ class AggregateQueryBuilder(QueryBuilder):
         :return: Mapped Column Name if found, else Column Name
         """
         # apply column mapping, ex: "{source: pid, target: product_id}"
-        column_with_mapping = self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)
+        column_with_mapping = self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer)
         if self.layer == "target":
-            column_with_mapping = self.table_conf.get_layer_src_to_tgt_col_mapping(col, self.layer)
+            column_with_mapping = self.table_mapping.get_layer_src_to_tgt_col_mapping(col, self.layer)
         return column_with_mapping
 
     def _get_mapping_cols_with_alias(self, cols_list: list[str], agg_type: str):
