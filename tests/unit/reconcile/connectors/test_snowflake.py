@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives import serialization
 from databricks.labs.lakebridge.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException, InvalidSnowflakePemPrivateKey
-from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Table
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, TableMapping
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
 from databricks.sdk.errors import NotFound
@@ -123,7 +123,7 @@ def test_read_data_with_out_options():
     # create object for SnowflakeDataSource
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with no JDBC reader options
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
     )
@@ -153,7 +153,7 @@ def test_read_data_with_options():
     # create object for SnowflakeDataSource
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -193,7 +193,7 @@ def test_get_schema():
     # create object for SnowflakeDataSource
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
-    dfds.get_schema("catalog", "schema", "supplier")
+    dfds.get_column_types("catalog", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with(
@@ -225,7 +225,7 @@ def test_read_data_exception_handling():
     engine, spark, ws, scope = initial_setup()
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -267,14 +267,14 @@ def test_get_schema_exception_handling():
         "where lower\\(table_name\\)='supplier' and table_schema = 'SCHEMA' order by ordinal_position : Test "
         "Exception",
     ):
-        dfds.get_schema("catalog", "schema", "supplier")
+        dfds.get_column_types("catalog", "schema", "supplier")
 
 
 def test_read_data_with_out_options_private_key():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_private_key_secret
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
-    table_conf = Table(source_name="supplier", target_name="supplier")
+    table_conf = TableMapping(source_name="supplier", target_name="supplier")
     dfds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with("dbtable", "(select 1 from org.data.employee) as tmp")
@@ -296,7 +296,7 @@ def test_read_data_with_out_options_malformed_private_key():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_malformed_private_key_secret
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
-    table_conf = Table(source_name="supplier", target_name="supplier")
+    table_conf = TableMapping(source_name="supplier", target_name="supplier")
     with pytest.raises(InvalidSnowflakePemPrivateKey, match="Failed to load or process the provided PEM private key."):
         dfds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
@@ -305,7 +305,7 @@ def test_read_data_with_out_any_auth():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_no_auth_key_secret
     dfds = SnowflakeDataSource(engine, spark, ws, scope)
-    table_conf = Table(source_name="supplier", target_name="supplier")
+    table_conf = TableMapping(source_name="supplier", target_name="supplier")
     with pytest.raises(
         NotFound, match='sfPassword and pem_private_key not found. Either one is required for snowflake auth.'
     ):

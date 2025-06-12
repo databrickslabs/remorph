@@ -8,7 +8,7 @@ from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.lakebridge.config import DatabaseConfig, Table, ReconcileMetadataConfig
+from databricks.labs.lakebridge.config import DatabaseConfig, TableMapping, ReconcileMetadataConfig
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect_name
 from databricks.labs.lakebridge.reconcile.recon_config import TableThresholds
 from databricks.labs.lakebridge.reconcile.exception import (
@@ -40,8 +40,8 @@ _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
 
 class ReconIntermediatePersist:
 
-    def __init__(self, spark: SparkSession, path: str):
-        self.spark = spark
+    def __init__(self, spark_session: SparkSession, path: str):
+        self._spark_session = spark_session
         self.path = path
 
     def _write_unmatched_df_to_volumes(
@@ -51,14 +51,16 @@ class ReconIntermediatePersist:
         unmatched_df.write.format("parquet").mode("overwrite").save(self.path)
 
     def _read_unmatched_df_from_volumes(self) -> DataFrame:
-        return self.spark.read.format("parquet").load(self.path)
+        return self._spark_session.read.format("parquet").load(self.path)
 
     def clean_unmatched_df_from_volume(self):
         try:
             # TODO: for now we are overwriting the intermediate cache path. We should delete the volume in future
             # workspace_client.dbfs.get_status(path)
             # workspace_client.dbfs.delete(path, recursive=True)
-            empty_df = self.spark.createDataFrame([], schema=StructType([StructField("empty", StringType(), True)]))
+            empty_df = self._spark_session.createDataFrame(
+                [], schema=StructType([StructField("empty", StringType(), True)])
+            )
             empty_df.write.format("parquet").mode("overwrite").save(self.path)
             logger.warning(f"Unmatched DF cleaned up from {self.path} successfully.")
         except PySparkException as e:
@@ -91,12 +93,12 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
 
 def generate_final_reconcile_output(
     recon_id: str,
-    spark: SparkSession,
+    spark_session: SparkSession,
     metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
     local_test_run: bool = False,
 ) -> ReconcileOutput:
     _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
-    recon_df = spark.sql(
+    recon_df = spark_session.sql(
         f"""
     SELECT
     CASE
@@ -161,12 +163,12 @@ def generate_final_reconcile_output(
 
 def generate_final_reconcile_aggregate_output(
     recon_id: str,
-    spark: SparkSession,
+    spark_session: SparkSession,
     metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
     local_test_run: bool = False,
 ) -> ReconcileOutput:
     _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
-    recon_df = spark.sql(
+    recon_df = spark_session.sql(
         f"""
         SELECT source_table,
          target_table,
@@ -227,7 +229,7 @@ class ReconCapture:
         report_type: str,
         source_dialect: Dialect,
         ws: WorkspaceClient,
-        spark: SparkSession,
+        spark_session: SparkSession,
         metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
         local_test_run: bool = False,
     ):
@@ -236,12 +238,12 @@ class ReconCapture:
         self.report_type = report_type
         self.source_dialect = source_dialect
         self.ws = ws
-        self.spark = spark
+        self._spark_session = spark_session
         self._db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
 
     def _generate_recon_main_id(
         self,
-        table_conf: Table,
+        table_conf: TableMapping,
     ) -> int:
         full_source_table = (
             f"{self.database_config.source_schema}.{table_conf.source_name}"
@@ -256,12 +258,12 @@ class ReconCapture:
     def _insert_into_main_table(
         self,
         recon_table_id: int,
-        table_conf: Table,
+        table_conf: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         operation_name: str = "reconcile",
     ) -> None:
         dialect_name = get_dialect_name(self.source_dialect)
-        df = self.spark.sql(
+        df = self._spark_session.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
@@ -291,7 +293,7 @@ class ReconCapture:
 
     @classmethod
     def _is_mismatch_within_threshold_limits(
-        cls, data_reconcile_output: DataReconcileOutput, table_conf: Table, record_count: ReconcileRecordCount
+        cls, data_reconcile_output: DataReconcileOutput, table_conf: TableMapping, record_count: ReconcileRecordCount
     ):
         total_mismatch_count = (
             data_reconcile_output.mismatch_count + data_reconcile_output.threshold_output.threshold_mismatch_count
@@ -330,7 +332,7 @@ class ReconCapture:
         recon_table_id: int,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: Table,
+        table_conf: TableMapping,
         record_count: ReconcileRecordCount,
     ) -> None:
         status = False
@@ -356,7 +358,7 @@ class ReconCapture:
         if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
             mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
-        df = self.spark.sql(
+        df = self._spark_session.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
@@ -529,7 +531,7 @@ class ReconCapture:
             assert agg_output.rule, "Aggregate Rule must be present for storing the metrics"
             rule_id = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
 
-            agg_metrics_df = self.spark.sql(
+            agg_metrics_df = self._spark_session.sql(
                 f"""
                     select {recon_table_id} as recon_table_id,
                     {rule_id}  as rule_id,
@@ -589,25 +591,25 @@ class ReconCapture:
         self,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
-        table_conf: Table,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         record_count: ReconcileRecordCount,
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration)
         self._insert_into_metrics_table(
-            recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf, record_count
+            recon_table_id, data_reconcile_output, schema_reconcile_output, table_mapping, record_count
         )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
 
     def store_aggregates_metrics(
         self,
-        table_conf: Table,
+        table_mapping: TableMapping,
         recon_process_duration: ReconcileProcessDuration,
         reconcile_agg_output_list: list[AggregateQueryOutput],
     ) -> None:
-        recon_table_id = self._generate_recon_main_id(table_conf)
-        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration, 'aggregates-reconcile')
+        recon_table_id = self._generate_recon_main_id(table_mapping)
+        self._insert_into_main_table(recon_table_id, table_mapping, recon_process_duration, 'aggregates-reconcile')
         self._insert_into_rules_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_metrics_table(recon_table_id, reconcile_agg_output_list)
         self._insert_aggregates_into_details_table(
@@ -625,7 +627,7 @@ class ReconCapture:
             rule_id = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
             rule_query = agg_output.rule.get_rule_query(rule_id)
             rule_df_list.append(
-                self.spark.sql(rule_query)
+                self._spark_session.sql(rule_query)
                 .withColumn("inserted_ts", lit(datetime.now()))
                 .select("rule_id", "rule_type", "rule_info", "inserted_ts")
             )

@@ -17,7 +17,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     build_where_clause,
     coalesce,
 )
-from databricks.labs.lakebridge.reconcile.recon_config import ColumnThresholds
+from databricks.labs.lakebridge.reconcile.recon_config import ColumnThresholds, Layer
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,13 @@ class ThresholdQueryBuilder(QueryBuilder):
     # Comparison query
     def build_comparison_query(self) -> str:
         self._validate(
-            self.table_conf.get_join_columns("source"), "Join Columns are compulsory for threshold comparison query"
+            self.table_mapping.get_join_columns(Layer.SOURCE),
+            "Join Columns are compulsory for threshold comparison query",
         )
         join_columns = (
-            self.table_conf.get_join_columns("source") if self.table_conf.get_join_columns("source") else set()
+            self.table_mapping.get_join_columns(Layer.SOURCE)
+            if self.table_mapping.get_join_columns(Layer.SOURCE)
+            else set()
         )
         select_clause, where = self._generate_select_where_clause(join_columns)
         from_clause, join_clause = self._generate_from_and_join_clause(join_columns)
@@ -46,7 +49,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _generate_select_where_clause(self, join_columns) -> tuple[list[exp.Expression], exp.Expression]:
         thresholds: list[ColumnThresholds] = (
-            self.table_conf.column_thresholds if self.table_conf.column_thresholds else []
+            self.table_mapping.column_thresholds if self.table_mapping.column_thresholds else []
         )
         select_clause = []
         where_clause = []
@@ -121,8 +124,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         return select_clause, where_clause
 
     def _generate_from_and_join_clause(self, join_columns) -> tuple[exp.From, exp.Join]:
-        source_view = f"source_{self.table_conf.source_name}_df_threshold_vw"
-        target_view = f"target_{self.table_conf.target_name}_df_threshold_vw"
+        source_view = f"source_{self.table_mapping.source_name}_df_threshold_vw"
+        target_view = f"target_{self.table_mapping.target_name}_df_threshold_vw"
 
         from_clause = build_from_clause(source_view, "source")
         join_clause = build_join_clause(
@@ -218,14 +221,14 @@ class ThresholdQueryBuilder(QueryBuilder):
         join_columns = self.join_columns if self.join_columns else set()
         keys: list[str] = sorted(self.partition_column.union(join_columns))
         keys_select_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in keys
         ]
         keys_expr = self._apply_user_transformation(keys_select_alias)
 
         # threshold column expression
         threshold_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in sorted(self.threshold_columns)
         ]
         thresholds_expr = threshold_alias

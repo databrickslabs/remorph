@@ -13,7 +13,7 @@ from databricks.labs.lakebridge.reconcile.connectors.data_source import DataSour
 from databricks.labs.lakebridge.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.lakebridge.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.lakebridge.reconcile.exception import InvalidSnowflakePemPrivateKey
-from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, ColumnType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
@@ -50,12 +50,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     def __init__(
         self,
         engine: Dialect,
-        spark: SparkSession,
+        spark_session: SparkSession,
         ws: WorkspaceClient,
         secret_scope: str,
     ):
         self._engine = engine
-        self._spark = spark
+        self._spark_session = spark_session
         self._ws = ws
         self._secret_scope = secret_scope
 
@@ -123,12 +123,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
-    def get_schema(
+    def get_column_types(
         self,
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[ColumnType]:
         """
         Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in Snowflake.
 
@@ -146,7 +146,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             logger.info(f"Fetching Schema: Started at: {datetime.now()}")
             schema_metadata = self.reader(schema_query).load().collect()
             logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
-            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
+            return [ColumnType(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
@@ -170,4 +170,4 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 logger.error(message)
                 raise NotFound(message) from e
 
-        return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)
+        return self._spark_session.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)

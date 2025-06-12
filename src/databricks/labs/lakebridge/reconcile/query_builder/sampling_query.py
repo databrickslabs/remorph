@@ -12,6 +12,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     _get_is_string,
     build_join_clause,
 )
+from databricks.labs.lakebridge.reconcile.recon_config import Layer
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class SamplingQueryBuilder(QueryBuilder):
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in cols
         ]
 
@@ -50,28 +51,28 @@ class SamplingQueryBuilder(QueryBuilder):
     def build_query(self, df: DataFrame):
         self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
         join_columns = self.join_columns if self.join_columns else set()
-        if self.layer == "source":
+        if self.layer is Layer.SOURCE:
             key_cols = sorted(join_columns)
         else:
-            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
+            key_cols = sorted(self.table_mapping.get_tgt_to_src_col_mapping_list(join_columns))
         keys_df = df.select(*key_cols)
         with_clause = self._get_with_clause(keys_df)
 
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in cols
         ]
 
         sql_with_transforms = self.add_transformations(cols_with_alias, self._dialect)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
-        if self.layer == "source":
+        if self.layer is Layer.SOURCE:
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
         else:
             with_select = [
                 build_column(this=col, table_name="src")
-                for col in sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
+                for col in sorted(self.table_mapping.get_tgt_to_src_col_mapping_list(cols))
             ]
 
         join_clause = SamplingQueryBuilder._get_join_clause(key_cols)
@@ -99,7 +100,7 @@ class SamplingQueryBuilder(QueryBuilder):
             column_types_dict = dict(column_types)
             orig_types_dict = {
                 schema.column_name: schema.data_type
-                for schema in self.schema
+                for schema in self.column_types
                 if schema.column_name not in self.user_transformations
             }
             row_select = [

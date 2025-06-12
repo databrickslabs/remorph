@@ -9,7 +9,7 @@ from typing import Any, cast
 from databricks.labs.blueprint.installation import JsonValue
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.lakebridge.transpiler.transpile_status import TranspileError
-from databricks.labs.lakebridge.reconcile.recon_config import Table
+from databricks.labs.lakebridge.reconcile.recon_config import TableMapping
 
 
 logger = logging.getLogger(__name__)
@@ -121,14 +121,14 @@ class TranspileConfig:
 
 
 @dataclass
-class TableRecon:
+class ReconciliationMappings:
     __file__ = "recon_config.yml"
     __version__ = 1
 
     source_schema: str
     target_catalog: str
     target_schema: str
-    tables: list[Table]
+    table_mappings: list[TableMapping]
     source_catalog: str | None = None
 
     def __post_init__(self):

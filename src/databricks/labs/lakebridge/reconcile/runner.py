@@ -8,7 +8,7 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 
-from databricks.labs.lakebridge.config import ReconcileConfig, TableRecon
+from databricks.labs.lakebridge.config import ReconcileConfig, ReconciliationMappings
 from databricks.labs.lakebridge.deployment.recon import RECON_JOB_NAME
 from databricks.labs.lakebridge.reconcile.recon_config import RECONCILE_OPERATION_NAME
 
@@ -70,7 +70,7 @@ class ReconcileRunner:
         filename = f"recon_config_{recon_config.data_source}_{source_catalog_or_schema}_{recon_config.report_type}.json"
         try:
             logger.debug(f"Loading recon table config `{filename}` from workspace.")
-            self._installation.load(TableRecon, filename=filename)
+            self._installation.load(ReconciliationMappings, filename=filename)
         except NotFound as e:
             err_msg = (
                 "Cannot find recon table configuration in existing `reconcile` installation. "

@@ -16,14 +16,14 @@ from pyspark.sql.types import (
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 from databricks.labs.lakebridge.reconcile.recon_config import (
-    Table,
+    TableMapping,
     JdbcReaderOptions,
     Transformation,
     ColumnThresholds,
     Filters,
     TableThresholds,
     ColumnMapping,
-    Schema,
+    ColumnType,
 )
 
 
@@ -47,8 +47,8 @@ def column_mapping():
 
 
 @pytest.fixture
-def table_conf_with_opts(column_mapping):
-    return Table(
+def table_mapping_with_opts(column_mapping):
+    return TableMapping(
         source_name="supplier",
         target_name="target_supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -74,9 +74,9 @@ def table_conf_with_opts(column_mapping):
 
 
 @pytest.fixture
-def table_conf():
-    def _table_conf(**kwargs):
-        return Table(
+def table_mapping_factory():
+    def _table_mapping(**kwargs):
+        return TableMapping(
             source_name="supplier",
             target_name="supplier",
             jdbc_reader_options=kwargs.get('jdbc_reader_options', None),
@@ -89,32 +89,32 @@ def table_conf():
             filters=kwargs.get('filters', None),
         )
 
-    return _table_conf
+    return _table_mapping
 
 
 @pytest.fixture
-def table_schema():
-    sch = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "varchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "varchar"),
+def src_and_tgt_column_types():
+    src_col_types = [
+        ColumnType("s_suppkey", "number"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_address", "varchar"),
+        ColumnType("s_nationkey", "number"),
+        ColumnType("s_phone", "varchar"),
+        ColumnType("s_acctbal", "number"),
+        ColumnType("s_comment", "varchar"),
     ]
 
-    sch_with_alias = [
-        Schema("s_suppkey_t", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address_t", "varchar"),
-        Schema("s_nationkey_t", "number"),
-        Schema("s_phone_t", "varchar"),
-        Schema("s_acctbal_t", "number"),
-        Schema("s_comment_t", "varchar"),
+    tgt_col_types = [
+        ColumnType("s_suppkey_t", "number"),
+        ColumnType("s_name", "varchar"),
+        ColumnType("s_address_t", "varchar"),
+        ColumnType("s_nationkey_t", "number"),
+        ColumnType("s_phone_t", "varchar"),
+        ColumnType("s_acctbal_t", "number"),
+        ColumnType("s_comment_t", "varchar"),
     ]
 
-    return sch, sch_with_alias
+    return src_col_types, tgt_col_types
 
 
 @pytest.fixture

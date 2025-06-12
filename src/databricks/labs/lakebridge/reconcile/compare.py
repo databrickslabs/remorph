@@ -44,7 +44,7 @@ def reconcile_data(
     target: DataFrame,
     key_columns: list[str],
     report_type: str,
-    spark: SparkSession,
+    spark_session: SparkSession,
     path: str,
 ) -> DataReconcileOutput:
     source_alias = "src"
@@ -65,7 +65,7 @@ def reconcile_data(
     )
 
     # Write unmatched df to volume
-    df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(df)
+    df = ReconIntermediatePersist(spark_session, path).write_and_read_unmatched_df_with_volumes(df)
     logger.warning(f"Unmatched data is written to {path} successfully")
 
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
@@ -377,7 +377,7 @@ def join_aggregate_data(
     source: DataFrame,
     target: DataFrame,
     key_columns: list[str] | None,
-    spark: SparkSession,
+    spark_session: SparkSession,
     path: str,
 ) -> DataFrame:
     # TODO:  Integrate with reconcile_data function
@@ -408,7 +408,9 @@ def join_aggregate_data(
     )
 
     # Write the joined df to volume path
-    joined_volume_df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(joined_df).cache()
+    joined_volume_df = (
+        ReconIntermediatePersist(spark_session, path).write_and_read_unmatched_df_with_volumes(joined_df).cache()
+    )
     logger.warning(f"Unmatched data is written to {path} successfully")
 
     return joined_volume_df

@@ -13,6 +13,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     lower,
     transform_expression,
 )
+from databricks.labs.lakebridge.reconcile.recon_config import Layer
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 def _hash_transform(
     node: exp.Expression,
     source: Dialect,
-    layer: str,
+    layer: Layer,
 ):
     transform = get_hash_transform(source, layer)
     return transform_expression(node, transform)
@@ -42,14 +43,14 @@ class HashQueryBuilder(QueryBuilder):
         key_cols = hash_cols if report_type == "row" else sorted(_join_columns | self.partition_column)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
 
         # in case if we have column mapping, we need to sort the target columns in the order of source columns to get
         # same hash value
         hash_cols_with_alias = [
-            {"this": col, "alias": self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)}
+            {"this": col, "alias": self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer)}
             for col in hash_cols
         ]
         sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])
@@ -60,7 +61,7 @@ class HashQueryBuilder(QueryBuilder):
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
-        dialect = self._dialect if self.layer == "source" else get_dialect("databricks")
+        dialect = self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
             .from_(":tbl")
@@ -78,7 +79,7 @@ class HashQueryBuilder(QueryBuilder):
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
         cols_with_transform = self.add_transformations(
-            cols_with_alias, self._dialect if self.layer == "source" else get_dialect("databricks")
+            cols_with_alias, self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
         )
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
         concat_expr = concat(list(col_exprs))

@@ -7,7 +7,7 @@ import pytest
 from databricks.labs.lakebridge.reconcile.connectors.sql_server import SQLServerDataSource
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException
-from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, Table
+from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions, TableMapping
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
 
@@ -78,7 +78,7 @@ def test_read_data_with_options():
     # create object for SnowflakeDataSource
     data_source = SQLServerDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
-    table_conf = Table(
+    table_conf = TableMapping(
         source_name="src_supplier",
         target_name="tgt_supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -119,7 +119,7 @@ def test_get_schema():
     # Mocking get secret method to return the required values
     data_source = SQLServerDataSource(engine, spark, ws, scope)
     # call test method
-    data_source.get_schema("org", "schema", "supplier")
+    data_source.get_column_types("org", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option().option().option.assert_called_with(
@@ -175,4 +175,4 @@ def test_get_schema_exception_handling():
             """Runtime exception occurred while fetching schema using SELECT COLUMN_NAME, CASE WHEN DATA_TYPE IN ('int', 'bigint') THEN DATA_TYPE WHEN DATA_TYPE IN ('smallint', 'tinyint') THEN 'smallint' WHEN DATA_TYPE IN ('decimal' ,'numeric') THEN 'decimal(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')' WHEN DATA_TYPE IN ('float', 'real') THEN 'double' WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') THEN DATA_TYPE WHEN DATA_TYPE IN ('date','time','datetime', 'datetime2','smalldatetime','datetimeoffset') THEN DATA_TYPE WHEN DATA_TYPE IN ('bit') THEN 'boolean' WHEN DATA_TYPE IN ('binary','varbinary') THEN 'binary' ELSE DATA_TYPE END AS 'DATA_TYPE' FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = LOWER('supplier') AND LOWER(TABLE_SCHEMA) = LOWER('schema') AND LOWER(TABLE_CATALOG) = LOWER('org')  : Test Exception"""
         ),
     ):
-        data_source.get_schema("org", "schema", "supplier")
+        data_source.get_column_types("org", "schema", "supplier")

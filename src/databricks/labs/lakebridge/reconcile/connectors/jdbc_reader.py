@@ -6,7 +6,7 @@ from databricks.labs.lakebridge.reconcile.recon_config import JdbcReaderOptions
 
 
 class JDBCReaderMixin:
-    _spark: SparkSession
+    _spark_session: SparkSession
 
     # TODO update the url
     def _get_jdbc_reader(self, query, jdbc_url, driver, prepare_query=None):
@@ -16,7 +16,7 @@ class JDBCReaderMixin:
             "sqlserver": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
         }
         reader = (
-            self._spark.read.format("jdbc")
+            self._spark_session.read.format("jdbc")
             .option("url", jdbc_url)
             .option("driver", driver_class.get(driver, driver))
             .option("dbtable", f"({query}) tmp")
