@@ -66,7 +66,7 @@ def table_mapping_with_opts(column_mapping):
         column_thresholds=[
             ColumnThresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
         ],
-        filters=Filters(source="s_name='t' and s_address='a'", target="s_name='t' and s_address_t='a'"),
+        filters=Filters(source="s_name = 't' AND s_address = 'a'", target="s_name = 't' AND s_address_t = 'a'"),
         table_thresholds=[
             TableThresholds(lower_bound="0", upper_bound="100", model="mismatch"),
         ],
