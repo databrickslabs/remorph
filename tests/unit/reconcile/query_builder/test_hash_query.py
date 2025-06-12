@@ -5,9 +5,9 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
 
 def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, src_and_tgt_column_types):
     src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("snowflake")).build_query(
-        report_type="data"
-    )
+    src_actual = HashQueryBuilder(
+        table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("snowflake")
+    ).build_query(report_type="data")
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
         "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey AS "
@@ -36,7 +36,9 @@ def test_hash_query_builder_for_oracle_src(table_mapping_factory, src_and_tgt_co
         filters=Filters(source="s_nationkey=1"),
         column_mapping=[ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
     )
-    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("oracle")).build_query(report_type="all")
+    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("oracle")).build_query(
+        report_type="all"
+    )
     src_expected = (
         "SELECT LOWER(DBMS_CRYPTO.HASH(RAWTOHEX(COALESCE(TRIM(s_acctbal), '_null_recon_') || COALESCE(TRIM("
         "s_address), '_null_recon_') || "
@@ -70,7 +72,9 @@ def test_hash_query_builder_for_databricks_src(table_mapping_factory, src_and_tg
         filters=Filters(target="s_nationkey_t=1"),
     )
     src_col_types, tgt_gol_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(report_type="data")
+    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
+        report_type="data"
+    )
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), '_null_recon_'), "
         "COALESCE(TRIM(s_comment), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM("
@@ -102,7 +106,9 @@ def test_hash_query_builder_without_column_mapping(table_mapping_factory, src_an
         filters=Filters(target="s_nationkey=1"),
     )
     col_types, _ = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("databricks")).build_query(report_type="data")
+    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
+        report_type="data"
+    )
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), '_null_recon_'),"
         " COALESCE(TRIM(s_comment), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM("
@@ -111,7 +117,9 @@ def test_hash_query_builder_without_column_mapping(table_mapping_factory, src_an
         "AS s_suppkey FROM :tbl"
     )
 
-    tgt_actual = HashQueryBuilder(mapping, col_types, Layer.TARGET, get_dialect("databricks")).build_query(report_type="data")
+    tgt_actual = HashQueryBuilder(mapping, col_types, Layer.TARGET, get_dialect("databricks")).build_query(
+        report_type="data"
+    )
     tgt_expected = (
         "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), "
         "'_null_recon_'), COALESCE(TRIM("
@@ -138,7 +146,9 @@ def test_hash_query_builder_without_transformation(table_mapping_factory, src_an
         filters=Filters(target="s_nationkey_t=1"),
     )
     src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(report_type="data")
+    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
+        report_type="data"
+    )
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), s_address, "
         "COALESCE(TRIM(s_comment), '_null_recon_'), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
@@ -163,9 +173,9 @@ def test_hash_query_builder_without_transformation(table_mapping_factory, src_an
 
 def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, src_and_tgt_column_types, column_mapping):
     src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="row"
-    )
+    src_actual = HashQueryBuilder(
+        table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("databricks")
+    ).build_query(report_type="row")
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
         "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address) AS "
@@ -203,7 +213,9 @@ def test_config_case_sensitivity(table_mapping_factory, src_and_tgt_column_types
         filters=Filters(target="s_nationkey_t=1"),
     )
     src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(report_type="data")
+    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
+        report_type="data"
+    )
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), s_address, "
         "TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), COALESCE(TRIM("

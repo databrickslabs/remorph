@@ -194,8 +194,9 @@ def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_factory,
-                                                           src_and_tgt_column_types):
+def test_build_query_for_snowflake_without_transformations(
+    spark_session, table_mapping_factory, src_and_tgt_column_types
+):
     sch, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [

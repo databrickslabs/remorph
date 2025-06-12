@@ -1315,7 +1315,9 @@ def test_recon_for_report_type_all(
 
 
 @pytest.fixture
-def mock_for_report_type_row(table_mapping_with_opts, src_and_tgt_column_types, spark_session, query_store, setup_metadata_table):
+def mock_for_report_type_row(
+    table_mapping_with_opts, src_and_tgt_column_types, spark_session, query_store, setup_metadata_table
+):
     table_mapping_with_opts.drop_columns = ["s_acctbal"]
     table_mapping_with_opts.column_thresholds = None
     reco_mappings = ReconciliationMappings(
