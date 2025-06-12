@@ -706,7 +706,7 @@ class Reconciliation:
                 missing_in_src = _get_missing_data(
                     self._target,
                     tgt_sampler,
-                    reconcile_output.missing_in_src,
+                    cast(DataFrame, reconcile_output.missing_in_src),
                     self._database_config.target_catalog,
                     self._database_config.target_schema,
                     table_mapping.target_name,
@@ -716,7 +716,7 @@ class Reconciliation:
                 missing_in_tgt = _get_missing_data(
                     self._source,
                     src_sampler,
-                    reconcile_output.missing_in_tgt,
+                    cast(DataFrame, reconcile_output.missing_in_tgt),
                     self._database_config.source_catalog,
                     self._database_config.source_schema,
                     table_mapping.source_name,

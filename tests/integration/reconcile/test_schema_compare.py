@@ -167,7 +167,6 @@ def schemas():
 
 def test_snowflake_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
-    spark = spark_session
     table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -178,7 +177,7 @@ def test_snowflake_schema_compare(schemas, spark_session):
         ],
     )
 
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(spark_session).compare(
         src_schema,
         tgt_schema,
         get_dialect("snowflake"),
@@ -194,7 +193,6 @@ def test_snowflake_schema_compare(schemas, spark_session):
 
 def test_databricks_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["databricks_databricks_schema"]
-    spark = spark_session
     table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -213,7 +211,7 @@ def test_databricks_schema_compare(schemas, spark_session):
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(spark_session).compare(
         src_schema,
         tgt_schema,
         get_dialect("databricks"),
@@ -229,7 +227,6 @@ def test_databricks_schema_compare(schemas, spark_session):
 
 def test_oracle_schema_compare(schemas, spark_session):
     src_schema, tgt_schema = schemas["oracle_databricks_schema"]
-    spark = spark_session
     table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -239,7 +236,7 @@ def test_oracle_schema_compare(schemas, spark_session):
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(spark_session).compare(
         src_schema,
         tgt_schema,
         get_dialect("oracle"),
@@ -262,7 +259,6 @@ def test_schema_compare(spark_session):
         ColumnType("col1", "int"),
         ColumnType("col2", "string"),
     ]
-    spark = spark_session
     table_conf = TableMapping(
         source_name="supplier",
         target_name="supplier",
@@ -273,7 +269,7 @@ def test_schema_compare(spark_session):
         ],
     )
 
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(spark_session).compare(
         src_schema,
         tgt_schema,
         get_dialect("databricks"),

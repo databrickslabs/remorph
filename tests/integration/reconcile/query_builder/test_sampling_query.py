@@ -14,7 +14,6 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
 
 
 def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, table_schema):
-    spark = spark_session
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -27,7 +26,7 @@ def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, tab
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = spark_session.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -83,7 +82,6 @@ def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, tab
 
 
 def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_schema, column_mapping):
-    spark = spark_session
     _, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -96,7 +94,7 @@ def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = spark_session.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -157,7 +155,6 @@ def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_
 
 
 def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
-    spark = spark_session
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -169,7 +166,7 @@ def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame([(1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1')], schema=df_schema)
+    df = spark_session.createDataFrame([(1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1')], schema=df_schema)
 
     schema = [
         ColumnType("s_suppkey", "bigint"),
@@ -198,7 +195,6 @@ def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
 
 
 def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_factory, table_schema):
-    spark = spark_session
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -211,7 +207,7 @@ def test_build_query_for_snowflake_without_transformations(spark_session, table_
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = spark_session.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -269,7 +265,6 @@ def test_build_query_for_snowflake_without_transformations(spark_session, table_
 
 
 def test_build_query_for_snowflake_src_for_non_integer_primary_keys(spark_session, table_mapping_factory):
-    spark = spark_session
     sch = [ColumnType("s_suppkey", "varchar"), ColumnType("s_name", "varchar"), ColumnType("s_nationkey", "number")]
 
     sch_with_alias = [
@@ -284,7 +279,7 @@ def test_build_query_for_snowflake_src_for_non_integer_primary_keys(spark_sessio
             StructField('s_nationkey', IntegerType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = spark_session.createDataFrame(
         [
             ('a', 'name-1', 11),
             ('b', 'name-2', 22),
