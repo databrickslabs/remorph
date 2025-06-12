@@ -163,7 +163,7 @@ def query_store(spark_session):
 def test_reconcile_data_with_mismatches_and_missing(
     spark_session, table_mapping_with_opts, table_schema, query_store, tmp_path: Path
 ):
-    src_schema, tgt_schema = table_schema
+    src_col_types, tgt_col_types = table_schema
     source_dataframe_repository = {
         (
             CATALOG,
@@ -186,7 +186,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_col_types}
     target_dataframe_repository = {
         (
             CATALOG,
@@ -231,7 +231,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             ]
         ),
     }
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_col_types}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -251,7 +251,7 @@ def test_reconcile_data_with_mismatches_and_missing(
             get_dialect("databricks"),
             spark_session,
             ReconcileMetadataConfig(),
-        ).reconcile_data(table_mapping_with_opts, src_schema, tgt_schema)
+        ).reconcile_data(table_mapping_with_opts, src_col_types, tgt_col_types)
     expected_data_reconcile = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
@@ -313,7 +313,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         get_dialect("databricks"),
         spark_session,
         ReconcileMetadataConfig(),
-    ).reconcile_schema(table_mapping_with_opts, src_schema, tgt_schema)
+    ).reconcile_schema(table_mapping_with_opts, src_col_types, tgt_col_types)
     expected_schema_reconcile = spark_session.createDataFrame(
         [
             Row(

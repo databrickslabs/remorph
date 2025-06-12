@@ -469,16 +469,16 @@ class Reconciliation:
     def reconcile_data(
         self,
         table_mapping: TableMapping,
-        src_schema: list[ColumnType],
-        tgt_schema: list[ColumnType],
+        src_col_types: list[ColumnType],
+        tgt_col_types: list[ColumnType],
     ) -> DataReconcileOutput:
-        data_reconcile_output = self._get_reconcile_output(table_mapping, src_schema, tgt_schema)
+        data_reconcile_output = self._get_reconcile_output(table_mapping, src_col_types, tgt_col_types)
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
-            reconcile_output = self._get_sample_data(table_mapping, data_reconcile_output, src_schema, tgt_schema)
+            reconcile_output = self._get_sample_data(table_mapping, data_reconcile_output, src_col_types, tgt_col_types)
             if table_mapping.get_threshold_columns(Layer.SOURCE):
                 reconcile_output.threshold_output = self._reconcile_threshold_data(
-                    table_mapping, src_schema, tgt_schema
+                    table_mapping, src_col_types, tgt_col_types
                 )
 
         if self._report_type == "row" and table_mapping.get_threshold_columns(Layer.SOURCE):
@@ -675,7 +675,7 @@ class Reconciliation:
     def _get_sample_data(
         self,
         table_mapping: TableMapping,
-        reconcile_output,
+        reconcile_output: DataReconcileOutput,
         src_col_types: list[ColumnType],
         tgt_col_types: list[ColumnType],
     ):
@@ -902,7 +902,7 @@ def _run_reconcile_data(
 ) -> DataReconcileOutput:
     try:
         return reconciler.reconcile_data(
-            table_mapping=table_mapping, src_schema=src_col_types, tgt_schema=tgt_col_types
+            table_mapping=table_mapping, src_col_types=src_col_types, tgt_col_types=tgt_col_types
         )
     except DataSourceRuntimeException as e:
         return DataReconcileOutput(exception=str(e))
