@@ -4,10 +4,10 @@ from operator import attrgetter
 
 import sqlglot.expressions as exp
 
-from databricks.labs.lakebridge.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     build_column,
 )
+from databricks.labs.lakebridge.reconcile.query_builder.sqlglot_query_builder import SqlglotQueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import (
     Aggregate,
     AggregateQueryRules,
@@ -24,7 +24,7 @@ def _remove_aliases(node: exp.Expression) -> exp.Expression:
     return node
 
 
-class AggregateQueryBuilder(QueryBuilder):
+class AggregateQueryBuilder(SqlglotQueryBuilder):
 
     def _get_mapping_col(self, col: str) -> str:
         """

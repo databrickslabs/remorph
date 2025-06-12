@@ -23,15 +23,15 @@ from databricks.labs.lakebridge.reconcile.compare import (
 )
 from databricks.labs.lakebridge.reconcile.connectors.data_source import DataSource
 from databricks.labs.lakebridge.reconcile.connectors.source_adapter import create_adapter
-from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
+from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect, get_dialect_name
 from databricks.labs.lakebridge.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,
     ReconciliationException,
 )
 from databricks.labs.lakebridge.reconcile.query_builder.aggregate_query import AggregateQueryBuilder
-from databricks.labs.lakebridge.reconcile.query_builder.count_query import CountQueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQueryBuilder
+from databricks.labs.lakebridge.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )

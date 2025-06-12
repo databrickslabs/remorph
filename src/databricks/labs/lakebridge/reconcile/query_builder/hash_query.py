@@ -5,7 +5,6 @@ import sqlglot.expressions as exp
 from sqlglot import Dialect
 
 from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
-from databricks.labs.lakebridge.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.expression_generator import (
     build_column,
     concat,
@@ -13,6 +12,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     lower,
     transform_expression,
 )
+from databricks.labs.lakebridge.reconcile.query_builder.sqlglot_query_builder import SqlglotQueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import Layer
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def _hash_transform(
 _HASH_COLUMN_NAME = "hash_value_recon"
 
 
-class HashQueryBuilder(QueryBuilder):
+class HashQueryBuilder(SqlglotQueryBuilder):
 
     def build_query(self, report_type: str) -> str:
 

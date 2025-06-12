@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class QueryBuilder(ABC):
 
     @classmethod
-    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: str):
+    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, _dialect: str):
         # TODO for now
         return QueryBuilder(table_mapping, column_types, layer)
 
