@@ -19,8 +19,16 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
         (
             Layer.TARGET,
             "databricks",
-            "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
-            " TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey_t,",
+            "SELECT LOWER(SHA2(CONCAT("
+                "TRIM(s_address_t),"
+                " TRIM(s_name),"
+                " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+                " TRIM(s_phone_t),"
+                " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256))"
+            " AS hash_value_recon,"
+            " s_nationkey_t AS s_nationkey,"
+            " s_suppkey_t AS s_suppkey"
+            " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
         ),
     ],
 )
