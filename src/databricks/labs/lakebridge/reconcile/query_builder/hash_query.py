@@ -42,7 +42,7 @@ class HashQueryBuilder(SqlglotQueryBuilder):
 
         key_cols = hash_cols if report_type == "row" else sorted(_join_columns | self.partition_column)
 
-        cols_with_alias = [
+        key_cols_with_alias = [
             build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
@@ -57,7 +57,7 @@ class HashQueryBuilder(SqlglotQueryBuilder):
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
 
         key_cols_with_transform = (
-            self._apply_user_transformation(cols_with_alias) if self.user_transformations else cols_with_alias
+            self._apply_user_transformation(key_cols_with_alias) if self.user_transformations else key_cols_with_alias
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 

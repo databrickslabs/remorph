@@ -1,5 +1,5 @@
+import dataclasses
 import logging
-from abc import ABC
 
 
 from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
@@ -8,7 +8,14 @@ from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableM
 logger = logging.getLogger(__name__)
 
 
-class QueryBuilder(ABC):
+@dataclasses.dataclass
+class Column:
+    table: str | None
+    column: str
+    alias: str | None = None
+    quoted = False
+
+class QueryBuilder:
 
     @classmethod
     def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, _dialect: str):
@@ -62,12 +69,21 @@ class QueryBuilder(ABC):
         return self._table_mapping.get_filter(self._layer)
 
     @property
+    def aggregates(self) -> list[Aggregate] | None:
+        return self.table_mapping.aggregates
+
+    @property
     def user_transformations(self) -> dict[str, str]:
         return self._table_mapping.get_transformation_dict(self._layer)
 
     @property
-    def aggregates(self) -> list[Aggregate] | None:
-        return self.table_mapping.aggregates
+    def default_transformations(self) -> dict[str, list[str]]:
+        return {
+            "default": [ "trim($column$)", "coalesce($column$, '_null_recon_')"]
+        }
+    @property
+    def hash_transform(self) -> str:
+        return "SHA2($column$, 256)"
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
         if field is None:
@@ -75,6 +91,61 @@ class QueryBuilder(ABC):
             logger.error(message)
             raise InvalidInputException(message)
 
+    def _apply_user_transformation(self, column: str | Column) -> str:
+        user_transformations = self.user_transformations or {}
+        if isinstance(column, Column):
+            column = column.alias or column.column
+        return user_transformations.get(column, column)
+
+    def _apply_default_transformation(self, column: str) -> str:
+        if not self.default_transformations:
+            return column
+        transformations = self.default_transformations.get(column, self.default_transformations.get("default", None))
+        if not transformations:
+            return column
+        for transformation in transformations:
+            column = transformation.replace("$column$", column)
+        return column
+
     def build_count_query(self) -> str:
-        where_clause = self._table_mapping.get_filter(self._layer)
-        return f"SELECT COUNT(1) AS count FROM :tbl WHERE {where_clause}"
+        return f"SELECT COUNT(1) AS count FROM :tbl WHERE {self.filter}"
+
+    def build_hash_query(self, report_type: str) -> str:
+        if report_type != 'row':
+            self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
+
+        join_columns = self.join_columns | set()
+
+        hash_cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        hash_cols_with_alias = [
+            Column(table = None,
+                   column=col,
+                   alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in hash_cols
+        ]
+
+        key_cols = hash_cols if report_type == "row" else sorted(join_columns | self.partition_column)
+        key_cols_with_alias = [
+            Column(table = None,
+                   column=col,
+                   alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in key_cols
+        ]
+
+        # in case if we have column mapping, we need to sort the target columns
+        # in the same order as source columns to ge the same hash value
+        sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column.alias)
+        hashcols_sorted_as_src_seq = [column.column for column in sorted_hash_cols_with_alias]
+
+        key_cols_with_transform = [ self._apply_user_transformation(col) for col in key_cols_with_alias ]
+        hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hashcols_sorted_as_src_seq]
+        hash_cols_with_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
+        hash_col_with_concat = f"CONCAT({','.join(hash_cols_with_transform)})"
+        hash_col_with_cat = self.hash_transform.replace("$column$", hash_col_with_concat)
+        hash_col_with_transform = f"LOWER({hash_col_with_cat}) AS hash_value_recon"
+
+        columns_to_select = [hash_col_with_transform] + key_cols_with_transform
+        sql = f"SELECT {','.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
+        logger.info(f"Hash Query for {self.layer}: {sql}")
+        return sql
+
