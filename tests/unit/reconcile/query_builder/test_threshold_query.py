@@ -16,14 +16,14 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
 )
 
 
-def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, table_schema):
+def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, src_and_tgt_column_types):
     # table conf
-    table_conf = table_mapping_with_opts
+    mapping = table_mapping_with_opts
     # schema
-    table_schema, _ = table_schema
-    table_schema.append(ColumnType("s_suppdate", "timestamp"))
+    src_col_types, _ = src_and_tgt_column_types
+    src_col_types.append(ColumnType("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
-        table_conf, table_schema, "source", get_dialect("oracle")
+        mapping, src_col_types, Layer.SOURCE, get_dialect("oracle")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -39,21 +39,21 @@ def test_threshold_comparison_query_with_one_threshold(table_mapping_with_opts, 
     )
 
 
-def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts, table_schema):
+def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts, src_and_tgt_column_types):
     # table conf
-    table_conf = table_mapping_with_opts
-    table_conf.join_columns = ["s_suppkey", "s_suppdate"]
-    table_conf.column_thresholds = [
+    mapping = table_mapping_with_opts
+    mapping.join_columns = ["s_suppkey", "s_suppdate"]
+    mapping.column_thresholds = [
         ColumnThresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
         ColumnThresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
 
     # schema
-    table_schema, _ = table_schema
-    table_schema.append(ColumnType("s_suppdate", "timestamp"))
+    src_col_types, _ = src_and_tgt_column_types
+    src_col_types.append(ColumnType("s_suppdate", "timestamp"))
 
     comparison_query = ThresholdQueryBuilder(
-        table_conf, table_schema, "target", get_dialect("databricks")
+        mapping, src_col_types, Layer.TARGET, get_dialect("databricks")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -76,18 +76,18 @@ def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts,
     )
 
 
-def test_build_threshold_query_with_single_threshold(table_mapping_with_opts, table_schema):
+def test_build_threshold_query_with_single_threshold(table_mapping_with_opts, src_and_tgt_column_types):
     table_conf = table_mapping_with_opts
     table_conf.jdbc_reader_options = None
     table_conf.transformations = [
         Transformation(column_name="s_acctbal", source="cast(s_acctbal as number)", target="cast(s_acctbal_t as int)")
     ]
-    src_schema, tgt_schema = table_schema
+    src_col_types, tgt_col_types = src_and_tgt_column_types
     src_query = ThresholdQueryBuilder(
-        table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")
+        table_conf, src_col_types, Layer.SOURCE, get_dialect("oracle")
     ).build_threshold_query()
     target_query = ThresholdQueryBuilder(
-        table_conf, tgt_schema, Layer.TARGET, get_dialect("databricks")
+        table_conf, tgt_col_types, Layer.TARGET, get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
         "SELECT s_nationkey AS s_nationkey, s_suppkey AS s_suppkey, "
@@ -99,7 +99,7 @@ def test_build_threshold_query_with_single_threshold(table_mapping_with_opts, ta
     )
 
 
-def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, table_schema):
+def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, src_and_tgt_column_types):
     table_conf = table_mapping_with_opts
     table_conf.jdbc_reader_options = JdbcReaderOptions(
         number_partitions=100, partition_column="s_phone", lower_bound="0", upper_bound="100"
@@ -109,14 +109,14 @@ def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, 
         ColumnThresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
     table_conf.filters = None
-    src_schema, tgt_schema = table_schema
-    src_schema.append(ColumnType("s_suppdate", "timestamp"))
-    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
+    src_col_types, tgt_col_types = src_and_tgt_column_types
+    src_col_types.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_col_types.append(ColumnType("s_suppdate", "timestamp"))
     src_query = ThresholdQueryBuilder(
-        table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")
+        table_conf, src_col_types, Layer.SOURCE, get_dialect("oracle")
     ).build_threshold_query()
     target_query = ThresholdQueryBuilder(
-        table_conf, tgt_schema, Layer.TARGET, get_dialect("databricks")
+        table_conf, tgt_col_types, Layer.TARGET, get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
         "SELECT s_nationkey AS s_nationkey, TRIM(s_phone) AS s_phone, s_suppkey "
@@ -128,26 +128,26 @@ def test_build_threshold_query_with_multiple_threshold(table_mapping_with_opts, 
     )
 
 
-def test_build_expression_type_raises_value_error(table_mapping_with_opts, table_schema):
+def test_build_expression_type_raises_value_error(table_mapping_with_opts, src_and_tgt_column_types):
     table_conf = table_mapping_with_opts
     table_conf.column_thresholds = [
         ColumnThresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="unknown"),
     ]
     table_conf.filters = None
-    src_schema, tgt_schema = table_schema
-    src_schema.append(ColumnType("s_suppdate", "timestamp"))
-    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
+    src_col_types, tgt_col_types = src_and_tgt_column_types
+    src_col_types.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_col_types.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(ValueError):
-        ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(table_conf, src_col_types, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
 
 
-def test_test_no_join_columns_raise_exception(table_mapping_with_opts, table_schema):
+def test_test_no_join_columns_raise_exception(table_mapping_with_opts, src_and_tgt_column_types):
     table_conf = table_mapping_with_opts
     table_conf.join_columns = None
-    src_schema, tgt_schema = table_schema
-    src_schema.append(ColumnType("s_suppdate", "timestamp"))
-    tgt_schema.append(ColumnType("s_suppdate", "timestamp"))
+    src_col_types, tgt_col_types = src_and_tgt_column_types
+    src_col_types.append(ColumnType("s_suppdate", "timestamp"))
+    tgt_col_types.append(ColumnType("s_suppdate", "timestamp"))
 
     with pytest.raises(InvalidInputException):
-        ThresholdQueryBuilder(table_conf, src_schema, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()
+        ThresholdQueryBuilder(table_conf, src_col_types, Layer.SOURCE, get_dialect("oracle")).build_comparison_query()

@@ -13,8 +13,8 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, table_schema):
-    sch, sch_with_alias = table_schema
+def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, src_and_tgt_column_types):
+    sch, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -81,8 +81,8 @@ def test_build_query_for_snowflake_src(spark_session, table_mapping_factory, tab
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(spark_session, table_mapping_factory, table_schema, column_mapping):
-    _, sch_with_alias = table_schema
+def test_build_query_for_oracle_src(spark_session, table_mapping_factory, src_and_tgt_column_types, column_mapping):
+    _, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -194,8 +194,9 @@ def test_build_query_for_databricks_src(spark_session, table_mapping_factory):
     assert src_expected == src_actual
 
 
-def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_factory, table_schema):
-    sch, sch_with_alias = table_schema
+def test_build_query_for_snowflake_without_transformations(spark_session, table_mapping_factory,
+                                                           src_and_tgt_column_types):
+    sch, sch_with_alias = src_and_tgt_column_types
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),

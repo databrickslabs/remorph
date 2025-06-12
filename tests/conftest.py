@@ -93,8 +93,8 @@ def table_mapping_factory():
 
 
 @pytest.fixture
-def table_schema():
-    sch = [
+def src_and_tgt_column_types():
+    src_col_types = [
         ColumnType("s_suppkey", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address", "varchar"),
@@ -104,7 +104,7 @@ def table_schema():
         ColumnType("s_comment", "varchar"),
     ]
 
-    sch_with_alias = [
+    tgt_col_types = [
         ColumnType("s_suppkey_t", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address_t", "varchar"),
@@ -114,7 +114,7 @@ def table_schema():
         ColumnType("s_comment_t", "varchar"),
     ]
 
-    return sch, sch_with_alias
+    return src_col_types, tgt_col_types
 
 
 @pytest.fixture

@@ -227,7 +227,7 @@ def recon(
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
         try:
-            src_schema, tgt_schema = _get_schema(
+            src_col_types, tgt_col_types = _get_column_types(
                 source=source,
                 target=target,
                 table_mapping=table_mapping,
@@ -240,8 +240,8 @@ def recon(
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler,
                     table_mapping=table_mapping,
-                    src_col_types=src_schema,
-                    tgt_col_types=tgt_schema,
+                    src_col_types=src_col_types,
+                    tgt_col_types=tgt_col_types,
                 )
                 logger.warning("Schema comparison is completed.")
 
@@ -249,8 +249,8 @@ def recon(
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler,
                     table_mapping=table_mapping,
-                    src_col_types=src_schema,
-                    tgt_col_types=tgt_schema,
+                    src_col_types=src_col_types,
+                    tgt_col_types=tgt_col_types,
                 )
                 logger.warning(f"Reconciliation for '{report_type}' report completed.")
 
@@ -398,7 +398,7 @@ def reconcile_aggregates(
     for table_conf in schema_mapping.table_mappings:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         try:
-            src_schema, tgt_schema = _get_schema(
+            src_col_types, tgt_col_types = _get_column_types(
                 source=source,
                 target=target,
                 table_mapping=table_conf,
@@ -412,8 +412,8 @@ def reconcile_aggregates(
         table_reconcile_agg_output_list: list[AggregateQueryOutput] = _run_reconcile_aggregates(
             reconciler=reconciler,
             table_mapping=table_conf,
-            src_col_types=src_schema,
-            tgt_col_types=tgt_schema,
+            src_col_types=src_col_types,
+            tgt_col_types=tgt_col_types,
         )
 
         recon_process_duration.end_ts = str(datetime.now())
@@ -486,8 +486,10 @@ class Reconciliation:
 
         return reconcile_output
 
-    def reconcile_schema(self, table_mapping: TableMapping, src_schema: list[ColumnType], tgt_schema: list[ColumnType]):
-        return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_mapping)
+    def reconcile_schema(
+        self, table_mapping: TableMapping, src_col_types: list[ColumnType], tgt_col_types: list[ColumnType]
+    ):
+        return self._schema_comparator.compare(src_col_types, tgt_col_types, self._source_engine, table_mapping)
 
     def reconcile_aggregates(
         self,
@@ -537,8 +539,8 @@ class Reconciliation:
     def _get_reconcile_aggregate_output(
         self,
         table_mapping: TableMapping,
-        src_schema,
-        tgt_schema,
+        src_col_types,
+        tgt_col_types,
     ):
         """
         Creates a single Query, for the aggregates having the same group by columns. (Ex: 1)
@@ -594,7 +596,7 @@ class Reconciliation:
 
         src_query_builder = AggregateQueryBuilder(
             table_mapping,
-            src_schema,
+            src_col_types,
             Layer.SOURCE,
             self._source_engine,
         )
@@ -607,7 +609,7 @@ class Reconciliation:
         # build Aggregate queries for target(Databricks),
         tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
             table_mapping,
-            tgt_schema,
+            tgt_col_types,
             Layer.TARGET,
             self._target_engine,
         ).build_queries()
@@ -874,7 +876,7 @@ class Reconciliation:
         return ReconcileRecordCount()
 
 
-def _get_schema(
+def _get_column_types(
     source: DataSource,
     target: DataSource,
     table_mapping: TableMapping,
@@ -916,7 +918,7 @@ def _run_reconcile_schema(
 ):
     try:
         return reconciler.reconcile_schema(
-            table_mapping=table_mapping, src_schema=src_col_types, tgt_schema=tgt_col_types
+            table_mapping=table_mapping, src_col_types=src_col_types, tgt_col_types=tgt_col_types
         )
     except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
