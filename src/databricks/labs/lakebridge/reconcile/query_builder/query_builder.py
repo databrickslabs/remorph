@@ -106,7 +106,9 @@ class QueryBuilder:
         if column.transform:
             return column
         user_transformations = self.user_transformations or {}
-        transform = user_transformations.get(column.alias, None)
+        transform = None
+        if column.alias:
+            transform = user_transformations.get(column.alias, None)
         if not transform:
             transform = user_transformations.get(column.name, None)
         return dataclasses.replace(column, transform=transform)
@@ -145,12 +147,12 @@ class QueryBuilder:
             Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in hash_cols
         ]
-        # in case if we have column mapping, we need to sort the target columns
+        # in case we have column mapping, we need to sort the target columns
         # in the same order as source columns to get the same hash value
-        hash_cols_with_alias_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
-        hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hash_cols_with_alias_sorted]
-        hash_cols_with_default_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
-        hash_col_with_concat = f"CONCAT({', '.join(col.transform or col.name for col in hash_cols_with_default_transform)})"
+        hash_cols_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
+        hash_cols_transformed = [self._apply_user_transformation(col) for col in hash_cols_sorted]
+        hash_cols_transformed = [self._apply_default_transformation(col) for col in hash_cols_transformed]
+        hash_col_with_concat = f"CONCAT({', '.join(col.transform or col.name for col in hash_cols_transformed)})"
         hash_col_with_hash = self.hash_transform.replace("$column$", hash_col_with_concat)
         hash_col_with_lower = f"LOWER({hash_col_with_hash}) AS hash_value_recon"
 
