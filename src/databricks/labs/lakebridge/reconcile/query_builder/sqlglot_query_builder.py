@@ -37,13 +37,12 @@ class SqlglotQueryBuilder(QueryBuilder):
     def __init__(self, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: Dialect):
         super().__init__(table_mapping, column_types, layer)
         self._dialect = dialect
-        self._user_transformations = None
 
     def sqlglot_apply_transformations(self, aliases: list[Expression], source: Dialect) -> list[Expression]:
-        if self._user_transformations:
+        if self.user_transformations:
             alias_with_user_transforms = self._sqlglot_apply_user_transformations(aliases)
             default_transform_column_types: list[ColumnType] = list(
-                filter(lambda sch: sch.column_name not in self._user_transformations.keys(), self.column_types)
+                filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.column_types)
             )
             return self._sqlglot_apply_default_transformer(
                 alias_with_user_transforms, default_transform_column_types, source
@@ -61,7 +60,7 @@ class SqlglotQueryBuilder(QueryBuilder):
 
     def _sqlglot_apply_user_transformations(self, aliases: list[Expression]):
         return list(
-            alias.transform(self._sqlglot_apply_transformations, self._user_transformations) for alias in aliases
+            alias.transform(self._sqlglot_apply_transformations, self.user_transformations) for alias in aliases
         )
 
     def _sqlglot_apply_default_transformer(

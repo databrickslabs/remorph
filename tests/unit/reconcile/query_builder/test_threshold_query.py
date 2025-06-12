@@ -77,17 +77,17 @@ def test_threshold_comparison_query_with_dual_threshold(table_mapping_with_opts,
 
 
 def test_build_threshold_query_with_single_threshold(table_mapping_with_opts, src_and_tgt_column_types):
-    table_conf = table_mapping_with_opts
-    table_conf.jdbc_reader_options = None
-    table_conf.transformations = [
+    mapping = table_mapping_with_opts
+    mapping.jdbc_reader_options = None
+    mapping.transformations = [
         Transformation(column_name="s_acctbal", source="cast(s_acctbal as number)", target="cast(s_acctbal_t as int)")
     ]
     src_col_types, tgt_col_types = src_and_tgt_column_types
     src_query = ThresholdQueryBuilder(
-        table_conf, src_col_types, Layer.SOURCE, get_dialect("oracle")
+        mapping, src_col_types, Layer.SOURCE, get_dialect("oracle")
     ).build_threshold_query()
     target_query = ThresholdQueryBuilder(
-        table_conf, tgt_col_types, Layer.TARGET, get_dialect("databricks")
+        mapping, tgt_col_types, Layer.TARGET, get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
         "SELECT s_nationkey AS s_nationkey, s_suppkey AS s_suppkey, "
