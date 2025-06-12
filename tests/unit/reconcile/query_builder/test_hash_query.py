@@ -7,65 +7,87 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
 
 
 @pytest.mark.parametrize(
-    "layer, dialect, expected",
+    "config, layer, report_type, dialect, expected",
     [
         (
+            None,
             Layer.SOURCE,
+            "data",
             "snowflake",
-            "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'),"
-            " TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey,"
+            "SELECT LOWER(SHA2(CONCAT("
+            "TRIM(s_address),"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " TRIM(s_phone),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
+            ""
+            " AS hash_value_recon, s_nationkey,"
             " s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
         ),
         (
+            None,
             Layer.TARGET,
+            "data",
             "databricks",
             "SELECT LOWER(SHA2(CONCAT("
-                "TRIM(s_address_t),"
-                " TRIM(s_name),"
-                " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
-                " TRIM(s_phone_t),"
-                " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256))"
+            "TRIM(s_address_t),"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+            " TRIM(s_phone_t),"
+            " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256))"
             " AS hash_value_recon,"
             " s_nationkey_t AS s_nationkey,"
             " s_suppkey_t AS s_suppkey"
             " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
         ),
+        (
+            {
+                "join_columns": ["s_suppkey", "s_nationkey"],
+                "filters": Filters(source="s_nationkey = 1"),
+                "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
+            },
+            Layer.SOURCE,
+            "all",
+            "oracle",
+            "SELECT LOWER(DBMS_CRYPTO.HASH(RAWTOHEX("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_')"
+            " || COALESCE(TRIM(s_address), '_null_recon_')"
+            " || COALESCE(TRIM(s_comment), '_null_recon_')"
+            " || COALESCE(TRIM(s_name), '_null_recon_')"
+            " || COALESCE(TRIM(s_nationkey), '_null_recon_')"
+            " || COALESCE(TRIM(s_phone), '_null_recon_')"
+            " || COALESCE(TRIM(s_suppkey), '_null_recon_')), 2))"
+            " AS hash_value_recon,"
+            " s_nationkey, "
+            "s_suppkey"
+            " FROM :tbl WHERE s_nationkey = 1",
+        ),
     ],
 )
-def test_hash_query_builder(table_mapping_with_opts, src_and_tgt_column_types, layer, dialect, expected):
+def test_hash_query_builder(
+    config,
+    layer,
+    report_type,
+    dialect,
+    expected,
+    table_mapping_factory,
+    table_mapping_with_opts,
+    column_mapping,
+    src_and_tgt_column_types,
+):
+    if config is None:
+        mapping = table_mapping_with_opts
+    else:
+        if config.get("column_mapping", None) is None:
+            config["column_mapping"] = column_mapping
+        mapping = table_mapping_factory(**config)
     column_types = src_and_tgt_column_types[0 if layer is Layer.SOURCE else 1]
-    builder = QueryBuilder.for_dialect(table_mapping_with_opts, column_types, layer, dialect)
-    query = builder.build_hash_query(report_type="data")
+    builder = QueryBuilder.for_dialect(mapping, column_types, layer, dialect)
+    query = builder.build_hash_query(report_type=report_type)
     assert query == expected
 
 
-def test_hash_query_builder_for_snowflake_src(table_mapping_with_opts, src_and_tgt_column_types):
-    src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(
-        table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("snowflake")
-    ).build_query(report_type="data")
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
-        "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey AS "
-        "s_nationkey, "
-        "s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
-    )
-
-    tgt_actual = HashQueryBuilder(
-        table_mapping_with_opts, tgt_col_types, Layer.TARGET, get_dialect("databricks")
-    ).build_query(report_type="data")
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'), "
-        "TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_nationkey_t AS "
-        "s_nationkey, "
-        "s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
-
-
-def test_hash_query_builder_for_oracle_src(table_mapping_factory, src_and_tgt_column_types, column_mapping):
+def test_hash_query_builder_for_oracle_src(table_mapping_factory, src_and_tgt_column_types):
     col_types, _ = src_and_tgt_column_types
     mapping = table_mapping_factory(
         join_columns=["s_suppkey", "s_nationkey"],

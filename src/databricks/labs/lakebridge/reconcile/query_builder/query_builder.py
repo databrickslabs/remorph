@@ -1,6 +1,7 @@
+from __future__ import annotations
 import dataclasses
 import logging
-
+from collections.abc import Callable
 
 from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
 from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableMapping, Aggregate, Layer
@@ -28,10 +29,18 @@ class Column:
 
 class QueryBuilder:
 
+    _factories: dict[str, Callable[[TableMapping, list[ColumnType], Layer], QueryBuilder]] = {}
+
     @classmethod
-    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, _dialect: str):
-        # TODO for now
-        return QueryBuilder(table_mapping, column_types, layer)
+    def register_factory(cls, dialect: str, factory: Callable[[TableMapping, list[ColumnType], Layer], QueryBuilder]):
+        cls._factories[dialect] = factory
+
+    @classmethod
+    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: str):
+        factory = cls._factories.get(dialect, None)
+        if not factory:
+            factory = QueryBuilder
+        return factory(table_mapping, column_types, layer)
 
     def __init__(
         self,
@@ -91,9 +100,10 @@ class QueryBuilder:
     def default_transformations(self) -> dict[str, list[str]]:
         return {"default": ["TRIM($column$)", "COALESCE($column$, '_null_recon_')"]}
 
-    @property
-    def hash_transform(self) -> str:
-        return "SHA2($column$, 256)"
+    def hash_transform(self, columns: list[Column]) -> str:
+        concat = f"CONCAT({', '.join(col.transform or col.name for col in columns)})"
+        hashed = f"SHA2({concat}, 256)"
+        return f"LOWER({hashed}) AS hash_value_recon"
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
         if field is None:
@@ -152,9 +162,7 @@ class QueryBuilder:
         hash_cols_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
         hash_cols_transformed = [self._apply_user_transformation(col) for col in hash_cols_sorted]
         hash_cols_transformed = [self._apply_default_transformation(col) for col in hash_cols_transformed]
-        hash_col_with_concat = f"CONCAT({', '.join(col.transform or col.name for col in hash_cols_transformed)})"
-        hash_col_with_hash = self.hash_transform.replace("$column$", hash_col_with_concat)
-        hash_col_with_lower = f"LOWER({hash_col_with_hash}) AS hash_value_recon"
+        hash_col = self.hash_transform(hash_cols_transformed)
 
         key_cols = hash_cols if report_type == "row" else sorted(join_columns | self.partition_column)
         key_cols_with_alias = [
@@ -163,7 +171,18 @@ class QueryBuilder:
         ]
         key_cols_with_transform = [self._apply_user_transformation(col) for col in key_cols_with_alias]
 
-        columns_to_select = [hash_col_with_lower] + [col.sql() for col in key_cols_with_transform]
+        columns_to_select = [hash_col] + [col.sql() for col in key_cols_with_transform]
         sql = f"SELECT {', '.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
         logger.info(f"Hash Query for {self.layer}: {sql}")
         return sql
+
+
+class OracleQueryBuilder(QueryBuilder):
+
+    def hash_transform(self, columns: list[Column]) -> str:
+        concat = f"RAWTOHEX({' || '.join(col.transform or col.name for col in columns)})"
+        hashed = f"DBMS_CRYPTO.HASH({concat}, 2)"
+        return f"LOWER({hashed}) AS hash_value_recon"
+
+
+QueryBuilder.register_factory("oracle", OracleQueryBuilder)
