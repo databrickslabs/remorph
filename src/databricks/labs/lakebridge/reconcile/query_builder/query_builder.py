@@ -146,7 +146,7 @@ class QueryBuilder:
             for col in hash_cols
         ]
         # in case if we have column mapping, we need to sort the target columns
-        # in the same order as source columns to ge the same hash value
+        # in the same order as source columns to get the same hash value
         hash_cols_with_alias_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
         hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hash_cols_with_alias_sorted]
         hash_cols_with_default_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
