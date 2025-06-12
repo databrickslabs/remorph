@@ -224,7 +224,7 @@ class ThresholdQueryBuilder(SqlglotQueryBuilder):
             build_column(this=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in keys
         ]
-        keys_expr = self._apply_user_transformation(keys_select_alias)
+        keys_expr = self._sqlglot_apply_user_transformations(keys_select_alias)
 
         # threshold column expression
         threshold_alias = [
@@ -233,7 +233,7 @@ class ThresholdQueryBuilder(SqlglotQueryBuilder):
         ]
         thresholds_expr = threshold_alias
         if self.user_transformations:
-            thresholds_expr = self._apply_user_transformation(threshold_alias)
+            thresholds_expr = self._sqlglot_apply_user_transformations(threshold_alias)
 
         query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self._dialect)
         logger.info(f"Threshold Query for {self.layer}: {query}")

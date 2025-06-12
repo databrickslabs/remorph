@@ -57,7 +57,9 @@ class HashQueryBuilder(SqlglotQueryBuilder):
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
 
         key_cols_with_transform = (
-            self._apply_user_transformation(key_cols_with_alias) if self.user_transformations else key_cols_with_alias
+            self._sqlglot_apply_user_transformations(key_cols_with_alias)
+            if self.user_transformations
+            else key_cols_with_alias
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
@@ -78,7 +80,7 @@ class HashQueryBuilder(SqlglotQueryBuilder):
         column_alias: str,
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
-        cols_with_transform = self.add_transformations(
+        cols_with_transform = self.sqlglot_apply_transformations(
             cols_with_alias, self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
         )
         col_exprs = exp.select(*cols_with_transform).iter_expressions()

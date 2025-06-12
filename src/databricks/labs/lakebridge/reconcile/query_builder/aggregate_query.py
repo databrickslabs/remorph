@@ -141,7 +141,9 @@ class AggregateQueryBuilder(SqlglotQueryBuilder):
         # Apply user transformations on Select columns
         # Example: {column_name: creation_date, source: creation_date, target: to_date(creation_date,'yyyy-mm-dd')}
         select_cols_with_transform = (
-            self._apply_user_transformation(cols_with_mapping) if self.user_transformations else cols_with_mapping
+            self._sqlglot_apply_user_transformations(cols_with_mapping)
+            if self.user_transformations
+            else cols_with_mapping
         )
 
         # Transformed columns

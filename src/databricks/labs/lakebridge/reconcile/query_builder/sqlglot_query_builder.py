@@ -37,36 +37,34 @@ class SqlglotQueryBuilder(QueryBuilder):
     def __init__(self, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: Dialect):
         super().__init__(table_mapping, column_types, layer)
         self._dialect = dialect
+        self._user_transformations = None
 
-    def add_transformations(self, aliases: list[Expression], source: Dialect) -> list[Expression]:
-        if self.user_transformations:
-            alias_with_user_transforms = self._apply_user_transformation(aliases)
+    def sqlglot_apply_transformations(self, aliases: list[Expression], source: Dialect) -> list[Expression]:
+        if self._user_transformations:
+            alias_with_user_transforms = self._sqlglot_apply_user_transformations(aliases)
             default_transform_column_types: list[ColumnType] = list(
-                filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.column_types)
+                filter(lambda sch: sch.column_name not in self._user_transformations.keys(), self.column_types)
             )
-            return self._apply_default_transformation(
+            return self._sqlglot_apply_default_transformer(
                 alias_with_user_transforms, default_transform_column_types, source
             )
-        return self._apply_default_transformation(aliases, self.column_types, source)
+        return self._sqlglot_apply_default_transformer(aliases, self.column_types, source)
 
-    def _apply_user_transformation(self, aliases: list[Expression]) -> list[Expression]:
-        with_transform = []
-        for alias in aliases:
-            with_transform.append(alias.transform(self._user_transformer, self.user_transformations))
-        return with_transform
-
-    def _user_transformer(self, node: Expression, user_transformations: dict[str, str]) -> Expression:
-        if isinstance(node, Column) and user_transformations:
+    def _sqlglot_apply_transformations(self, node: Expression, transformations: dict[str, str]) -> Expression:
+        if not transformations or not isinstance(node, Column):
+            return node
+        column_name = node.name
+        if column_name in transformations.keys():
             dialect = self._dialect if self.layer is Layer.SOURCE else get_dialect("databricks")
-            column_name = node.name
-            if column_name in user_transformations.keys():
-                return parse_one(user_transformations.get(column_name, column_name), read=dialect)
+            return parse_one(transformations.get(column_name, column_name), read=dialect)
         return node
 
-    def _apply_default_transformation(
+    def _sqlglot_apply_user_transformations(self, aliases: list[Expression]):
+        return list(
+            alias.transform(self._sqlglot_apply_transformations, self._user_transformations) for alias in aliases
+        )
+
+    def _sqlglot_apply_default_transformer(
         self, aliases: list[Expression], column_types: list[ColumnType], source: Dialect
     ) -> list[Expression]:
-        with_transform = []
-        for alias in aliases:
-            with_transform.append(alias.transform(self._default_transformer, column_types, source))
-        return with_transform
+        return list(alias.transform(self._default_transformer, column_types, source) for alias in aliases)

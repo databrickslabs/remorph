@@ -89,9 +89,8 @@ class QueryBuilder:
 
     @property
     def default_transformations(self) -> dict[str, list[str]]:
-        return {
-            "default": [ "TRIM($column$)", "COALESCE($column$, '_null_recon_')"]
-        }
+        return {"default": ["TRIM($column$)", "COALESCE($column$, '_null_recon_')"]}
+
     @property
     def hash_transform(self) -> str:
         return "SHA2($column$, 256)"
@@ -138,18 +137,16 @@ class QueryBuilder:
         if report_type != 'row':
             self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
 
-        join_columns = self.join_columns or set()
+        join_columns: set[str] = self.join_columns or set()
 
-        hash_cols = list((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        hash_cols: list[str] = list((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
         hash_cols_with_alias = [
-            Column(table = None,
-                   name=col,
-                   alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in hash_cols
         ]
         # in case if we have column mapping, we need to sort the target columns
         # in the same order as source columns to ge the same hash value
-        hash_cols_with_alias_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias)
+        hash_cols_with_alias_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
         hash_cols_with_user_transform = [self._apply_user_transformation(col) for col in hash_cols_with_alias_sorted]
         hash_cols_with_transform = [self._apply_default_transformation(col) for col in hash_cols_with_user_transform]
         hash_col_with_concat = f"CONCAT({', '.join(col.transform or col.name for col in hash_cols_with_transform)})"
@@ -158,16 +155,12 @@ class QueryBuilder:
 
         key_cols = hash_cols if report_type == "row" else sorted(join_columns | self.partition_column)
         key_cols_with_alias = [
-            Column(table = None,
-                   name=col,
-                   alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
-        key_cols_with_transform = [ self._apply_user_transformation(col) for col in key_cols_with_alias ]
-
+        key_cols_with_transform = [self._apply_user_transformation(col) for col in key_cols_with_alias]
 
         columns_to_select = [hash_col_with_lower] + [col.sql() for col in key_cols_with_transform]
         sql = f"SELECT {', '.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
         logger.info(f"Hash Query for {self.layer}: {sql}")
         return sql
-
