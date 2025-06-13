@@ -5,13 +5,17 @@ from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQu
 from databricks.labs.lakebridge.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMapping, Transformation, Layer
 
-from tests.conftest import src_column_types, tgt_column_types
-
 _test_config_1 = {
                 "join_columns": ["s_suppkey", "s_nationkey"],
                 "filters": Filters(source="s_nationkey = 1"),
                 "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
             }
+
+_test_config_2 = {
+    "join_columns": ["s_suppkey"],
+    "filters": Filters(target="s_nationkey_t = 1"),
+}
+
 
 @pytest.mark.parametrize(
     "config, column_types, layer, report_type, dialect, expected",
@@ -87,6 +91,41 @@ _test_config_1 = {
             " s_suppkey"
             " FROM :tbl"
         ),
+        (
+            _test_config_2,
+            "src_column_types",
+            Layer.SOURCE,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            " COALESCE(TRIM(s_address), '_null_recon_'),"
+            " COALESCE(TRIM(s_comment), '_null_recon_'),"
+            " COALESCE(TRIM(s_name), '_null_recon_'),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
+            " AS hash_value_recon,"
+            " s_suppkey FROM :tbl"
+        ),
+        (
+            _test_config_2,
+            "tgt_column_types",
+            Layer.TARGET,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_address_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_comment_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_name), '_null_recon_'),"
+            " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256))"
+            " AS hash_value_recon,"
+            " s_suppkey_t AS s_suppkey"
+            " FROM :tbl WHERE s_nationkey_t = 1"
+        )
     ],
 )
 def test_hash_query_builder(
@@ -111,41 +150,6 @@ def test_hash_query_builder(
     builder = QueryBuilder.for_dialect(mapping, col_types, layer, dialect)
     query = builder.build_hash_query(report_type=report_type)
     assert query == expected
-
-
-def test_hash_query_builder_for_databricks_src(table_mapping_factory, src_and_tgt_column_types, column_mapping):
-    mapping = table_mapping_factory(
-        join_columns=["s_suppkey"],
-        column_mapping=column_mapping,
-        filters=Filters(target="s_nationkey_t=1"),
-    )
-    src_col_types, tgt_gol_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), '_null_recon_'), "
-        "COALESCE(TRIM(s_comment), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM("
-        "s_nationkey), '_null_recon_'), COALESCE(TRIM("
-        "s_phone), '_null_recon_'), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_suppkey "
-        "AS s_suppkey FROM :tbl"
-    )
-
-    tgt_actual = HashQueryBuilder(mapping, tgt_gol_types, Layer.TARGET, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal_t), '_null_recon_'), COALESCE(TRIM(s_address_t), "
-        "'_null_recon_'), COALESCE(TRIM("
-        "s_comment_t), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM(s_nationkey_t), "
-        "'_null_recon_'), COALESCE(TRIM(s_phone_t), "
-        "'_null_recon_'), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, s_suppkey_t AS "
-        "s_suppkey FROM :tbl WHERE "
-        "s_nationkey_t = 1"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
 
 
 def test_hash_query_builder_without_column_mapping(table_mapping_factory, src_and_tgt_column_types):
