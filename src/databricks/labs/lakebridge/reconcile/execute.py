@@ -30,7 +30,6 @@ from databricks.labs.lakebridge.reconcile.exception import (
     ReconciliationException,
 )
 from databricks.labs.lakebridge.reconcile.query_builder.aggregate_query import AggregateQueryBuilder
-from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -505,12 +504,22 @@ class Reconciliation:
         src_col_types: list[ColumnType],
         tgt_col_types: list[ColumnType],
     ):
-        src_hash_query = HashQueryBuilder(table_mapping, src_col_types, Layer.SOURCE, self._source_engine).build_query(
-            report_type=self._report_type
+        src_builder = QueryBuilder.for_dialect(
+            table_mapping, src_col_types, Layer.SOURCE, get_dialect_name(self._source_engine)
         )
-        tgt_hash_query = HashQueryBuilder(table_mapping, tgt_col_types, Layer.TARGET, self._source_engine).build_query(
-            report_type=self._report_type
+        # TODO in the legacy code, the below was using the _source_engine, we assume it was a bug
+        tgt_builder = QueryBuilder.for_dialect(
+            table_mapping, tgt_col_types, Layer.TARGET, get_dialect_name(self._target_engine)
         )
+        algo = tgt_builder.preferred_hash_algorithm
+        if algo not in src_builder.supported_hash_algorithms:
+            algo = src_builder.preferred_hash_algorithm
+        if algo not in tgt_builder.supported_hash_algorithms:
+            raise ValueError(
+                f"Could not determine a hash algorithm valid for both {get_dialect_name(self._source_engine)} and {get_dialect_name(self._target_engine)}"
+            )
+        src_hash_query = src_builder.build_hash_query(report_type=self._report_type, hash_algo=algo)
+        tgt_hash_query = tgt_builder.build_hash_query(report_type=self._report_type, hash_algo=algo)
         src_data = self._source.read_data(
             catalog=self._database_config.source_catalog,
             schema=self._database_config.source_schema,
