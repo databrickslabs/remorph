@@ -507,7 +507,8 @@ class Reconciliation:
         src_builder = QueryBuilder.for_dialect(
             table_mapping, src_col_types, Layer.SOURCE, get_dialect_name(self._source_engine)
         )
-        # TODO in the legacy code, the below was using the _source_engine, we assume it was a bug
+        # TODO in the legacy code, the below was using the _source_engine dialect, we suspect it is a bug
+        # this definitely requires a 2nd pair of eyes
         tgt_builder = QueryBuilder.for_dialect(
             table_mapping, tgt_col_types, Layer.TARGET, get_dialect_name(self._source_engine)
         )
