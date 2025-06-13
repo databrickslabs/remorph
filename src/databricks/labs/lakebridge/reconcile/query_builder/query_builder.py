@@ -220,6 +220,10 @@ QueryBuilder.register_factory("oracle", OracleQueryBuilder)
 
 class TSqlQueryBuilder(QueryBuilder):
 
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.SHA_256]
+
     def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
         if hash_algo is not HashAlgorithm.SHA_256:
             raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
