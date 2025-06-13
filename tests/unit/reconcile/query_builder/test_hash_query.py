@@ -22,6 +22,16 @@ _test_config_3 = {
     "filters": Filters(target="s_nationkey = 1"),
 }
 
+_test_config_4 = {
+    "join_columns": ["s_suppkey"],
+    "transformations": [
+        Transformation(column_name="s_address", source=None, target="TRIM(s_address_t)"),
+        Transformation(column_name="s_name", source="TRIM(s_name)", target=None),
+        Transformation(column_name="s_suppkey", source="TRIM(s_suppkey)", target=None),
+    ],
+    "filters": Filters(target="s_nationkey_t = 1"),
+}
+
 @pytest.mark.parametrize(
     "config, column_types, layer, report_type, dialect, expected",
     [
@@ -164,6 +174,40 @@ _test_config_3 = {
             " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
             " AS hash_value_recon,"
             " s_suppkey FROM :tbl WHERE s_nationkey = 1"
+        ),
+        (
+            _test_config_4,
+            "src_column_types",
+            Layer.SOURCE,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"""
+            " s_address,"
+            " COALESCE(TRIM(s_comment), '_null_recon_'),"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " TRIM(s_suppkey)), 256)) AS hash_value_recon,"
+            " TRIM(s_suppkey) AS s_suppkey"
+            " FROM :tbl"
+        ),
+        (
+            _test_config_4,
+            "tgt_column_types",
+            Layer.TARGET,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal_t), '_null_recon_'),"
+            " TRIM(s_address_t),"
+            " COALESCE(TRIM(s_comment_t), '_null_recon_'),"
+            " s_name,"
+            " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone_t), '_null_recon_'),"
+            " s_suppkey_t), 256)) AS hash_value_recon,"
+            " s_suppkey_t AS s_suppkey"
+            " FROM :tbl WHERE s_nationkey_t = 1"
         )
     ],
 )
@@ -189,44 +233,6 @@ def test_hash_query_builder(
     builder = QueryBuilder.for_dialect(mapping, col_types, layer, dialect)
     query = builder.build_hash_query(report_type=report_type)
     assert query == expected
-
-
-
-def test_hash_query_builder_without_transformation(table_mapping_factory, src_and_tgt_column_types, column_mapping):
-    mapping = table_mapping_factory(
-        join_columns=["s_suppkey"],
-        transformations=[
-            Transformation(column_name="s_address", source=None, target="trim(s_address_t)"),
-            Transformation(column_name="s_name", source="trim(s_name)", target=None),
-            Transformation(column_name="s_suppkey", source="trim(s_suppkey)", target=None),
-        ],
-        column_mapping=column_mapping,
-        filters=Filters(target="s_nationkey_t=1"),
-    )
-    src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), s_address, "
-        "COALESCE(TRIM(s_comment), '_null_recon_'), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
-        "COALESCE(TRIM("
-        "s_phone), '_null_recon_'), TRIM(s_suppkey)), 256)) AS hash_value_recon, TRIM(s_suppkey) AS s_suppkey FROM :tbl"
-    )
-
-    tgt_actual = HashQueryBuilder(mapping, tgt_col_types, Layer.TARGET, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal_t), '_null_recon_'), TRIM(s_address_t), COALESCE(TRIM("
-        "s_comment_t), '_null_recon_'), s_name, COALESCE(TRIM(s_nationkey_t), '_null_recon_'), COALESCE(TRIM("
-        "s_phone_t), "
-        "'_null_recon_'), s_suppkey_t), 256)) AS hash_value_recon, s_suppkey_t AS s_suppkey FROM :tbl WHERE "
-        "s_nationkey_t = 1"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
 
 
 def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, src_and_tgt_column_types, column_mapping):
