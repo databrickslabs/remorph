@@ -509,7 +509,7 @@ class Reconciliation:
         )
         # TODO in the legacy code, the below was using the _source_engine, we assume it was a bug
         tgt_builder = QueryBuilder.for_dialect(
-            table_mapping, tgt_col_types, Layer.TARGET, get_dialect_name(self._target_engine)
+            table_mapping, tgt_col_types, Layer.TARGET, get_dialect_name(self._source_engine)
         )
         algo = tgt_builder.preferred_hash_algorithm
         if algo not in src_builder.supported_hash_algorithms:
