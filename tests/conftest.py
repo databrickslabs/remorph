@@ -104,6 +104,7 @@ def src_column_types():
         ColumnType("s_comment", "varchar"),
     ]
 
+
 @pytest.fixture
 def tgt_column_types():
     return [
@@ -115,6 +116,7 @@ def tgt_column_types():
         ColumnType("s_acctbal_t", "number"),
         ColumnType("s_comment_t", "varchar"),
     ]
+
 
 @pytest.fixture
 def src_and_tgt_column_types(src_column_types, tgt_column_types):

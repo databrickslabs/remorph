@@ -1,15 +1,13 @@
 import pytest
 
-from databricks.labs.lakebridge.reconcile.dialects.utils import get_dialect
-from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.lakebridge.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMapping, Transformation, Layer
 
 _test_config_1 = {
-                "join_columns": ["s_suppkey", "s_nationkey"],
-                "filters": Filters(source="s_nationkey = 1"),
-                "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
-            }
+    "join_columns": ["s_suppkey", "s_nationkey"],
+    "filters": Filters(source="s_nationkey = 1"),
+    "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
+}
 
 _test_config_2 = {
     "join_columns": ["s_suppkey"],
@@ -43,6 +41,7 @@ _test_config_5 = {
     ],
     "filters": Filters(target="s_nationkey_t = 1"),
 }
+
 
 @pytest.mark.parametrize(
     "config, column_types, layer, report_type, dialect, expected",
@@ -113,10 +112,11 @@ _test_config_5 = {
             " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
-            " AS hash_value_recon,"""
+            " AS hash_value_recon,"
+            ""
             " s_nationkey,"
             " s_suppkey"
-            " FROM :tbl"
+            " FROM :tbl",
         ),
         (
             _test_config_2,
@@ -133,7 +133,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
             " AS hash_value_recon,"
-            " s_suppkey FROM :tbl"
+            " s_suppkey FROM :tbl",
         ),
         (
             _test_config_2,
@@ -151,7 +151,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256))"
             " AS hash_value_recon,"
             " s_suppkey_t AS s_suppkey"
-            " FROM :tbl WHERE s_nationkey_t = 1"
+            " FROM :tbl WHERE s_nationkey_t = 1",
         ),
         (
             _test_config_3,
@@ -168,7 +168,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
             " AS hash_value_recon,"
-            " s_suppkey FROM :tbl"
+            " s_suppkey FROM :tbl",
         ),
         (
             _test_config_3,
@@ -185,7 +185,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
             " AS hash_value_recon,"
-            " s_suppkey FROM :tbl WHERE s_nationkey = 1"
+            " s_suppkey FROM :tbl WHERE s_nationkey = 1",
         ),
         (
             _test_config_4,
@@ -194,7 +194,8 @@ _test_config_5 = {
             "data",
             "databricks",
             "SELECT LOWER(SHA2(CONCAT("
-            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"""
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            ""
             " s_address,"
             " COALESCE(TRIM(s_comment), '_null_recon_'),"
             " TRIM(s_name),"
@@ -202,7 +203,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " TRIM(s_suppkey)), 256)) AS hash_value_recon,"
             " TRIM(s_suppkey) AS s_suppkey"
-            " FROM :tbl"
+            " FROM :tbl",
         ),
         (
             _test_config_4,
@@ -219,7 +220,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone_t), '_null_recon_'),"
             " s_suppkey_t), 256)) AS hash_value_recon,"
             " s_suppkey_t AS s_suppkey"
-            " FROM :tbl WHERE s_nationkey_t = 1"
+            " FROM :tbl WHERE s_nationkey_t = 1",
         ),
         (
             None,
@@ -238,7 +239,7 @@ _test_config_5 = {
             " s_nationkey,"
             " TRIM(s_phone) AS s_phone,"
             " s_suppkey"
-            " FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+            " FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
         ),
         (
             None,
@@ -257,7 +258,7 @@ _test_config_5 = {
             " s_nationkey_t AS s_nationkey,"
             " TRIM(s_phone_t) AS s_phone,"
             " s_suppkey_t AS s_suppkey"
-            " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+            " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
         ),
         (
             _test_config_5,
@@ -272,7 +273,7 @@ _test_config_5 = {
             " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
             " COALESCE(TRIM(s_phone), '_null_recon_'),"
             " TRIM(s_suppkey)), 256)) AS hash_value_recon,"
-            " TRIM(s_suppkey) AS s_suppkey FROM :tbl"
+            " TRIM(s_suppkey) AS s_suppkey FROM :tbl",
         ),
         (
             _test_config_5,
@@ -288,9 +289,8 @@ _test_config_5 = {
             " COALESCE(TRIM(s_phone_t), '_null_recon_'),"
             " s_suppkey_t), 256)) AS hash_value_recon,"
             " s_suppkey_t AS s_suppkey"
-            " FROM :tbl WHERE s_nationkey_t = 1"
-
-        )
+            " FROM :tbl WHERE s_nationkey_t = 1",
+        ),
     ],
 )
 def test_hash_query_builder(
