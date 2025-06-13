@@ -32,6 +32,18 @@ _test_config_4 = {
     "filters": Filters(target="s_nationkey_t = 1"),
 }
 
+_test_config_5 = {
+    "select_columns": ["S_SUPPKEY", "S_name", "S_ADDRESS", "S_NATIOnKEY", "S_PhONE", "S_acctbal"],
+    "drop_columns": ["s_Comment"],
+    "join_columns": ["S_SUPPKEY"],
+    "transformations": [
+        Transformation(column_name="S_ADDRESS", source=None, target="TRIM(s_address_t)"),
+        Transformation(column_name="S_NAME", source="TRIM(s_name)", target=None),
+        Transformation(column_name="s_suppKey", source="TRIM(s_suppkey)", target=None),
+    ],
+    "filters": Filters(target="s_nationkey_t = 1"),
+}
+
 @pytest.mark.parametrize(
     "config, column_types, layer, report_type, dialect, expected",
     [
@@ -246,6 +258,38 @@ _test_config_4 = {
             " TRIM(s_phone_t) AS s_phone,"
             " s_suppkey_t AS s_suppkey"
             " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+        ),
+        (
+            _test_config_5,
+            "src_column_types",
+            Layer.SOURCE,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            " s_address,"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " TRIM(s_suppkey)), 256)) AS hash_value_recon,"
+            " TRIM(s_suppkey) AS s_suppkey FROM :tbl"
+        ),
+        (
+            _test_config_5,
+            "tgt_column_types",
+            Layer.TARGET,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal_t), '_null_recon_'),"
+            " TRIM(s_address_t),"
+            " s_name,"
+            " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone_t), '_null_recon_'),"
+            " s_suppkey_t), 256)) AS hash_value_recon,"
+            " s_suppkey_t AS s_suppkey"
+            " FROM :tbl WHERE s_nationkey_t = 1"
+
         )
     ],
 )
@@ -271,41 +315,3 @@ def test_hash_query_builder(
     builder = QueryBuilder.for_dialect(mapping, col_types, layer, dialect)
     query = builder.build_hash_query(report_type=report_type)
     assert query == expected
-
-
-def test_config_case_sensitivity(table_mapping_factory, src_and_tgt_column_types, column_mapping):
-    mapping = table_mapping_factory(
-        select_columns=["S_SUPPKEY", "S_name", "S_ADDRESS", "S_NATIOnKEY", "S_PhONE", "S_acctbal"],
-        drop_columns=["s_Comment"],
-        join_columns=["S_SUPPKEY"],
-        transformations=[
-            Transformation(column_name="S_ADDRESS", source=None, target="trim(s_address_t)"),
-            Transformation(column_name="S_NAME", source="trim(s_name)", target=None),
-            Transformation(column_name="s_suppKey", source="trim(s_suppkey)", target=None),
-        ],
-        column_mapping=column_mapping,
-        filters=Filters(target="s_nationkey_t=1"),
-    )
-    src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), s_address, "
-        "TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), COALESCE(TRIM("
-        "s_phone), '_null_recon_'), TRIM(s_suppkey)), 256)) AS hash_value_recon, TRIM(s_suppkey) AS s_suppkey FROM :tbl"
-    )
-
-    tgt_actual = HashQueryBuilder(mapping, tgt_col_types, Layer.TARGET, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal_t), '_null_recon_'), TRIM(s_address_t), s_name, "
-        "COALESCE(TRIM("
-        "s_nationkey_t), '_null_recon_'), COALESCE(TRIM(s_phone_t), '_null_recon_'), s_suppkey_t), "
-        "256)) AS hash_value_recon, s_suppkey_t AS "
-        "s_suppkey FROM :tbl WHERE s_nationkey_t = 1"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
