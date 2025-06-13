@@ -2,6 +2,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 from collections.abc import Callable
+from enum import Enum
 
 from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
 from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableMapping, Aggregate, Layer
@@ -25,6 +26,11 @@ class Column:
         if self.alias and self.alias != self.name:
             return f"{self.name} AS {self.alias}"
         return self.name
+
+
+class HashAlgorithm(Enum):
+    SHA_256 = ("SHA_256",)
+    MD5 = "MD5"
 
 
 class QueryBuilder:
@@ -100,9 +106,24 @@ class QueryBuilder:
     def default_transformations(self) -> dict[str, list[str]]:
         return {"default": ["TRIM($column$)", "COALESCE($column$, '_null_recon_')"]}
 
-    def hash_transform(self, columns: list[Column]) -> str:
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.SHA_256, HashAlgorithm.MD5]
+
+    @property
+    def preferred_hash_algorithm(self):
+        if HashAlgorithm.SHA_256 in self.supported_hash_algorithms:
+            return HashAlgorithm.SHA_256
+        return self.supported_hash_algorithms[0]
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
         concat = f"CONCAT({', '.join(col.transform or col.name for col in columns)})"
-        hashed = f"SHA2({concat}, 256)"
+        if hash_algo is HashAlgorithm.SHA_256:
+            hashed = f"SHA2({concat}, 256)"
+        elif hash_algo is HashAlgorithm.MD5:
+            hashed = f"MD5({concat})"
+        else:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
         return f"LOWER({hashed}) AS hash_value_recon"
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
@@ -146,7 +167,7 @@ class QueryBuilder:
     def build_count_query(self) -> str:
         return f"SELECT COUNT(1) AS count FROM :tbl WHERE {self.filter}"
 
-    def build_hash_query(self, report_type: str) -> str:
+    def build_hash_query(self, report_type: str, hash_algo: HashAlgorithm | None = None) -> str:
         if report_type != 'row':
             self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
 
@@ -162,7 +183,10 @@ class QueryBuilder:
         hash_cols_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
         hash_cols_transformed = [self._apply_user_transformation(col) for col in hash_cols_sorted]
         hash_cols_transformed = [self._apply_default_transformation(col) for col in hash_cols_transformed]
-        hash_col = self.hash_transform(hash_cols_transformed)
+        # select hash algo
+        if hash_algo is None:
+            hash_algo = self.preferred_hash_algorithm
+        hash_col = self.hash_transform(hash_cols_transformed, hash_algo)
 
         key_cols = sorted(hash_cols if report_type == "row" else join_columns | self.partition_column)
         key_cols_with_alias = [
@@ -179,10 +203,29 @@ class QueryBuilder:
 
 class OracleQueryBuilder(QueryBuilder):
 
-    def hash_transform(self, columns: list[Column]) -> str:
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.MD5]
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
+        if hash_algo is not HashAlgorithm.MD5:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
         concat = f"RAWTOHEX({' || '.join(col.transform or col.name for col in columns)})"
         hashed = f"DBMS_CRYPTO.HASH({concat}, 2)"
         return f"LOWER({hashed}) AS hash_value_recon"
 
 
 QueryBuilder.register_factory("oracle", OracleQueryBuilder)
+
+
+class TSqlQueryBuilder(QueryBuilder):
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
+        if hash_algo is not HashAlgorithm.SHA_256:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
+        concat = f"CONCAT({', '.join(col.transform or col.name for col in columns)})"
+        hashed = f"CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256), {concat})), 2)"
+        return f"LOWER({hashed}) AS hash_value_recon"
+
+
+QueryBuilder.register_factory("tsql", TSqlQueryBuilder)
