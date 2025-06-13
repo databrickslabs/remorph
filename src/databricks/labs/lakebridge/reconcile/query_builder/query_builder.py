@@ -164,7 +164,7 @@ class QueryBuilder:
         hash_cols_transformed = [self._apply_default_transformation(col) for col in hash_cols_transformed]
         hash_col = self.hash_transform(hash_cols_transformed)
 
-        key_cols = hash_cols if report_type == "row" else sorted(join_columns | self.partition_column)
+        key_cols = sorted(hash_cols if report_type == "row" else join_columns | self.partition_column)
         key_cols_with_alias = [
             Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols

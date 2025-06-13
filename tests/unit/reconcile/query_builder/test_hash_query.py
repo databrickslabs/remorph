@@ -208,6 +208,44 @@ _test_config_4 = {
             " s_suppkey_t), 256)) AS hash_value_recon,"
             " s_suppkey_t AS s_suppkey"
             " FROM :tbl WHERE s_nationkey_t = 1"
+        ),
+        (
+            None,
+            "src_column_types",
+            Layer.SOURCE,
+            "row",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "TRIM(s_address),"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " TRIM(s_phone),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon,"
+            " TRIM(s_address) AS s_address,"
+            " TRIM(s_name) AS s_name,"
+            " s_nationkey,"
+            " TRIM(s_phone) AS s_phone,"
+            " s_suppkey"
+            " FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+        ),
+        (
+            None,
+            "tgt_column_types",
+            Layer.TARGET,
+            "row",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "TRIM(s_address_t),"
+            " TRIM(s_name),"
+            " COALESCE(TRIM(s_nationkey_t), '_null_recon_'),"
+            " TRIM(s_phone_t),"
+            " COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon,"
+            " TRIM(s_address_t) AS s_address,"
+            " TRIM(s_name) AS s_name,"
+            " s_nationkey_t AS s_nationkey,"
+            " TRIM(s_phone_t) AS s_phone,"
+            " s_suppkey_t AS s_suppkey"
+            " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
         )
     ],
 )
@@ -233,34 +271,6 @@ def test_hash_query_builder(
     builder = QueryBuilder.for_dialect(mapping, col_types, layer, dialect)
     query = builder.build_hash_query(report_type=report_type)
     assert query == expected
-
-
-def test_hash_query_builder_for_report_type_is_row(table_mapping_with_opts, src_and_tgt_column_types, column_mapping):
-    src_col_types, tgt_col_types = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(
-        table_mapping_with_opts, src_col_types, Layer.SOURCE, get_dialect("databricks")
-    ).build_query(report_type="row")
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), "
-        "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address) AS "
-        "s_address, TRIM(s_name) AS s_name, s_nationkey AS s_nationkey, TRIM(s_phone) "
-        "AS s_phone, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND "
-        "s_address = 'a'"
-    )
-
-    tgt_actual = HashQueryBuilder(
-        table_mapping_with_opts, tgt_col_types, Layer.TARGET, get_dialect("databricks")
-    ).build_query(report_type="row")
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'), "
-        "TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address_t) "
-        "AS s_address, TRIM(s_name) AS s_name, s_nationkey_t AS s_nationkey, "
-        "TRIM(s_phone_t) AS s_phone, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name "
-        "= 't' AND s_address_t = 'a'"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
 
 
 def test_config_case_sensitivity(table_mapping_factory, src_and_tgt_column_types, column_mapping):
