@@ -5,6 +5,11 @@ from databricks.labs.lakebridge.reconcile.query_builder.hash_query import HashQu
 from databricks.labs.lakebridge.reconcile.query_builder.query_builder import QueryBuilder
 from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMapping, Transformation, Layer
 
+_test_config_1 = {
+                "join_columns": ["s_suppkey", "s_nationkey"],
+                "filters": Filters(source="s_nationkey = 1"),
+                "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
+            }
 
 @pytest.mark.parametrize(
     "config, layer, report_type, dialect, expected",
@@ -41,11 +46,7 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
             " FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
         ),
         (
-            {
-                "join_columns": ["s_suppkey", "s_nationkey"],
-                "filters": Filters(source="s_nationkey = 1"),
-                "column_mapping": [ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
-            },
+            _test_config_1,
             Layer.SOURCE,
             "all",
             "oracle",
@@ -58,9 +59,27 @@ from databricks.labs.lakebridge.reconcile.recon_config import Filters, ColumnMap
             " || COALESCE(TRIM(s_phone), '_null_recon_')"
             " || COALESCE(TRIM(s_suppkey), '_null_recon_')), 2))"
             " AS hash_value_recon,"
-            " s_nationkey, "
-            "s_suppkey"
+            " s_nationkey,"
+            " s_suppkey"
             " FROM :tbl WHERE s_nationkey = 1",
+        ),
+        (
+            _test_config_1,
+            Layer.TARGET,
+            "all",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            " COALESCE(TRIM(s_address), '_null_recon_'),"
+            " COALESCE(TRIM(s_comment), '_null_recon_'),"
+            " COALESCE(TRIM(s_name), '_null_recon_'),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
+            " AS hash_value_recon,"""
+            " s_nationkey,"
+            " s_suppkey "
+            " FROM :tbl"
         ),
     ],
 )
@@ -88,13 +107,13 @@ def test_hash_query_builder(
 
 
 def test_hash_query_builder_for_oracle_src(table_mapping_factory, src_and_tgt_column_types):
-    col_types, _ = src_and_tgt_column_types
+    src_col_types, tgt_col_types = src_and_tgt_column_types
     mapping = table_mapping_factory(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
         column_mapping=[ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
     )
-    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("oracle")).build_query(
+    src_actual = HashQueryBuilder(mapping, src_col_types, Layer.SOURCE, get_dialect("oracle")).build_query(
         report_type="all"
     )
     src_expected = (
@@ -106,7 +125,7 @@ def test_hash_query_builder_for_oracle_src(table_mapping_factory, src_and_tgt_co
         "s_suppkey AS s_suppkey FROM :tbl WHERE s_nationkey = 1"
     )
 
-    tgt_actual = HashQueryBuilder(mapping, col_types, Layer.TARGET, get_dialect("databricks")).build_query(
+    tgt_actual = HashQueryBuilder(mapping, src_col_types, Layer.TARGET, get_dialect("databricks")).build_query(
         report_type="all"
     )
     tgt_expected = (
