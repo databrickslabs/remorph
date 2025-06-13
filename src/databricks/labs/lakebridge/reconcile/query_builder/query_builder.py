@@ -1,6 +1,8 @@
+from __future__ import annotations
+import dataclasses
 import logging
-from abc import ABC
-
+from collections.abc import Callable
+from enum import Enum
 
 from databricks.labs.lakebridge.reconcile.exception import InvalidInputException
 from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableMapping, Aggregate, Layer
@@ -8,12 +10,43 @@ from databricks.labs.lakebridge.reconcile.recon_config import ColumnType, TableM
 logger = logging.getLogger(__name__)
 
 
-class QueryBuilder(ABC):
+@dataclasses.dataclass
+class Column:
+    table: str | None
+    name: str
+    alias: str | None = None
+    transform: str | None = None
+    quoted = False
+
+    def sql(self) -> str:
+        if self.transform and self.transform != self.name and self.transform != self.alias:
+            if not self.alias:
+                raise ValueError(f"Missing alias for column: {self}")
+            return f"{self.transform} AS {self.alias}"
+        if self.alias and self.alias != self.name:
+            return f"{self.name} AS {self.alias}"
+        return self.name
+
+
+class HashAlgorithm(Enum):
+    SHA_256 = ("SHA_256",)
+    MD5 = "MD5"
+
+
+class QueryBuilder:
+
+    _factories: dict[str, Callable[[TableMapping, list[ColumnType], Layer], QueryBuilder]] = {}
 
     @classmethod
-    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, _dialect: str):
-        # TODO for now
-        return QueryBuilder(table_mapping, column_types, layer)
+    def register_factory(cls, dialect: str, factory: Callable[[TableMapping, list[ColumnType], Layer], QueryBuilder]):
+        cls._factories[dialect] = factory
+
+    @classmethod
+    def for_dialect(cls, table_mapping: TableMapping, column_types: list[ColumnType], layer: Layer, dialect: str):
+        factory = cls._factories.get(dialect, None)
+        if not factory:
+            factory = QueryBuilder
+        return factory(table_mapping, column_types, layer)
 
     def __init__(
         self,
@@ -62,12 +95,36 @@ class QueryBuilder(ABC):
         return self._table_mapping.get_filter(self._layer)
 
     @property
+    def aggregates(self) -> list[Aggregate] | None:
+        return self.table_mapping.aggregates
+
+    @property
     def user_transformations(self) -> dict[str, str]:
         return self._table_mapping.get_transformation_dict(self._layer)
 
     @property
-    def aggregates(self) -> list[Aggregate] | None:
-        return self.table_mapping.aggregates
+    def default_transformations(self) -> dict[str, list[str]]:
+        return {"default": ["TRIM($column$)", "COALESCE($column$, '_null_recon_')"]}
+
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.SHA_256, HashAlgorithm.MD5]
+
+    @property
+    def preferred_hash_algorithm(self):
+        if HashAlgorithm.SHA_256 in self.supported_hash_algorithms:
+            return HashAlgorithm.SHA_256
+        return self.supported_hash_algorithms[0]
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
+        concat = f"CONCAT({', '.join(col.transform or col.name for col in columns)})"
+        if hash_algo is HashAlgorithm.SHA_256:
+            hashed = f"SHA2({concat}, 256)"
+        elif hash_algo is HashAlgorithm.MD5:
+            hashed = f"MD5({concat})"
+        else:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
+        return f"LOWER({hashed}) AS hash_value_recon"
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
         if field is None:
@@ -75,6 +132,104 @@ class QueryBuilder(ABC):
             logger.error(message)
             raise InvalidInputException(message)
 
+    def _apply_user_transformation(self, column: Column) -> Column:
+        # don't transform already transformed columns
+        if column.transform:
+            return column
+        user_transformations = self.user_transformations or {}
+        transform = None
+        if column.alias:
+            transform = user_transformations.get(column.alias, None)
+        if not transform:
+            transform = user_transformations.get(column.name, None)
+        return dataclasses.replace(column, transform=transform)
+
+    def _apply_default_transformation(self, column: Column) -> Column:
+        # don't transform already transformed columns
+        if column.transform:
+            return column
+        # ensure we have transforms to apply for column type
+        if not self.default_transformations:
+            return column
+        column_types: list[ColumnType] = list(filter(lambda col: col.column_name == column.name, self._column_types))
+        if not column_types:
+            return column
+        data_type = column_types[0].data_type
+        transformations = self.default_transformations.get(data_type, self.default_transformations.get("default", None))
+        if not transformations:
+            return column
+        # apply transforms
+        transform = column.name
+        for transformation in transformations:
+            transform = transformation.replace("$column$", transform)
+        return dataclasses.replace(column, transform=transform)
+
     def build_count_query(self) -> str:
-        where_clause = self._table_mapping.get_filter(self._layer)
-        return f"SELECT COUNT(1) AS count FROM :tbl WHERE {where_clause}"
+        return f"SELECT COUNT(1) AS count FROM :tbl WHERE {self.filter}"
+
+    def build_hash_query(self, report_type: str, hash_algo: HashAlgorithm | None = None) -> str:
+        if report_type != 'row':
+            self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
+
+        join_columns: set[str] = self.join_columns or set()
+
+        hash_cols: list[str] = list((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        hash_cols_with_alias = [
+            Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in hash_cols
+        ]
+        # in case we have column mapping, we need to sort the target columns
+        # in the same order as source columns to get the same hash value
+        hash_cols_sorted = sorted(hash_cols_with_alias, key=lambda column: column.alias or column.name)
+        hash_cols_transformed = [self._apply_user_transformation(col) for col in hash_cols_sorted]
+        hash_cols_transformed = [self._apply_default_transformation(col) for col in hash_cols_transformed]
+        # select hash algo
+        if hash_algo is None:
+            hash_algo = self.preferred_hash_algorithm
+        hash_col = self.hash_transform(hash_cols_transformed, hash_algo)
+
+        key_cols = sorted(hash_cols if report_type == "row" else join_columns | self.partition_column)
+        key_cols_with_alias = [
+            Column(table=None, name=col, alias=self.table_mapping.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in key_cols
+        ]
+        key_cols_with_transform = [self._apply_user_transformation(col) for col in key_cols_with_alias]
+
+        columns_to_select = [hash_col] + [col.sql() for col in key_cols_with_transform]
+        sql = f"SELECT {', '.join(columns_to_select)} FROM :tbl" + (f" WHERE {self.filter}" if self.filter else "")
+        logger.info(f"Hash Query for {self.layer}: {sql}")
+        return sql
+
+
+class OracleQueryBuilder(QueryBuilder):
+
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.MD5]
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
+        if hash_algo is not HashAlgorithm.MD5:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
+        concat = f"RAWTOHEX({' || '.join(col.transform or col.name for col in columns)})"
+        hashed = f"DBMS_CRYPTO.HASH({concat}, 2)"
+        return f"LOWER({hashed}) AS hash_value_recon"
+
+
+QueryBuilder.register_factory("oracle", OracleQueryBuilder)
+
+
+class TSqlQueryBuilder(QueryBuilder):
+
+    @property
+    def supported_hash_algorithms(self):
+        return [HashAlgorithm.SHA_256]
+
+    def hash_transform(self, columns: list[Column], hash_algo: HashAlgorithm) -> str:
+        if hash_algo is not HashAlgorithm.SHA_256:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algo}")
+        concat = f"CONCAT({', '.join(col.transform or col.name for col in columns)})"
+        hashed = f"CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256), {concat})), 2)"
+        return f"LOWER({hashed}) AS hash_value_recon"
+
+
+QueryBuilder.register_factory("tsql", TSqlQueryBuilder)

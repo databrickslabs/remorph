@@ -65,7 +65,7 @@ class SamplingQueryBuilder(SqlglotQueryBuilder):
             for col in cols
         ]
 
-        sql_with_transforms = self.add_transformations(cols_with_alias, self._dialect)
+        sql_with_transforms = self.sqlglot_apply_transformations(cols_with_alias, self._dialect)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         if self.layer is Layer.SOURCE:
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]

@@ -59,9 +59,9 @@ def table_mapping_with_opts(column_mapping):
         drop_columns=["s_comment"],
         column_mapping=column_mapping,
         transformations=[
-            Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)"),
-            Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
-            Transformation(column_name="s_name", source="trim(s_name)", target="trim(s_name)"),
+            Transformation(column_name="s_address", source="TRIM(s_address)", target="TRIM(s_address_t)"),
+            Transformation(column_name="s_phone", source="TRIM(s_phone)", target="TRIM(s_phone_t)"),
+            Transformation(column_name="s_name", source="TRIM(s_name)", target="TRIM(s_name)"),
         ],
         column_thresholds=[
             ColumnThresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
@@ -93,8 +93,8 @@ def table_mapping_factory():
 
 
 @pytest.fixture
-def src_and_tgt_column_types():
-    src_col_types = [
+def src_column_types():
+    return [
         ColumnType("s_suppkey", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address", "varchar"),
@@ -104,7 +104,10 @@ def src_and_tgt_column_types():
         ColumnType("s_comment", "varchar"),
     ]
 
-    tgt_col_types = [
+
+@pytest.fixture
+def tgt_column_types():
+    return [
         ColumnType("s_suppkey_t", "number"),
         ColumnType("s_name", "varchar"),
         ColumnType("s_address_t", "varchar"),
@@ -114,7 +117,10 @@ def src_and_tgt_column_types():
         ColumnType("s_comment_t", "varchar"),
     ]
 
-    return src_col_types, tgt_col_types
+
+@pytest.fixture
+def src_and_tgt_column_types(src_column_types, tgt_column_types):
+    return src_column_types, tgt_column_types
 
 
 @pytest.fixture
