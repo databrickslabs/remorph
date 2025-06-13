@@ -16,6 +16,11 @@ _test_config_2 = {
     "filters": Filters(target="s_nationkey_t = 1"),
 }
 
+_test_config_3 = {
+    "join_columns": ["s_suppkey"],
+    "column_mapping": [],
+    "filters": Filters(target="s_nationkey = 1"),
+}
 
 @pytest.mark.parametrize(
     "config, column_types, layer, report_type, dialect, expected",
@@ -125,6 +130,40 @@ _test_config_2 = {
             " AS hash_value_recon,"
             " s_suppkey_t AS s_suppkey"
             " FROM :tbl WHERE s_nationkey_t = 1"
+        ),
+        (
+            _test_config_3,
+            "src_column_types",
+            Layer.SOURCE,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            " COALESCE(TRIM(s_address), '_null_recon_'),"
+            " COALESCE(TRIM(s_comment), '_null_recon_'),"
+            " COALESCE(TRIM(s_name), '_null_recon_'),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
+            " AS hash_value_recon,"
+            " s_suppkey FROM :tbl"
+        ),
+        (
+            _test_config_3,
+            "src_column_types",
+            Layer.TARGET,
+            "data",
+            "databricks",
+            "SELECT LOWER(SHA2(CONCAT("
+            "COALESCE(TRIM(s_acctbal), '_null_recon_'),"
+            " COALESCE(TRIM(s_address), '_null_recon_'),"
+            " COALESCE(TRIM(s_comment), '_null_recon_'),"
+            " COALESCE(TRIM(s_name), '_null_recon_'),"
+            " COALESCE(TRIM(s_nationkey), '_null_recon_'),"
+            " COALESCE(TRIM(s_phone), '_null_recon_'),"
+            " COALESCE(TRIM(s_suppkey), '_null_recon_')), 256))"
+            " AS hash_value_recon,"
+            " s_suppkey FROM :tbl WHERE s_nationkey = 1"
         )
     ],
 )
@@ -151,39 +190,6 @@ def test_hash_query_builder(
     query = builder.build_hash_query(report_type=report_type)
     assert query == expected
 
-
-def test_hash_query_builder_without_column_mapping(table_mapping_factory, src_and_tgt_column_types):
-    mapping = table_mapping_factory(
-        join_columns=["s_suppkey"],
-        filters=Filters(target="s_nationkey=1"),
-    )
-    col_types, _ = src_and_tgt_column_types
-    src_actual = HashQueryBuilder(mapping, col_types, Layer.SOURCE, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    src_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), '_null_recon_'),"
-        " COALESCE(TRIM(s_comment), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM("
-        "s_nationkey), '_null_recon_'), COALESCE(TRIM("
-        "s_phone), '_null_recon_'), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_suppkey "
-        "AS s_suppkey FROM :tbl"
-    )
-
-    tgt_actual = HashQueryBuilder(mapping, col_types, Layer.TARGET, get_dialect("databricks")).build_query(
-        report_type="data"
-    )
-    tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), '_null_recon_'), COALESCE(TRIM(s_address), "
-        "'_null_recon_'), COALESCE(TRIM("
-        "s_comment), '_null_recon_'), COALESCE(TRIM(s_name), '_null_recon_'), COALESCE(TRIM(s_nationkey), "
-        "'_null_recon_'), COALESCE(TRIM(s_phone), "
-        "'_null_recon_'), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, s_suppkey AS "
-        "s_suppkey FROM :tbl WHERE "
-        "s_nationkey = 1"
-    )
-
-    assert src_actual == src_expected
-    assert tgt_actual == tgt_expected
 
 
 def test_hash_query_builder_without_transformation(table_mapping_factory, src_and_tgt_column_types, column_mapping):
