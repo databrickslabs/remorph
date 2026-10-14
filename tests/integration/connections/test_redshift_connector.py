@@ -1,4 +1,9 @@
+import pytest
+
 from databricks.labs.lakebridge.connections.database_manager import DatabaseConnector, RedshiftConnector
+
+# TODO: re-enable once the CI runners can reach the sandbox Redshift cluster again.
+pytestmark = pytest.mark.skip(reason="CI runners currently time out connecting to the sandbox Redshift cluster")
 
 
 def test_redshift_connector_connection(sandbox_redshift: DatabaseConnector) -> None:
