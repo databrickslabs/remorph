@@ -14,21 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class StepLabel(str, Enum):
-    """Labels a step can carry; `execute-database-profiler --skip <label>` skips the steps that carry them."""
+    """Labels a step can carry, so that the steps with a given label can be skipped."""
 
     UNREDACTED = "unredacted"
-
-
-def parse_labels(value: str | None) -> set[StepLabel]:
-    """Parse a comma-separated list of step labels, rejecting unknown ones."""
-    names = {name.strip().lower() for name in (value or "").split(",") if name.strip()}
-    valid = {label.value for label in StepLabel}
-    unknown = names - valid
-    if unknown:
-        raise ValueError(
-            f"Unknown label(s): {', '.join(sorted(unknown))}. Valid labels are: {', '.join(sorted(valid))}"
-        )
-    return {StepLabel(name) for name in names}
 
 
 @dataclass(frozen=True)

@@ -199,14 +199,14 @@ def test_cli_execute_database_profiler_cred_file_path(
 
 
 @pytest.mark.parametrize(
-    ("skip_arg", "expected_labels"),
+    ("redacted", "expected_labels"),
     (
-        (None, set()),
-        ("unredacted", {StepLabel.UNREDACTED}),
+        (False, set()),
+        (True, {StepLabel.UNREDACTED}),
     ),
 )
-def test_cli_execute_database_profiler_skip(mock_workspace_client, skip_arg, expected_labels, tmp_path):
-    """`--skip` is parsed into step labels and forwarded to Profiler.profile."""
+def test_cli_execute_database_profiler_redacted(mock_workspace_client, redacted, expected_labels, tmp_path):
+    """`--redacted true` skips the steps labelled `unredacted`."""
     fake_cred = tmp_path / "credentials.yml"
     fake_cred.touch()
 
@@ -225,7 +225,7 @@ def test_cli_execute_database_profiler_skip(mock_workspace_client, skip_arg, exp
             w=mock_workspace_client,
             source_tech="snowflake",
             output_folder=str(tmp_path / "out"),
-            skip=skip_arg,
+            redacted=redacted,
         )
 
     profiler.profile.assert_called_once_with(
@@ -233,23 +233,6 @@ def test_cli_execute_database_profiler_skip(mock_workspace_client, skip_arg, exp
         cred_file_path=fake_cred,
         skip_labels=expected_labels,
     )
-
-
-def test_cli_execute_database_profiler_unknown_skip_label_raises(mock_workspace_client):
-    """An unknown `--skip` label fails before the profiler runs."""
-    ctx_mock = create_autospec(spec=ApplicationContext, spec_set=True)
-    type(ctx_mock).workspace_client = PropertyMock(return_value=mock_workspace_client)
-    ctx_mock.current_user = "tester"
-    ctx_mock.prompts = MockPrompts({})
-
-    with (
-        patch("databricks.labs.lakebridge.cli.ApplicationContext", return_value=ctx_mock),
-        patch("databricks.labs.lakebridge.cli.Profiler.create") as create_mock,
-        pytest.raises(ValueError, match="Unknown label"),
-    ):
-        cli.execute_database_profiler(w=mock_workspace_client, source_tech="snowflake", skip="unknown")
-
-    create_mock.assert_not_called()
 
 
 def test_cli_execute_database_profiler_missing_cred_file_raises(mock_workspace_client, tmp_path):

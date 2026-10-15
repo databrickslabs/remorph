@@ -28,7 +28,7 @@ from databricks.labs.lakebridge.assessments import (
 )
 from databricks.labs.lakebridge.assessments.configure_assessment import create_assessment_configurator
 from databricks.labs.lakebridge.assessments.profiler import Profiler, default_output_folder
-from databricks.labs.lakebridge.assessments.profiler_config import parse_labels
+from databricks.labs.lakebridge.assessments.profiler_config import StepLabel
 from databricks.labs.lakebridge.config import LSPConfigOptionV1, TableRecon, TranspileConfig
 from databricks.labs.lakebridge.connections.credential_manager import cred_file
 from databricks.labs.lakebridge.contexts.application import ApplicationContext
@@ -1066,7 +1066,7 @@ def execute_database_profiler(
     variant: str | None = None,
     output_folder: str | None = None,
     cred_file_path: str | None = None,
-    skip: str | None = None,
+    redacted: bool = False,
 ) -> None:
     """Execute the Profiler Extraction for the given source technology"""
     ctx = ApplicationContext(w)
@@ -1085,9 +1085,6 @@ def execute_database_profiler(
     ctx.add_user_agent_extra("profiler_source_tech", make_alphanum_or_semver(source_tech))
     user = ctx.current_user
     logger.debug(f"User: {user}")
-
-    # Raises ValueError on an unknown label, like raise_validation_exception.
-    skip_labels = parse_labels(skip)
 
     if cred_file_path:
         creds_path = Path(cred_file_path).expanduser()
@@ -1115,7 +1112,7 @@ def execute_database_profiler(
         profiler.profile(
             output_folder=Path(output_folder),
             cred_file_path=creds_path,
-            skip_labels=skip_labels,
+            skip_labels={StepLabel.UNREDACTED} if redacted else set(),
         )
     except Exception as e:  # noqa: BLE001
         raise SystemExit(f"Profiler execution failed: {e}") from e

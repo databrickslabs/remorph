@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step, StepLabel, parse_labels
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step, StepLabel
 
 
 @pytest.mark.parametrize(
@@ -168,24 +168,6 @@ def test_invalid_label(invalid_label: str) -> None:
     """Test that unknown labels are rejected."""
     with pytest.raises(ValueError, match="Invalid label"):
         Step(name="test_table", type="sql", extract_source="test.sql", label=invalid_label)
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    (
-        (None, set()),
-        ("", set()),
-        ("unredacted", {StepLabel.UNREDACTED}),
-        (" Unredacted , unredacted ", {StepLabel.UNREDACTED}),
-    ),
-)
-def test_parse_labels(value: str | None, expected: set[StepLabel]) -> None:
-    assert parse_labels(value) == expected
-
-
-def test_parse_labels_rejects_unknown() -> None:
-    with pytest.raises(ValueError, match="Unknown label"):
-        parse_labels("unredacted,unknown")
 
 
 def test_step_copy_preserves_validation() -> None:
