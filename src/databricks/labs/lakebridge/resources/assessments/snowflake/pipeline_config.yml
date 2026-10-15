@@ -37,6 +37,7 @@ steps:
     mode: overwrite
     frequency: daily
     flag: active
+    label: unredacted
 
   - name: storage_usage
     type: sql

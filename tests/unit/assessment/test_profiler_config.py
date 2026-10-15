@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step, StepLabel, parse_labels
 
 
 @pytest.mark.parametrize(
@@ -149,6 +149,54 @@ def test_invalid_optional(invalid_optional: object) -> None:
             extract_source="test.sql",
             optional=invalid_optional,  # type: ignore[arg-type]
         )
+
+
+@pytest.mark.parametrize("label", ["unredacted", StepLabel.UNREDACTED])
+def test_valid_label(label: str | StepLabel) -> None:
+    """Test that known labels are accepted and normalised to the enum."""
+    step = Step(
+        name="test_table",
+        type="sql",
+        extract_source="test.sql",
+        label=label,  # type: ignore[arg-type]
+    )
+    assert step.label is StepLabel.UNREDACTED
+
+
+def test_label_defaults_none() -> None:
+    """Test that label defaults to None so existing steps can't be skipped."""
+    step = Step(name="test_table", type="sql", extract_source="test.sql")
+    assert step.label is None
+
+
+@pytest.mark.parametrize("invalid_label", ["unknown", "", 1])
+def test_invalid_label(invalid_label: object) -> None:
+    """Test that unknown labels are rejected."""
+    with pytest.raises(ValueError, match="Invalid label"):
+        Step(
+            name="test_table",
+            type="sql",
+            extract_source="test.sql",
+            label=invalid_label,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        (None, frozenset()),
+        ("", frozenset()),
+        ("unredacted", frozenset({StepLabel.UNREDACTED})),
+        (" Unredacted , unredacted ", frozenset({StepLabel.UNREDACTED})),
+    ),
+)
+def test_parse_labels(value: str | None, expected: frozenset[StepLabel]) -> None:
+    assert parse_labels(value) == expected
+
+
+def test_parse_labels_rejects_unknown() -> None:
+    with pytest.raises(ValueError, match="Unknown label"):
+        parse_labels("unredacted,unknown")
 
 
 def test_step_copy_preserves_validation() -> None:

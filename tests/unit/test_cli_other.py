@@ -10,6 +10,7 @@ from databricks.sdk import WorkspaceClient
 
 from databricks.labs.lakebridge import cli
 from databricks.labs.lakebridge.assessments.profiler import default_output_folder
+from databricks.labs.lakebridge.assessments.profiler_config import StepLabel
 from databricks.labs.lakebridge.config import (
     LSPConfigOptionV1,
     LSPPromptMethod,
@@ -150,7 +151,9 @@ def test_cli_execute_database_profiler_output_folder(
         )
 
     create_mock.assert_called_once_with("snowflake", None, fake_cred)
-    profiler.profile.assert_called_once_with(output_folder=expected_path, cred_file_path=fake_cred)
+    profiler.profile.assert_called_once_with(
+        output_folder=expected_path, cred_file_path=fake_cred, skip_labels=frozenset()
+    )
 
 
 @pytest.mark.parametrize(
@@ -193,7 +196,62 @@ def test_cli_execute_database_profiler_cred_file_path(
     profiler.profile.assert_called_once_with(
         output_folder=tmp_path / "out",
         cred_file_path=expected_cred,
+        skip_labels=frozenset(),
     )
+
+
+@pytest.mark.parametrize(
+    ("skip_arg", "expected_labels"),
+    (
+        (None, frozenset()),
+        ("unredacted", frozenset({StepLabel.UNREDACTED})),
+    ),
+)
+def test_cli_execute_database_profiler_skip(mock_workspace_client, skip_arg, expected_labels, tmp_path):
+    """`--skip` is parsed into step labels and forwarded to Profiler.profile."""
+    fake_cred = tmp_path / "credentials.yml"
+    fake_cred.touch()
+
+    ctx_mock = create_autospec(spec=ApplicationContext, spec_set=True)
+    type(ctx_mock).workspace_client = PropertyMock(return_value=mock_workspace_client)
+    ctx_mock.current_user = "tester"
+    ctx_mock.prompts = MockPrompts({})
+
+    profiler = MagicMock()
+    with (
+        patch("databricks.labs.lakebridge.cli.ApplicationContext", return_value=ctx_mock),
+        patch("databricks.labs.lakebridge.cli.cred_file", return_value=fake_cred),
+        patch("databricks.labs.lakebridge.cli.Profiler.create", return_value=profiler),
+    ):
+        cli.execute_database_profiler(
+            w=mock_workspace_client,
+            source_tech="snowflake",
+            output_folder=str(tmp_path / "out"),
+            skip=skip_arg,
+        )
+
+    profiler.profile.assert_called_once_with(
+        output_folder=tmp_path / "out",
+        cred_file_path=fake_cred,
+        skip_labels=expected_labels,
+    )
+
+
+def test_cli_execute_database_profiler_unknown_skip_label_raises(mock_workspace_client):
+    """An unknown `--skip` label fails before the profiler runs."""
+    ctx_mock = create_autospec(spec=ApplicationContext, spec_set=True)
+    type(ctx_mock).workspace_client = PropertyMock(return_value=mock_workspace_client)
+    ctx_mock.current_user = "tester"
+    ctx_mock.prompts = MockPrompts({})
+
+    with (
+        patch("databricks.labs.lakebridge.cli.ApplicationContext", return_value=ctx_mock),
+        patch("databricks.labs.lakebridge.cli.Profiler.create") as create_mock,
+        pytest.raises(ValueError, match="Unknown label"),
+    ):
+        cli.execute_database_profiler(w=mock_workspace_client, source_tech="snowflake", skip="unknown")
+
+    create_mock.assert_not_called()
 
 
 def test_cli_execute_database_profiler_missing_cred_file_raises(mock_workspace_client, tmp_path):

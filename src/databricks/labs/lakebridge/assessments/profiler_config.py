@@ -2,6 +2,7 @@ import dataclasses
 import logging
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 
 from databricks.labs.lakebridge.assessments import RESERVED_TABLE_NAMES
 
@@ -10,6 +11,26 @@ from databricks.labs.lakebridge.assessments import RESERVED_TABLE_NAMES
 _VALID_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 logger = logging.getLogger(__name__)
+
+
+class StepLabel(str, Enum):
+    """Labels a step can carry; `execute-database-profiler --skip <label>` skips the steps that carry them."""
+
+    UNREDACTED = "unredacted"
+
+
+def parse_labels(value: str | None) -> frozenset[StepLabel]:
+    """Parse a comma-separated list of step labels, rejecting unknown ones."""
+    if not value:
+        return frozenset()
+    names = {name.strip().lower() for name in value.split(",") if name.strip()}
+    valid = {label.value for label in StepLabel}
+    unknown = names - valid
+    if unknown:
+        raise ValueError(
+            f"Unknown label(s): {', '.join(sorted(unknown))}. Valid labels are: {', '.join(sorted(valid))}"
+        )
+    return frozenset(StepLabel(name) for name in names)
 
 
 @dataclass(frozen=True)
@@ -22,6 +43,7 @@ class Step:
     flag: str = "active"
     comment: str | None = None
     optional: bool = False
+    label: StepLabel | None = None
 
     def __post_init__(self) -> None:
         """Validate step configuration to prevent SQL injection and configuration errors."""
@@ -29,6 +51,7 @@ class Step:
         self._validate_mode()
         self._validate_type()
         self._validate_optional()
+        self._validate_label()
 
     def _validate_name(self) -> None:
         """Validate step name uses only safe SQL identifier characters."""
@@ -80,6 +103,18 @@ class Step:
     def _validate_optional(self) -> None:
         if not isinstance(self.optional, bool):
             raise ValueError(f"Invalid optional value for step '{self.name}': {self.optional!r}. Expected a boolean.")
+
+    def _validate_label(self) -> None:
+        if self.label is None or isinstance(self.label, StepLabel):
+            return
+        try:
+            # Frozen dataclass: normalise the YAML string to the enum in place.
+            object.__setattr__(self, "label", StepLabel(self.label))
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid label for step '{self.name}': {self.label!r}. "
+                f"Valid labels are: {', '.join(sorted(label.value for label in StepLabel))}"
+            ) from e
 
     def copy(self, /, **changes) -> "Step":
         return dataclasses.replace(self, **changes)

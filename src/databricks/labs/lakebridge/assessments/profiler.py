@@ -20,7 +20,7 @@ from databricks.labs.lakebridge.assessments.pipeline import (
     StepExecutionStatus,
     make_profiler_db_filename,
 )
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, StepLabel
 from databricks.labs.lakebridge.assessments.run_metadata import (
     PROFILER_RUN_METADATA_SCHEMA,
     ProfilerRunMetadata,
@@ -154,6 +154,7 @@ class Profiler:
         pipeline_config: PipelineConfig | None = None,
         output_folder: Path | None = None,
         cred_file_path: Path | None = None,
+        skip_labels: frozenset[StepLabel] = frozenset(),
     ) -> None:
 
         if not pipeline_config:
@@ -162,7 +163,13 @@ class Profiler:
             pipeline_config = self._pipeline_config
         resolved_output_folder = output_folder or default_output_folder(self._source_system)
         resolved_creds_path = cred_file_path or cred_file()
-        self._execute(self._source_system, pipeline_config, resolved_output_folder, resolved_creds_path)
+        self._execute(
+            self._source_system,
+            pipeline_config,
+            resolved_output_folder,
+            resolved_creds_path,
+            skip_labels=skip_labels,
+        )
 
     def _execute(
         self,
@@ -170,10 +177,16 @@ class Profiler:
         pipeline_config: PipelineConfig,
         output_folder: Path,
         cred_file_path: Path,
+        *,
+        skip_labels: frozenset[StepLabel] = frozenset(),
     ) -> None:
         try:
             # A source connector is needed for any step that isn't a self-managing python step.
-            connector_required = any(step.type != "python" for step in pipeline_config.steps if step.flag == "active")
+            connector_required = any(
+                step.type != "python"
+                for step in pipeline_config.steps
+                if step.flag == "active" and step.label not in skip_labels
+            )
             extractor = Profiler._setup_extractor(source_system, cred_file_path) if connector_required else None
             db_path = output_folder / make_profiler_db_filename(source_system)
             results = PipelineClass(
@@ -181,6 +194,7 @@ class Profiler:
                 extractor,
                 db_path,
                 cred_file_path,
+                skip_labels=skip_labels,
             ).execute()
         except FileNotFoundError as e:
             logger.error(f"Configuration file not found for source {source_system}: {e}")

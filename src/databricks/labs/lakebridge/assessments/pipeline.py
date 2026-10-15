@@ -12,7 +12,7 @@ import yaml
 from databricks.labs.blueprint.paths import read_text
 
 from databricks.labs.lakebridge import __version__ as lakebridge_version
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step, StepLabel
 from databricks.labs.lakebridge.connections.database_manager import DatabaseConnector, FetchResult
 from databricks.labs.lakebridge.resources.assessments.common.duckdb_helpers import (
     SaveMode,
@@ -48,12 +48,15 @@ class PipelineClass:
         executor: DatabaseConnector | None,
         db_path: Path,
         cred_file_path: Path,
+        *,
+        skip_labels: frozenset[StepLabel] = frozenset(),
     ):
         self.config = config
         self.executor = executor
         self._db_path = db_path.expanduser()
         self._create_dir(self._db_path.parent)
         self._cred_file_path = cred_file_path
+        self._skip_labels = skip_labels
 
     def execute(self) -> list[StepExecutionResult]:
         """Run every configured step and return per-step outcomes.
@@ -80,6 +83,10 @@ class PipelineClass:
 
         if step.flag != "active":
             logging.info(f"Skipping step: {step.name} as it is not active")
+            return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
+
+        if step.label in self._skip_labels:
+            logging.info(f"Skipping step: {step.name} as its label '{step.label.value}' is skipped")
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
 
         try:
