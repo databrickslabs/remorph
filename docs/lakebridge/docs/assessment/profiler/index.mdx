@@ -85,21 +85,6 @@ The profiler will:
 2. Execute the profiling pipeline to extract metadata and metrics
 3. Store the results as a natively compressed, directly queryable DuckDB ``.db`` file
 
-### Skipping labelled steps
-
-Some steps carry a `label` in the source's `pipeline_config.yml`. They run by default. To skip the steps with one or
-more labels, pass `--skip` with a comma-separated list:
-
-```bash
-databricks labs lakebridge execute-database-profiler --source-tech snowflake --skip unredacted
-```
-
-Skipped steps are recorded with status `SKIPPED` in `profiler_run_metadata`, and their tables aren't populated.
-
-| Label        | Meaning                                | Steps                                            |
-|--------------|----------------------------------------|--------------------------------------------------|
-| `unredacted` | Extracts text as-is, without redaction | Snowflake `query_samples`, Oracle `perf_sqltext` |
-
 :::tip
 The profiler can be run multiple times to capture different time periods or updated configurations.
 Each execution will create a timestamped snapshot of your source environment.
