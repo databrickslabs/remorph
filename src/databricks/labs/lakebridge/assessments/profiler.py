@@ -1,6 +1,7 @@
 import json
 import logging
 import platform
+from collections.abc import Collection
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -154,7 +155,7 @@ class Profiler:
         pipeline_config: PipelineConfig | None = None,
         output_folder: Path | None = None,
         cred_file_path: Path | None = None,
-        skip_labels: frozenset[StepLabel] = frozenset(),
+        skip_labels: Collection[StepLabel] = (),
     ) -> None:
 
         if not pipeline_config:
@@ -177,16 +178,11 @@ class Profiler:
         pipeline_config: PipelineConfig,
         output_folder: Path,
         cred_file_path: Path,
-        *,
-        skip_labels: frozenset[StepLabel] = frozenset(),
+        skip_labels: Collection[StepLabel] = (),
     ) -> None:
         try:
             # A source connector is needed for any step that isn't a self-managing python step.
-            connector_required = any(
-                step.type != "python"
-                for step in pipeline_config.steps
-                if step.flag == "active" and step.label not in skip_labels
-            )
+            connector_required = any(step.type != "python" for step in pipeline_config.steps if step.flag == "active")
             extractor = Profiler._setup_extractor(source_system, cred_file_path) if connector_required else None
             db_path = output_folder / make_profiler_db_filename(source_system)
             results = PipelineClass(

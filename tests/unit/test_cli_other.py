@@ -151,9 +151,7 @@ def test_cli_execute_database_profiler_output_folder(
         )
 
     create_mock.assert_called_once_with("snowflake", None, fake_cred)
-    profiler.profile.assert_called_once_with(
-        output_folder=expected_path, cred_file_path=fake_cred, skip_labels=frozenset()
-    )
+    profiler.profile.assert_called_once_with(output_folder=expected_path, cred_file_path=fake_cred, skip_labels=set())
 
 
 @pytest.mark.parametrize(
@@ -196,15 +194,15 @@ def test_cli_execute_database_profiler_cred_file_path(
     profiler.profile.assert_called_once_with(
         output_folder=tmp_path / "out",
         cred_file_path=expected_cred,
-        skip_labels=frozenset(),
+        skip_labels=set(),
     )
 
 
 @pytest.mark.parametrize(
     ("skip_arg", "expected_labels"),
     (
-        (None, frozenset()),
-        ("unredacted", frozenset({StepLabel.UNREDACTED})),
+        (None, set()),
+        ("unredacted", {StepLabel.UNREDACTED}),
     ),
 )
 def test_cli_execute_database_profiler_skip(mock_workspace_client, skip_arg, expected_labels, tmp_path):

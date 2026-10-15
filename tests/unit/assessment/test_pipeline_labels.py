@@ -10,15 +10,15 @@ from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfi
     ("skip_labels", "expected_status"),
     (
         # Label skipped: skipped before the step needs a connector.
-        (frozenset({StepLabel.UNREDACTED}), StepExecutionStatus.SKIPPED),
+        ({StepLabel.UNREDACTED}, StepExecutionStatus.SKIPPED),
         # Label not skipped: the step runs, and fails here because there is no connector.
-        (frozenset(), StepExecutionStatus.ERROR),
+        (set(), StepExecutionStatus.ERROR),
     ),
 )
-def test_skip_labels(tmp_path: Path, skip_labels: frozenset[StepLabel], expected_status: StepExecutionStatus) -> None:
+def test_skip_labels(tmp_path: Path, skip_labels: set[StepLabel], expected_status: StepExecutionStatus) -> None:
     query = tmp_path / "query.sql"
     query.write_text("SELECT 1", encoding="utf-8")
-    step = Step(name="labelled_step", type="sql", extract_source=str(query), label=StepLabel.UNREDACTED)
+    step = Step(name="labelled_step", type="sql", extract_source=str(query), label="unredacted")
     config = PipelineConfig(name="test", version="1.0", steps=[step])
 
     pipeline = PipelineClass(

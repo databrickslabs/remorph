@@ -151,16 +151,10 @@ def test_invalid_optional(invalid_optional: object) -> None:
         )
 
 
-@pytest.mark.parametrize("label", ["unredacted", StepLabel.UNREDACTED])
-def test_valid_label(label: str | StepLabel) -> None:
-    """Test that known labels are accepted and normalised to the enum."""
-    step = Step(
-        name="test_table",
-        type="sql",
-        extract_source="test.sql",
-        label=label,  # type: ignore[arg-type]
-    )
-    assert step.label is StepLabel.UNREDACTED
+def test_valid_label() -> None:
+    """Test that known labels are accepted."""
+    step = Step(name="test_table", type="sql", extract_source="test.sql", label="unredacted")
+    assert step.label == StepLabel.UNREDACTED
 
 
 def test_label_defaults_none() -> None:
@@ -169,28 +163,23 @@ def test_label_defaults_none() -> None:
     assert step.label is None
 
 
-@pytest.mark.parametrize("invalid_label", ["unknown", "", 1])
-def test_invalid_label(invalid_label: object) -> None:
+@pytest.mark.parametrize("invalid_label", ["unknown", ""])
+def test_invalid_label(invalid_label: str) -> None:
     """Test that unknown labels are rejected."""
     with pytest.raises(ValueError, match="Invalid label"):
-        Step(
-            name="test_table",
-            type="sql",
-            extract_source="test.sql",
-            label=invalid_label,  # type: ignore[arg-type]
-        )
+        Step(name="test_table", type="sql", extract_source="test.sql", label=invalid_label)
 
 
 @pytest.mark.parametrize(
     ("value", "expected"),
     (
-        (None, frozenset()),
-        ("", frozenset()),
-        ("unredacted", frozenset({StepLabel.UNREDACTED})),
-        (" Unredacted , unredacted ", frozenset({StepLabel.UNREDACTED})),
+        (None, set()),
+        ("", set()),
+        ("unredacted", {StepLabel.UNREDACTED}),
+        (" Unredacted , unredacted ", {StepLabel.UNREDACTED}),
     ),
 )
-def test_parse_labels(value: str | None, expected: frozenset[StepLabel]) -> None:
+def test_parse_labels(value: str | None, expected: set[StepLabel]) -> None:
     assert parse_labels(value) == expected
 
 

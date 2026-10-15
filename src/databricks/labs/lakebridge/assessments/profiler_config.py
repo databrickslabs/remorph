@@ -19,18 +19,16 @@ class StepLabel(str, Enum):
     UNREDACTED = "unredacted"
 
 
-def parse_labels(value: str | None) -> frozenset[StepLabel]:
+def parse_labels(value: str | None) -> set[StepLabel]:
     """Parse a comma-separated list of step labels, rejecting unknown ones."""
-    if not value:
-        return frozenset()
-    names = {name.strip().lower() for name in value.split(",") if name.strip()}
+    names = {name.strip().lower() for name in (value or "").split(",") if name.strip()}
     valid = {label.value for label in StepLabel}
     unknown = names - valid
     if unknown:
         raise ValueError(
             f"Unknown label(s): {', '.join(sorted(unknown))}. Valid labels are: {', '.join(sorted(valid))}"
         )
-    return frozenset(StepLabel(name) for name in names)
+    return {StepLabel(name) for name in names}
 
 
 @dataclass(frozen=True)
@@ -43,7 +41,7 @@ class Step:
     flag: str = "active"
     comment: str | None = None
     optional: bool = False
-    label: StepLabel | None = None
+    label: str | None = None
 
     def __post_init__(self) -> None:
         """Validate step configuration to prevent SQL injection and configuration errors."""
@@ -105,16 +103,12 @@ class Step:
             raise ValueError(f"Invalid optional value for step '{self.name}': {self.optional!r}. Expected a boolean.")
 
     def _validate_label(self) -> None:
-        if self.label is None or isinstance(self.label, StepLabel):
-            return
-        try:
-            # Frozen dataclass: normalise the YAML string to the enum in place.
-            object.__setattr__(self, "label", StepLabel(self.label))
-        except ValueError as e:
+        valid_labels = {label.value for label in StepLabel}
+        if self.label is not None and self.label not in valid_labels:
             raise ValueError(
-                f"Invalid label for step '{self.name}': {self.label!r}. "
-                f"Valid labels are: {', '.join(sorted(label.value for label in StepLabel))}"
-            ) from e
+                f"Invalid label '{self.label}' for step '{self.name}'. "
+                f"Valid labels are: {', '.join(sorted(valid_labels))}"
+            )
 
     def copy(self, /, **changes) -> "Step":
         return dataclasses.replace(self, **changes)

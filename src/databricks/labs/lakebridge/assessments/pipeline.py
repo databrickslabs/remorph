@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -48,8 +49,7 @@ class PipelineClass:
         executor: DatabaseConnector | None,
         db_path: Path,
         cred_file_path: Path,
-        *,
-        skip_labels: frozenset[StepLabel] = frozenset(),
+        skip_labels: Collection[StepLabel] = (),
     ):
         self.config = config
         self.executor = executor
@@ -86,7 +86,7 @@ class PipelineClass:
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
 
         if step.label in self._skip_labels:
-            logging.info(f"Skipping step: {step.name} as its label '{step.label.value}' is skipped")
+            logging.info(f"Skipping step: {step.name} as its label '{step.label}' is skipped")
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
 
         try:
