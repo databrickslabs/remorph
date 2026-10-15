@@ -71,7 +71,6 @@ REQUIRED_CASTS: dict[str, tuple[str, ...]] = {
         "CREDITS_USED_CLOUD_SERVICES::DOUBLE AS CREDITS_USED_CLOUD_SERVICES",
     ),
     "snowflake/query_samples.sql": ("TOTAL_ELAPSED_TIME::DOUBLE AS TOTAL_ELAPSED_TIME",),
-    "snowflake/rate_sheet.sql": ("AVG(EFFECTIVE_RATE)::DOUBLE AS AVG_EFFECTIVE_RATE",),
     "snowflake/storage_usage.sql": (
         "AVERAGE_DATABASE_BYTES::DOUBLE AS AVERAGE_DATABASE_BYTES",
         "AVERAGE_FAILSAFE_BYTES::DOUBLE AS AVERAGE_FAILSAFE_BYTES",
