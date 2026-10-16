@@ -42,7 +42,7 @@ bigquery.capacityCommitments.list           # Editions customers only
 
 ```
 
-### 4. INFORMATION\_SCHEMA / region-scoped views accessed[​](#4-information_schema--region-scoped-views-accessed "Direct link to 4. INFORMATION_SCHEMA / region-scoped views accessed")
+### 4. INFORMATION_SCHEMA / region-scoped views accessed[​](#4-information_schema--region-scoped-views-accessed "Direct link to 4. INFORMATION_SCHEMA / region-scoped views accessed")
 
 | Profiler aspect                                                    | Region-scoped view                                                                | Required permission                                            |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |

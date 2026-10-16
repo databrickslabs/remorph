@@ -102,7 +102,7 @@ LLMs have limits on how much text they can process at once. Switch uses a config
 
 #### Token Counting and Thresholds[​](#token-counting-and-thresholds "Direct link to Token Counting and Thresholds")
 
-Switch sets a default threshold of **20,000 tokens per file**. Token estimation varies by model: Claude models use approximately 3.4 characters per token (meaning 20,000 tokens ≈ 68,000 characters), while other models use the tiktoken library with o200k\_base encoding. For SQL sources, Switch removes comments and compresses whitespace before counting tokens to provide more accurate estimates.
+Switch sets a default threshold of **20,000 tokens per file**. Token estimation varies by model: Claude models use approximately 3.4 characters per token (meaning 20,000 tokens ≈ 68,000 characters), while other models use the tiktoken library with o200k_base encoding. For SQL sources, Switch removes comments and compresses whitespace before counting tokens to provide more accurate estimates.
 
 #### Adjusting the Threshold[​](#adjusting-the-threshold "Direct link to Adjusting the Threshold")
 

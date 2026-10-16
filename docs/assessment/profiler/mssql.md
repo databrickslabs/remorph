@@ -7,6 +7,8 @@
 
 ## Prerequisites[​](#prerequisites "Direct link to Prerequisites")
 
+**Supported versions:** SQL Server 2012 and later, Azure SQL Database, and Azure SQL Managed Instance.
+
 ### 1. Download[​](#1-download "Direct link to 1. Download")
 
 No driver installation is required: the profiler connects with Microsoft's [mssql-python](https://github.com/microsoft/mssql-python) driver, which bundles its own connectivity layer.
@@ -106,12 +108,12 @@ The MSSQL profiler executes queries against the following system tables and DMVs
 
 ### Activity Metrics[​](#activity-metrics "Direct link to Activity Metrics")
 
-| Query           | Source Table(s)                                   | Description                                                                                                                                                            |
-| --------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Query Stats     | `sys.dm_exec_query_stats`, `sys.dm_exec_sql_text` | Recently executed queries classified by command type (QUERY, DML, DDL, ROUTINE, TRANSACTION\_CONTROL, OTHER) with execution count, duration, CPU time, and row counts. |
-| Procedure Stats | `sys.dm_exec_procedure_stats`                     | Stored procedure execution statistics including execution counts, total CPU time, and elapsed time.                                                                    |
-| Sessions        | `sys.dm_exec_sessions`                            | Active user sessions with login info (hashed), program names, CPU/memory usage, and request timing.                                                                    |
-| CPU Utilization | `sys.dm_os_ring_buffers`, `sys.dm_os_sys_info`    | CPU utilization over time, including system idle percentage and SQL Server process utilization.                                                                        |
+| Query           | Source Table(s)                                   | Description                                                                                                                                                           |
+| --------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Query Stats     | `sys.dm_exec_query_stats`, `sys.dm_exec_sql_text` | Recently executed queries classified by command type (QUERY, DML, DDL, ROUTINE, TRANSACTION_CONTROL, OTHER) with execution count, duration, CPU time, and row counts. |
+| Procedure Stats | `sys.dm_exec_procedure_stats`                     | Stored procedure execution statistics including execution counts, total CPU time, and elapsed time.                                                                   |
+| Sessions        | `sys.dm_exec_sessions`                            | Active user sessions with login info (hashed), program names, CPU/memory usage, and request timing.                                                                   |
+| CPU Utilization | `sys.dm_os_ring_buffers`, `sys.dm_os_sys_info`    | CPU utilization over time, including system idle percentage and SQL Server process utilization.                                                                       |
 
 ## Configure Connection to MSSQL[​](#configure-connection-to-mssql "Direct link to Configure Connection to MSSQL")
 

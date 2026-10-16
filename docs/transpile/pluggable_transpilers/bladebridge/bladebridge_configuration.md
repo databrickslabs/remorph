@@ -157,7 +157,7 @@ With this configuration:
 
 ### Putting it all together[​](#putting-it-all-together "Direct link to Putting it all together")
 
-1. Create a file: my\_custom\_config.json with the following contents:
+1. Create a file: my_custom_config.json with the following contents:
 
 ```json
 {
@@ -189,9 +189,9 @@ my_custom_config.json
 
 When it comes to converting individual SQL code snippets or ETL expressions, BladeBridge uses basic set of rules to capture certain source patterns and produce converted output. The three main types of syntax manipulation rules are:
 
-* line\_subst
-* block\_subst
-* function\_subst
+* line_subst
+* block_subst
+* function_subst
 
 They are executed in the order given above. Within each of these sections, there is an array of rules that get executed based on the order they are listed. Longer and more specific patterns should typically preceed shorter and more generic patterns. E.g.: `"from" : "varchar"` should be listed before `"from" : "char"`, since `varchar` is a longer pattern than `char`.
 
@@ -215,22 +215,22 @@ Sample configuration file snippet:
 
 ```
 
-### line\_subst[​](#line_subst "Direct link to line_subst")
+### line_subst[​](#line_subst "Direct link to line_subst")
 
 Points to an array of substitution instructions to be performed on a single line. When this directive is given, the converter will apply all substitutions for each line. Each element of the array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                      | Example                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| from                        | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                     | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token              |
-| to                          | Specifies the pattern to replace with. Dollar variables from $1 to $9 are used to replace captured tokens.                   | "CREATE OR REPLACE TABLE $1"<br />Will plug in the table name from the example above |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.              | \["TABLE\_DDL", "VIEW\_DDL"]                                                         |
-| exact\_match                | If set to "1", performs case-insensitive exact match instead of regex matching.                                              |                                                                                      |
-| first\_match                | If set to "1" and a match occurs, stops checking for subsequent patterns in the line\_subst array.                           |                                                                                      |
-| exclude\_categories         | List of excluded categories. Reverse of `statement_categories`.                                                              |                                                                                      |
-| extension\_call             | Invokes an external routine instead of using the to pattern. Useful for complex logic. See the advanced section for details. |                                                                                      |
-| relative\_fragment\_pattern | Allows the pattern to be searched within specific code fragments supplied by relative\_fragment\_offset.                     | "relative\_fragment\_pattern": "ACTIVITYCOUNT = 0"                                   |
-| relative\_fragment\_offset  | List of fragment offsets to search in when using relative\_fragment\_pattern.                                                | "relative\_fragment\_offset": "1,2"                                                  |
-| upcase\_string              | Upcases the output string                                                                                                    | {"from" : "#(\w+)#", "to" : "${$1}", "upcase\_string" : true}                        |
+| Attribute                 | Purpose                                                                                                                      | Example                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| from                      | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                     | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token              |
+| to                        | Specifies the pattern to replace with. Dollar variables from $1 to $9 are used to replace captured tokens.                   | "CREATE OR REPLACE TABLE $1"<br />Will plug in the table name from the example above |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.              | \["TABLE_DDL", "VIEW_DDL"]                                                           |
+| exact_match               | If set to "1", performs case-insensitive exact match instead of regex matching.                                              |                                                                                      |
+| first_match               | If set to "1" and a match occurs, stops checking for subsequent patterns in the line_subst array.                            |                                                                                      |
+| exclude_categories        | List of excluded categories. Reverse of `statement_categories`.                                                              |                                                                                      |
+| extension_call            | Invokes an external routine instead of using the to pattern. Useful for complex logic. See the advanced section for details. |                                                                                      |
+| relative_fragment_pattern | Allows the pattern to be searched within specific code fragments supplied by relative_fragment_offset.                       | "relative_fragment_pattern": "ACTIVITYCOUNT = 0"                                     |
+| relative_fragment_offset  | List of fragment offsets to search in when using relative_fragment_pattern.                                                  | "relative_fragment_offset": "1,2"                                                    |
+| upcase_string             | Upcases the output string                                                                                                    | {"from" : "#(\w+)#", "to" : "${$1}", "upcase_string" : true}                         |
 
 > **Note:** In the `to` attribute, you can use tokens `$1` to `$9` to refer to regex match groups.
 
@@ -248,25 +248,25 @@ Points to an array of substitution instructions to be performed on a single line
 
 * **Result:** `${MY_VAR} + 10 + p_curr_date_of_month`
 
-### block\_subst[​](#block_subst "Direct link to block_subst")
+### block_subst[​](#block_subst "Direct link to block_subst")
 
 Points to an array of substitution instructions to be performed on a statement block. When this directive is given, the converter will apply all substitutions for each statement block. This instruction is useful when there is a need to restructure a block of code – e.g. move around clauses of a statement, or when there's a high likelihood that a pattern will span multiple lines. Note that a block of code is typically referred to an entire SQL statement, such a DML inside a stored procedure or a view or table definition. Prior to processing a SQL content, converter will split up a multi-statement content into series of blocks and operate on each block of code individually.
 
-> **Note:** while block\_subst rules operate in a very similar manner to line\_subst rules, they are costlier in terms of compute time. For this reason, it is better not to overload the block\_subst section with rules that are simple and typically defined on a single line. E.g.: converting varchar to string should be done in line\_subst, and not in block\_subst.
+> **Note:** while block_subst rules operate in a very similar manner to line_subst rules, they are costlier in terms of compute time. For this reason, it is better not to overload the block_subst section with rules that are simple and typically defined on a single line. E.g.: converting varchar to string should be done in line_subst, and not in block_subst.
 
 Each element of the rules array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                                                           | Example                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| from                        | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                                                          | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token               |
-| to                          | Specifies the pattern to replace with. Dollar variables from $1 to $9 can be used to replace captured tokens.                                                     | "CREATE OR REPLACE TABLE $1"<br />Will plug in the name of the table from the example |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                                   | \["TABLE\_DDL", "VIEW\_DDL"]                                                          |
-| first\_match                | If set to "1" and a match occurs, stops checking for subsequent patterns in the line\_subst array.                                                                |                                                                                       |
-| extension\_call             | Invokes an external custom routine instead of substituting with the target pattern. Useful for complex logic. See the advanced section for more details.          |                                                                                       |
-| force\_alias\_usage         | Enforces usage of aliases in WHERE, SELECT, and JOIN clauses. Ensures references to base objects are replaced with aliases where required by the target database. |                                                                                       |
-| relative\_fragment\_pattern | Searches for the pattern within specific code fragments defined using `relative_fragment_offset`.                                                                 | "relative\_fragment\_pattern": "ACTIVITYCOUNT = 0"                                    |
-| relative\_fragment\_offset  | A list of fragment offsets to search when using `relative_fragment_pattern`.                                                                                      | "relative\_fragment\_offset": "1,2"                                                   |
-| debug\_tag                  | Specifies a debug tag, which will show in the log when running the converter in verbose mode                                                                      | {"from" : "stringA", "to" : "stringB", "debug\_tab" : "RULE001}                       |
+| Attribute                 | Purpose                                                                                                                                                           | Example                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| from                      | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                                                          | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token               |
+| to                        | Specifies the pattern to replace with. Dollar variables from $1 to $9 can be used to replace captured tokens.                                                     | "CREATE OR REPLACE TABLE $1"<br />Will plug in the name of the table from the example |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                                   | \["TABLE_DDL", "VIEW_DDL"]                                                            |
+| first_match               | If set to "1" and a match occurs, stops checking for subsequent patterns in the line_subst array.                                                                 |                                                                                       |
+| extension_call            | Invokes an external custom routine instead of substituting with the target pattern. Useful for complex logic. See the advanced section for more details.          |                                                                                       |
+| force_alias_usage         | Enforces usage of aliases in WHERE, SELECT, and JOIN clauses. Ensures references to base objects are replaced with aliases where required by the target database. |                                                                                       |
+| relative_fragment_pattern | Searches for the pattern within specific code fragments defined using `relative_fragment_offset`.                                                                 | "relative_fragment_pattern": "ACTIVITYCOUNT = 0"                                      |
+| relative_fragment_offset  | A list of fragment offsets to search when using `relative_fragment_pattern`.                                                                                      | "relative_fragment_offset": "1,2"                                                     |
+| debug_tag                 | Specifies a debug tag, which will show in the log when running the converter in verbose mode                                                                      | {"from" : "stringA", "to" : "stringB", "debug_tab" : "RULE001}                        |
 
 **Example:**
 
@@ -282,33 +282,33 @@ Each element of the rules array is a structure with the following elements.
 
 * **Result:** `SET V_TOTAL = (SELECT COUNT(*) FROM orders limit 1);`
 
-### function\_subst[​](#function_subst "Direct link to function_subst")
+### function_subst[​](#function_subst "Direct link to function_subst")
 
 Points to an array of instructions responsible for altering function calls. This section is used when function translations are required, and/or function arguments (function signature) have to be altered. Each element of the array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                                             | Example                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| from                        | Specifies the name of the function in the source code.                                                                                              | "ISNULL"                     |
-| to                          | Specifies the name of the function to change to. Use this if function name changes but the signature does not (args stay as they are)               | "COALESCE"                   |
-| output\_template            | A template for constructing the output function. Can use `$1`, `$2`, `%ALL_ARGS%`, etc. This should be used when the "to" attribute cannot be used. | "CAST($2 AS $1)"             |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                     | \["SELECT", "UPDATE"]        |
-| placement                   | Placement of the converted clause. Allowed values: `append_inside_ddl`, `append_after_ddl`.                                                         | "append\_inside\_ddl"        |
-| extension\_call             | Invokes an external routine to generate the new function string. Useful for complex cases.                                                          | "custom\_subst\_routine"     |
-| num\_args                   | Only applies the rule when the number of arguments matches.                                                                                         | 2                            |
-| date\_format\_arg           | Specifies the argument position containing a date part keyword (e.g., "MM", "YYYY"). Works with `datepart_translations`.                            | 2                            |
-| arg\_pattern                | Hash where keys are argument positions (1-based) and values are regex patterns they must match.                                                     | { 1: "^\d+$" }               |
-| upcase\_args                | List of argument positions to convert to uppercase.                                                                                                 | \[1, 2]                      |
-| lowcase\_args               | List of argument positions to convert to lowercase.                                                                                                 | \[3]                         |
-| skip\_files                 | List of filenames to skip for this rule. This is the basename, as opposed to the full path                                                          | \["legacy\_job.sql"]         |
-| relative\_fragment\_pattern | Restricts rule application to when this pattern is found in a nearby fragment.                                                                      | "ACTIVITYCOUNT = 0"          |
-| relative\_fragment\_offset  | Comma-separated offsets (relative to the current line) to search for `relative_fragment_pattern`.                                                   | "1,2"                        |
-| arg\_placement              | Hash to remap or reposition arguments; supports fallbacks like `2\|\|default`.<br />NOTE: Use output\_template instead of this                      | { 1: "2", 2: "1\|\|NULL" }   |
-| full\_subst                 | Full substitution template using placeholders like `__ARG1__`, `__ARG2__`. Overrides normal argument logic.                                         | "IFNULL(**ARG1**, **ARG2**)" |
-| arg\_token\_output          | Specifies token positions to output when using token-based splitting.                                                                               | "1,3"                        |
-| split\_string               | Delimiter to split arguments when using `arg_token_output`.                                                                                         | ";"                          |
-| new\_arg\_separator         | Overrides the default `,` separator when joining arguments in the output.                                                                           | "                            |
-| each\_arg\_routine          | A Perl routine to apply to each argument (e.g., transformation, cleaning).                                                                          | "uc"                         |
-| ending                      | A string to append after the function call (e.g., for syntax closure).                                                                              | ";"                          |
+| Attribute                 | Purpose                                                                                                                                             | Example                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| from                      | Specifies the name of the function in the source code.                                                                                              | "ISNULL"                     |
+| to                        | Specifies the name of the function to change to. Use this if function name changes but the signature does not (args stay as they are)               | "COALESCE"                   |
+| output_template           | A template for constructing the output function. Can use `$1`, `$2`, `%ALL_ARGS%`, etc. This should be used when the "to" attribute cannot be used. | "CAST($2 AS $1)"             |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                     | \["SELECT", "UPDATE"]        |
+| placement                 | Placement of the converted clause. Allowed values: `append_inside_ddl`, `append_after_ddl`.                                                         | "append_inside_ddl"          |
+| extension_call            | Invokes an external routine to generate the new function string. Useful for complex cases.                                                          | "custom_subst_routine"       |
+| num_args                  | Only applies the rule when the number of arguments matches.                                                                                         | 2                            |
+| date_format_arg           | Specifies the argument position containing a date part keyword (e.g., "MM", "YYYY"). Works with `datepart_translations`.                            | 2                            |
+| arg_pattern               | Hash where keys are argument positions (1-based) and values are regex patterns they must match.                                                     | { 1: "^\d+$" }               |
+| upcase_args               | List of argument positions to convert to uppercase.                                                                                                 | \[1, 2]                      |
+| lowcase_args              | List of argument positions to convert to lowercase.                                                                                                 | \[3]                         |
+| skip_files                | List of filenames to skip for this rule. This is the basename, as opposed to the full path                                                          | \["legacy_job.sql"]          |
+| relative_fragment_pattern | Restricts rule application to when this pattern is found in a nearby fragment.                                                                      | "ACTIVITYCOUNT = 0"          |
+| relative_fragment_offset  | Comma-separated offsets (relative to the current line) to search for `relative_fragment_pattern`.                                                   | "1,2"                        |
+| arg_placement             | Hash to remap or reposition arguments; supports fallbacks like `2\|\|default`.<br />NOTE: Use output_template instead of this                       | { 1: "2", 2: "1\|\|NULL" }   |
+| full_subst                | Full substitution template using placeholders like `__ARG1__`, `__ARG2__`. Overrides normal argument logic.                                         | "IFNULL(**ARG1**, **ARG2**)" |
+| arg_token_output          | Specifies token positions to output when using token-based splitting.                                                                               | "1,3"                        |
+| split_string              | Delimiter to split arguments when using `arg_token_output`.                                                                                         | ";"                          |
+| new_arg_separator         | Overrides the default `,` separator when joining arguments in the output.                                                                           | "                            |
+| each_arg_routine          | A Perl routine to apply to each argument (e.g., transformation, cleaning).                                                                          | "uc"                         |
+| ending                    | A string to append after the function call (e.g., for syntax closure).                                                                              | ";"                          |
 
 **Special Keywords:**
 
@@ -334,7 +334,7 @@ SELECT SUBSTR(
 
 ```
 
-**\_\_ELIMINATE\_CALL\_\_** - gets rid of the function name and surrounding parenthesis, leaving only the arguments in place.
+**\_\_ELIMINATE_CALL\_\_** - gets rid of the function name and surrounding parenthesis, leaving only the arguments in place.
 
 Example (removing TRANSLATE call and leaving args):
 
@@ -345,7 +345,7 @@ Example (removing TRANSLATE call and leaving args):
 
 ## Extended Converter Rules[​](#extended-converter-rules "Direct link to Extended Converter Rules")
 
-### stmt\_categorization\_patterns[​](#stmt_categorization_patterns "Direct link to stmt_categorization_patterns")
+### stmt_categorization_patterns[​](#stmt_categorization_patterns "Direct link to stmt_categorization_patterns")
 
 As the converter processes statements, in some cases it needs to be aware of the type of the statement being processed, so he can include/exclude some rules or dispatch the processing to a custom routine.
 
@@ -366,9 +366,9 @@ Example:
 
 Each category can support multiple patterns. `stmt_categorization_patterns`can be repeated and extended in inherited files.
 
-This tag is currently provided in the base JSON file general\_sql\_specs.json.
+This tag is currently provided in the base JSON file general_sql_specs.json.
 
-### datepart\_translations[​](#datepart_translations "Direct link to datepart_translations")
+### datepart_translations[​](#datepart_translations "Direct link to datepart_translations")
 
 Contains specifications on how to translate date part formatting specifications. Sample specifications:
 
@@ -388,7 +388,7 @@ Contains specifications on how to translate date part formatting specifications.
 
 ```
 
-Note: this is a case sensitive instruction. It will be processed lengthier pattern first (yyyy goes before DD). This section is to be used with the function\_subst modifier “date\_format\_arg”.
+Note: this is a case sensitive instruction. It will be processed lengthier pattern first (yyyy goes before DD). This section is to be used with the function_subst modifier “date_format_arg”.
 
 ## Advanced Conversion Rules[​](#advanced-conversion-rules "Direct link to Advanced Conversion Rules")
 
@@ -399,7 +399,7 @@ Besides operating with prebuilt core functionality, the converter can delegate c
 
 ```
 
-The Callback mechanism uses the instruction “fragment\_handling” in the configuration file, which tells the converter how to dispatch the subroutine calls based on the category of a statement:
+The Callback mechanism uses the instruction “fragment_handling” in the configuration file, which tells the converter how to dispatch the subroutine calls based on the category of a statement:
 
 ```json
 "fragment_handling": {
@@ -420,7 +420,7 @@ The Callback mechanism uses the instruction “fragment\_handling” in the conf
 
 The names of the subroutines should be prefixed with two colons. This indicates to the processor that the subroutines live in the main namespace, as opposed to inside classes.
 
-Note that you can extend the section stmt\_categorization\_patterns anywhere in the inherited files to support custom fragment categories.
+Note that you can extend the section stmt_categorization_patterns anywhere in the inherited files to support custom fragment categories.
 
 The sections below list additional directives that are responsible for interacting with callback subs.
 
@@ -591,39 +591,39 @@ ETL configuration thus serves as the orchestration layer that combines rule-base
 
 ### ETL Configuration Tags[​](#etl-configuration-tags "Direct link to ETL Configuration Tags")
 
-| Attribute                                  | Description                                                                                                                                               | Sample                                                                                                                               |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| code\_generation\_module                   | Specifies which module to use for code generation.                                                                                                        | "CodeGeneration::SQL" or "CodeGeneration::PySpark"                                                                                   |
-| target\_file\_extension                    | Sets the extension of the generated code file.                                                                                                            | "py"                                                                                                                                 |
-| use\_notebook\_md                          | Indicates whether Databricks notebook markdown should be used.                                                                                            | 1                                                                                                                                    |
-| script\_header                             | Adds a code block at the start of the generated script, often for imports or metadata.                                                                    | # Databricks notebook source\n from datetime import datetime                                                                         |
-| script\_footer                             | Adds a code block at the end of the generated script                                                                                                      | quit()                                                                                                                               |
-| rowid\_expression                          | Specifies the expression used to compute a row ID.                                                                                                        | xxhash64(%DELIMITED\_COLUMN\_LIST%) as %ROWID\_COL\_NAME%                                                                            |
-| rowid\_column\_name                        | Name of the column containing rowid                                                                                                                       | source\_record\_id                                                                                                                   |
-| dataset\_creation\_method                  | Indicates whether datasets are created as CTEs or tables.<br />"TABLE" is typically used for lift and shift, but "CTE" can be used for custom dbt outputs | TABLE or CTE                                                                                                                         |
-| table\_creation\_statement                 | Template for creating a temporary table from a SQL block.                                                                                                 | %TABLE\_NAME% = spark.sql (rf"""%INNER\_SQL%"""%FORMAT\_SPEC%)<br />%TABLE\_NAME%. createOrReplaceTempView("`%TABLE_NAME%`")         |
-| ddl\_statement\_wrap                       | Wraps DDL statements in a Spark SQL invocation.                                                                                                           | spark.sql(f"""%INNER\_SQL%"""%FORMAT\_SPEC%).display()                                                                               |
-| etl\_converter\_config\_file               | Points to a secondary config file for ETL expression conversion.                                                                                          | base\_datastage2databricks\_pyspark.json                                                                                             |
-| commands                                   | section on how to generate various read and write statements for different system types                                                                   |                                                                                                                                      |
-| use\_native\_database\_connections\_source | When `true`, Source components use native JDBC/ODBC connection templates instead of default commands                                                      | true                                                                                                                                 |
-| use\_native\_database\_connections\_lookup | When `true`, Lookup components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                                 |
-| use\_native\_database\_connections\_target | When `true`, Target components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                                 |
-| native\_database\_connection\_commands     | Section containing JDBC/ODBC connection templates for different database types (e.g., `READER_ORACLE`, `WRITER_MSSQL`)                                    | See Native Database Connection Support section                                                                                       |
-| system\_type\_class                        | system type classifications                                                                                                                               |                                                                                                                                      |
-| conform\_source\_columns                   | instructs the writer to generate column-conforming statement for sources                                                                                  |                                                                                                                                      |
-| conform\_columns\_call\_template           | template for conforming the column list                                                                                                                   | "%DF%\_conformed\_cols = \[%COLUMN\_LIST%]\n%DF% = DatabricksConversionSupplements. conform\_df\_columns(%DF%,%DF%\_conformed\_cols) |
-| mapplet\_class\_name                       | Class name used for mapplet functions                                                                                                                     | Mapplets                                                                                                                             |
-| mapplet\_function\_name                    | Function name format for mapplets                                                                                                                         | %MAPPLET\_NAME%                                                                                                                      |
-| mapplet\_code\_indent                      | General code indentation for mapplets                                                                                                                     | (8 spaces)                                                                                                                           |
-| mapplet\_pyspark\_code\_indent             | Indentation for multiline SQL inside mapplets                                                                                                             | (4 spaces)                                                                                                                           |
-| mapplet\_header\_template                  | Path to the file containing the header template for the mapplet                                                                                           | python\_mapplet\_header\_template.py                                                                                                 |
-| mapplet\_input\_declaration                | Format string to define the Python function declaration for the mapplet                                                                                   | \n def %MAPPLET\_NAME%(%INPUT%):                                                                                                     |
-| mapplet\_conclusion                        | Code snippet added to conclude the mapplet implementation                                                                                                 | #Implementation %MAPPLET\_NAME% concluded\n\n                                                                                        |
-| mapplet\_object\_var\_inject\_format       | Format for injecting object variable, typically for wrapping dynamic names in code                                                                        | """ + %OBJECT\_NAME% + """                                                                                                           |
-| mapplet\_function\_invocation              | Format used to invoke the mapplet function                                                                                                                | Mapplets.%MAPPLET\_NAME%(%INPUT%)                                                                                                    |
-| mapplet\_instance\_prefixes                | List of instance name prefixes to help identify and generate mapplet connection info                                                                      | \["sc\_"]                                                                                                                            |
+| Attribute                              | Description                                                                                                                                               | Sample                                                                                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| code_generation_module                 | Specifies which module to use for code generation.                                                                                                        | "CodeGeneration::SQL" or "CodeGeneration::PySpark"                                                                              |
+| target_file_extension                  | Sets the extension of the generated code file.                                                                                                            | "py"                                                                                                                            |
+| use_notebook_md                        | Indicates whether Databricks notebook markdown should be used.                                                                                            | 1                                                                                                                               |
+| script_header                          | Adds a code block at the start of the generated script, often for imports or metadata.                                                                    | # Databricks notebook source\n from datetime import datetime                                                                    |
+| script_footer                          | Adds a code block at the end of the generated script                                                                                                      | quit()                                                                                                                          |
+| rowid_expression                       | Specifies the expression used to compute a row ID.                                                                                                        | xxhash64(%DELIMITED_COLUMN_LIST%) as %ROWID_COL_NAME%                                                                           |
+| rowid_column_name                      | Name of the column containing rowid                                                                                                                       | source_record_id                                                                                                                |
+| dataset_creation_method                | Indicates whether datasets are created as CTEs or tables.<br />"TABLE" is typically used for lift and shift, but "CTE" can be used for custom dbt outputs | TABLE or CTE                                                                                                                    |
+| table_creation_statement               | Template for creating a temporary table from a SQL block.                                                                                                 | %TABLE_NAME% = spark.sql (rf"""%INNER_SQL%"""%FORMAT_SPEC%)<br />%TABLE_NAME%. createOrReplaceTempView("`%TABLE_NAME%`")        |
+| ddl_statement_wrap                     | Wraps DDL statements in a Spark SQL invocation.                                                                                                           | spark.sql(f"""%INNER_SQL%"""%FORMAT_SPEC%).display()                                                                            |
+| etl_converter_config_file              | Points to a secondary config file for ETL expression conversion.                                                                                          | base_datastage2databricks_pyspark.json                                                                                          |
+| commands                               | section on how to generate various read and write statements for different system types                                                                   |                                                                                                                                 |
+| use_native_database_connections_source | When `true`, Source components use native JDBC/ODBC connection templates instead of default commands                                                      | true                                                                                                                            |
+| use_native_database_connections_lookup | When `true`, Lookup components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                            |
+| use_native_database_connections_target | When `true`, Target components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                            |
+| native_database_connection_commands    | Section containing JDBC/ODBC connection templates for different database types (e.g., `READER_ORACLE`, `WRITER_MSSQL`)                                    | See Native Database Connection Support section                                                                                  |
+| system_type_class                      | system type classifications                                                                                                                               |                                                                                                                                 |
+| conform_source_columns                 | instructs the writer to generate column-conforming statement for sources                                                                                  |                                                                                                                                 |
+| conform_columns_call_template          | template for conforming the column list                                                                                                                   | "%DF%\_conformed_cols = \[%COLUMN_LIST%]\n%DF% = DatabricksConversionSupplements. conform_df_columns(%DF%,%DF%\_conformed_cols) |
+| mapplet_class_name                     | Class name used for mapplet functions                                                                                                                     | Mapplets                                                                                                                        |
+| mapplet_function_name                  | Function name format for mapplets                                                                                                                         | %MAPPLET_NAME%                                                                                                                  |
+| mapplet_code_indent                    | General code indentation for mapplets                                                                                                                     | (8 spaces)                                                                                                                      |
+| mapplet_pyspark_code_indent            | Indentation for multiline SQL inside mapplets                                                                                                             | (4 spaces)                                                                                                                      |
+| mapplet_header_template                | Path to the file containing the header template for the mapplet                                                                                           | python_mapplet_header_template.py                                                                                               |
+| mapplet_input_declaration              | Format string to define the Python function declaration for the mapplet                                                                                   | \n def %MAPPLET_NAME%(%INPUT%):                                                                                                 |
+| mapplet_conclusion                     | Code snippet added to conclude the mapplet implementation                                                                                                 | #Implementation %MAPPLET_NAME% concluded\n\n                                                                                    |
+| mapplet_object_var_inject_format       | Format for injecting object variable, typically for wrapping dynamic names in code                                                                        | """ + %OBJECT_NAME% + """                                                                                                       |
+| mapplet_function_invocation            | Format used to invoke the mapplet function                                                                                                                | Mapplets.%MAPPLET_NAME%(%INPUT%)                                                                                                |
+| mapplet_instance_prefixes              | List of instance name prefixes to help identify and generate mapplet connection info                                                                      | \["sc\_"]                                                                                                                       |
 
-### system\_type\_class section[​](#system_type_class-section "Direct link to system_type_class section")
+### system_type_class section[​](#system_type_class-section "Direct link to system_type_class section")
 
 This section represents a mapping of a system type to a class name, which will be later used in the `commands` section
 
@@ -765,4 +765,4 @@ In ETL systems, it is common to encapsulate reusable logic into modular componen
 
 Configuration tags prefixed with mapplet define how this reusable logic should be represented and rendered in the output.
 
-The converter will generate a single class—specified by the JSON tag mapplet\_class\_name—in which all reusable code will be consolidated. This class serves as the container for all maplet-level function definitions and logic.
+The converter will generate a single class—specified by the JSON tag mapplet_class_name—in which all reusable code will be consolidated. This class serves as the container for all maplet-level function definitions and logic.

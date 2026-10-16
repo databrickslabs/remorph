@@ -61,12 +61,12 @@ GRANT VIEW SERVER STATE TO <user_id>
 
 ```
 
-| Pool Type           | Category          | Objects                                                                                                                                                                                     |
-| ------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dedicated SQL Pool  | Tables            | sys.databases<br />information\_schema.tables<br />information\_schema.columns<br />information\_schema.views<br />information\_schema.routines                                             |
-|                     | DMVs              | sys.dm\_pdw\_exec\_sessions<br />sys.dm\_pdw\_exec\_requests<br />sys.dm\_pdw\_nodes\_db\_partition\_stats                                                                                  |
-| Serverless SQL Pool | Catalog Views     | sys.databases<br />information\_schema.tables<br />information\_schema.columns<br />information\_schema.views<br />sys.objects (for routines)                                               |
-|                     | Server DMVs<br /> | sys.dm\_exec\_sessions<br />sys.dm\_exec\_requests<br />sys.dm\_exec\_query\_stats<br />sys.dm\_exec\_sql\_text<br />sys.dm\_exec\_requests\_history<br />sys.dm\_external\_data\_processed |
+| Pool Type           | Category          | Objects                                                                                                                                                                     |
+| ------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dedicated SQL Pool  | Tables            | sys.databases<br />information_schema.tables<br />information_schema.columns<br />information_schema.views<br />information_schema.routines                                 |
+|                     | DMVs              | sys.dm_pdw_exec_sessions<br />sys.dm_pdw_exec_requests<br />sys.dm_pdw_nodes_db_partition_stats                                                                             |
+| Serverless SQL Pool | Catalog Views     | sys.databases<br />information_schema.tables<br />information_schema.columns<br />information_schema.views<br />sys.objects (for routines)                                  |
+|                     | Server DMVs<br /> | sys.dm_exec_sessions<br />sys.dm_exec_requests<br />sys.dm_exec_query_stats<br />sys.dm_exec_sql_text<br />sys.dm_exec_requests_history<br />sys.dm_external_data_processed |
 
 ## Configure Connection to Synapse[​](#configure-connection-to-synapse "Direct link to Configure Connection to Synapse")
 

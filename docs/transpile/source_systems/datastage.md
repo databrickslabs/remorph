@@ -71,7 +71,7 @@ The converter supports the following DataStage stages:
 
 | DataStage Connector     | System Type | Notes                   |
 | ----------------------- | ----------- | ----------------------- |
-| **Amazon S3**           | AMAZON\_S3  | AWS S3 storage          |
+| **Amazon S3**           | AMAZON_S3   | AWS S3 storage          |
 | **DB2 Connector**       | DB2         | IBM DB2 database        |
 | **Dataset**             | FLATFILE    | DataStage dataset files |
 | **File Connector**      | FLATFILE    | Generic file access     |

@@ -37,7 +37,7 @@ Place the file in `.lakebridge/` in your Databricks workspace home folder.
 * BigQuery
 * Databricks
 
-recon\_config\_snowflake\_sample\_data\_all.json
+recon_config_snowflake_sample_data_all.json
 
 ```yaml
 source:
@@ -52,7 +52,7 @@ report_type: all
 
 ```
 
-recon\_config\_oracle\_orc\_data.json
+recon_config_oracle_orc_data.json
 
 ```yaml
 source:
@@ -65,7 +65,7 @@ report_type: data
 
 ```
 
-recon\_config\_tsql\_silver\_data.json
+recon_config_tsql_silver_data.json
 
 ```yaml
 source:
@@ -78,7 +78,7 @@ report_type: data
 
 ```
 
-recon\_config\_teradata\_teradata\_sandbox\_all.json
+recon_config_teradata_teradata_sandbox_all.json
 
 ```yaml
 source:
@@ -101,7 +101,7 @@ You must also tell Lakebridge how to call the UDF by setting `hash_expression_ov
 
 Refer to the Teradata documentation for how to create and register UDFs on your release and platform. For a real-world example, Teradata publishes an MD5 message-digest UDF you can install as-is or adapt: [MD5 Message Digest UDF](https://downloads.teradata.com/download/extensibility/md5-message-digest-udf).
 
-recon\_config\_bigquery\_sample\_data\_all.json
+recon_config_bigquery_sample_data_all.json
 
 ```yaml
 source:
@@ -120,7 +120,7 @@ Writable dataset required
 
 Results materialize into the `lakebridge_reconcile` dataset. Make sure a dataset with this name exist in the same region as the source data and be writable by the connection's service account.
 
-recon\_config\_databricks\_hms\_schema.json
+recon_config_databricks_hms_schema.json
 
 ```yaml
 source:

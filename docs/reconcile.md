@@ -65,11 +65,11 @@ For `UNITY_CATALOG_CONNECTION_NAME_OR_CATALOG`: if the source is databricks then
 
 Examples:
 
-| source\_type | connection\_name\_or\_catalog | report\_type | file\_name                                 |
-| ------------ | ----------------------------- | ------------ | ------------------------------------------ |
-| databricks   | tpch                          | all          | recon\_config\_databricks\_tpch\_all.json  |
-| source1      | conn1                         | row          | recon\_config\_source1\_conn1\_row\.json   |
-| source2      | conn2                         | schema       | recon\_config\_source2\_conn2\_schema.json |
+| source_type | connection_name_or_catalog | report_type | file_name                              |
+| ----------- | -------------------------- | ----------- | -------------------------------------- |
+| databricks  | tpch                       | all         | recon_config_databricks_tpch_all.json  |
+| source1     | conn1                      | row         | recon_config_source1_conn1_row\.json   |
+| source2     | conn2                      | schema      | recon_config_source2_conn2_schema.json |
 
 See [Configuration Reference](/lakebridge/docs/reconcile/configuration.md) for the full schema and examples.
 
@@ -117,4 +117,4 @@ See [Running Reconcile](/lakebridge/docs/reconcile/running.md) for CLI execution
 
 1. Teradata has no portable cryptographic hash in pure SQL, so row-hash report types (`row`, `data`, `all`) require a user-installed hash UDF on the source and an explicit `hash_expression_overrides.source` entry on the recon config. See [Hash Expression](/lakebridge/docs/reconcile/configuration.md#hash-expression) for wiring. [↩](#user-content-fnref-teradata-hash) [↩2](#user-content-fnref-teradata-hash-2) [↩3](#user-content-fnref-teradata-hash-3)
 
-2. BigQuery types with no equivalent in Databricks — `BIGNUMERIC`, `TIME`, `RANGE<T>`, nested `JSON` such as `ARRAY<JSON>`, or these nested inside `ARRAY`/`STRUCT` — are left as their original BigQuery type and may be reported as `schema` mismatches even when the data migrated correctly. [↩](#user-content-fnref-bigquery-types)
+2. Two groups of BigQuery types cannot be compared exactly, and `schema` logs a warning naming the affected columns. Types with no equivalent in Databricks — `BIGNUMERIC`, `TIME`, `RANGE<T>`, nested `JSON` such as `ARRAY<JSON>`, or these nested inside `ARRAY`/`STRUCT` — are left as their original BigQuery type and may be reported as mismatches even when the data migrated correctly. Conversely, some lossy targets are reported as a match: every BigQuery integer type is an alias of `INT64` and both float types of `FLOAT64`, so the declared width is not recoverable and a narrower Databricks target (`int`, `smallint`, `float`) compares as equal even though it cannot hold the full source range; likewise a `DATETIME` column matches a `timestamp` target, which reads wall-clock values as instants. Verify these manually. [↩](#user-content-fnref-bigquery-types)

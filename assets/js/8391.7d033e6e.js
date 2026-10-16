@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunklakebridge=self.webpackChunklakebridge||[]).push([[8391],{8391:(e,a,k)=>{k.d(a,{createInfoServices:()=>r.v});var r=k(6491);k(1400)}}]);

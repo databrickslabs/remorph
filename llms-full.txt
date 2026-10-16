@@ -398,7 +398,10 @@ To extract metadata like Table, View, and Stored Procedures DDLs, you can use Mi
   <!-- -->
   * Note: Select all required object types. Screenshot below is for illustration purposes only.
     ![sql-server-export-choose-objects](/lakebridge/img/sql-server-export-choose-objects.png)
-* In the `Set Scripting Options` dialog page, choose `Save as script file` and `one script file per object` as illustrated below. <br />
+* In the `Set Scripting Options` dialog page, choose `Save as script file` and `one script file per object` as illustrated below.
+
+  <br />
+
   ![sql-server-export-set-scripting-options](/lakebridge/img/sql-server-export-set-scripting-options.png)
 
 See <https://learn.microsoft.com/en-us/ssms/scripting/generate-and-publish-scripts-wizard> for more details on how to use the Generate Scripts wizard in SSMS.
@@ -416,7 +419,10 @@ Otherwise, you can use Microsoft SQL Server Management Studio (SSMS) to extract 
 * Select “Object Explorer Details” under the View button in the toolbar
   <!-- -->
   ![synapse-objects-explorer-view](/lakebridge/img/synapse-objects-explorer-view.png)
-* For each object type, select the required objects to export and right-click on the selection to choose “Script as” > “CREATE To” > “File” as pictured below. <br />
+* For each object type, select the required objects to export and right-click on the selection to choose “Script as” > “CREATE To” > “File” as pictured below.
+
+  <br />
+
   ![synapse-objects-explorer-script-as](/lakebridge/img/synapse-objects-explorer-script-as.png)
 
 #### DataStage[​](#datastage "Direct link to DataStage")
@@ -600,7 +606,7 @@ bigquery.capacityCommitments.list           # Editions customers only
 
 ```
 
-##### 4. INFORMATION\_SCHEMA / region-scoped views accessed[​](#4-information_schema--region-scoped-views-accessed "Direct link to 4. INFORMATION_SCHEMA / region-scoped views accessed")
+##### 4. INFORMATION_SCHEMA / region-scoped views accessed[​](#4-information_schema--region-scoped-views-accessed "Direct link to 4. INFORMATION_SCHEMA / region-scoped views accessed")
 
 | Profiler aspect                                                    | Region-scoped view                                                                | Required permission                                            |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -863,6 +869,8 @@ The profiler will:
 
 #### Prerequisites[​](#prerequisites "Direct link to Prerequisites")
 
+**Supported versions:** SQL Server 2012 and later, Azure SQL Database, and Azure SQL Managed Instance.
+
 ##### 1. Download[​](#1-download "Direct link to 1. Download")
 
 No driver installation is required: the profiler connects with Microsoft's [mssql-python](https://github.com/microsoft/mssql-python) driver, which bundles its own connectivity layer.
@@ -962,12 +970,12 @@ The MSSQL profiler executes queries against the following system tables and DMVs
 
 ##### Activity Metrics[​](#activity-metrics "Direct link to Activity Metrics")
 
-| Query           | Source Table(s)                                   | Description                                                                                                                                                            |
-| --------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Query Stats     | `sys.dm_exec_query_stats`, `sys.dm_exec_sql_text` | Recently executed queries classified by command type (QUERY, DML, DDL, ROUTINE, TRANSACTION\_CONTROL, OTHER) with execution count, duration, CPU time, and row counts. |
-| Procedure Stats | `sys.dm_exec_procedure_stats`                     | Stored procedure execution statistics including execution counts, total CPU time, and elapsed time.                                                                    |
-| Sessions        | `sys.dm_exec_sessions`                            | Active user sessions with login info (hashed), program names, CPU/memory usage, and request timing.                                                                    |
-| CPU Utilization | `sys.dm_os_ring_buffers`, `sys.dm_os_sys_info`    | CPU utilization over time, including system idle percentage and SQL Server process utilization.                                                                        |
+| Query           | Source Table(s)                                   | Description                                                                                                                                                           |
+| --------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Query Stats     | `sys.dm_exec_query_stats`, `sys.dm_exec_sql_text` | Recently executed queries classified by command type (QUERY, DML, DDL, ROUTINE, TRANSACTION_CONTROL, OTHER) with execution count, duration, CPU time, and row counts. |
+| Procedure Stats | `sys.dm_exec_procedure_stats`                     | Stored procedure execution statistics including execution counts, total CPU time, and elapsed time.                                                                   |
+| Sessions        | `sys.dm_exec_sessions`                            | Active user sessions with login info (hashed), program names, CPU/memory usage, and request timing.                                                                   |
+| CPU Utilization | `sys.dm_os_ring_buffers`, `sys.dm_os_sys_info`    | CPU utilization over time, including system idle percentage and SQL Server process utilization.                                                                       |
 
 #### Configure Connection to MSSQL[​](#configure-connection-to-mssql "Direct link to Configure Connection to MSSQL")
 
@@ -1200,10 +1208,10 @@ The machine running the profiler must reach the Redshift cluster **endpoint** (h
 
 During configuration you choose an **authentication type** and where secrets are read from (**local**, **env**, or **file**):
 
-| Authentication type     | Typical use                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| **sql\_authentication** | Native database user and password                            |
-| **iam**                 | IAM-authenticated connection using AWS credential resolution |
+| Authentication type    | Typical use                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| **sql_authentication** | Native database user and password                            |
+| **iam**                | IAM-authenticated connection using AWS credential resolution |
 
 For IAM authentication you typically need:
 
@@ -1214,7 +1222,7 @@ Use **`local`** to store plaintext values in `~/.databricks/labs/lakebridge/.cre
 
 ##### 4. Database privileges[​](#4-database-privileges "Direct link to 4. Database privileges")
 
-The profiler connects as your configured user and runs read-only extracts. The pipeline includes **source\_ddl** steps that create a helper view **`query_view`** in the database (via `CREATE OR REPLACE VIEW`). The connecting user therefore needs permission to:
+The profiler connects as your configured user and runs read-only extracts. The pipeline includes **source_ddl** steps that create a helper view **`query_view`** in the database (via `CREATE OR REPLACE VIEW`). The connecting user therefore needs permission to:
 
 * **Create (and replace) views** in the target database used for profiling.
 * **Select** from the Amazon Redshift system relations used by the extracts (see below).
@@ -1319,7 +1327,7 @@ There is no deployment-variant prompt. A single pipeline covers serverless, sing
 Execution will:
 
 1. Load `pipeline_config.yml` for Redshift.
-2. Run **source\_ddl** steps on the cluster (including creating/updating **`query_view`**).
+2. Run **source_ddl** steps on the cluster (including creating/updating **`query_view`**).
 3. Run SQL extracts and persist results into a timestamped DuckDB file under the selected `--output-folder`.
 
 #### Profiler output[​](#profiler-output "Direct link to Profiler output")
@@ -1337,7 +1345,7 @@ The profiler extract is written as a timestamped DuckDB file under the selected 
 
 * A Snowflake user that can authenticate with either a **Programmatic Access Token (PAT)** or **key-pair** authentication, and that can query the `SNOWFLAKE.ACCOUNT_USAGE` schema (e.g., the `ACCOUNTADMIN` role or a role granted `IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE`).
 * For key-pair auth, the matching public key must be registered on the Snowflake user. See [Snowflake key-pair authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth).
-* The `rate_sheet` step also reads `SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY` for the effective credit rate and account tier. This is available to `ACCOUNTADMIN` in an ORGADMIN-enabled account (the first account in an organization is ORGADMIN-enabled by default, so single-account orgs are covered), or to a custom role granted the `ORGANIZATION_BILLING_VIEWER` database role. If the account isn't ORGADMIN-enabled — or the organization is on a reseller contract — the view returns no rows, so `rate_sheet` is skipped and the rest of the profile still completes.
+* The `rate_sheet` step also reads `SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY` for the account tier. This is available to `ACCOUNTADMIN` in an ORGADMIN-enabled account (the first account in an organization is ORGADMIN-enabled by default, so single-account orgs are covered), or to a custom role granted the `ORGANIZATION_BILLING_VIEWER` database role. If the account isn't ORGADMIN-enabled — or the organization is on a reseller contract — the view returns no rows, so `rate_sheet` is skipped and the rest of the profile still completes.
 * Network access from the machine running Lakebridge to your Snowflake account.
 
 #### Authentication[​](#authentication "Direct link to Authentication")
@@ -1468,12 +1476,12 @@ GRANT VIEW SERVER STATE TO <user_id>
 
 ```
 
-| Pool Type           | Category          | Objects                                                                                                                                                                                     |
-| ------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dedicated SQL Pool  | Tables            | sys.databases<br />information\_schema.tables<br />information\_schema.columns<br />information\_schema.views<br />information\_schema.routines                                             |
-|                     | DMVs              | sys.dm\_pdw\_exec\_sessions<br />sys.dm\_pdw\_exec\_requests<br />sys.dm\_pdw\_nodes\_db\_partition\_stats                                                                                  |
-| Serverless SQL Pool | Catalog Views     | sys.databases<br />information\_schema.tables<br />information\_schema.columns<br />information\_schema.views<br />sys.objects (for routines)                                               |
-|                     | Server DMVs<br /> | sys.dm\_exec\_sessions<br />sys.dm\_exec\_requests<br />sys.dm\_exec\_query\_stats<br />sys.dm\_exec\_sql\_text<br />sys.dm\_exec\_requests\_history<br />sys.dm\_external\_data\_processed |
+| Pool Type           | Category          | Objects                                                                                                                                                                     |
+| ------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dedicated SQL Pool  | Tables            | sys.databases<br />information_schema.tables<br />information_schema.columns<br />information_schema.views<br />information_schema.routines                                 |
+|                     | DMVs              | sys.dm_pdw_exec_sessions<br />sys.dm_pdw_exec_requests<br />sys.dm_pdw_nodes_db_partition_stats                                                                             |
+| Serverless SQL Pool | Catalog Views     | sys.databases<br />information_schema.tables<br />information_schema.columns<br />information_schema.views<br />sys.objects (for routines)                                  |
+|                     | Server DMVs<br /> | sys.dm_exec_sessions<br />sys.dm_exec_requests<br />sys.dm_exec_query_stats<br />sys.dm_exec_sql_text<br />sys.dm_exec_requests_history<br />sys.dm_external_data_processed |
 
 #### Configure Connection to Synapse[​](#configure-connection-to-synapse "Direct link to Configure Connection to Synapse")
 
@@ -2095,7 +2103,7 @@ With this configuration:
 
 ##### Putting it all together[​](#putting-it-all-together "Direct link to Putting it all together")
 
-1. Create a file: my\_custom\_config.json with the following contents:
+1. Create a file: my_custom_config.json with the following contents:
 
 ```json
 {
@@ -2127,9 +2135,9 @@ my_custom_config.json
 
 When it comes to converting individual SQL code snippets or ETL expressions, BladeBridge uses basic set of rules to capture certain source patterns and produce converted output. The three main types of syntax manipulation rules are:
 
-* line\_subst
-* block\_subst
-* function\_subst
+* line_subst
+* block_subst
+* function_subst
 
 They are executed in the order given above. Within each of these sections, there is an array of rules that get executed based on the order they are listed. Longer and more specific patterns should typically preceed shorter and more generic patterns. E.g.: `"from" : "varchar"` should be listed before `"from" : "char"`, since `varchar` is a longer pattern than `char`.
 
@@ -2153,22 +2161,22 @@ Sample configuration file snippet:
 
 ```
 
-##### line\_subst[​](#line_subst "Direct link to line_subst")
+##### line_subst[​](#line_subst "Direct link to line_subst")
 
 Points to an array of substitution instructions to be performed on a single line. When this directive is given, the converter will apply all substitutions for each line. Each element of the array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                      | Example                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| from                        | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                     | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token              |
-| to                          | Specifies the pattern to replace with. Dollar variables from $1 to $9 are used to replace captured tokens.                   | "CREATE OR REPLACE TABLE $1"<br />Will plug in the table name from the example above |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.              | \["TABLE\_DDL", "VIEW\_DDL"]                                                         |
-| exact\_match                | If set to "1", performs case-insensitive exact match instead of regex matching.                                              |                                                                                      |
-| first\_match                | If set to "1" and a match occurs, stops checking for subsequent patterns in the line\_subst array.                           |                                                                                      |
-| exclude\_categories         | List of excluded categories. Reverse of `statement_categories`.                                                              |                                                                                      |
-| extension\_call             | Invokes an external routine instead of using the to pattern. Useful for complex logic. See the advanced section for details. |                                                                                      |
-| relative\_fragment\_pattern | Allows the pattern to be searched within specific code fragments supplied by relative\_fragment\_offset.                     | "relative\_fragment\_pattern": "ACTIVITYCOUNT = 0"                                   |
-| relative\_fragment\_offset  | List of fragment offsets to search in when using relative\_fragment\_pattern.                                                | "relative\_fragment\_offset": "1,2"                                                  |
-| upcase\_string              | Upcases the output string                                                                                                    | {"from" : "#(\w+)#", "to" : "${$1}", "upcase\_string" : true}                        |
+| Attribute                 | Purpose                                                                                                                      | Example                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| from                      | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                     | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token              |
+| to                        | Specifies the pattern to replace with. Dollar variables from $1 to $9 are used to replace captured tokens.                   | "CREATE OR REPLACE TABLE $1"<br />Will plug in the table name from the example above |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.              | \["TABLE_DDL", "VIEW_DDL"]                                                           |
+| exact_match               | If set to "1", performs case-insensitive exact match instead of regex matching.                                              |                                                                                      |
+| first_match               | If set to "1" and a match occurs, stops checking for subsequent patterns in the line_subst array.                            |                                                                                      |
+| exclude_categories        | List of excluded categories. Reverse of `statement_categories`.                                                              |                                                                                      |
+| extension_call            | Invokes an external routine instead of using the to pattern. Useful for complex logic. See the advanced section for details. |                                                                                      |
+| relative_fragment_pattern | Allows the pattern to be searched within specific code fragments supplied by relative_fragment_offset.                       | "relative_fragment_pattern": "ACTIVITYCOUNT = 0"                                     |
+| relative_fragment_offset  | List of fragment offsets to search in when using relative_fragment_pattern.                                                  | "relative_fragment_offset": "1,2"                                                    |
+| upcase_string             | Upcases the output string                                                                                                    | {"from" : "#(\w+)#", "to" : "${$1}", "upcase_string" : true}                         |
 
 > **Note:** In the `to` attribute, you can use tokens `$1` to `$9` to refer to regex match groups.
 
@@ -2186,25 +2194,25 @@ Points to an array of substitution instructions to be performed on a single line
 
 * **Result:** `${MY_VAR} + 10 + p_curr_date_of_month`
 
-##### block\_subst[​](#block_subst "Direct link to block_subst")
+##### block_subst[​](#block_subst "Direct link to block_subst")
 
 Points to an array of substitution instructions to be performed on a statement block. When this directive is given, the converter will apply all substitutions for each statement block. This instruction is useful when there is a need to restructure a block of code – e.g. move around clauses of a statement, or when there's a high likelihood that a pattern will span multiple lines. Note that a block of code is typically referred to an entire SQL statement, such a DML inside a stored procedure or a view or table definition. Prior to processing a SQL content, converter will split up a multi-statement content into series of blocks and operate on each block of code individually.
 
-> **Note:** while block\_subst rules operate in a very similar manner to line\_subst rules, they are costlier in terms of compute time. For this reason, it is better not to overload the block\_subst section with rules that are simple and typically defined on a single line. E.g.: converting varchar to string should be done in line\_subst, and not in block\_subst.
+> **Note:** while block_subst rules operate in a very similar manner to line_subst rules, they are costlier in terms of compute time. For this reason, it is better not to overload the block_subst section with rules that are simple and typically defined on a single line. E.g.: converting varchar to string should be done in line_subst, and not in block_subst.
 
 Each element of the rules array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                                                           | Example                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| from                        | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                                                          | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token               |
-| to                          | Specifies the pattern to replace with. Dollar variables from $1 to $9 can be used to replace captured tokens.                                                     | "CREATE OR REPLACE TABLE $1"<br />Will plug in the name of the table from the example |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                                   | \["TABLE\_DDL", "VIEW\_DDL"]                                                          |
-| first\_match                | If set to "1" and a match occurs, stops checking for subsequent patterns in the line\_subst array.                                                                |                                                                                       |
-| extension\_call             | Invokes an external custom routine instead of substituting with the target pattern. Useful for complex logic. See the advanced section for more details.          |                                                                                       |
-| force\_alias\_usage         | Enforces usage of aliases in WHERE, SELECT, and JOIN clauses. Ensures references to base objects are replaced with aliases where required by the target database. |                                                                                       |
-| relative\_fragment\_pattern | Searches for the pattern within specific code fragments defined using `relative_fragment_offset`.                                                                 | "relative\_fragment\_pattern": "ACTIVITYCOUNT = 0"                                    |
-| relative\_fragment\_offset  | A list of fragment offsets to search when using `relative_fragment_pattern`.                                                                                      | "relative\_fragment\_offset": "1,2"                                                   |
-| debug\_tag                  | Specifies a debug tag, which will show in the log when running the converter in verbose mode                                                                      | {"from" : "stringA", "to" : "stringB", "debug\_tab" : "RULE001}                       |
+| Attribute                 | Purpose                                                                                                                                                           | Example                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| from                      | Specifies the pattern to capture. Use parentheses to capture tokens and substitute them.                                                                          | "CREATE TABLE\s+(\w+)"<br />In this case (\w+) represents the 1st token               |
+| to                        | Specifies the pattern to replace with. Dollar variables from $1 to $9 can be used to replace captured tokens.                                                     | "CREATE OR REPLACE TABLE $1"<br />Will plug in the name of the table from the example |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                                   | \["TABLE_DDL", "VIEW_DDL"]                                                            |
+| first_match               | If set to "1" and a match occurs, stops checking for subsequent patterns in the line_subst array.                                                                 |                                                                                       |
+| extension_call            | Invokes an external custom routine instead of substituting with the target pattern. Useful for complex logic. See the advanced section for more details.          |                                                                                       |
+| force_alias_usage         | Enforces usage of aliases in WHERE, SELECT, and JOIN clauses. Ensures references to base objects are replaced with aliases where required by the target database. |                                                                                       |
+| relative_fragment_pattern | Searches for the pattern within specific code fragments defined using `relative_fragment_offset`.                                                                 | "relative_fragment_pattern": "ACTIVITYCOUNT = 0"                                      |
+| relative_fragment_offset  | A list of fragment offsets to search when using `relative_fragment_pattern`.                                                                                      | "relative_fragment_offset": "1,2"                                                     |
+| debug_tag                 | Specifies a debug tag, which will show in the log when running the converter in verbose mode                                                                      | {"from" : "stringA", "to" : "stringB", "debug_tab" : "RULE001}                        |
 
 **Example:**
 
@@ -2220,33 +2228,33 @@ Each element of the rules array is a structure with the following elements.
 
 * **Result:** `SET V_TOTAL = (SELECT COUNT(*) FROM orders limit 1);`
 
-##### function\_subst[​](#function_subst "Direct link to function_subst")
+##### function_subst[​](#function_subst "Direct link to function_subst")
 
 Points to an array of instructions responsible for altering function calls. This section is used when function translations are required, and/or function arguments (function signature) have to be altered. Each element of the array is a structure with the following elements.
 
-| Attribute                   | Purpose                                                                                                                                             | Example                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| from                        | Specifies the name of the function in the source code.                                                                                              | "ISNULL"                     |
-| to                          | Specifies the name of the function to change to. Use this if function name changes but the signature does not (args stay as they are)               | "COALESCE"                   |
-| output\_template            | A template for constructing the output function. Can use `$1`, `$2`, `%ALL_ARGS%`, etc. This should be used when the "to" attribute cannot be used. | "CAST($2 AS $1)"             |
-| statement\_categories       | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                     | \["SELECT", "UPDATE"]        |
-| placement                   | Placement of the converted clause. Allowed values: `append_inside_ddl`, `append_after_ddl`.                                                         | "append\_inside\_ddl"        |
-| extension\_call             | Invokes an external routine to generate the new function string. Useful for complex cases.                                                          | "custom\_subst\_routine"     |
-| num\_args                   | Only applies the rule when the number of arguments matches.                                                                                         | 2                            |
-| date\_format\_arg           | Specifies the argument position containing a date part keyword (e.g., "MM", "YYYY"). Works with `datepart_translations`.                            | 2                            |
-| arg\_pattern                | Hash where keys are argument positions (1-based) and values are regex patterns they must match.                                                     | { 1: "^\d+$" }               |
-| upcase\_args                | List of argument positions to convert to uppercase.                                                                                                 | \[1, 2]                      |
-| lowcase\_args               | List of argument positions to convert to lowercase.                                                                                                 | \[3]                         |
-| skip\_files                 | List of filenames to skip for this rule. This is the basename, as opposed to the full path                                                          | \["legacy\_job.sql"]         |
-| relative\_fragment\_pattern | Restricts rule application to when this pattern is found in a nearby fragment.                                                                      | "ACTIVITYCOUNT = 0"          |
-| relative\_fragment\_offset  | Comma-separated offsets (relative to the current line) to search for `relative_fragment_pattern`.                                                   | "1,2"                        |
-| arg\_placement              | Hash to remap or reposition arguments; supports fallbacks like `2\|\|default`.<br />NOTE: Use output\_template instead of this                      | { 1: "2", 2: "1||NULL" }   |
-| full\_subst                 | Full substitution template using placeholders like `__ARG1__`, `__ARG2__`. Overrides normal argument logic.                                         | "IFNULL(**ARG1**, **ARG2**)" |
-| arg\_token\_output          | Specifies token positions to output when using token-based splitting.                                                                               | "1,3"                        |
-| split\_string               | Delimiter to split arguments when using `arg_token_output`.                                                                                         | ";"                          |
-| new\_arg\_separator         | Overrides the default `,` separator when joining arguments in the output.                                                                           | "                            |
-| each\_arg\_routine          | A Perl routine to apply to each argument (e.g., transformation, cleaning).                                                                          | "uc"                         |
-| ending                      | A string to append after the function call (e.g., for syntax closure).                                                                              | ";"                          |
+| Attribute                 | Purpose                                                                                                                                             | Example                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| from                      | Specifies the name of the function in the source code.                                                                                              | "ISNULL"                     |
+| to                        | Specifies the name of the function to change to. Use this if function name changes but the signature does not (args stay as they are)               | "COALESCE"                   |
+| output_template           | A template for constructing the output function. Can use `$1`, `$2`, `%ALL_ARGS%`, etc. This should be used when the "to" attribute cannot be used. | "CAST($2 AS $1)"             |
+| statement_categories      | Array of statement categories the rule is applicable to. If omitted, the rule applies to all matching patterns.                                     | \["SELECT", "UPDATE"]        |
+| placement                 | Placement of the converted clause. Allowed values: `append_inside_ddl`, `append_after_ddl`.                                                         | "append_inside_ddl"          |
+| extension_call            | Invokes an external routine to generate the new function string. Useful for complex cases.                                                          | "custom_subst_routine"       |
+| num_args                  | Only applies the rule when the number of arguments matches.                                                                                         | 2                            |
+| date_format_arg           | Specifies the argument position containing a date part keyword (e.g., "MM", "YYYY"). Works with `datepart_translations`.                            | 2                            |
+| arg_pattern               | Hash where keys are argument positions (1-based) and values are regex patterns they must match.                                                     | { 1: "^\d+$" }               |
+| upcase_args               | List of argument positions to convert to uppercase.                                                                                                 | \[1, 2]                      |
+| lowcase_args              | List of argument positions to convert to lowercase.                                                                                                 | \[3]                         |
+| skip_files                | List of filenames to skip for this rule. This is the basename, as opposed to the full path                                                          | \["legacy_job.sql"]          |
+| relative_fragment_pattern | Restricts rule application to when this pattern is found in a nearby fragment.                                                                      | "ACTIVITYCOUNT = 0"          |
+| relative_fragment_offset  | Comma-separated offsets (relative to the current line) to search for `relative_fragment_pattern`.                                                   | "1,2"                        |
+| arg_placement             | Hash to remap or reposition arguments; supports fallbacks like `2\|\|default`.<br />NOTE: Use output_template instead of this                       | { 1: "2", 2: "1||NULL" }   |
+| full_subst                | Full substitution template using placeholders like `__ARG1__`, `__ARG2__`. Overrides normal argument logic.                                         | "IFNULL(**ARG1**, **ARG2**)" |
+| arg_token_output          | Specifies token positions to output when using token-based splitting.                                                                               | "1,3"                        |
+| split_string              | Delimiter to split arguments when using `arg_token_output`.                                                                                         | ";"                          |
+| new_arg_separator         | Overrides the default `,` separator when joining arguments in the output.                                                                           | "                            |
+| each_arg_routine          | A Perl routine to apply to each argument (e.g., transformation, cleaning).                                                                          | "uc"                         |
+| ending                    | A string to append after the function call (e.g., for syntax closure).                                                                              | ";"                          |
 
 **Special Keywords:**
 
@@ -2272,7 +2280,7 @@ SELECT SUBSTR(
 
 ```
 
-**\_\_ELIMINATE\_CALL\_\_** - gets rid of the function name and surrounding parenthesis, leaving only the arguments in place.
+**\_\_ELIMINATE_CALL\_\_** - gets rid of the function name and surrounding parenthesis, leaving only the arguments in place.
 
 Example (removing TRANSLATE call and leaving args):
 
@@ -2283,7 +2291,7 @@ Example (removing TRANSLATE call and leaving args):
 
 #### Extended Converter Rules[​](#extended-converter-rules "Direct link to Extended Converter Rules")
 
-##### stmt\_categorization\_patterns[​](#stmt_categorization_patterns "Direct link to stmt_categorization_patterns")
+##### stmt_categorization_patterns[​](#stmt_categorization_patterns "Direct link to stmt_categorization_patterns")
 
 As the converter processes statements, in some cases it needs to be aware of the type of the statement being processed, so he can include/exclude some rules or dispatch the processing to a custom routine.
 
@@ -2304,9 +2312,9 @@ Example:
 
 Each category can support multiple patterns. `stmt_categorization_patterns`can be repeated and extended in inherited files.
 
-This tag is currently provided in the base JSON file general\_sql\_specs.json.
+This tag is currently provided in the base JSON file general_sql_specs.json.
 
-##### datepart\_translations[​](#datepart_translations "Direct link to datepart_translations")
+##### datepart_translations[​](#datepart_translations "Direct link to datepart_translations")
 
 Contains specifications on how to translate date part formatting specifications. Sample specifications:
 
@@ -2326,7 +2334,7 @@ Contains specifications on how to translate date part formatting specifications.
 
 ```
 
-Note: this is a case sensitive instruction. It will be processed lengthier pattern first (yyyy goes before DD). This section is to be used with the function\_subst modifier “date\_format\_arg”.
+Note: this is a case sensitive instruction. It will be processed lengthier pattern first (yyyy goes before DD). This section is to be used with the function_subst modifier “date_format_arg”.
 
 #### Advanced Conversion Rules[​](#advanced-conversion-rules "Direct link to Advanced Conversion Rules")
 
@@ -2337,7 +2345,7 @@ Besides operating with prebuilt core functionality, the converter can delegate c
 
 ```
 
-The Callback mechanism uses the instruction “fragment\_handling” in the configuration file, which tells the converter how to dispatch the subroutine calls based on the category of a statement:
+The Callback mechanism uses the instruction “fragment_handling” in the configuration file, which tells the converter how to dispatch the subroutine calls based on the category of a statement:
 
 ```json
 "fragment_handling": {
@@ -2358,7 +2366,7 @@ The Callback mechanism uses the instruction “fragment\_handling” in the conf
 
 The names of the subroutines should be prefixed with two colons. This indicates to the processor that the subroutines live in the main namespace, as opposed to inside classes.
 
-Note that you can extend the section stmt\_categorization\_patterns anywhere in the inherited files to support custom fragment categories.
+Note that you can extend the section stmt_categorization_patterns anywhere in the inherited files to support custom fragment categories.
 
 The sections below list additional directives that are responsible for interacting with callback subs.
 
@@ -2529,39 +2537,39 @@ ETL configuration thus serves as the orchestration layer that combines rule-base
 
 ##### ETL Configuration Tags[​](#etl-configuration-tags "Direct link to ETL Configuration Tags")
 
-| Attribute                                  | Description                                                                                                                                               | Sample                                                                                                                               |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| code\_generation\_module                   | Specifies which module to use for code generation.                                                                                                        | "CodeGeneration::SQL" or "CodeGeneration::PySpark"                                                                                   |
-| target\_file\_extension                    | Sets the extension of the generated code file.                                                                                                            | "py"                                                                                                                                 |
-| use\_notebook\_md                          | Indicates whether Databricks notebook markdown should be used.                                                                                            | 1                                                                                                                                    |
-| script\_header                             | Adds a code block at the start of the generated script, often for imports or metadata.                                                                    | # Databricks notebook source\n from datetime import datetime                                                                         |
-| script\_footer                             | Adds a code block at the end of the generated script                                                                                                      | quit()                                                                                                                               |
-| rowid\_expression                          | Specifies the expression used to compute a row ID.                                                                                                        | xxhash64(%DELIMITED\_COLUMN\_LIST%) as %ROWID\_COL\_NAME%                                                                            |
-| rowid\_column\_name                        | Name of the column containing rowid                                                                                                                       | source\_record\_id                                                                                                                   |
-| dataset\_creation\_method                  | Indicates whether datasets are created as CTEs or tables.<br />"TABLE" is typically used for lift and shift, but "CTE" can be used for custom dbt outputs | TABLE or CTE                                                                                                                         |
-| table\_creation\_statement                 | Template for creating a temporary table from a SQL block.                                                                                                 | %TABLE\_NAME% = spark.sql (rf"""%INNER\_SQL%"""%FORMAT\_SPEC%)<br />%TABLE\_NAME%. createOrReplaceTempView("`%TABLE_NAME%`")         |
-| ddl\_statement\_wrap                       | Wraps DDL statements in a Spark SQL invocation.                                                                                                           | spark.sql(f"""%INNER\_SQL%"""%FORMAT\_SPEC%).display()                                                                               |
-| etl\_converter\_config\_file               | Points to a secondary config file for ETL expression conversion.                                                                                          | base\_datastage2databricks\_pyspark.json                                                                                             |
-| commands                                   | section on how to generate various read and write statements for different system types                                                                   |                                                                                                                                      |
-| use\_native\_database\_connections\_source | When `true`, Source components use native JDBC/ODBC connection templates instead of default commands                                                      | true                                                                                                                                 |
-| use\_native\_database\_connections\_lookup | When `true`, Lookup components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                                 |
-| use\_native\_database\_connections\_target | When `true`, Target components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                                 |
-| native\_database\_connection\_commands     | Section containing JDBC/ODBC connection templates for different database types (e.g., `READER_ORACLE`, `WRITER_MSSQL`)                                    | See Native Database Connection Support section                                                                                       |
-| system\_type\_class                        | system type classifications                                                                                                                               |                                                                                                                                      |
-| conform\_source\_columns                   | instructs the writer to generate column-conforming statement for sources                                                                                  |                                                                                                                                      |
-| conform\_columns\_call\_template           | template for conforming the column list                                                                                                                   | "%DF%\_conformed\_cols = \[%COLUMN\_LIST%]\n%DF% = DatabricksConversionSupplements. conform\_df\_columns(%DF%,%DF%\_conformed\_cols) |
-| mapplet\_class\_name                       | Class name used for mapplet functions                                                                                                                     | Mapplets                                                                                                                             |
-| mapplet\_function\_name                    | Function name format for mapplets                                                                                                                         | %MAPPLET\_NAME%                                                                                                                      |
-| mapplet\_code\_indent                      | General code indentation for mapplets                                                                                                                     | (8 spaces)                                                                                                                           |
-| mapplet\_pyspark\_code\_indent             | Indentation for multiline SQL inside mapplets                                                                                                             | (4 spaces)                                                                                                                           |
-| mapplet\_header\_template                  | Path to the file containing the header template for the mapplet                                                                                           | python\_mapplet\_header\_template.py                                                                                                 |
-| mapplet\_input\_declaration                | Format string to define the Python function declaration for the mapplet                                                                                   | \n def %MAPPLET\_NAME%(%INPUT%):                                                                                                     |
-| mapplet\_conclusion                        | Code snippet added to conclude the mapplet implementation                                                                                                 | #Implementation %MAPPLET\_NAME% concluded\n\n                                                                                        |
-| mapplet\_object\_var\_inject\_format       | Format for injecting object variable, typically for wrapping dynamic names in code                                                                        | """ + %OBJECT\_NAME% + """                                                                                                           |
-| mapplet\_function\_invocation              | Format used to invoke the mapplet function                                                                                                                | Mapplets.%MAPPLET\_NAME%(%INPUT%)                                                                                                    |
-| mapplet\_instance\_prefixes                | List of instance name prefixes to help identify and generate mapplet connection info                                                                      | \["sc\_"]                                                                                                                            |
+| Attribute                              | Description                                                                                                                                               | Sample                                                                                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| code_generation_module                 | Specifies which module to use for code generation.                                                                                                        | "CodeGeneration::SQL" or "CodeGeneration::PySpark"                                                                              |
+| target_file_extension                  | Sets the extension of the generated code file.                                                                                                            | "py"                                                                                                                            |
+| use_notebook_md                        | Indicates whether Databricks notebook markdown should be used.                                                                                            | 1                                                                                                                               |
+| script_header                          | Adds a code block at the start of the generated script, often for imports or metadata.                                                                    | # Databricks notebook source\n from datetime import datetime                                                                    |
+| script_footer                          | Adds a code block at the end of the generated script                                                                                                      | quit()                                                                                                                          |
+| rowid_expression                       | Specifies the expression used to compute a row ID.                                                                                                        | xxhash64(%DELIMITED_COLUMN_LIST%) as %ROWID_COL_NAME%                                                                           |
+| rowid_column_name                      | Name of the column containing rowid                                                                                                                       | source_record_id                                                                                                                |
+| dataset_creation_method                | Indicates whether datasets are created as CTEs or tables.<br />"TABLE" is typically used for lift and shift, but "CTE" can be used for custom dbt outputs | TABLE or CTE                                                                                                                    |
+| table_creation_statement               | Template for creating a temporary table from a SQL block.                                                                                                 | %TABLE_NAME% = spark.sql (rf"""%INNER_SQL%"""%FORMAT_SPEC%)<br />%TABLE_NAME%. createOrReplaceTempView("`%TABLE_NAME%`")        |
+| ddl_statement_wrap                     | Wraps DDL statements in a Spark SQL invocation.                                                                                                           | spark.sql(f"""%INNER_SQL%"""%FORMAT_SPEC%).display()                                                                            |
+| etl_converter_config_file              | Points to a secondary config file for ETL expression conversion.                                                                                          | base_datastage2databricks_pyspark.json                                                                                          |
+| commands                               | section on how to generate various read and write statements for different system types                                                                   |                                                                                                                                 |
+| use_native_database_connections_source | When `true`, Source components use native JDBC/ODBC connection templates instead of default commands                                                      | true                                                                                                                            |
+| use_native_database_connections_lookup | When `true`, Lookup components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                            |
+| use_native_database_connections_target | When `true`, Target components use native JDBC/ODBC connection templates                                                                                  | true                                                                                                                            |
+| native_database_connection_commands    | Section containing JDBC/ODBC connection templates for different database types (e.g., `READER_ORACLE`, `WRITER_MSSQL`)                                    | See Native Database Connection Support section                                                                                  |
+| system_type_class                      | system type classifications                                                                                                                               |                                                                                                                                 |
+| conform_source_columns                 | instructs the writer to generate column-conforming statement for sources                                                                                  |                                                                                                                                 |
+| conform_columns_call_template          | template for conforming the column list                                                                                                                   | "%DF%\_conformed_cols = \[%COLUMN_LIST%]\n%DF% = DatabricksConversionSupplements. conform_df_columns(%DF%,%DF%\_conformed_cols) |
+| mapplet_class_name                     | Class name used for mapplet functions                                                                                                                     | Mapplets                                                                                                                        |
+| mapplet_function_name                  | Function name format for mapplets                                                                                                                         | %MAPPLET_NAME%                                                                                                                  |
+| mapplet_code_indent                    | General code indentation for mapplets                                                                                                                     | (8 spaces)                                                                                                                      |
+| mapplet_pyspark_code_indent            | Indentation for multiline SQL inside mapplets                                                                                                             | (4 spaces)                                                                                                                      |
+| mapplet_header_template                | Path to the file containing the header template for the mapplet                                                                                           | python_mapplet_header_template.py                                                                                               |
+| mapplet_input_declaration              | Format string to define the Python function declaration for the mapplet                                                                                   | \n def %MAPPLET_NAME%(%INPUT%):                                                                                                 |
+| mapplet_conclusion                     | Code snippet added to conclude the mapplet implementation                                                                                                 | #Implementation %MAPPLET_NAME% concluded\n\n                                                                                    |
+| mapplet_object_var_inject_format       | Format for injecting object variable, typically for wrapping dynamic names in code                                                                        | """ + %OBJECT_NAME% + """                                                                                                       |
+| mapplet_function_invocation            | Format used to invoke the mapplet function                                                                                                                | Mapplets.%MAPPLET_NAME%(%INPUT%)                                                                                                |
+| mapplet_instance_prefixes              | List of instance name prefixes to help identify and generate mapplet connection info                                                                      | \["sc\_"]                                                                                                                       |
 
-##### system\_type\_class section[​](#system_type_class-section "Direct link to system_type_class section")
+##### system_type_class section[​](#system_type_class-section "Direct link to system_type_class section")
 
 This section represents a mapping of a system type to a class name, which will be later used in the `commands` section
 
@@ -2703,7 +2711,7 @@ In ETL systems, it is common to encapsulate reusable logic into modular componen
 
 Configuration tags prefixed with mapplet define how this reusable logic should be represented and rendered in the output.
 
-The converter will generate a single class—specified by the JSON tag mapplet\_class\_name—in which all reusable code will be consolidated. This class serves as the container for all maplet-level function definitions and logic.
+The converter will generate a single class—specified by the JSON tag mapplet_class_name—in which all reusable code will be consolidated. This class serves as the container for all maplet-level function definitions and logic.
 
 
 ---
@@ -2914,7 +2922,7 @@ Switch requires a Databricks catalog, schema, and volume:
   * Defaults: catalog - lakebridge, schema - switch
 * **Volume**: Store uploaded input source files
   <!-- -->
-  * Default: switch\_volume
+  * Default: switch_volume
 
 **Required permissions:**
 
@@ -2947,11 +2955,11 @@ Convert SQL from various dialects to Databricks Python notebooks.
 
 Convert non-SQL files to notebooks or other formats.
 
-| Source Technology | Source → Target                                                                                          |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| `python`          | Python Script → Databricks Python Notebook                                                               |
-| `scala`           | Scala Code → Databricks Python Notebook                                                                  |
-| `airflow`         | Airflow DAG → Databricks Jobs YAML + Operator conversion guidance (SQL→sql\_task, Python→notebook, etc.) |
+| Source Technology | Source → Target                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `python`          | Python Script → Databricks Python Notebook                                                              |
+| `scala`           | Scala Code → Databricks Python Notebook                                                                 |
+| `airflow`         | Airflow DAG → Databricks Jobs YAML + Operator conversion guidance (SQL→sql_task, Python→notebook, etc.) |
 
 ##### Built-in Prompts: ETL Sources[​](#built-in-prompts-etl-sources "Direct link to Built-in Prompts: ETL Sources")
 
@@ -3055,20 +3063,20 @@ Additional conversion parameters are managed in the Switch configuration file. Y
 
 You can also specify a custom configuration file path using the `--switch-config-path` command-line parameter, which overrides the default location.
 
-| Parameter                | Description                                                                                                                                                                                                                                                                                                                                                                                     | Default Value | Available Options                                                                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------- |
-| `target_type`            | Output format type. `notebook` for Python notebooks with validation and error fixing, `file` for generic file formats, `sdp` for conversion from etl workloads to Spark Declarative Pipeline (SDP). See [Conversion Flow Overview](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#overview) for processing differences.                                                | `notebook`    | `notebook`, `file`, `sdp`                                                                          |
-| `source_format`          | Source file format type. `sql` performs SQL comment removal and whitespace compression preprocessing before conversion. `generic` processes files as-is without preprocessing. Preprocessing affects token counting and conversion quality. See [analyze\_input\_files](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#analyze_input_files) for preprocessing details. | `sql`         | `sql`, `generic`                                                                                   |
-| `comment_lang`           | Language for generated comments.                                                                                                                                                                                                                                                                                                                                                                | `English`     | `English`, `Japanese`, `Chinese`, `French`, `German`, `Italian`, `Korean`, `Portuguese`, `Spanish` |
-| `log_level`              | Logging verbosity level.                                                                                                                                                                                                                                                                                                                                                                        | `INFO`        | `DEBUG`, `INFO`, `WARNING`, `ERROR`                                                                |
-| `token_count_threshold`  | Maximum tokens per file for processing. Files exceeding this limit are automatically excluded from conversion. Adjust based on your model's context window and conversion complexity. See [Token Management](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#token-management) for detailed configuration guidelines and file splitting strategies.               | `20000`       | Any positive integer                                                                               |
-| `concurrency`            | Number of parallel LLM requests for processing multiple files simultaneously. Higher values improve throughput but may hit rate limits. Default is optimized for Claude models. See [Performance Optimization](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#performance-optimization) for scaling guidance and model-specific considerations.                  | `4`           | Any positive integer                                                                               |
-| `max_fix_attempts`       | Maximum number of automatic syntax error correction attempts per file. Each attempt sends error context back to the LLM for fixing. Set to 0 to skip automatic fixes. See [fix\_syntax\_with\_llm](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#fix_syntax_with_llm) for details on the error correction process.                                                    | `1`           | 0 or any positive integer                                                                          |
-| `conversion_prompt_yaml` | Custom conversion prompt YAML file path. When specified, overrides the built-in prompt for the selected `--source-dialect`, enabling support for additional source formats or specialized conversion requirements. See [Customizable Prompts](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#customizable-prompts) for YAML structure and creation guide.        | `null`        | Full workspace path to YAML file                                                                   |
-| `output_extension`       | File extension for output files when `target_type=file`. Required for non-notebook output formats like YAML workflows or JSON configurations. See [File Conversion Flow](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#file-conversion-flow) for usage examples.                                                                                                      | `null`        | Any extension (e.g., `.yml`, `.json`)                                                              |
-| `sql_output_dir`         | (Experimental) When specified, triggers additional conversion of Python notebooks to SQL notebook format. This optional post-processing step may lose some Python-specific logic. See [convert\_notebook\_to\_sql](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#convert_notebook_to_sql-optional) for details on the SQL conversion process.                         | `null`        | Full workspace path                                                                                |
-| `request_params`         | Additional request parameters passed to the model serving endpoint. Use for advanced configurations like extended thinking mode or custom token limits. See [LLM Configuration](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#llm-configuration) for configuration examples including Claude's extended thinking mode.                                          | `null`        | JSON format string (e.g., `{"max_tokens": 64000}`)                                                 |
-| `sdp_language`           | Control the language of converted SDP code, can only be "python" or "sql".                                                                                                                                                                                                                                                                                                                      | `python`      | `python`, `sql`                                                                                    |
+| Parameter                | Description                                                                                                                                                                                                                                                                                                                                                                                   | Default Value | Available Options                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------- |
+| `target_type`            | Output format type. `notebook` for Python notebooks with validation and error fixing, `file` for generic file formats, `sdp` for conversion from etl workloads to Spark Declarative Pipeline (SDP). See [Conversion Flow Overview](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#overview) for processing differences.                                              | `notebook`    | `notebook`, `file`, `sdp`                                                                          |
+| `source_format`          | Source file format type. `sql` performs SQL comment removal and whitespace compression preprocessing before conversion. `generic` processes files as-is without preprocessing. Preprocessing affects token counting and conversion quality. See [analyze_input_files](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#analyze_input_files) for preprocessing details. | `sql`         | `sql`, `generic`                                                                                   |
+| `comment_lang`           | Language for generated comments.                                                                                                                                                                                                                                                                                                                                                              | `English`     | `English`, `Japanese`, `Chinese`, `French`, `German`, `Italian`, `Korean`, `Portuguese`, `Spanish` |
+| `log_level`              | Logging verbosity level.                                                                                                                                                                                                                                                                                                                                                                      | `INFO`        | `DEBUG`, `INFO`, `WARNING`, `ERROR`                                                                |
+| `token_count_threshold`  | Maximum tokens per file for processing. Files exceeding this limit are automatically excluded from conversion. Adjust based on your model's context window and conversion complexity. See [Token Management](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#token-management) for detailed configuration guidelines and file splitting strategies.             | `20000`       | Any positive integer                                                                               |
+| `concurrency`            | Number of parallel LLM requests for processing multiple files simultaneously. Higher values improve throughput but may hit rate limits. Default is optimized for Claude models. See [Performance Optimization](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#performance-optimization) for scaling guidance and model-specific considerations.                | `4`           | Any positive integer                                                                               |
+| `max_fix_attempts`       | Maximum number of automatic syntax error correction attempts per file. Each attempt sends error context back to the LLM for fixing. Set to 0 to skip automatic fixes. See [fix_syntax_with_llm](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#fix_syntax_with_llm) for details on the error correction process.                                                     | `1`           | 0 or any positive integer                                                                          |
+| `conversion_prompt_yaml` | Custom conversion prompt YAML file path. When specified, overrides the built-in prompt for the selected `--source-dialect`, enabling support for additional source formats or specialized conversion requirements. See [Customizable Prompts](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#customizable-prompts) for YAML structure and creation guide.      | `null`        | Full workspace path to YAML file                                                                   |
+| `output_extension`       | File extension for output files when `target_type=file`. Required for non-notebook output formats like YAML workflows or JSON configurations. See [File Conversion Flow](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#file-conversion-flow) for usage examples.                                                                                                    | `null`        | Any extension (e.g., `.yml`, `.json`)                                                              |
+| `sql_output_dir`         | (Experimental) When specified, triggers additional conversion of Python notebooks to SQL notebook format. This optional post-processing step may lose some Python-specific logic. See [convert_notebook_to_sql](/lakebridge/docs/transpile/pluggable_transpilers/switch/architecture.md#convert_notebook_to_sql-optional) for details on the SQL conversion process.                          | `null`        | Full workspace path                                                                                |
+| `request_params`         | Additional request parameters passed to the model serving endpoint. Use for advanced configurations like extended thinking mode or custom token limits. See [LLM Configuration](/lakebridge/docs/transpile/pluggable_transpilers/switch/customizing_switch.md#llm-configuration) for configuration examples including Claude's extended thinking mode.                                        | `null`        | JSON format string (e.g., `{"max_tokens": 64000}`)                                                 |
+| `sdp_language`           | Control the language of converted SDP code, can only be "python" or "sql".                                                                                                                                                                                                                                                                                                                    | `python`      | `python`, `sql`                                                                                    |
 
 ***
 
@@ -3228,19 +3236,19 @@ File conversion skips syntax validation, error fixing, and cell splitting — it
 
 #### Processing Steps[​](#processing-steps "Direct link to Processing Steps")
 
-##### analyze\_input\_files[​](#analyze_input_files "Direct link to analyze_input_files")
+##### analyze_input_files[​](#analyze_input_files "Direct link to analyze_input_files")
 
 Scans the input directory recursively and stores all file contents, metadata, and analysis results in a timestamped Delta table. For SQL sources, creates preprocessed versions with comments removed and whitespace normalized. Counts tokens using model-specific tokenizers (Claude uses ~3.4 characters per token; OpenAI and other models use tiktoken). Files exceeding `token_count_threshold` are excluded from conversion.
 
-##### convert\_with\_llm[​](#convert_with_llm "Direct link to convert_with_llm")
+##### convert_with_llm[​](#convert_with_llm "Direct link to convert_with_llm")
 
 Loads conversion prompts (built-in or custom YAML) and sends file content to the configured model serving endpoint. Multiple files are processed concurrently (default: 4, controlled by `concurrency`). For SQL sources, generates Python code with `spark.sql()` calls. For generic sources, adapts to the specified target format.
 
-##### validate\_python\_notebook[​](#validate_python_notebook "Direct link to validate_python_notebook")
+##### validate_python_notebook[​](#validate_python_notebook "Direct link to validate_python_notebook")
 
 Checks Python syntax using `ast.parse()` and validates SQL statements within `spark.sql()` calls using Spark's `EXPLAIN` command. Errors are recorded in the result table.
 
-##### validate\_sdp[​](#validate_sdp "Direct link to validate_sdp")
+##### validate_sdp[​](#validate_sdp "Direct link to validate_sdp")
 
 Validates Spark Declarative Pipeline output:
 
@@ -3253,19 +3261,19 @@ Validates Spark Declarative Pipeline output:
 
 `TABLE_OR_VIEW_NOT_FOUND` errors are ignored.
 
-##### fix\_syntax\_with\_llm[​](#fix_syntax_with_llm "Direct link to fix_syntax_with_llm")
+##### fix_syntax_with_llm[​](#fix_syntax_with_llm "Direct link to fix_syntax_with_llm")
 
 Sends error context back to the model serving endpoint for automatic correction. Repeats up to `max_fix_attempts` times (default: 1). Set to 0 to disable automatic fixing.
 
-##### split\_code\_into\_cells[​](#split_code_into_cells "Direct link to split_code_into_cells")
+##### split_code_into_cells[​](#split_code_into_cells "Direct link to split_code_into_cells")
 
 Transforms raw converted Python code into well-structured notebook cells. Splits at logical boundaries (imports, function definitions, major operations) and adds markdown cells for documentation.
 
-##### export\_to\_notebook[​](#export_to_notebook "Direct link to export_to_notebook")
+##### export_to_notebook[​](#export_to_notebook "Direct link to export_to_notebook")
 
 Creates Databricks-compatible `.py` notebooks in the output directory. Handles files up to 10MB and preserves the original directory structure. Includes metadata, source file references, and syntax check results as comments.
 
-##### convert\_notebook\_to\_sql (Optional)[​](#convert_notebook_to_sql-optional "Direct link to convert_notebook_to_sql (Optional)")
+##### convert_notebook_to_sql (Optional)[​](#convert_notebook_to_sql-optional "Direct link to convert_notebook_to_sql (Optional)")
 
 When `sql_output_dir` is specified, uses the model serving endpoint to convert Python notebooks to SQL notebook format. Some Python-specific logic may be lost in this conversion.
 
@@ -3376,7 +3384,7 @@ LLMs have limits on how much text they can process at once. Switch uses a config
 
 ###### Token Counting and Thresholds[​](#token-counting-and-thresholds "Direct link to Token Counting and Thresholds")
 
-Switch sets a default threshold of **20,000 tokens per file**. Token estimation varies by model: Claude models use approximately 3.4 characters per token (meaning 20,000 tokens ≈ 68,000 characters), while other models use the tiktoken library with o200k\_base encoding. For SQL sources, Switch removes comments and compresses whitespace before counting tokens to provide more accurate estimates.
+Switch sets a default threshold of **20,000 tokens per file**. Token estimation varies by model: Claude models use approximately 3.4 characters per token (meaning 20,000 tokens ≈ 68,000 characters), while other models use the tiktoken library with o200k_base encoding. For SQL sources, Switch removes comments and compresses whitespace before counting tokens to provide more accurate estimates.
 
 ###### Adjusting the Threshold[​](#adjusting-the-threshold "Direct link to Adjusting the Threshold")
 
@@ -3584,7 +3592,7 @@ The converter supports the following DataStage stages:
 
 | DataStage Connector     | System Type | Notes                   |
 | ----------------------- | ----------- | ----------------------- |
-| **Amazon S3**           | AMAZON\_S3  | AWS S3 storage          |
+| **Amazon S3**           | AMAZON_S3   | AWS S3 storage          |
 | **DB2 Connector**       | DB2         | IBM DB2 database        |
 | **Dataset**             | FLATFILE    | DataStage dataset files |
 | **File Connector**      | FLATFILE    | Generic file access     |
@@ -4151,7 +4159,7 @@ WHERE schemaname = 'your_schema';
 | Redshift Type | Reason                    | Workaround                                                         |
 | ------------- | ------------------------- | ------------------------------------------------------------------ |
 | **SUPER**     | Semi-structured data type | Use STRING or VARIANT with manual parsing                          |
-| **HLLSKETCH** | HyperLogLog sketches      | Use approx\_count\_distinct() or custom UDFs                       |
+| **HLLSKETCH** | HyperLogLog sketches      | Use approx_count_distinct() or custom UDFs                         |
 | **GEOMETRY**  | Spatial data              | Migrate to Databricks spatial functions with STRING representation |
 
 ***
@@ -4160,74 +4168,74 @@ WHERE schemaname = 'your_schema';
 
 ##### Date & Time Functions - Supported[​](#date--time-functions---supported "Direct link to Date & Time Functions - Supported")
 
-| Redshift Function                           | Databricks Equivalent                                          | Notes                        |
-| ------------------------------------------- | -------------------------------------------------------------- | ---------------------------- |
-| **GETDATE()**                               | CURRENT\_TIMESTAMP                                             | Current timestamp            |
-| **SYSDATE**                                 | CURRENT\_TIMESTAMP()                                           | Current timestamp            |
-| **DATE\_PART('year', date)**                | YEAR(date)                                                     | Extract year                 |
-| **DATE\_PART('month', date)**               | MONTH(date)                                                    | Extract month                |
-| **DATE\_PART('day', date)**                 | DAY(date)                                                      | Extract day                  |
-| **DATE\_PART('hour', date)**                | HOUR(date)                                                     | Extract hour                 |
-| **DATE\_PART('minute', date)**              | MINUTE(date)                                                   | Extract minute               |
-| **DATE\_PART('second', date)**              | SECOND(date)                                                   | Extract second               |
-| **DATE\_PART('quarter', date)**             | QUARTER(date)                                                  | Extract quarter              |
-| **DATE\_PART('week', date)**                | WEEKOFYEAR(date)                                               | Week number                  |
-| **DATE\_PART('dow', date)**                 | DAYOFWEEK(date)                                                | Day of week                  |
-| **DATE\_PART('doy', date)**                 | DAYOFYEAR(date)                                                | Day of year                  |
-| **DATE\_PART('epoch', date)**               | UNIX\_TIMESTAMP(date)                                          | Seconds since epoch          |
-| **DATEDIFF('day', start, end)**             | DATEDIFF(DAY, start, end)                                      | Difference in days           |
-| **DATEDIFF('month', start, end)**           | MONTH(end) - MONTH(start) + 12 \* (YEAR(end) - YEAR(start))    | Difference in months         |
-| **DATEDIFF('year', start, end)**            | YEAR(end) - YEAR(start)                                        | Difference in years          |
-| **DATEDIFF('hour', start, end)**            | (UNIX\_TIMESTAMP(end) - UNIX\_TIMESTAMP(start)) / 3600         | Difference in hours          |
-| **DATEDIFF('second', start, end)**          | UNIX\_TIMESTAMP(end) - UNIX\_TIMESTAMP(start)                  | Difference in seconds        |
-| **DATEADD('day', n, date)**                 | DATE\_ADD(date, n)                                             | Add days                     |
-| **DATEADD('month', n, date)**               | ADD\_MONTHS(date, n)                                           | Add months                   |
-| **DATEADD('year', n, date)**                | ADD\_MONTHS(date, n \* 12)                                     | Add years                    |
-| **DATEADD('hour', n, date)**                | TIMESTAMPADD(HOUR, n, date)                                    | Add hours                    |
-| **EXTRACT(YEAR FROM date)**                 | EXTRACT(YEAR FROM date)                                        | Extract year                 |
-| **TRUNC(date)**                             | TRUNC(date, 'DD')                                              | Truncate to day              |
-| **CONVERT\_TIMEZONE(tz, ts)**               | FROM\_UTC\_TIMESTAMP(ts, tz)                                   | Timezone conversion (2 args) |
-| **CONVERT\_TIMEZONE(src\_tz, tgt\_tz, ts)** | FROM\_UTC\_TIMESTAMP(TO\_UTC\_TIMESTAMP(ts, src\_tz), tgt\_tz) | Timezone conversion (3 args) |
+| Redshift Function                        | Databricks Equivalent                                       | Notes                        |
+| ---------------------------------------- | ----------------------------------------------------------- | ---------------------------- |
+| **GETDATE()**                            | CURRENT_TIMESTAMP                                           | Current timestamp            |
+| **SYSDATE**                              | CURRENT_TIMESTAMP()                                         | Current timestamp            |
+| **DATE_PART('year', date)**              | YEAR(date)                                                  | Extract year                 |
+| **DATE_PART('month', date)**             | MONTH(date)                                                 | Extract month                |
+| **DATE_PART('day', date)**               | DAY(date)                                                   | Extract day                  |
+| **DATE_PART('hour', date)**              | HOUR(date)                                                  | Extract hour                 |
+| **DATE_PART('minute', date)**            | MINUTE(date)                                                | Extract minute               |
+| **DATE_PART('second', date)**            | SECOND(date)                                                | Extract second               |
+| **DATE_PART('quarter', date)**           | QUARTER(date)                                               | Extract quarter              |
+| **DATE_PART('week', date)**              | WEEKOFYEAR(date)                                            | Week number                  |
+| **DATE_PART('dow', date)**               | DAYOFWEEK(date)                                             | Day of week                  |
+| **DATE_PART('doy', date)**               | DAYOFYEAR(date)                                             | Day of year                  |
+| **DATE_PART('epoch', date)**             | UNIX_TIMESTAMP(date)                                        | Seconds since epoch          |
+| **DATEDIFF('day', start, end)**          | DATEDIFF(DAY, start, end)                                   | Difference in days           |
+| **DATEDIFF('month', start, end)**        | MONTH(end) - MONTH(start) + 12 \* (YEAR(end) - YEAR(start)) | Difference in months         |
+| **DATEDIFF('year', start, end)**         | YEAR(end) - YEAR(start)                                     | Difference in years          |
+| **DATEDIFF('hour', start, end)**         | (UNIX_TIMESTAMP(end) - UNIX_TIMESTAMP(start)) / 3600        | Difference in hours          |
+| **DATEDIFF('second', start, end)**       | UNIX_TIMESTAMP(end) - UNIX_TIMESTAMP(start)                 | Difference in seconds        |
+| **DATEADD('day', n, date)**              | DATE_ADD(date, n)                                           | Add days                     |
+| **DATEADD('month', n, date)**            | ADD_MONTHS(date, n)                                         | Add months                   |
+| **DATEADD('year', n, date)**             | ADD_MONTHS(date, n \* 12)                                   | Add years                    |
+| **DATEADD('hour', n, date)**             | TIMESTAMPADD(HOUR, n, date)                                 | Add hours                    |
+| **EXTRACT(YEAR FROM date)**              | EXTRACT(YEAR FROM date)                                     | Extract year                 |
+| **TRUNC(date)**                          | TRUNC(date, 'DD')                                           | Truncate to day              |
+| **CONVERT_TIMEZONE(tz, ts)**             | FROM_UTC_TIMESTAMP(ts, tz)                                  | Timezone conversion (2 args) |
+| **CONVERT_TIMEZONE(src_tz, tgt_tz, ts)** | FROM_UTC_TIMESTAMP(TO_UTC_TIMESTAMP(ts, src_tz), tgt_tz)    | Timezone conversion (3 args) |
 
 ##### String Functions - Supported[​](#string-functions---supported "Direct link to String Functions - Supported")
 
-| Redshift Function                 | Databricks Equivalent                                   | Notes                   |
-| --------------------------------- | ------------------------------------------------------- | ----------------------- |
-| **LEN(str)**                      | CHAR\_LENGTH(str)                                       | String length           |
-| **CHAR\_LENGTH(str)**             | CHAR\_LENGTH(str)                                       | String length           |
-| **TEXTLEN(str)**                  | CHAR\_LENGTH(str)                                       | String length           |
-| **STRPOS(str, substr)**           | POSITION(substr IN str)                                 | Find substring position |
-| **CHARINDEX(substr, str)**        | INSTR(str, substr)                                      | Find substring position |
-| **REPLICATE(str, n)**             | REPEAT(str, n)                                          | Repeat string           |
-| **REPLACE\_CHARS(str, old, new)** | REPLACE(str, old, new)                                  | Replace characters      |
-| **SPLIT\_PART(str, delim, part)** | SPLIT(str, delim)\[part-1]                              | Split and get part      |
-| **REGEXP\_SUBSTR(str, pattern)**  | REGEXP\_EXTRACT(str, pattern, 0)                        | Extract using regex     |
-| **REGEXP\_COUNT(str, pattern)**   | LENGTH(str) - LENGTH(REGEXP\_REPLACE(str, pattern, '')) | Count regex matches     |
-| **CHR(n)**                        | CHAR(n)                                                 | ASCII code to character |
-| **QUOTE\_LITERAL(str)**           | CONCAT(''', REGEXP\_REPLACE(str, ''', ''''), ''')       | Quote string literal    |
+| Redshift Function                | Databricks Equivalent                                  | Notes                   |
+| -------------------------------- | ------------------------------------------------------ | ----------------------- |
+| **LEN(str)**                     | CHAR_LENGTH(str)                                       | String length           |
+| **CHAR_LENGTH(str)**             | CHAR_LENGTH(str)                                       | String length           |
+| **TEXTLEN(str)**                 | CHAR_LENGTH(str)                                       | String length           |
+| **STRPOS(str, substr)**          | POSITION(substr IN str)                                | Find substring position |
+| **CHARINDEX(substr, str)**       | INSTR(str, substr)                                     | Find substring position |
+| **REPLICATE(str, n)**            | REPEAT(str, n)                                         | Repeat string           |
+| **REPLACE_CHARS(str, old, new)** | REPLACE(str, old, new)                                 | Replace characters      |
+| **SPLIT_PART(str, delim, part)** | SPLIT(str, delim)\[part-1]                             | Split and get part      |
+| **REGEXP_SUBSTR(str, pattern)**  | REGEXP_EXTRACT(str, pattern, 0)                        | Extract using regex     |
+| **REGEXP_COUNT(str, pattern)**   | LENGTH(str) - LENGTH(REGEXP_REPLACE(str, pattern, '')) | Count regex matches     |
+| **CHR(n)**                       | CHAR(n)                                                | ASCII code to character |
+| **QUOTE_LITERAL(str)**           | CONCAT(''', REGEXP_REPLACE(str, ''', ''''), ''')       | Quote string literal    |
 
 ##### Aggregate Functions - Supported[​](#aggregate-functions---supported "Direct link to Aggregate Functions - Supported")
 
-| Redshift Function                                          | Databricks Equivalent                             | Notes                                |
-| ---------------------------------------------------------- | ------------------------------------------------- | ------------------------------------ |
-| **LISTAGG(col, delim)**                                    | ARRAY\_JOIN(COLLECT\_LIST(col), delim)            | Concatenate strings                  |
-| **LISTAGG(DISTINCT col, delim) WITHIN GROUP (ORDER BY x)** | ARRAY\_JOIN(ARRAY\_DISTINCT(...), delim)          | Distinct concatenation with ordering |
-| **MEDIAN(col)**                                            | PERCENTILE\_CONT(0.5) WITHIN GROUP (ORDER BY col) | Median value                         |
-| **STDDEV\_POP(col)**                                       | STDDEV\_POP(col)                                  | Population standard deviation        |
-| **STDDEV\_SAMP(col)**                                      | STDDEV\_SAMP(col)                                 | Sample standard deviation            |
-| **VAR\_POP(col)**                                          | VAR\_POP(col)                                     | Population variance                  |
-| **VAR\_SAMP(col)**                                         | VAR\_SAMP(col)                                    | Sample variance                      |
+| Redshift Function                                          | Databricks Equivalent                            | Notes                                |
+| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------ |
+| **LISTAGG(col, delim)**                                    | ARRAY_JOIN(COLLECT_LIST(col), delim)             | Concatenate strings                  |
+| **LISTAGG(DISTINCT col, delim) WITHIN GROUP (ORDER BY x)** | ARRAY_JOIN(ARRAY_DISTINCT(...), delim)           | Distinct concatenation with ordering |
+| **MEDIAN(col)**                                            | PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY col) | Median value                         |
+| **STDDEV_POP(col)**                                        | STDDEV_POP(col)                                  | Population standard deviation        |
+| **STDDEV_SAMP(col)**                                       | STDDEV_SAMP(col)                                 | Sample standard deviation            |
+| **VAR_POP(col)**                                           | VAR_POP(col)                                     | Population variance                  |
+| **VAR_SAMP(col)**                                          | VAR_SAMP(col)                                    | Sample variance                      |
 
 ##### JSON Functions - Supported[​](#json-functions---supported "Direct link to JSON Functions - Supported")
 
-| Redshift Function                                  | Databricks Equivalent                                                | Notes                       |
-| -------------------------------------------------- | -------------------------------------------------------------------- | --------------------------- |
-| **JSON\_EXTRACT\_PATH\_TEXT(json, 'key')**         | GET\_JSON\_OBJECT(json, '$.key')                                     | Extract JSON value (2 args) |
-| **JSON\_EXTRACT\_PATH\_TEXT(json, 'k1', 'k2')**    | GET\_JSON\_OBJECT(json, '$.k1.k2')                                   | Extract nested JSON value   |
-| **JSON\_EXTRACT\_ARRAY\_ELEMENT\_TEXT(json, idx)** | GET\_JSON\_OBJECT(json, '$\[idx]')                                   | Extract array element       |
-| **JSON\_PARSE(str)**                               | FROM\_JSON(str, schema)                                              | Parse JSON string           |
-| **JSON\_QUERY(json, path)**                        | JSON\_EXTRACT\_SCALAR(json, path)                                    | Query JSON                  |
-| **IS\_VALID\_JSON(str)**                           | CASE WHEN TRY\_PARSE\_JSON(str) IS NOT NULL THEN TRUE ELSE FALSE END | Validate JSON               |
+| Redshift Function                              | Databricks Equivalent                                              | Notes                       |
+| ---------------------------------------------- | ------------------------------------------------------------------ | --------------------------- |
+| **JSON_EXTRACT_PATH_TEXT(json, 'key')**        | GET_JSON_OBJECT(json, '$.key')                                     | Extract JSON value (2 args) |
+| **JSON_EXTRACT_PATH_TEXT(json, 'k1', 'k2')**   | GET_JSON_OBJECT(json, '$.k1.k2')                                   | Extract nested JSON value   |
+| **JSON_EXTRACT_ARRAY_ELEMENT_TEXT(json, idx)** | GET_JSON_OBJECT(json, '$\[idx]')                                   | Extract array element       |
+| **JSON_PARSE(str)**                            | FROM_JSON(str, schema)                                             | Parse JSON string           |
+| **JSON_QUERY(json, path)**                     | JSON_EXTRACT_SCALAR(json, path)                                    | Query JSON                  |
+| **IS_VALID_JSON(str)**                         | CASE WHEN TRY_PARSE_JSON(str) IS NOT NULL THEN TRUE ELSE FALSE END | Validate JSON               |
 
 ##### Conditional Functions - Supported[​](#conditional-functions---supported "Direct link to Conditional Functions - Supported")
 
@@ -4254,34 +4262,34 @@ WHERE schemaname = 'your_schema';
 
 ##### Array Functions - Supported[​](#array-functions---supported "Direct link to Array Functions - Supported")
 
-| Redshift Function                 | Databricks Equivalent   | Notes           |
-| --------------------------------- | ----------------------- | --------------- |
-| **ARRAY\[1,2,3]**                 | ARRAY(1,2,3)            | Array literal   |
-| **ARRAY\_TO\_STRING(arr, delim)** | ARRAY\_JOIN(arr, delim) | Array to string |
-| **ARRAY\_UPPER(arr, dim)**        | SIZE(arr)               | Array size      |
-| **GET\_ARRAY\_LENGTH(arr)**       | SIZE(arr)               | Array length    |
-| **SPLIT\_TO\_ARRAY(str, delim)**  | SPLIT(str, delim)       | String to array |
+| Redshift Function               | Databricks Equivalent  | Notes           |
+| ------------------------------- | ---------------------- | --------------- |
+| **ARRAY\[1,2,3]**               | ARRAY(1,2,3)           | Array literal   |
+| **ARRAY_TO_STRING(arr, delim)** | ARRAY_JOIN(arr, delim) | Array to string |
+| **ARRAY_UPPER(arr, dim)**       | SIZE(arr)              | Array size      |
+| **GET_ARRAY_LENGTH(arr)**       | SIZE(arr)              | Array length    |
+| **SPLIT_TO_ARRAY(str, delim)**  | SPLIT(str, delim)      | String to array |
 
 ##### Window Functions - Supported[​](#window-functions---supported "Direct link to Window Functions - Supported")
 
-| Redshift Function                  | Databricks Equivalent          | Notes                      |
-| ---------------------------------- | ------------------------------ | -------------------------- |
-| **ROW\_NUMBER() OVER (...)**       | ROW\_NUMBER() OVER (...)       | Row number                 |
-| **RANK() OVER (...)**              | RANK() OVER (...)              | Rank                       |
-| **DENSE\_RANK() OVER (...)**       | DENSE\_RANK() OVER (...)       | Dense rank                 |
-| **FIRST\_VALUE(col) IGNORE NULLS** | FIRST\_VALUE(col) IGNORE NULLS | First value ignoring nulls |
-| **LAST\_VALUE(col) IGNORE NULLS**  | LAST\_VALUE(col) IGNORE NULLS  | Last value ignoring nulls  |
-| **LAG(col, offset) OVER (...)**    | LAG(col, offset) OVER (...)    | Previous row value         |
-| **LEAD(col, offset) OVER (...)**   | LEAD(col, offset) OVER (...)   | Next row value             |
+| Redshift Function                 | Databricks Equivalent         | Notes                      |
+| --------------------------------- | ----------------------------- | -------------------------- |
+| **ROW_NUMBER() OVER (...)**       | ROW_NUMBER() OVER (...)       | Row number                 |
+| **RANK() OVER (...)**             | RANK() OVER (...)             | Rank                       |
+| **DENSE_RANK() OVER (...)**       | DENSE_RANK() OVER (...)       | Dense rank                 |
+| **FIRST_VALUE(col) IGNORE NULLS** | FIRST_VALUE(col) IGNORE NULLS | First value ignoring nulls |
+| **LAST_VALUE(col) IGNORE NULLS**  | LAST_VALUE(col) IGNORE NULLS  | Last value ignoring nulls  |
+| **LAG(col, offset) OVER (...)**   | LAG(col, offset) OVER (...)   | Previous row value         |
+| **LEAD(col, offset) OVER (...)**  | LEAD(col, offset) OVER (...)  | Next row value             |
 
 ##### Utility Functions - Supported[​](#utility-functions---supported "Direct link to Utility Functions - Supported")
 
-| Redshift Function                      | Databricks Equivalent               | Notes                             |
-| -------------------------------------- | ----------------------------------- | --------------------------------- |
-| **GENERATE\_SERIES(start, end)**       | EXPLODE(SEQUENCE(start, end, 1))    | Generate integer series           |
-| **GENERATE\_SERIES(start, end, step)** | EXPLODE(SEQUENCE(start, end, step)) | Generate integer series with step |
-| **URLPARSE(url, part)**                | PARSE\_URL(url, part)               | Parse URL                         |
-| **PG\_BACKEND\_PID()**                 | CURRENT\_USER()                     |                                   |
+| Redshift Function                     | Databricks Equivalent               | Notes                             |
+| ------------------------------------- | ----------------------------------- | --------------------------------- |
+| **GENERATE_SERIES(start, end)**       | EXPLODE(SEQUENCE(start, end, 1))    | Generate integer series           |
+| **GENERATE_SERIES(start, end, step)** | EXPLODE(SEQUENCE(start, end, step)) | Generate integer series with step |
+| **URLPARSE(url, part)**               | PARSE_URL(url, part)                | Parse URL                         |
+| **PG_BACKEND_PID()**                  | CURRENT_USER()                      |                                   |
 
 ***
 
@@ -4683,7 +4691,7 @@ WHEN MATCHED THEN UPDATE SET
 
 ***
 
-##### Example 4: REGEXP\_COUNT Function[​](#example-4-regexp_count-function "Direct link to Example 4: REGEXP_COUNT Function")
+##### Example 4: REGEXP_COUNT Function[​](#example-4-regexp_count-function "Direct link to Example 4: REGEXP_COUNT Function")
 
 **Source Redshift SQL:**
 
@@ -4739,7 +4747,7 @@ WHERE customer_id IN (
 
 ***
 
-##### Example 5: INSERT with REGEXP\_COUNT and Complex Functions[​](#example-5-insert-with-regexp_count-and-complex-functions "Direct link to Example 5: INSERT with REGEXP_COUNT and Complex Functions")
+##### Example 5: INSERT with REGEXP_COUNT and Complex Functions[​](#example-5-insert-with-regexp_count-and-complex-functions "Direct link to Example 5: INSERT with REGEXP_COUNT and Complex Functions")
 
 **Source Redshift SQL:**
 
@@ -5917,11 +5925,11 @@ For `UNITY_CATALOG_CONNECTION_NAME_OR_CATALOG`: if the source is databricks then
 
 Examples:
 
-| source\_type | connection\_name\_or\_catalog | report\_type | file\_name                                 |
-| ------------ | ----------------------------- | ------------ | ------------------------------------------ |
-| databricks   | tpch                          | all          | recon\_config\_databricks\_tpch\_all.json  |
-| source1      | conn1                         | row          | recon\_config\_source1\_conn1\_row.json   |
-| source2      | conn2                         | schema       | recon\_config\_source2\_conn2\_schema.json |
+| source_type | connection_name_or_catalog | report_type | file_name                              |
+| ----------- | -------------------------- | ----------- | -------------------------------------- |
+| databricks  | tpch                       | all         | recon_config_databricks_tpch_all.json  |
+| source1     | conn1                      | row         | recon_config_source1_conn1_row.json   |
+| source2     | conn2                      | schema      | recon_config_source2_conn2_schema.json |
 
 See [Configuration Reference](/lakebridge/docs/reconcile/configuration.md) for the full schema and examples.
 
@@ -5969,7 +5977,7 @@ See [Running Reconcile](/lakebridge/docs/reconcile/running.md) for CLI execution
 
 1. Teradata has no portable cryptographic hash in pure SQL, so row-hash report types (`row`, `data`, `all`) require a user-installed hash UDF on the source and an explicit `hash_expression_overrides.source` entry on the recon config. See [Hash Expression](/lakebridge/docs/reconcile/configuration.md#hash-expression) for wiring. [↩](#user-content-fnref-teradata-hash) [↩2](#user-content-fnref-teradata-hash-2) [↩3](#user-content-fnref-teradata-hash-3)
 
-2. BigQuery types with no equivalent in Databricks — `BIGNUMERIC`, `TIME`, `RANGE<T>`, nested `JSON` such as `ARRAY<JSON>`, or these nested inside `ARRAY`/`STRUCT` — are left as their original BigQuery type and may be reported as `schema` mismatches even when the data migrated correctly. [↩](#user-content-fnref-bigquery-types)
+2. Two groups of BigQuery types cannot be compared exactly, and `schema` logs a warning naming the affected columns. Types with no equivalent in Databricks — `BIGNUMERIC`, `TIME`, `RANGE<T>`, nested `JSON` such as `ARRAY<JSON>`, or these nested inside `ARRAY`/`STRUCT` — are left as their original BigQuery type and may be reported as mismatches even when the data migrated correctly. Conversely, some lossy targets are reported as a match: every BigQuery integer type is an alias of `INT64` and both float types of `FLOAT64`, so the declared width is not recoverable and a narrower Databricks target (`int`, `smallint`, `float`) compares as equal even though it cannot hold the full source range; likewise a `DATETIME` column matches a `timestamp` target, which reads wall-clock values as instants. Verify these manually. [↩](#user-content-fnref-bigquery-types)
 
 
 ---
@@ -6013,7 +6021,7 @@ Place the file in `.lakebridge/` in your Databricks workspace home folder.
 * BigQuery
 * Databricks
 
-recon\_config\_snowflake\_sample\_data\_all.json
+recon_config_snowflake_sample_data_all.json
 
 ```yaml
 source:
@@ -6028,7 +6036,7 @@ report_type: all
 
 ```
 
-recon\_config\_oracle\_orc\_data.json
+recon_config_oracle_orc_data.json
 
 ```yaml
 source:
@@ -6041,7 +6049,7 @@ report_type: data
 
 ```
 
-recon\_config\_tsql\_silver\_data.json
+recon_config_tsql_silver_data.json
 
 ```yaml
 source:
@@ -6054,7 +6062,7 @@ report_type: data
 
 ```
 
-recon\_config\_teradata\_teradata\_sandbox\_all.json
+recon_config_teradata_teradata_sandbox_all.json
 
 ```yaml
 source:
@@ -6077,7 +6085,7 @@ You must also tell Lakebridge how to call the UDF by setting `hash_expression_ov
 
 Refer to the Teradata documentation for how to create and register UDFs on your release and platform. For a real-world example, Teradata publishes an MD5 message-digest UDF you can install as-is or adapt: [MD5 Message Digest UDF](https://downloads.teradata.com/download/extensibility/md5-message-digest-udf).
 
-recon\_config\_bigquery\_sample\_data\_all.json
+recon_config_bigquery_sample_data_all.json
 
 ```yaml
 source:
@@ -6096,7 +6104,7 @@ Writable dataset required
 
 Results materialize into the `lakebridge_reconcile` dataset. Make sure a dataset with this name exist in the same region as the source data and be writable by the connection's service account.
 
-recon\_config\_databricks\_hms\_schema.json
+recon_config_databricks_hms_schema.json
 
 ```yaml
 source:
@@ -7284,36 +7292,36 @@ Check the `export_error` column in the result table. Common causes:
 
 ##### Commonly used custom transformations[​](#commonly-used-custom-transformations "Direct link to Commonly used custom transformations")
 
-| source\_type | data\_type     | source\_transformation                                                          | target\_transformation                                   | comments                           |
-| ------------ | -------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------- |
-| Oracle       | number(10,5)   | \`\`\`sql
-"trim(to\_char(coalesce(col\_name,0.0), '99990.99999'))"
+| source_type | data_type     | source_transformation                                                           | target_transformation                                    | comments                           |
+| ----------- | ------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------- |
+| Oracle      | number(10,5)  | \`\`\`sql
+"trim(to_char(coalesce(col_name,0.0), '99990.99999'))"
 
 `                |`sql
-"cast(coalesce(col\_name,0.0) as decimal(10,5))"
+"cast(coalesce(col_name,0.0) as decimal(10,5))"
 
 ````| Adjust precision/scale as needed   |
-| Snowflake    | array          | ```sql
+| Snowflake   | array         | ```sql
 "array_to_string(array_compact(col_name),',')"
 
 ```                         | ```sql
 "concat_ws(',', col_name)"
 
 ```                      | Removes undefined during migration |
-| Snowflake    | array          | ```sql
+| Snowflake   | array         | ```sql
 "array_to_string(array_sort(array_compact(col_name), true, true),',')"
 
 ``` | ```sql
 "concat_ws(',', col_name)"
 
 ```                      | Removes undefined and sorts        |
-| Snowflake    | timestamp\_ntz | ```sql
+| Snowflake   | timestamp_ntz | ```sql
 "date_part(epoch_second,col_name)"
 
 ```                                     | ```sql
 "unix_timestamp(col_name)"
 
-```                      | Convert timestamp\_ntz to epoch    |
+```                      | Convert timestamp_ntz to epoch     |
 
 ### How do I reconcile tables when column names differ between source and target?[​](#how-do-i-reconcile-tables-when-column-names-differ-between-source-and-target "Direct link to How do I reconcile tables when column names differ between source and target?")
 

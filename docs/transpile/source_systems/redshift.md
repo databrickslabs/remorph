@@ -71,7 +71,7 @@ WHERE schemaname = 'your_schema';
 | Redshift Type | Reason                    | Workaround                                                         |
 | ------------- | ------------------------- | ------------------------------------------------------------------ |
 | **SUPER**     | Semi-structured data type | Use STRING or VARIANT with manual parsing                          |
-| **HLLSKETCH** | HyperLogLog sketches      | Use approx\_count\_distinct() or custom UDFs                       |
+| **HLLSKETCH** | HyperLogLog sketches      | Use approx_count_distinct() or custom UDFs                         |
 | **GEOMETRY**  | Spatial data              | Migrate to Databricks spatial functions with STRING representation |
 
 ***
@@ -80,74 +80,74 @@ WHERE schemaname = 'your_schema';
 
 ### Date & Time Functions - Supported[​](#date--time-functions---supported "Direct link to Date & Time Functions - Supported")
 
-| Redshift Function                           | Databricks Equivalent                                          | Notes                        |
-| ------------------------------------------- | -------------------------------------------------------------- | ---------------------------- |
-| **GETDATE()**                               | CURRENT\_TIMESTAMP                                             | Current timestamp            |
-| **SYSDATE**                                 | CURRENT\_TIMESTAMP()                                           | Current timestamp            |
-| **DATE\_PART('year', date)**                | YEAR(date)                                                     | Extract year                 |
-| **DATE\_PART('month', date)**               | MONTH(date)                                                    | Extract month                |
-| **DATE\_PART('day', date)**                 | DAY(date)                                                      | Extract day                  |
-| **DATE\_PART('hour', date)**                | HOUR(date)                                                     | Extract hour                 |
-| **DATE\_PART('minute', date)**              | MINUTE(date)                                                   | Extract minute               |
-| **DATE\_PART('second', date)**              | SECOND(date)                                                   | Extract second               |
-| **DATE\_PART('quarter', date)**             | QUARTER(date)                                                  | Extract quarter              |
-| **DATE\_PART('week', date)**                | WEEKOFYEAR(date)                                               | Week number                  |
-| **DATE\_PART('dow', date)**                 | DAYOFWEEK(date)                                                | Day of week                  |
-| **DATE\_PART('doy', date)**                 | DAYOFYEAR(date)                                                | Day of year                  |
-| **DATE\_PART('epoch', date)**               | UNIX\_TIMESTAMP(date)                                          | Seconds since epoch          |
-| **DATEDIFF('day', start, end)**             | DATEDIFF(DAY, start, end)                                      | Difference in days           |
-| **DATEDIFF('month', start, end)**           | MONTH(end) - MONTH(start) + 12 \* (YEAR(end) - YEAR(start))    | Difference in months         |
-| **DATEDIFF('year', start, end)**            | YEAR(end) - YEAR(start)                                        | Difference in years          |
-| **DATEDIFF('hour', start, end)**            | (UNIX\_TIMESTAMP(end) - UNIX\_TIMESTAMP(start)) / 3600         | Difference in hours          |
-| **DATEDIFF('second', start, end)**          | UNIX\_TIMESTAMP(end) - UNIX\_TIMESTAMP(start)                  | Difference in seconds        |
-| **DATEADD('day', n, date)**                 | DATE\_ADD(date, n)                                             | Add days                     |
-| **DATEADD('month', n, date)**               | ADD\_MONTHS(date, n)                                           | Add months                   |
-| **DATEADD('year', n, date)**                | ADD\_MONTHS(date, n \* 12)                                     | Add years                    |
-| **DATEADD('hour', n, date)**                | TIMESTAMPADD(HOUR, n, date)                                    | Add hours                    |
-| **EXTRACT(YEAR FROM date)**                 | EXTRACT(YEAR FROM date)                                        | Extract year                 |
-| **TRUNC(date)**                             | TRUNC(date, 'DD')                                              | Truncate to day              |
-| **CONVERT\_TIMEZONE(tz, ts)**               | FROM\_UTC\_TIMESTAMP(ts, tz)                                   | Timezone conversion (2 args) |
-| **CONVERT\_TIMEZONE(src\_tz, tgt\_tz, ts)** | FROM\_UTC\_TIMESTAMP(TO\_UTC\_TIMESTAMP(ts, src\_tz), tgt\_tz) | Timezone conversion (3 args) |
+| Redshift Function                        | Databricks Equivalent                                       | Notes                        |
+| ---------------------------------------- | ----------------------------------------------------------- | ---------------------------- |
+| **GETDATE()**                            | CURRENT_TIMESTAMP                                           | Current timestamp            |
+| **SYSDATE**                              | CURRENT_TIMESTAMP()                                         | Current timestamp            |
+| **DATE_PART('year', date)**              | YEAR(date)                                                  | Extract year                 |
+| **DATE_PART('month', date)**             | MONTH(date)                                                 | Extract month                |
+| **DATE_PART('day', date)**               | DAY(date)                                                   | Extract day                  |
+| **DATE_PART('hour', date)**              | HOUR(date)                                                  | Extract hour                 |
+| **DATE_PART('minute', date)**            | MINUTE(date)                                                | Extract minute               |
+| **DATE_PART('second', date)**            | SECOND(date)                                                | Extract second               |
+| **DATE_PART('quarter', date)**           | QUARTER(date)                                               | Extract quarter              |
+| **DATE_PART('week', date)**              | WEEKOFYEAR(date)                                            | Week number                  |
+| **DATE_PART('dow', date)**               | DAYOFWEEK(date)                                             | Day of week                  |
+| **DATE_PART('doy', date)**               | DAYOFYEAR(date)                                             | Day of year                  |
+| **DATE_PART('epoch', date)**             | UNIX_TIMESTAMP(date)                                        | Seconds since epoch          |
+| **DATEDIFF('day', start, end)**          | DATEDIFF(DAY, start, end)                                   | Difference in days           |
+| **DATEDIFF('month', start, end)**        | MONTH(end) - MONTH(start) + 12 \* (YEAR(end) - YEAR(start)) | Difference in months         |
+| **DATEDIFF('year', start, end)**         | YEAR(end) - YEAR(start)                                     | Difference in years          |
+| **DATEDIFF('hour', start, end)**         | (UNIX_TIMESTAMP(end) - UNIX_TIMESTAMP(start)) / 3600        | Difference in hours          |
+| **DATEDIFF('second', start, end)**       | UNIX_TIMESTAMP(end) - UNIX_TIMESTAMP(start)                 | Difference in seconds        |
+| **DATEADD('day', n, date)**              | DATE_ADD(date, n)                                           | Add days                     |
+| **DATEADD('month', n, date)**            | ADD_MONTHS(date, n)                                         | Add months                   |
+| **DATEADD('year', n, date)**             | ADD_MONTHS(date, n \* 12)                                   | Add years                    |
+| **DATEADD('hour', n, date)**             | TIMESTAMPADD(HOUR, n, date)                                 | Add hours                    |
+| **EXTRACT(YEAR FROM date)**              | EXTRACT(YEAR FROM date)                                     | Extract year                 |
+| **TRUNC(date)**                          | TRUNC(date, 'DD')                                           | Truncate to day              |
+| **CONVERT_TIMEZONE(tz, ts)**             | FROM_UTC_TIMESTAMP(ts, tz)                                  | Timezone conversion (2 args) |
+| **CONVERT_TIMEZONE(src_tz, tgt_tz, ts)** | FROM_UTC_TIMESTAMP(TO_UTC_TIMESTAMP(ts, src_tz), tgt_tz)    | Timezone conversion (3 args) |
 
 ### String Functions - Supported[​](#string-functions---supported "Direct link to String Functions - Supported")
 
-| Redshift Function                 | Databricks Equivalent                                   | Notes                   |
-| --------------------------------- | ------------------------------------------------------- | ----------------------- |
-| **LEN(str)**                      | CHAR\_LENGTH(str)                                       | String length           |
-| **CHAR\_LENGTH(str)**             | CHAR\_LENGTH(str)                                       | String length           |
-| **TEXTLEN(str)**                  | CHAR\_LENGTH(str)                                       | String length           |
-| **STRPOS(str, substr)**           | POSITION(substr IN str)                                 | Find substring position |
-| **CHARINDEX(substr, str)**        | INSTR(str, substr)                                      | Find substring position |
-| **REPLICATE(str, n)**             | REPEAT(str, n)                                          | Repeat string           |
-| **REPLACE\_CHARS(str, old, new)** | REPLACE(str, old, new)                                  | Replace characters      |
-| **SPLIT\_PART(str, delim, part)** | SPLIT(str, delim)\[part-1]                              | Split and get part      |
-| **REGEXP\_SUBSTR(str, pattern)**  | REGEXP\_EXTRACT(str, pattern, 0)                        | Extract using regex     |
-| **REGEXP\_COUNT(str, pattern)**   | LENGTH(str) - LENGTH(REGEXP\_REPLACE(str, pattern, '')) | Count regex matches     |
-| **CHR(n)**                        | CHAR(n)                                                 | ASCII code to character |
-| **QUOTE\_LITERAL(str)**           | CONCAT(''', REGEXP\_REPLACE(str, ''', ''''), ''')       | Quote string literal    |
+| Redshift Function                | Databricks Equivalent                                  | Notes                   |
+| -------------------------------- | ------------------------------------------------------ | ----------------------- |
+| **LEN(str)**                     | CHAR_LENGTH(str)                                       | String length           |
+| **CHAR_LENGTH(str)**             | CHAR_LENGTH(str)                                       | String length           |
+| **TEXTLEN(str)**                 | CHAR_LENGTH(str)                                       | String length           |
+| **STRPOS(str, substr)**          | POSITION(substr IN str)                                | Find substring position |
+| **CHARINDEX(substr, str)**       | INSTR(str, substr)                                     | Find substring position |
+| **REPLICATE(str, n)**            | REPEAT(str, n)                                         | Repeat string           |
+| **REPLACE_CHARS(str, old, new)** | REPLACE(str, old, new)                                 | Replace characters      |
+| **SPLIT_PART(str, delim, part)** | SPLIT(str, delim)\[part-1]                             | Split and get part      |
+| **REGEXP_SUBSTR(str, pattern)**  | REGEXP_EXTRACT(str, pattern, 0)                        | Extract using regex     |
+| **REGEXP_COUNT(str, pattern)**   | LENGTH(str) - LENGTH(REGEXP_REPLACE(str, pattern, '')) | Count regex matches     |
+| **CHR(n)**                       | CHAR(n)                                                | ASCII code to character |
+| **QUOTE_LITERAL(str)**           | CONCAT(''', REGEXP_REPLACE(str, ''', ''''), ''')       | Quote string literal    |
 
 ### Aggregate Functions - Supported[​](#aggregate-functions---supported "Direct link to Aggregate Functions - Supported")
 
-| Redshift Function                                          | Databricks Equivalent                             | Notes                                |
-| ---------------------------------------------------------- | ------------------------------------------------- | ------------------------------------ |
-| **LISTAGG(col, delim)**                                    | ARRAY\_JOIN(COLLECT\_LIST(col), delim)            | Concatenate strings                  |
-| **LISTAGG(DISTINCT col, delim) WITHIN GROUP (ORDER BY x)** | ARRAY\_JOIN(ARRAY\_DISTINCT(...), delim)          | Distinct concatenation with ordering |
-| **MEDIAN(col)**                                            | PERCENTILE\_CONT(0.5) WITHIN GROUP (ORDER BY col) | Median value                         |
-| **STDDEV\_POP(col)**                                       | STDDEV\_POP(col)                                  | Population standard deviation        |
-| **STDDEV\_SAMP(col)**                                      | STDDEV\_SAMP(col)                                 | Sample standard deviation            |
-| **VAR\_POP(col)**                                          | VAR\_POP(col)                                     | Population variance                  |
-| **VAR\_SAMP(col)**                                         | VAR\_SAMP(col)                                    | Sample variance                      |
+| Redshift Function                                          | Databricks Equivalent                            | Notes                                |
+| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------ |
+| **LISTAGG(col, delim)**                                    | ARRAY_JOIN(COLLECT_LIST(col), delim)             | Concatenate strings                  |
+| **LISTAGG(DISTINCT col, delim) WITHIN GROUP (ORDER BY x)** | ARRAY_JOIN(ARRAY_DISTINCT(...), delim)           | Distinct concatenation with ordering |
+| **MEDIAN(col)**                                            | PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY col) | Median value                         |
+| **STDDEV_POP(col)**                                        | STDDEV_POP(col)                                  | Population standard deviation        |
+| **STDDEV_SAMP(col)**                                       | STDDEV_SAMP(col)                                 | Sample standard deviation            |
+| **VAR_POP(col)**                                           | VAR_POP(col)                                     | Population variance                  |
+| **VAR_SAMP(col)**                                          | VAR_SAMP(col)                                    | Sample variance                      |
 
 ### JSON Functions - Supported[​](#json-functions---supported "Direct link to JSON Functions - Supported")
 
-| Redshift Function                                  | Databricks Equivalent                                                | Notes                       |
-| -------------------------------------------------- | -------------------------------------------------------------------- | --------------------------- |
-| **JSON\_EXTRACT\_PATH\_TEXT(json, 'key')**         | GET\_JSON\_OBJECT(json, '$.key')                                     | Extract JSON value (2 args) |
-| **JSON\_EXTRACT\_PATH\_TEXT(json, 'k1', 'k2')**    | GET\_JSON\_OBJECT(json, '$.k1.k2')                                   | Extract nested JSON value   |
-| **JSON\_EXTRACT\_ARRAY\_ELEMENT\_TEXT(json, idx)** | GET\_JSON\_OBJECT(json, '$\[idx]')                                   | Extract array element       |
-| **JSON\_PARSE(str)**                               | FROM\_JSON(str, schema)                                              | Parse JSON string           |
-| **JSON\_QUERY(json, path)**                        | JSON\_EXTRACT\_SCALAR(json, path)                                    | Query JSON                  |
-| **IS\_VALID\_JSON(str)**                           | CASE WHEN TRY\_PARSE\_JSON(str) IS NOT NULL THEN TRUE ELSE FALSE END | Validate JSON               |
+| Redshift Function                              | Databricks Equivalent                                              | Notes                       |
+| ---------------------------------------------- | ------------------------------------------------------------------ | --------------------------- |
+| **JSON_EXTRACT_PATH_TEXT(json, 'key')**        | GET_JSON_OBJECT(json, '$.key')                                     | Extract JSON value (2 args) |
+| **JSON_EXTRACT_PATH_TEXT(json, 'k1', 'k2')**   | GET_JSON_OBJECT(json, '$.k1.k2')                                   | Extract nested JSON value   |
+| **JSON_EXTRACT_ARRAY_ELEMENT_TEXT(json, idx)** | GET_JSON_OBJECT(json, '$\[idx]')                                   | Extract array element       |
+| **JSON_PARSE(str)**                            | FROM_JSON(str, schema)                                             | Parse JSON string           |
+| **JSON_QUERY(json, path)**                     | JSON_EXTRACT_SCALAR(json, path)                                    | Query JSON                  |
+| **IS_VALID_JSON(str)**                         | CASE WHEN TRY_PARSE_JSON(str) IS NOT NULL THEN TRUE ELSE FALSE END | Validate JSON               |
 
 ### Conditional Functions - Supported[​](#conditional-functions---supported "Direct link to Conditional Functions - Supported")
 
@@ -174,34 +174,34 @@ WHERE schemaname = 'your_schema';
 
 ### Array Functions - Supported[​](#array-functions---supported "Direct link to Array Functions - Supported")
 
-| Redshift Function                 | Databricks Equivalent   | Notes           |
-| --------------------------------- | ----------------------- | --------------- |
-| **ARRAY\[1,2,3]**                 | ARRAY(1,2,3)            | Array literal   |
-| **ARRAY\_TO\_STRING(arr, delim)** | ARRAY\_JOIN(arr, delim) | Array to string |
-| **ARRAY\_UPPER(arr, dim)**        | SIZE(arr)               | Array size      |
-| **GET\_ARRAY\_LENGTH(arr)**       | SIZE(arr)               | Array length    |
-| **SPLIT\_TO\_ARRAY(str, delim)**  | SPLIT(str, delim)       | String to array |
+| Redshift Function               | Databricks Equivalent  | Notes           |
+| ------------------------------- | ---------------------- | --------------- |
+| **ARRAY\[1,2,3]**               | ARRAY(1,2,3)           | Array literal   |
+| **ARRAY_TO_STRING(arr, delim)** | ARRAY_JOIN(arr, delim) | Array to string |
+| **ARRAY_UPPER(arr, dim)**       | SIZE(arr)              | Array size      |
+| **GET_ARRAY_LENGTH(arr)**       | SIZE(arr)              | Array length    |
+| **SPLIT_TO_ARRAY(str, delim)**  | SPLIT(str, delim)      | String to array |
 
 ### Window Functions - Supported[​](#window-functions---supported "Direct link to Window Functions - Supported")
 
-| Redshift Function                  | Databricks Equivalent          | Notes                      |
-| ---------------------------------- | ------------------------------ | -------------------------- |
-| **ROW\_NUMBER() OVER (...)**       | ROW\_NUMBER() OVER (...)       | Row number                 |
-| **RANK() OVER (...)**              | RANK() OVER (...)              | Rank                       |
-| **DENSE\_RANK() OVER (...)**       | DENSE\_RANK() OVER (...)       | Dense rank                 |
-| **FIRST\_VALUE(col) IGNORE NULLS** | FIRST\_VALUE(col) IGNORE NULLS | First value ignoring nulls |
-| **LAST\_VALUE(col) IGNORE NULLS**  | LAST\_VALUE(col) IGNORE NULLS  | Last value ignoring nulls  |
-| **LAG(col, offset) OVER (...)**    | LAG(col, offset) OVER (...)    | Previous row value         |
-| **LEAD(col, offset) OVER (...)**   | LEAD(col, offset) OVER (...)   | Next row value             |
+| Redshift Function                 | Databricks Equivalent         | Notes                      |
+| --------------------------------- | ----------------------------- | -------------------------- |
+| **ROW_NUMBER() OVER (...)**       | ROW_NUMBER() OVER (...)       | Row number                 |
+| **RANK() OVER (...)**             | RANK() OVER (...)             | Rank                       |
+| **DENSE_RANK() OVER (...)**       | DENSE_RANK() OVER (...)       | Dense rank                 |
+| **FIRST_VALUE(col) IGNORE NULLS** | FIRST_VALUE(col) IGNORE NULLS | First value ignoring nulls |
+| **LAST_VALUE(col) IGNORE NULLS**  | LAST_VALUE(col) IGNORE NULLS  | Last value ignoring nulls  |
+| **LAG(col, offset) OVER (...)**   | LAG(col, offset) OVER (...)   | Previous row value         |
+| **LEAD(col, offset) OVER (...)**  | LEAD(col, offset) OVER (...)  | Next row value             |
 
 ### Utility Functions - Supported[​](#utility-functions---supported "Direct link to Utility Functions - Supported")
 
-| Redshift Function                      | Databricks Equivalent               | Notes                             |
-| -------------------------------------- | ----------------------------------- | --------------------------------- |
-| **GENERATE\_SERIES(start, end)**       | EXPLODE(SEQUENCE(start, end, 1))    | Generate integer series           |
-| **GENERATE\_SERIES(start, end, step)** | EXPLODE(SEQUENCE(start, end, step)) | Generate integer series with step |
-| **URLPARSE(url, part)**                | PARSE\_URL(url, part)               | Parse URL                         |
-| **PG\_BACKEND\_PID()**                 | CURRENT\_USER()                     |                                   |
+| Redshift Function                     | Databricks Equivalent               | Notes                             |
+| ------------------------------------- | ----------------------------------- | --------------------------------- |
+| **GENERATE_SERIES(start, end)**       | EXPLODE(SEQUENCE(start, end, 1))    | Generate integer series           |
+| **GENERATE_SERIES(start, end, step)** | EXPLODE(SEQUENCE(start, end, step)) | Generate integer series with step |
+| **URLPARSE(url, part)**               | PARSE_URL(url, part)                | Parse URL                         |
+| **PG_BACKEND_PID()**                  | CURRENT_USER()                      |                                   |
 
 ***
 
@@ -603,7 +603,7 @@ WHEN MATCHED THEN UPDATE SET
 
 ***
 
-### Example 4: REGEXP\_COUNT Function[​](#example-4-regexp_count-function "Direct link to Example 4: REGEXP_COUNT Function")
+### Example 4: REGEXP_COUNT Function[​](#example-4-regexp_count-function "Direct link to Example 4: REGEXP_COUNT Function")
 
 **Source Redshift SQL:**
 
@@ -659,7 +659,7 @@ WHERE customer_id IN (
 
 ***
 
-### Example 5: INSERT with REGEXP\_COUNT and Complex Functions[​](#example-5-insert-with-regexp_count-and-complex-functions "Direct link to Example 5: INSERT with REGEXP_COUNT and Complex Functions")
+### Example 5: INSERT with REGEXP_COUNT and Complex Functions[​](#example-5-insert-with-regexp_count-and-complex-functions "Direct link to Example 5: INSERT with REGEXP_COUNT and Complex Functions")
 
 **Source Redshift SQL:**
 

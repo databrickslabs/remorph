@@ -17,7 +17,9 @@ To extract metadata like Table, View, and Stored Procedures DDLs, you can use Mi
   * Note: Select all required object types. Screenshot below is for illustration purposes only.
   ![sql-server-export-choose-objects](/lakebridge/img/sql-server-export-choose-objects.png)
 * In the `Set Scripting Options` dialog page, choose `Save as script file` and `one script file per object` as illustrated below.
+
   <br />
+
   ![sql-server-export-set-scripting-options](/lakebridge/img/sql-server-export-set-scripting-options.png)
 
 See <https://learn.microsoft.com/en-us/ssms/scripting/generate-and-publish-scripts-wizard> for more details on how to use the Generate Scripts wizard in SSMS.
@@ -36,7 +38,9 @@ Otherwise, you can use Microsoft SQL Server Management Studio (SSMS) to extract 
   <!-- -->
   ![synapse-objects-explorer-view](/lakebridge/img/synapse-objects-explorer-view.png)
 * For each object type, select the required objects to export and right-click on the selection to choose “Script as” > “CREATE To” > “File” as pictured below.
+
   <br />
+
   ![synapse-objects-explorer-script-as](/lakebridge/img/synapse-objects-explorer-script-as.png)
 
 ## DataStage[​](#datastage "Direct link to DataStage")

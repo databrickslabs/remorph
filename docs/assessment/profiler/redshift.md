@@ -19,10 +19,10 @@ The machine running the profiler must reach the Redshift cluster **endpoint** (h
 
 During configuration you choose an **authentication type** and where secrets are read from (**local**, **env**, or **file**):
 
-| Authentication type     | Typical use                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| **sql\_authentication** | Native database user and password                            |
-| **iam**                 | IAM-authenticated connection using AWS credential resolution |
+| Authentication type    | Typical use                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| **sql_authentication** | Native database user and password                            |
+| **iam**                | IAM-authenticated connection using AWS credential resolution |
 
 For IAM authentication you typically need:
 
@@ -33,7 +33,7 @@ Use **`local`** to store plaintext values in `~/.databricks/labs/lakebridge/.cre
 
 ### 4. Database privileges[​](#4-database-privileges "Direct link to 4. Database privileges")
 
-The profiler connects as your configured user and runs read-only extracts. The pipeline includes **source\_ddl** steps that create a helper view **`query_view`** in the database (via `CREATE OR REPLACE VIEW`). The connecting user therefore needs permission to:
+The profiler connects as your configured user and runs read-only extracts. The pipeline includes **source_ddl** steps that create a helper view **`query_view`** in the database (via `CREATE OR REPLACE VIEW`). The connecting user therefore needs permission to:
 
 * **Create (and replace) views** in the target database used for profiling.
 * **Select** from the Amazon Redshift system relations used by the extracts (see below).
@@ -138,7 +138,7 @@ There is no deployment-variant prompt. A single pipeline covers serverless, sing
 Execution will:
 
 1. Load `pipeline_config.yml` for Redshift.
-2. Run **source\_ddl** steps on the cluster (including creating/updating **`query_view`**).
+2. Run **source_ddl** steps on the cluster (including creating/updating **`query_view`**).
 3. Run SQL extracts and persist results into a timestamped DuckDB file under the selected `--output-folder`.
 
 ## Profiler output[​](#profiler-output "Direct link to Profiler output")

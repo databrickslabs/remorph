@@ -135,36 +135,36 @@ Check the `export_error` column in the result table. Common causes:
 
 ### Commonly used custom transformations[​](#commonly-used-custom-transformations "Direct link to Commonly used custom transformations")
 
-| source\_type | data\_type     | source\_transformation                                                          | target\_transformation                                   | comments                           |
-| ------------ | -------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------- |
-| Oracle       | number(10,5)   | ```sql
+| source_type | data_type     | source_transformation                                                           | target_transformation                                    | comments                           |
+| ----------- | ------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------- |
+| Oracle      | number(10,5)  | ```sql
 "trim(to_char(coalesce(col_name,0.0), '99990.99999'))"
 
 ```                 | ```sql
 "cast(coalesce(col_name,0.0) as decimal(10,5))"
 
 ``` | Adjust precision/scale as needed   |
-| Snowflake    | array          | ```sql
+| Snowflake   | array         | ```sql
 "array_to_string(array_compact(col_name),',')"
 
 ```                         | ```sql
 "concat_ws(',', col_name)"
 
 ```                      | Removes undefined during migration |
-| Snowflake    | array          | ```sql
+| Snowflake   | array         | ```sql
 "array_to_string(array_sort(array_compact(col_name), true, true),',')"
 
 ``` | ```sql
 "concat_ws(',', col_name)"
 
 ```                      | Removes undefined and sorts        |
-| Snowflake    | timestamp\_ntz | ```sql
+| Snowflake   | timestamp_ntz | ```sql
 "date_part(epoch_second,col_name)"
 
 ```                                     | ```sql
 "unix_timestamp(col_name)"
 
-```                      | Convert timestamp\_ntz to epoch    |
+```                      | Convert timestamp_ntz to epoch     |
 
 ### How do I reconcile tables when column names differ between source and target?[​](#how-do-i-reconcile-tables-when-column-names-differ-between-source-and-target "Direct link to How do I reconcile tables when column names differ between source and target?")
 
