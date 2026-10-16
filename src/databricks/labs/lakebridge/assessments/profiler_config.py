@@ -2,6 +2,7 @@ import dataclasses
 import logging
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 
 from databricks.labs.lakebridge.assessments import RESERVED_TABLE_NAMES
 
@@ -10,6 +11,12 @@ from databricks.labs.lakebridge.assessments import RESERVED_TABLE_NAMES
 _VALID_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 logger = logging.getLogger(__name__)
+
+
+class StepLabel(str, Enum):
+    """Labels a step can carry, so that the steps with a given label can be skipped."""
+
+    UNREDACTED = "unredacted"
 
 
 @dataclass(frozen=True)
@@ -22,6 +29,7 @@ class Step:
     flag: str = "active"
     comment: str | None = None
     optional: bool = False
+    label: str | None = None
 
     def __post_init__(self) -> None:
         """Validate step configuration to prevent SQL injection and configuration errors."""
@@ -29,6 +37,7 @@ class Step:
         self._validate_mode()
         self._validate_type()
         self._validate_optional()
+        self._validate_label()
 
     def _validate_name(self) -> None:
         """Validate step name uses only safe SQL identifier characters."""
@@ -80,6 +89,14 @@ class Step:
     def _validate_optional(self) -> None:
         if not isinstance(self.optional, bool):
             raise ValueError(f"Invalid optional value for step '{self.name}': {self.optional!r}. Expected a boolean.")
+
+    def _validate_label(self) -> None:
+        valid_labels = {label.value for label in StepLabel}
+        if self.label is not None and self.label not in valid_labels:
+            raise ValueError(
+                f"Invalid label '{self.label}' for step '{self.name}'. "
+                f"Valid labels are: {', '.join(sorted(valid_labels))}"
+            )
 
     def copy(self, /, **changes) -> "Step":
         return dataclasses.replace(self, **changes)
