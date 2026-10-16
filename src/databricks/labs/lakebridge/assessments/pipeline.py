@@ -49,14 +49,14 @@ class PipelineClass:
         executor: DatabaseConnector | None,
         db_path: Path,
         cred_file_path: Path,
-        skip_labels: Collection[StepLabel] = (),
+        exclude_labels: Collection[StepLabel] = (),
     ):
         self.config = config
         self.executor = executor
         self._db_path = db_path.expanduser()
         self._create_dir(self._db_path.parent)
         self._cred_file_path = cred_file_path
-        self._skip_labels = skip_labels
+        self._exclude_labels = exclude_labels
 
     def execute(self) -> list[StepExecutionResult]:
         """Run every configured step and return per-step outcomes.
@@ -85,8 +85,8 @@ class PipelineClass:
             logging.info(f"Skipping step: {step.name} as it is not active")
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
 
-        if step.label in self._skip_labels:
-            logging.info(f"Skipping step: {step.name} as its label '{step.label}' is skipped")
+        if step.label in self._exclude_labels:
+            logging.info(f"Skipping step: {step.name} as its label '{step.label}' is excluded")
             return StepExecutionResult(step_name=step.name, status=StepExecutionStatus.SKIPPED)
 
         try:

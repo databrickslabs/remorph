@@ -155,7 +155,7 @@ class Profiler:
         pipeline_config: PipelineConfig | None = None,
         output_folder: Path | None = None,
         cred_file_path: Path | None = None,
-        skip_labels: Collection[StepLabel] = (),
+        exclude_labels: Collection[StepLabel] = (),
     ) -> None:
 
         if not pipeline_config:
@@ -169,7 +169,7 @@ class Profiler:
             pipeline_config,
             resolved_output_folder,
             resolved_creds_path,
-            skip_labels=skip_labels,
+            exclude_labels=exclude_labels,
         )
 
     def _execute(
@@ -178,7 +178,7 @@ class Profiler:
         pipeline_config: PipelineConfig,
         output_folder: Path,
         cred_file_path: Path,
-        skip_labels: Collection[StepLabel] = (),
+        exclude_labels: Collection[StepLabel] = (),
     ) -> None:
         try:
             # A source connector is needed for any step that isn't a self-managing python step.
@@ -190,7 +190,7 @@ class Profiler:
                 extractor,
                 db_path,
                 cred_file_path,
-                skip_labels=skip_labels,
+                exclude_labels=exclude_labels,
             ).execute()
         except FileNotFoundError as e:
             logger.error(f"Configuration file not found for source {source_system}: {e}")

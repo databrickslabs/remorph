@@ -1066,7 +1066,7 @@ def execute_database_profiler(
     variant: str | None = None,
     output_folder: str | None = None,
     cred_file_path: str | None = None,
-    redacted: bool = False,
+    exclude: str | None = None,
 ) -> None:
     """Execute the Profiler Extraction for the given source technology"""
     ctx = ApplicationContext(w)
@@ -1081,6 +1081,7 @@ def execute_database_profiler(
         raise_validation_exception(f"Invalid source technology {source_tech}")
 
     variant = parse_profiler_variant(prompts, source_tech, variant)
+    exclude_labels = parse_exclude_labels(exclude)
 
     ctx.add_user_agent_extra("profiler_source_tech", make_alphanum_or_semver(source_tech))
     user = ctx.current_user
@@ -1112,10 +1113,25 @@ def execute_database_profiler(
         profiler.profile(
             output_folder=Path(output_folder),
             cred_file_path=creds_path,
-            skip_labels={StepLabel.UNREDACTED} if redacted else set(),
+            exclude_labels=exclude_labels,
         )
     except Exception as e:  # noqa: BLE001
         raise SystemExit(f"Profiler execution failed: {e}") from e
+
+
+def parse_exclude_labels(exclude: str | None) -> frozenset[StepLabel]:
+    """Parse the comma-separated `--exclude` labels, rejecting unknown ones."""
+    if not exclude:
+        return frozenset()
+    names = {name.strip().lower() for name in exclude.split(",") if name.strip()}
+    valid = {label.value for label in StepLabel}
+    unknown = names - valid
+    if unknown:
+        raise_validation_exception(
+            f"Invalid label(s) for --exclude: {', '.join(sorted(unknown))}. "
+            f"Valid labels are: {', '.join(sorted(valid))}"
+        )
+    return frozenset(StepLabel(name) for name in names)
 
 
 def parse_profiler_variant(prompts: Prompts, source_tech: str, variant: str | None) -> str | None:
