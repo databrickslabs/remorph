@@ -32,6 +32,8 @@ from databricks.labs.lakebridge.reconcile.recon_config import Table, Transformat
 
 logger = logging.getLogger(__name__)
 
+FINGERPRINT_METRICS_DISABLED = (False, "flag_disabled", None, 0, 0, 0, 0, False, 0, 0, None, None, None)
+
 DIAMONDS_COLUMNS = [
     ("carat", "DOUBLE"),
     ("cut", "STRING"),

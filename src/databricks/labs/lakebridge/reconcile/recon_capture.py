@@ -26,6 +26,7 @@ from databricks.labs.lakebridge.reconcile.exception import (
     ReadAndWriteWithVolumeException,
     WriteToTableException,
 )
+from databricks.labs.lakebridge.reconcile.fingerprint.metadata import FingerprintRunMetadata
 from databricks.labs.lakebridge.reconcile.recon_config import TableThresholds
 from databricks.labs.lakebridge.reconcile.recon_output_config import (
     AggregateQueryOutput,
@@ -52,6 +53,46 @@ _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
 
 # Suffixes appended to per-column source/target/match values in mismatch detail rows.
 _MISMATCH_SUFFIXES = ("_base", "_compare", "_match")
+
+
+FP_METRICS_STRUCT_FIELDS: tuple[tuple[str, str, str], ...] = (
+    ("eligible", "eligible", "bool"),
+    ("ineligibility_reason", "ineligibility_reason", "string_or_null"),
+    ("verdict", "verdict", "string_or_null"),
+    ("elapsed_ms", "elapsed_ms", "bigint"),
+    ("solved_count", "solved_count", "bigint"),
+    ("unsolved_sb_count", "unsolved_sb_count", "bigint"),
+    ("total_mismatched_sbs", "total_mismatched_sbs", "bigint"),
+    ("fallback_to_full_pipeline", "fallback_to_full_pipeline", "bool"),
+    ("sub_bucket_count", "sub_bucket_count", "bigint"),
+    ("bucket_count", "bucket_count", "bigint"),
+    ("target_row_count", "target_row_count", "bigint_or_null"),
+    ("row_count_source", "row_count_source", "string_or_null"),
+    ("fetch_path", "fetch_path", "string_or_null"),
+)
+
+
+def render_fp_metrics_value(value: object, sql_type: str) -> str:
+    """Render a Python value to its SQL-literal form per the declared sql_type."""
+    if sql_type == "bool":
+        return str(bool(value)).lower()
+    if sql_type == "bigint":
+        assert isinstance(value, int), f"bigint field expected int, got {type(value).__name__}"
+        return f"cast({value} as bigint)"
+    if sql_type == "bigint_or_null":
+        if value is None:
+            return "cast(NULL as bigint)"
+        assert isinstance(value, int), f"bigint_or_null field expected int|None, got {type(value).__name__}"
+        return f"cast({value} as bigint)"
+    if sql_type == "string_or_null":
+        if value is None:
+            return "cast(NULL as string)"
+        scrubbed = str(value).replace("'", "").replace('"', "")
+        return f"'{scrubbed}'"
+    raise ValueError(
+        f"Unsupported sql_type for fingerprint_metrics struct: {sql_type!r}. "
+        "Allowed: 'bool', 'bigint', 'bigint_or_null', 'string_or_null'."
+    )
 
 
 class AbstractReconIntermediatePersist:
@@ -129,9 +170,13 @@ class ReconIntermediatePersist(AbstractReconIntermediatePersist):
             raise ReadAndWriteWithVolumeException(message) from e
 
 
-def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
+def _write_df_to_delta(df: DataFrame, table_name: str, mode="append", *, merge_schema: bool = False):
+    """Append to a Delta table; ``merge_schema=True`` enables additive column evolution."""
     try:
-        df.write.mode(mode).saveAsTable(table_name)
+        writer = df.write.mode(mode)
+        if merge_schema:
+            writer = writer.option("mergeSchema", "true")
+        writer.saveAsTable(table_name)
         logger.info(f"Data written to {table_name} successfully.")
     except Exception as e:
         message = f"Error writing data to {table_name}: {e}"
@@ -361,6 +406,16 @@ class ReconCapture:
 
         return res
 
+    @staticmethod
+    def fingerprint_metrics_struct_sql(metadata: FingerprintRunMetadata) -> str:
+        """Render the ``fingerprint_metrics`` named_struct for the metrics table."""
+        parts: list[str] = []
+        for sql_field, attr, sql_type in FP_METRICS_STRUCT_FIELDS:
+            value = getattr(metadata, attr)
+            rendered = render_fp_metrics_value(value, sql_type)
+            parts.append(f"'{sql_field}', {rendered}")
+        return f"named_struct({', '.join(parts)})"
+
     def _insert_into_metrics_table(
         self,
         recon_table_id: int,
@@ -368,6 +423,7 @@ class ReconCapture:
         schema_reconcile_output: SchemaReconcileOutput,
         table_conf: Table,
         record_count: ReconcileRecordCount,
+        fingerprint_metadata: FingerprintRunMetadata | None = None,
     ) -> None:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
@@ -392,6 +448,9 @@ class ReconCapture:
         if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
             mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
+        fp_metadata = fingerprint_metadata if fingerprint_metadata is not None else FingerprintRunMetadata.disabled()
+        fingerprint_struct_sql = self.fingerprint_metrics_struct_sql(fp_metadata)
+
         df = self.spark.sql(f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
@@ -412,7 +471,8 @@ class ReconCapture:
                     ) else null end,
                     'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema')
                         and '{exception_msg}' = '' then
-                        {schema_reconcile_output.is_valid} else null end
+                        {schema_reconcile_output.is_valid} else null end,
+                    'fingerprint_metrics', {fingerprint_struct_sql}
                 ) as recon_metrics,
                 named_struct(
                     'status', {status},
@@ -421,7 +481,7 @@ class ReconCapture:
                 ) as run_metrics,
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """)
-        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}", merge_schema=True)
 
     @classmethod
     def _mismatch_records(cls, recon_table_id: int, df: DataFrame, inserted_ts: datetime) -> DataFrame:
@@ -437,7 +497,9 @@ class ReconCapture:
         record_key = struct(*[col(c) for c in key_cols]) if key_cols else struct()
         source_row = struct(*[col(f"{b}_base").alias(b) for b in bases])
         target_row = struct(*[col(f"{b}_compare").alias(b) for b in bases])
-        mismatch_columns = array_compact(array(*[when(~col(f"{b}_match"), lit(b)) for b in bases]))
+        mismatch_columns = array_compact(
+            array(*[when(~col(f"{b}_match"), lit(b)) for b in bases]).cast("array<string>")
+        )
         return df.select(
             lit(recon_table_id).alias("recon_table_id"),
             lit("mismatch").alias("recon_type"),
@@ -682,11 +744,17 @@ class ReconCapture:
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
         record_count: ReconcileRecordCount,
+        fingerprint_metadata: FingerprintRunMetadata | None = None,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
         self._insert_into_metrics_table(
-            recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf, record_count
+            recon_table_id,
+            data_reconcile_output,
+            schema_reconcile_output,
+            table_conf,
+            record_count,
+            fingerprint_metadata=fingerprint_metadata,
         )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf)
 

@@ -1,3 +1,6 @@
+"""Reconcile orchestration."""
+
+import contextlib
 import logging
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -16,6 +19,23 @@ from databricks.labs.lakebridge.reconcile import utils
 from databricks.labs.lakebridge.reconcile.connectors.data_source import DataSource
 from databricks.labs.lakebridge.reconcile.constants import RECON_SAMPLE_VIEW_PREFIX
 from databricks.labs.lakebridge.reconcile.exception import DataSourceRuntimeException, ReconciliationException
+from databricks.labs.lakebridge.reconcile.fingerprint.exceptions import (
+    FingerprintError,
+    UnmappedTargetColumnMappingError,
+)
+from databricks.labs.lakebridge.reconcile.fingerprint.metadata import (
+    INELIGIBLE_UNMAPPED_TARGET_COLUMN_MAPPING,
+    FingerprintRunMetadata,
+)
+from databricks.labs.lakebridge.reconcile.fingerprint.orchestrator import (
+    ConnectionConfigPair,
+    FingerprintResult,
+    build_mismatch_output,
+    classify_ineligibility,
+    fingerprint_match_output,
+    resolve_compare_key_columns,
+    run_fingerprint_precheck,
+)
 from databricks.labs.lakebridge.reconcile.normalize_recon_config_service import NormalizeReconConfigService
 from databricks.labs.lakebridge.reconcile.recon_capture import (
     ReconCapture,
@@ -37,6 +57,18 @@ from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dial
 
 logger = logging.getLogger(__name__)
 _RECON_REPORT_TYPES = {"schema", "data", "row", "all", "aggregate"}
+
+
+def _try_unpersist(df) -> None:
+    """Best-effort ``unpersist`` for cached fingerprint frames on a fallback
+    exit. The DataFrames may have been ``persist()``-ed by
+    ``compute_target_fingerprint`` / source-side fetch and we don't want them
+    to linger in executor storage for the rest of the recon.
+    """
+    if df is None:
+        return
+    with contextlib.suppress(Exception):
+        df.unpersist(blocking=False)
 
 
 def drop_sample_temp_views(spark: SparkSession) -> None:
@@ -149,8 +181,13 @@ class TriggerReconService:
             reconciler.source, reconciler.target
         ).normalize_recon_table_config(table_conf)
 
-        schema_reconcile_output, data_reconcile_output, recon_process_duration = TriggerReconService._do_recon_one(
-            reconciler, reconcile_config, normalized_table_conf
+        (
+            schema_reconcile_output,
+            data_reconcile_output,
+            recon_process_duration,
+            fingerprint_metadata,
+        ) = TriggerReconService.do_recon_one(
+            reconciler, reconcile_config, normalized_table_conf, recon_id=recon_capture.recon_id
         )
 
         recon_capture.start(
@@ -159,15 +196,33 @@ class TriggerReconService:
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
             record_count=reconciler.get_record_count(table_conf, reconciler.report_type),
+            fingerprint_metadata=fingerprint_metadata,
         )
 
         return schema_reconcile_output, data_reconcile_output
 
     @staticmethod
-    def _do_recon_one(reconciler: Reconciliation, reconcile_config: ReconcileConfig, table_conf: Table):
+    def do_recon_one(
+        reconciler: Reconciliation,
+        reconcile_config: ReconcileConfig,
+        table_conf: Table,
+        *,
+        recon_id: str | None = None,
+    ):
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now(tz=timezone.utc)), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
+
+        ineligibility_reason = classify_ineligibility(
+            flag_enabled=reconcile_config.reconcile_optimizer,
+            data_source=reconcile_config.source.dialect,
+            report_type=reconciler.report_type,
+            table_conf=table_conf,
+        )
+        if ineligibility_reason is not None:
+            fingerprint_metadata: FingerprintRunMetadata = FingerprintRunMetadata.ineligible(ineligibility_reason)
+        else:
+            fingerprint_metadata = FingerprintRunMetadata(eligible=True)
 
         try:
             src_schema, tgt_schema = TriggerReconService.get_schemas(
@@ -175,6 +230,10 @@ class TriggerReconService:
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
+            if ineligibility_reason is None:
+                fingerprint_metadata = FingerprintRunMetadata(
+                    eligible=True, fallback_to_full_pipeline=True, verdict="FAILED"
+                )
         else:
             if reconciler.report_type in {"schema", "all"}:
                 schema_reconcile_output = TriggerReconService._run_reconcile_schema(
@@ -186,16 +245,19 @@ class TriggerReconService:
                 logger.info("Schema comparison is completed.")
 
             if reconciler.report_type in {"data", "row", "all"}:
-                data_reconcile_output = TriggerReconService._run_reconcile_data(
+                data_reconcile_output, fingerprint_metadata = TriggerReconService.run_fingerprint_or_reconcile_data(
                     reconciler=reconciler,
+                    reconcile_config=reconcile_config,
                     table_conf=table_conf,
                     src_schema=src_schema,
                     tgt_schema=tgt_schema,
+                    ineligibility_reason=ineligibility_reason,
+                    recon_id=recon_id,
                 )
                 logger.info(f"Reconciliation for '{reconciler.report_type}' report completed.")
 
         recon_process_duration.end_ts = str(datetime.now(tz=timezone.utc))
-        return schema_reconcile_output, data_reconcile_output, recon_process_duration
+        return schema_reconcile_output, data_reconcile_output, recon_process_duration, fingerprint_metadata
 
     @staticmethod
     def get_schemas(
@@ -245,6 +307,152 @@ class TriggerReconService:
             return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
         except DataSourceRuntimeException as e:
             return DataReconcileOutput(exception=str(e))
+
+    @staticmethod
+    def _invoke_precheck(
+        *,
+        reconciler: Reconciliation,
+        reconcile_config: ReconcileConfig,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+        recon_id: str | None,
+    ) -> tuple[FingerprintResult | None, str | None, bool]:
+        """Run ``run_fingerprint_precheck`` and classify the outcome for the caller."""
+        try:
+            fp_result = run_fingerprint_precheck(
+                source=reconciler.source,
+                target=reconciler.target,
+                spark=reconciler.spark,
+                source_engine=reconciler.source_engine,
+                connections=ConnectionConfigPair(source=reconcile_config.source, target=reconcile_config.target),
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+                report_type=reconciler.report_type,
+                data_source=reconcile_config.source.dialect,
+                recon_id=recon_id,
+            )
+        except UnmappedTargetColumnMappingError as e:
+            logger.warning(f"Fingerprint precheck ineligible — {e}; falling back to full pipeline.")
+            return None, INELIGIBLE_UNMAPPED_TARGET_COLUMN_MAPPING, False
+        except (FingerprintError, DataSourceRuntimeException, PySparkException) as e:
+            logger.warning(f"Fingerprint precheck failed ({e}); falling back to full pipeline.")
+            return None, None, True
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except BaseException as e:
+            logger.warning(
+                f"Fingerprint precheck raised an unexpected {type(e).__name__} ({e}); "
+                "falling back to full pipeline.",
+                exc_info=True,
+            )
+            return None, None, True
+        return fp_result, None, False
+
+    @staticmethod
+    def run_fingerprint_or_reconcile_data(
+        reconciler: Reconciliation,
+        reconcile_config: ReconcileConfig,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+        ineligibility_reason: str | None = None,
+        recon_id: str | None = None,
+    ) -> tuple[DataReconcileOutput, FingerprintRunMetadata]:
+        """Try the fingerprint precheck; on any non-MATCH outcome, fall back to the
+        full hash-and-join reconcile path.
+        """
+        if ineligibility_reason is None:
+            ineligibility_reason = classify_ineligibility(
+                flag_enabled=reconcile_config.reconcile_optimizer,
+                data_source=reconcile_config.source.dialect,
+                report_type=reconciler.report_type,
+                table_conf=table_conf,
+            )
+
+        if ineligibility_reason is not None:
+            data_reconcile_output = TriggerReconService._run_reconcile_data(
+                reconciler=reconciler,
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+            )
+            return data_reconcile_output, FingerprintRunMetadata.ineligible(ineligibility_reason)
+
+        fp_result, runtime_ineligibility, precheck_failed = TriggerReconService._invoke_precheck(
+            reconciler=reconciler,
+            reconcile_config=reconcile_config,
+            table_conf=table_conf,
+            src_schema=src_schema,
+            tgt_schema=tgt_schema,
+            recon_id=recon_id,
+        )
+
+        if runtime_ineligibility is not None:
+            data_reconcile_output = TriggerReconService._run_reconcile_data(
+                reconciler=reconciler,
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+            )
+            return data_reconcile_output, FingerprintRunMetadata.ineligible(runtime_ineligibility)
+
+        if fp_result is None:
+            data_reconcile_output = TriggerReconService._run_reconcile_data(
+                reconciler=reconciler,
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+            )
+            return data_reconcile_output, FingerprintRunMetadata.fallback(
+                verdict="FAILED" if precheck_failed else None,
+            )
+
+        if fp_result.verdict == "MATCH":
+            return fingerprint_match_output(), FingerprintRunMetadata.from_result(fp_result, verdict="MATCH")
+
+        if fp_result.source_rows is None or fp_result.target_rows is None:
+            _try_unpersist(fp_result.source_rows)
+            _try_unpersist(fp_result.target_rows)
+            data_reconcile_output = TriggerReconService._run_reconcile_data(
+                reconciler=reconciler,
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+            )
+            return data_reconcile_output, FingerprintRunMetadata.from_result(
+                fp_result, verdict="MISMATCH", fallback_to_full_pipeline=True
+            )
+
+        try:
+            data_reconcile_output = build_mismatch_output(
+                src_hashed=fp_result.source_rows,
+                tgt_hashed=fp_result.target_rows,
+                key_columns=resolve_compare_key_columns(table_conf),
+                report_type=reconciler.report_type,
+                persistence=reconciler.intermediate_persist,
+                max_sample_size=table_conf.get_max_sample_size(),
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except BaseException as e:
+            _try_unpersist(fp_result.source_rows)
+            _try_unpersist(fp_result.target_rows)
+            logger.warning(
+                f"Fingerprint mismatch-output build raised {type(e).__name__} ({e}); falling back to full pipeline.",
+                exc_info=True,
+            )
+            data_reconcile_output = TriggerReconService._run_reconcile_data(
+                reconciler=reconciler,
+                table_conf=table_conf,
+                src_schema=src_schema,
+                tgt_schema=tgt_schema,
+            )
+            return data_reconcile_output, FingerprintRunMetadata.from_result(
+                fp_result, verdict="MISMATCH", fallback_to_full_pipeline=True
+            )
+        return data_reconcile_output, FingerprintRunMetadata.from_result(fp_result, verdict="MISMATCH")
 
     @staticmethod
     def verify_successful_reconciliation(reconcile_output: ReconcileOutput, report_type: str) -> ReconcileOutput:

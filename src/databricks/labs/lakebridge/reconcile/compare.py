@@ -159,7 +159,10 @@ def capture_mismatch_data_and_columns(
     target: DataFrame,
     key_columns: list[str],
     persistence: AbstractReconIntermediatePersist,
+    *,
+    sample_size: int | None = None,
 ) -> MismatchOutput:
+    """Build the wide ``<col>_base``/``_compare``/``_match`` frame + the mismatched-column list."""
     source_df = _build_capture_df(source)
     target_df = _build_capture_df(target)
     unnormalized_key_columns = [DialectUtils.unnormalize_identifier(column) for column in key_columns]
@@ -174,11 +177,34 @@ def capture_mismatch_data_and_columns(
         raise _raise_column_mismatch_exception(message, source_missing, target_missing)
 
     check_columns = [column for column in source_columns if column not in unnormalized_key_columns]
-    mismatch_df = persistence.write_and_read_df_with_volumes(
-        _get_mismatch_df(source_df, target_df, unnormalized_key_columns, check_columns)
-    )
+    joined = _get_mismatch_df(source_df, target_df, unnormalized_key_columns, check_columns)
+    if sample_size is not None:
+        filtered = filter_to_row_mismatches(joined)
+        joined = (filtered if filtered is not None else joined).limit(sample_size)
+    mismatch_df = persistence.write_and_read_df_with_volumes(joined)
     mismatch_columns = _get_mismatch_columns(mismatch_df, check_columns)
     return MismatchOutput(mismatch_df, mismatch_columns)
+
+
+def row_mismatch_flag_columns(columns: list[str]) -> list[str]:
+    """The genuine ``<col>_match`` boolean flags among ``columns``."""
+    present = set(columns)
+    suffix = "_match"
+    return [
+        c
+        for c in columns
+        if c.endswith(suffix) and f"{c[: -len(suffix)]}_base" in present and f"{c[: -len(suffix)]}_compare" in present
+    ]
+
+
+def filter_to_row_mismatches(mismatch_df: DataFrame | None) -> DataFrame | None:
+    """Keep only rows that genuinely differ on at least one compared column."""
+    if mismatch_df is None:
+        return mismatch_df
+    match_cols = row_mismatch_flag_columns(mismatch_df.columns)
+    if not match_cols:
+        return mismatch_df
+    return mismatch_df.filter(reduce(lambda a, b: a | b, [~col(c) for c in match_cols]))
 
 
 def _get_mismatch_columns(df: DataFrame, columns: list[str]):
@@ -217,7 +243,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     ]
 
     match_expr = [
-        expr(f"{_normalize_mismatch_df_col(column,'_base')}=={_normalize_mismatch_df_col(column,'_compare')}").alias(
+        expr(f"{_normalize_mismatch_df_col(column,'_base')}<=>{_normalize_mismatch_df_col(column,'_compare')}").alias(
             _unnormalize_mismatch_df_col(column, '_match')
         )
         for column in column_list

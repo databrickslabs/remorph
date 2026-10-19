@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 _HASH_COLUMN_NAME = "hash_value_recon"
 
+_TABLE_PLACEHOLDER = ":tbl"
+_RENDERED_TABLE_PLACEHOLDERS = (":tbl", "%(tbl)s")
+
 
 def _hash_transform(
     node: exp.Expression,
@@ -49,33 +52,42 @@ class HashQueryBuilder(QueryBuilder):
         super().__init__(table_conf, schema, layer, source_engine, data_source, transformer)
         self._hash_expression_override = hash_expression_override
 
-    def build_query(self, report_type: str) -> str:
+    def _hash_column_set(self) -> set[str]:
+        """The set of columns that participate in the row hash: ``(join ∪ select) − thresholds − drops``."""
+        _join_columns = self.join_columns if self.join_columns else set()
+        return (_join_columns | self.select_columns) - self.threshold_columns - self.drop_columns
+
+    def _source_aligned_sort_key(self, col: str) -> str:
+        """Ordering key that sorts a column by its SOURCE-side identifier."""
+        return self._unnormalize_identifier(self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)).lower()
+
+    def ordered_hash_columns(self) -> list[str]:
+        """Hash-column set in the deterministic order used to build the row hash."""
+        return sorted(self._hash_column_set(), key=self._source_aligned_sort_key)
+
+    def build_query(
+        self, report_type: str, *, project_all_columns: bool = False, from_expression: str | None = None
+    ) -> str:
+        """Build the hash query for the configured layer."""
 
         if report_type != 'row':
             self._validate(self.join_columns, f"Join Columns are compulsory for {report_type} type")
 
         _join_columns = self.join_columns if self.join_columns else set()
-        hash_cols = sorted((_join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        hash_cols = self.ordered_hash_columns()
 
-        key_cols = hash_cols if report_type == "row" else sorted(_join_columns | self.partition_column)
+        key_cols = (
+            hash_cols
+            if report_type == "row"
+            else sorted(_join_columns | self.partition_column, key=self._source_aligned_sort_key)
+        )
+        if project_all_columns and report_type != "row":
+            key_cols = sorted(set(key_cols) | set(hash_cols), key=self._source_aligned_sort_key)
 
         cols_with_alias = [self._build_column_with_alias(col) for col in key_cols]
 
-        # in case if we have column mapping, we need to sort the target columns in the order of source columns to get
-        # same hash value. We sort by the unnormalized column name (without delimiters) to ensure consistent
-        # ordering across all dialects, regardless of their delimiter characters ([], "", ``, etc.)
         # Fix for https://github.com/databrickslabs/lakebridge/issues/2195
-        hash_cols_with_alias = [
-            {
-                "this": self._build_column_name_source_normalized(col),
-                "alias": self._build_alias_source_normalized(col),
-                "sort_key": self._unnormalize_identifier(col),
-            }
-            for col in hash_cols
-        ]
-        # Sort by unnormalized column name (case-insensitive) to ensure deterministic ordering across all dialects
-        sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["sort_key"].lower())
-        hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
+        hashcols_sorted_as_src_seq = [self._build_column_name_source_normalized(col) for col in hash_cols]
 
         key_cols_with_transform = [
             rendered.column for rendered in self._transformer.transform_user(cols_with_alias, self.layer)
@@ -84,10 +96,19 @@ class HashQueryBuilder(QueryBuilder):
 
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
-            .from_(":tbl")
+            .from_(_TABLE_PLACEHOLDER)
             .where(self.filter, dialect=self.engine)
             .sql(dialect=self.engine)
         )
+
+        if from_expression is not None:
+            for placeholder in _RENDERED_TABLE_PLACEHOLDERS:
+                anchored = f"FROM {placeholder}"
+                if anchored in res:
+                    res = res.replace(anchored, f"FROM {from_expression}", 1)
+                    break
+            else:
+                raise ValueError(f"Expected a table placeholder to splice into, found none in: {res}")
 
         logger.info(f"Hash Query for {self.layer}: {res}")
         return res

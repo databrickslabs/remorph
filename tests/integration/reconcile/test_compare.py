@@ -6,6 +6,7 @@ from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.lakebridge.reconcile.compare import (
     capture_mismatch_data_and_columns,
+    filter_to_row_mismatches,
     reconcile_data,
 )
 from databricks.labs.lakebridge.reconcile.exception import ColumnMismatchException
@@ -232,6 +233,78 @@ def test_capture_mismatch_data_and_cols_no_mismatch(spark):
     assert expected_df is not None
     assertDataFrameEqual(actual.mismatch_df, expected_df)
     assert sorted(actual.mismatch_columns) == []
+
+
+def test_capture_mismatch_data_and_cols_null_safe(spark):
+    io_schema = (
+        "s_suppkey bigint, s_nationkey bigint, s_name string, s_address string, s_phone string, s_acctbal bigint"
+    )
+    source = spark.createDataFrame(
+        [
+            Row(s_suppkey=2, s_nationkey=22, s_name=None, s_address=None, s_phone='ph-2', s_acctbal=200),
+        ],
+        io_schema,
+    )
+    target = spark.createDataFrame(
+        [
+            Row(s_suppkey=2, s_nationkey=22, s_name='supp-2', s_address=None, s_phone='ph-2', s_acctbal=200),
+        ],
+        io_schema,
+    )
+
+    actual = capture_mismatch_data_and_columns(
+        source=source,
+        target=target,
+        key_columns=["s_suppkey", "s_nationkey"],
+        persistence=FakeReconIntermediatePersist(),
+    )
+
+    assert actual.mismatch_df is not None
+    assert actual.mismatch_df.count() == 1
+    assert actual.mismatch_df.collect()[0].asDict() == {
+        "s_suppkey": 2,
+        "s_nationkey": 22,
+        "s_acctbal_base": 200,
+        "s_acctbal_compare": 200,
+        "s_acctbal_match": True,
+        "s_address_base": None,
+        "s_address_compare": None,
+        "s_address_match": True,
+        "s_name_base": None,
+        "s_name_compare": "supp-2",
+        "s_name_match": False,
+        "s_phone_base": "ph-2",
+        "s_phone_compare": "ph-2",
+        "s_phone_match": True,
+    }
+    assert sorted(actual.mismatch_columns) == ['s_name']
+
+
+def test_filter_to_row_mismatches_keeps_only_genuine_mismatches(spark):
+    source = spark.createDataFrame(
+        [
+            Row(s_suppkey=2, s_nationkey=22, s_name='supp-22', s_address='a-2', s_phone='ph-2', s_acctbal=200),
+            Row(s_suppkey=3, s_nationkey=33, s_name='supp-3', s_address='a-3', s_phone='ph-3', s_acctbal=300),
+        ]
+    )
+    target = spark.createDataFrame(
+        [
+            Row(s_suppkey=2, s_nationkey=22, s_name='supp-2', s_address='a-2', s_phone='ph-2', s_acctbal=200),
+            Row(s_suppkey=3, s_nationkey=33, s_name='supp-3', s_address='a-3', s_phone='ph-3', s_acctbal=300),
+        ]
+    )
+
+    captured = capture_mismatch_data_and_columns(
+        source=source,
+        target=target,
+        key_columns=["s_suppkey", "s_nationkey"],
+        persistence=FakeReconIntermediatePersist(),
+    )
+    assert captured.mismatch_df.count() == 2
+
+    filtered = filter_to_row_mismatches(captured.mismatch_df)
+    kept = [row["s_suppkey"] for row in filtered.collect()]
+    assert kept == [2]
 
 
 def test_capture_mismatch_data_and_cols_fail(spark):

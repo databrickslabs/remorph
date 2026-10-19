@@ -12,6 +12,7 @@ from databricks.labs.lakebridge.reconcile.query_builder.expression_generator imp
     anonymous,
     array_sort,
     array_to_string,
+    build_column_no_alias,
     coalesce,
     transform_expression,
     trim,
@@ -337,18 +338,23 @@ class RuleBasedColumnTransformer(ColumnTransformer):
         return node
 
     def transforms(self, source: Dialect, datatype: str | None, target_datatype: str | None) -> TransformPair:
-        target = self._sides["target"].dialect
+        return self.pair_for(source, self._sides["target"].dialect, datatype, target_datatype)
+
+    @classmethod
+    def pair_for(
+        cls, source: Dialect, target: Dialect, datatype: str | None, target_datatype: str | None
+    ) -> TransformPair:
         if source == _REDSHIFT and target == _DATABRICKS and datatype:
-            source_type = self._type_value(datatype, source)
+            source_type = cls._type_value(datatype, source)
             if target_datatype:
-                pair = _REDSHIFT_TO_DATABRICKS_PAIRS.get((source_type, self._type_value(target_datatype, target)))
+                pair = _REDSHIFT_TO_DATABRICKS_PAIRS.get((source_type, cls._type_value(target_datatype, target)))
                 if pair:
                     return pair
             if source_type == exp.DataType.Type.BOOLEAN.value:
-                return TransformPair([_redshift_boolean], self._lookup_transformation_for_type(target_datatype, target))
+                return TransformPair([_redshift_boolean], cls._lookup_transformation_for_type(target_datatype, target))
         return TransformPair(
-            self._lookup_transformation_for_type(datatype, source),
-            self._lookup_transformation_for_type(target_datatype, target),
+            cls._lookup_transformation_for_type(datatype, source),
+            cls._lookup_transformation_for_type(target_datatype, target),
         )
 
     def _transforms_by_name(self, layer: str, names: set[str]) -> dict[str, list[partial[exp.Expression]]]:
@@ -421,3 +427,12 @@ class RuleBasedColumnTransformer(ColumnTransformer):
         if dialect_default is not None:
             return dialect_default
         return _DATATYPE_TRANSFORM_MAPPING["universal"]["default"]
+
+
+def serialize_column_for_hash(column_ref: str, datatype: str, counterpart_datatype: str | None, layer: str) -> str:
+    """Redshift (`layer` source) or Databricks (`layer` target) hash SQL for one dialect-quoted column."""
+    if layer == "source":
+        pair = RuleBasedColumnTransformer.pair_for(_REDSHIFT, _DATABRICKS, datatype, counterpart_datatype)
+        return transform_expression(build_column_no_alias(this=column_ref), pair.source).sql(dialect=_REDSHIFT)
+    pair = RuleBasedColumnTransformer.pair_for(_REDSHIFT, _DATABRICKS, counterpart_datatype, datatype)
+    return transform_expression(build_column_no_alias(this=column_ref), pair.target).sql(dialect=_DATABRICKS)
