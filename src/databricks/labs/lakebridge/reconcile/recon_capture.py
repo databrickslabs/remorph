@@ -55,19 +55,6 @@ _RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
 _MISMATCH_SUFFIXES = ("_base", "_compare", "_match")
 
 
-# Single source of truth for the persisted ``fingerprint_metrics`` named_struct.
-# Tuple of (sql_field_name, dataclass_attribute, sql_type).
-#
-# Field ORDER must match ``FingerprintRunMetadata`` declaration order — Delta
-# resolves struct fields positionally on saveAsTable, so reordering here would
-# silently corrupt every recon_metrics row written against existing customer
-# tables. The unit suite guards order.
-#
-# Allowed sql_type values:
-#   - "bool"             -> ``true``/``false`` literal
-#   - "bigint"           -> ``cast(N as bigint)`` literal
-#   - "bigint_or_null"   -> ``cast(N as bigint)`` or SQL ``NULL``
-#   - "string_or_null"   -> ``'value'`` (quote-scrubbed) or SQL ``NULL``
 FP_METRICS_STRUCT_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("eligible", "eligible", "bool"),
     ("ineligibility_reason", "ineligibility_reason", "string_or_null"),
@@ -86,36 +73,20 @@ FP_METRICS_STRUCT_FIELDS: tuple[tuple[str, str, str], ...] = (
 
 
 def render_fp_metrics_value(value: object, sql_type: str) -> str:
-    """Render a Python value to its SQL-literal form per the declared sql_type.
-
-    Centralised so values cannot reach the persisted SQL fragment without
-    flowing through type-aware rendering. An unknown ``sql_type`` raises
-    rather than silently falling through to ``str(value)`` — adding a new
-    field type is a deliberate change in this function, not an accident in
-    a caller.
-    """
+    """Render a Python value to its SQL-literal form per the declared sql_type."""
     if sql_type == "bool":
         return str(bool(value)).lower()
     if sql_type == "bigint":
-        # Dataclass typing pins this to ``int``; assertion is a true invariant
-        # and also narrows ``value`` from ``object`` for mypy.
         assert isinstance(value, int), f"bigint field expected int, got {type(value).__name__}"
         return f"cast({value} as bigint)"
     if sql_type == "bigint_or_null":
         if value is None:
-            # Typed NULL: a bare ``NULL`` literal makes Spark infer ``NullType`` for
-            # the struct field, which then cannot be written/read by the vectorized
-            # Parquet reader and breaks schema equality against the typed audit table.
             return "cast(NULL as bigint)"
         assert isinstance(value, int), f"bigint_or_null field expected int|None, got {type(value).__name__}"
         return f"cast({value} as bigint)"
     if sql_type == "string_or_null":
         if value is None:
-            # Typed NULL — see ``bigint_or_null`` above.
             return "cast(NULL as string)"
-        # Defense-in-depth: scrub embedded single/double quotes that would
-        # terminate the SQL literal. Metadata values come from controlled
-        # paths today; this guards a future field that carries user input.
         scrubbed = str(value).replace("'", "").replace('"', "")
         return f"'{scrubbed}'"
     raise ValueError(
@@ -200,13 +171,7 @@ class ReconIntermediatePersist(AbstractReconIntermediatePersist):
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append", *, merge_schema: bool = False):
-    """Append to a Delta table; ``merge_schema=True`` enables additive column evolution.
-
-    The fingerprint precheck adds a ``fingerprint_metrics`` struct to the
-    ``recon_metrics`` row; on the first write against an existing customer
-    table this column has to materialise without an explicit ``ALTER TABLE``,
-    so callers writing that table pass ``merge_schema=True``.
-    """
+    """Append to a Delta table; ``merge_schema=True`` enables additive column evolution."""
     try:
         writer = df.write.mode(mode)
         if merge_schema:
@@ -443,23 +408,7 @@ class ReconCapture:
 
     @staticmethod
     def fingerprint_metrics_struct_sql(metadata: FingerprintRunMetadata) -> str:
-        """Render the ``fingerprint_metrics`` named_struct for the metrics table.
-
-        The per-field rendering is driven by ``FP_METRICS_STRUCT_FIELDS``;
-        adding a metadata field is one entry in that tuple — no untyped
-        f-string append. Every value flows through ``render_fp_metrics_value``
-        which checks the declared SQL-type at the boundary, so raw values
-        never reach the SQL string without type-aware rendering.
-
-        Output contract:
-          - ``mergeSchema`` evolves the column to a concrete StructType on
-            first write (Delta can't infer fields from an all-NULL struct).
-          - String fields scrubbed of embedded quotes (defense-in-depth).
-          - ``None`` emits SQL ``NULL`` (not the string ``'None'``) so
-            dashboards filtering on ``IS NULL`` don't miss rows.
-          - Field ORDER must match the dataclass declaration; ``saveAsTable``
-            resolves struct fields positionally.
-        """
+        """Render the ``fingerprint_metrics`` named_struct for the metrics table."""
         parts: list[str] = []
         for sql_field, attr, sql_type in FP_METRICS_STRUCT_FIELDS:
             value = getattr(metadata, attr)
@@ -499,21 +448,6 @@ class ReconCapture:
         if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
             mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
-        # The ``fingerprint_metrics`` struct is written on EVERY reconcile, opted-in or not:
-        # sources that don't run the precheck (e.g. Snowflake, Oracle today, or any
-        # aggregate-mode reconcile) get the populated "feature off" struct
-        # (``FingerprintRunMetadata.disabled()``) rather than a NULL/absent field. This uniform
-        # shape is deliberate — a per-flag struct would make an append that omits the field
-        # collide with a table that already has it (struct-field mismatch), so uniformity avoids
-        # a mixed-schema failure and lets dashboards group by ``eligible`` without NULL handling.
-        #
-        # REQUIREMENT (documented, see the ``mergeSchema`` note on the write below): the first
-        # write of this struct against a pre-existing ``recon_metrics`` table adds a NESTED field
-        # to the ``recon_metrics`` StructType. That evolution relies on Delta nested-column schema
-        # evolution via ``mergeSchema`` on ``saveAsTable`` append — supported on the DBR / Delta
-        # versions this tool targets. On an older engine the write would fail; that is the
-        # accepted trade-off of keeping the struct uniform. This write is intentionally OUTSIDE
-        # the fingerprint fail-open, so a metrics-write failure surfaces rather than being masked.
         fp_metadata = fingerprint_metadata if fingerprint_metadata is not None else FingerprintRunMetadata.disabled()
         fingerprint_struct_sql = self.fingerprint_metrics_struct_sql(fp_metadata)
 
@@ -547,10 +481,6 @@ class ReconCapture:
                 ) as run_metrics,
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """)
-        # mergeSchema=True so the additive nested ``fingerprint_metrics`` field evolves on first
-        # write against a pre-existing customer ``recon_metrics`` table without a manual ALTER
-        # TABLE. Requires Delta nested-struct schema evolution (see the struct note above);
-        # scoped to this metrics table only.
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}", merge_schema=True)
 
     @classmethod
@@ -567,12 +497,6 @@ class ReconCapture:
         record_key = struct(*[col(c) for c in key_cols]) if key_cols else struct()
         source_row = struct(*[col(f"{b}_base").alias(b) for b in bases])
         target_row = struct(*[col(f"{b}_compare").alias(b) for b in bases])
-        # ``array()`` with zero args is typed ``array<null>``, which Delta refuses to persist
-        # (DELTA_COMPLEX_TYPE_COLUMN_CONTAINS_NULL_TYPE) when no missing-row records are unioned in
-        # to coerce the element type. Cast so the column is always ``array<string>`` regardless of how
-        # many compared columns there are -- mirroring the explicit cast on the missing-row path
-        # (``_row_image_records``). Defense-in-depth: the fingerprint data/row path is now backfilled
-        # upstream (CF-6), so ``bases`` is normally non-empty here.
         mismatch_columns = array_compact(
             array(*[when(~col(f"{b}_match"), lit(b)) for b in bases]).cast("array<string>")
         )

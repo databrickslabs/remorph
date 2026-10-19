@@ -1,20 +1,4 @@
-"""Golden-SQL snapshot tests for the Redshift fingerprint query builder.
-
-``test_redshift_fingerprint_query.py`` covers per-column serialization and
-substring invariants. This module locks the *full* emitted SQL skeleton for
-``build_detection_sql`` and ``build_source_filter_subquery`` — the aggregate
-list, the ``DECIMAL(19,0)``/``DECIMAL(38,0)`` cast placement, the ``CHR(1)``
-separator, identifier quoting on schema/table, and the ``GROUP BY`` /
-``WHERE`` structure.
-
-The expected strings are assembled from independently-declared literal
-building blocks (``_CONCAT``, ``_RH1``, ``_RH2``), *not* imported from the
-builder, so any change to the builder's structure — including the planned
-migration to sqlglot AST construction — must reproduce byte-identical SQL or
-consciously update these goldens. To regenerate after an intentional change,
-print the relevant builder method output for ``_COLUMNS`` and paste the new
-expected string into the corresponding block below.
-"""
+"""Golden-SQL snapshot tests for the Redshift fingerprint query builder."""
 
 from databricks.labs.lakebridge.reconcile.fingerprint.query_builders.redshift import (
     RedshiftFingerprintQueryBuilder,
@@ -22,16 +6,12 @@ from databricks.labs.lakebridge.reconcile.fingerprint.query_builders.redshift im
 from databricks.labs.lakebridge.reconcile.fingerprint.spark_target import build_target_filter_subquery
 from databricks.labs.lakebridge.reconcile.recon_config import Schema
 
-# Canonical 2-column probe: one VARCHAR (TRIM branch) + one BOOLEAN (CASE WHEN
-# branch). Small enough to keep the golden readable, but exercises the concat
-# separator and both common serialization shapes.
 _COLUMNS = [
     Schema("`notes`", "varchar", '"notes"'),
     Schema("`is_priority`", "boolean", '"is_priority"'),
 ]
 _SUB_BUCKET_COUNT = 2048
 
-# --- Literal building blocks (declared independently of the builder) --------
 _CONCAT = (
     "COALESCE(TRIM(\"notes\"), '_null_recon_')"
     + " || CHR(1) || "
@@ -67,9 +47,6 @@ def test_build_detection_sql_golden() -> None:
 
 
 def test_build_detection_sql_ignores_column_mapping_on_source() -> None:
-    """The source side reads Redshift physical names; a column_mapping must not
-    alter the emitted SQL. Locked at the full-SQL level so a future change can't
-    silently leak target names into the source scan."""
     builder = RedshiftFingerprintQueryBuilder()
     mapped = builder.build_detection_sql(
         schema="public",
@@ -101,12 +78,6 @@ def test_build_concat_expression_golden() -> None:
     assert builder.build_concat_expression(_COLUMNS) == _CONCAT
 
 
-# --- Target (Spark) side ----------------------------------------------------
-# Structurally different from the Redshift source (CHAR(1)/CONCAT/CONV vs
-# CHR(1)/||/STRTOL, backtick vs double-quote identifiers) but byte-equivalent
-# by the shared transform map: BOOLEAN serialises via TRIM on Spark, whose
-# implicit string cast yields the same lowercase 'true'/'false' the source's
-# CASE WHEN emits. This golden locks the Stage-2 target filter skeleton.
 _TGT_CONCAT = (
     "CONCAT("
     + "COALESCE(TRIM(`notes`), '_null_recon_'), "
@@ -134,9 +105,6 @@ def test_build_target_filter_subquery_golden() -> None:
 
 
 def test_detection_sql_quotes_exotic_schema_and_table() -> None:
-    """Schema/table flow through the same quoting helper as columns, so a name
-    carrying a stray double-quote is escaped (doubled) rather than malforming
-    the SQL."""
     builder = RedshiftFingerprintQueryBuilder()
     sql = builder.build_detection_sql(
         schema='my"schema',

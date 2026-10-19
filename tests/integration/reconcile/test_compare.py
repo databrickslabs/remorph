@@ -236,20 +236,11 @@ def test_capture_mismatch_data_and_cols_no_mismatch(spark):
 
 
 def test_capture_mismatch_data_and_cols_null_safe(spark):
-    # NULL handling is null-safe (``<=>``): a column that is NULL on one side and non-NULL on the
-    # other is a mismatch (``_match=False``), while NULL on both sides is a match (``_match=True``).
-    # Before the fix ``_match`` was built with bare ``=`` and evaluated to NULL for any NULL cell,
-    # which downstream (``recon_capture._mismatch_records`` / ``_get_mismatch_columns``) could
-    # distinguish from neither a match nor a mismatch.
-    # All-NULL columns (s_name / s_address here) need an explicit schema: Spark cannot infer a
-    # type for a column that is NULL in every row, and otherwise fails createDataFrame with
-    # CANNOT_DETERMINE_TYPE before the compare even runs.
     io_schema = (
         "s_suppkey bigint, s_nationkey bigint, s_name string, s_address string, s_phone string, s_acctbal bigint"
     )
     source = spark.createDataFrame(
         [
-            # s_name NULL vs 'supp-2' -> mismatch; s_address NULL on both -> match.
             Row(s_suppkey=2, s_nationkey=22, s_name=None, s_address=None, s_phone='ph-2', s_acctbal=200),
         ],
         io_schema,
@@ -268,9 +259,6 @@ def test_capture_mismatch_data_and_cols_null_safe(spark):
         persistence=FakeReconIntermediatePersist(),
     )
 
-    # Assert on the single mismatch row as a dict (order- and type-independent) so the all-NULL
-    # columns need no typed expected frame. ``<=>`` makes ``_match`` null-safe: NULL vs value is a
-    # mismatch (False), NULL vs NULL a match (True) -- never NULL.
     assert actual.mismatch_df is not None
     assert actual.mismatch_df.count() == 1
     assert actual.mismatch_df.collect()[0].asDict() == {
@@ -281,10 +269,10 @@ def test_capture_mismatch_data_and_cols_null_safe(spark):
         "s_acctbal_match": True,
         "s_address_base": None,
         "s_address_compare": None,
-        "s_address_match": True,  # NULL <=> NULL is a match, not NULL
+        "s_address_match": True,
         "s_name_base": None,
         "s_name_compare": "supp-2",
-        "s_name_match": False,  # NULL <=> value is a mismatch, not NULL
+        "s_name_match": False,
         "s_phone_base": "ph-2",
         "s_phone_compare": "ph-2",
         "s_phone_match": True,
@@ -293,9 +281,6 @@ def test_capture_mismatch_data_and_cols_null_safe(spark):
 
 
 def test_filter_to_row_mismatches_keeps_only_genuine_mismatches(spark):
-    # ``filter_to_row_mismatches`` drops rows whose every ``<col>_match`` is True (used by the
-    # fingerprint Stage-2 path, which pulls whole sub-buckets that can include column-matching
-    # rows). s_suppkey=2 differs on s_name; s_suppkey=3 matches on every column and is dropped.
     source = spark.createDataFrame(
         [
             Row(s_suppkey=2, s_nationkey=22, s_name='supp-22', s_address='a-2', s_phone='ph-2', s_acctbal=200),
@@ -315,11 +300,9 @@ def test_filter_to_row_mismatches_keeps_only_genuine_mismatches(spark):
         key_columns=["s_suppkey", "s_nationkey"],
         persistence=FakeReconIntermediatePersist(),
     )
-    # capture returns both key-joined rows (its established contract) ...
     assert captured.mismatch_df.count() == 2
 
     filtered = filter_to_row_mismatches(captured.mismatch_df)
-    # ... the filter keeps only the genuinely-different row (s_suppkey=2).
     kept = [row["s_suppkey"] for row in filtered.collect()]
     assert kept == [2]
 

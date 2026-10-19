@@ -27,12 +27,8 @@ class FingerprintQueryBuilder(ABC):
         solved_hashes: dict[int, list[int]],
         unsolved_sb_ids: list[int],
     ) -> str:
-        """Subquery selecting only rows in solved sub-buckets / unsolved sub-buckets.
-
-        Returns ``(SELECT * FROM schema.table WHERE <predicate>) _fp_filtered``,
-        suitable for replacing ``:tbl`` in a HashQueryBuilder query.
-        """
+        """Subquery selecting only rows in solved sub-buckets / unsolved sub-buckets."""
 
     @abstractmethod
-    def serialize_column(self, col_name: str, col_type: str) -> str:
+    def serialize_column(self, col_name: str, col_type: str, counterpart_type: str | None = None) -> str:
         """Cast the column to a deterministic string representation for MD5 hashing."""

@@ -1,9 +1,4 @@
-"""Unit tests for the ``fingerprint_metrics`` SQL projection in ``ReconCapture``.
-
-String-level tests against the named_struct fragment — no SparkSession or Delta
-write loop required. The persisted column shape is the dashboard contract; locking
-it here means a stray f-string edit can't silently break it.
-"""
+"""Unit tests for the ``fingerprint_metrics`` SQL projection in ``ReconCapture``."""
 
 import re
 
@@ -20,10 +15,6 @@ def _field_offsets(sql: str) -> list[int]:
 
 
 def test_struct_sql_emits_all_eight_fields_in_declared_order():
-    """Field order must match the dataclass declaration so mergeSchema widens the
-    column to the expected struct shape on first write (Spark resolves struct fields
-    positionally during saveAsTable).
-    """
     metadata = FingerprintRunMetadata(
         eligible=True,
         verdict="MATCH",
@@ -57,10 +48,6 @@ def test_struct_sql_renders_ineligible_with_reason():
 
 
 def test_struct_sql_emits_null_for_none_string_fields():
-    """None must serialise to a typed SQL NULL, not the literal string 'None' — a bare
-    NULL makes Spark infer NullType (unreadable by the vectorized Parquet reader), so
-    None must render as ``cast(NULL as string)`` while still being IS NULL for dashboards.
-    """
     metadata = FingerprintRunMetadata(eligible=True, verdict=None)
     sql = ReconCapture.fingerprint_metrics_struct_sql(metadata)
     assert "'verdict', cast(NULL as string)" in sql
@@ -69,7 +56,6 @@ def test_struct_sql_emits_null_for_none_string_fields():
 
 
 def test_struct_sql_scrubs_quotes_from_reason_and_verdict():
-    """Embedded quotes would break the SQL. Scrubbing mirrors exception_message handling."""
     metadata = FingerprintRunMetadata(eligible=False, ineligibility_reason="bad'reason\"here", verdict="MIS\"MATCH")
     sql = ReconCapture.fingerprint_metrics_struct_sql(metadata)
     assert "bad'reason" not in sql
@@ -79,13 +65,6 @@ def test_struct_sql_scrubs_quotes_from_reason_and_verdict():
 
 
 def test_struct_sql_casts_counters_to_bigint():
-    """Every counter must carry an explicit bigint cast.
-
-    Without one, Spark infers int for small literals and later rows with larger counts
-    force a slow column-type rewrite. Counters: elapsed_ms, solved_count,
-    unsolved_sb_count, total_mismatched_sbs, sub_bucket_count, bucket_count,
-    target_row_count.
-    """
     metadata = FingerprintRunMetadata(
         eligible=True,
         elapsed_ms=1,
@@ -102,9 +81,6 @@ def test_struct_sql_casts_counters_to_bigint():
 
 
 def test_struct_sql_target_row_count_null_when_static_default_path():
-    """target_row_count emits NULL (not cast(0 as bigint)) when the row-count fetch
-    fell through, so dashboards can distinguish "unavailable" from "actually 0".
-    """
     metadata = FingerprintRunMetadata(
         eligible=True,
         verdict="MATCH",
@@ -119,7 +95,6 @@ def test_struct_sql_target_row_count_null_when_static_default_path():
 
 
 def test_struct_sql_emits_tier_fields_for_delta_describe_detail_path():
-    """A resolved tier surfaces both the tier values and the delta_describe_detail provenance."""
     metadata = FingerprintRunMetadata(
         eligible=True,
         verdict="MATCH",
@@ -136,9 +111,6 @@ def test_struct_sql_emits_tier_fields_for_delta_describe_detail_path():
 
 
 def test_struct_sql_default_metadata_emits_zero_tier_and_null_row_count():
-    """Default metadata (ineligible / disabled rows) emits zero tier values and NULL
-    for row_count, row_count_source, fetch_path.
-    """
     metadata = FingerprintRunMetadata.disabled()
     sql = ReconCapture.fingerprint_metrics_struct_sql(metadata)
     assert "'sub_bucket_count', cast(0 as bigint)" in sql
@@ -149,9 +121,6 @@ def test_struct_sql_default_metadata_emits_zero_tier_and_null_row_count():
 
 
 def test_struct_sql_emits_fetch_path_v2_for_redshift_split():
-    """The v2_redshift_split value is preserved so historical recon_metrics rows
-    continue to round-trip; current code never emits it.
-    """
     metadata = FingerprintRunMetadata(
         eligible=True,
         verdict="MISMATCH",
@@ -180,9 +149,6 @@ def test_struct_sql_emits_fetch_path_v1_for_legacy_sandwich():
 
 
 def test_struct_sql_match_verdict_emits_null_fetch_path():
-    """MATCH never executes Stage-2; fetch_path must stay NULL even when other tier
-    fields are populated.
-    """
     metadata = FingerprintRunMetadata(
         eligible=True,
         verdict="MATCH",

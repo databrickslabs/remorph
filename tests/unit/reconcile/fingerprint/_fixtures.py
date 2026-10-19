@@ -1,10 +1,4 @@
-"""Shared test fixtures for fingerprint unit tests.
-
-Helpers are module-level factories (not pytest fixtures) because the original
-call sites construct multiple variants per test and need keyword overrides.
-Centralising them here removes ~120 LOC of duplication and lets pylint's
-``similarities`` checker land at 10/10 across the test tree.
-"""
+"""Shared test fixtures for fingerprint unit tests."""
 
 from __future__ import annotations
 
@@ -18,11 +12,6 @@ from databricks.labs.lakebridge.reconcile.fingerprint.orchestrator import (
 from databricks.labs.lakebridge.reconcile.fingerprint.row_count import RowCountSource
 from databricks.labs.lakebridge.reconcile.recon_config import Schema, Table
 
-# Canonical persisted-column order for ``recon_metrics.fingerprint_metrics``.
-# Shared by ``test_recon_capture_fingerprint.py`` (pins SQL emission order) and
-# ``test_recon_capture_fingerprint_typed_schema.py`` (pins dataclass declaration
-# order) so a field reorder in ``FP_METRICS_STRUCT_FIELDS`` shows up as a single
-# source-of-truth diff instead of two independently hand-maintained tuples.
 FP_METRICS_FIELD_ORDER = (
     "eligible",
     "ineligibility_reason",
@@ -106,7 +95,6 @@ def make_fetch_ctx(
     target: MagicMock | None = None,
     query_builder: MagicMock | None = None,
 ) -> FetchContext:
-    """Build a ``FetchContext`` wired with default mock collaborators."""
     return FetchContext(
         source=source if source is not None else MagicMock(),
         target=target if target is not None else MagicMock(),
@@ -125,15 +113,9 @@ def make_fetch_ctx(
 
 
 def make_fake_hash_builder(hash_query: str) -> MagicMock:
-    """A stubbed HashQueryBuilder whose ``build_query`` performs the real (dialect-aware)
-    placeholder splice when handed a ``from_expression``, so the Stage-2 orchestrator wiring
-    is exercised end-to-end without a live builder. Shared by the source- and target-fetch
-    tests (they differ only in the rendered ``hash_query`` string they pass in)."""
     fake = MagicMock()
 
     def _build_query(report_type, *, project_all_columns=False, from_expression=None):
-        # report_type / project_all_columns are accepted to match the real signature but
-        # don't affect the stub's output — only the from_expression splice matters here.
         del report_type, project_all_columns
         if from_expression is None:
             return hash_query
@@ -147,7 +129,6 @@ def make_fake_hash_builder(hash_query: str) -> MagicMock:
 
 
 def assert_project_all_columns_kwargs(call_kwargs: dict, *, side: str) -> None:
-    """Pin: Stage-2 fetch must request the all-columns projection on both sides."""
     assert call_kwargs.get("report_type") == "data"
     assert call_kwargs.get("project_all_columns") is True, (
         f"Fingerprint Stage-2 {side}-fetch must request all-columns projection so "
@@ -157,7 +138,6 @@ def assert_project_all_columns_kwargs(call_kwargs: dict, *, side: str) -> None:
 
 
 def make_describe_detail_df(num_records: int | None) -> MagicMock:
-    """Mimic the ``DESCRIBE DETAIL`` DataFrame used by ``select_tier`` / ``fetch_target_row_count``."""
     df = MagicMock()
     df.columns = ["numRecords"]
     select_result = MagicMock()

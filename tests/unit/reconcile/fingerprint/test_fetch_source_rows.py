@@ -1,8 +1,4 @@
-"""Unit tests for ``orchestrator.fetch_source_rows`` Stage-2 source-fetch behaviour.
-
-Pure-string tests — no SparkSession or JDBC. The source connector is mocked and the
-SQL reaching ``read_data`` is asserted directly.
-"""
+"""Unit tests for ``orchestrator.fetch_source_rows`` Stage-2 source-fetch behaviour."""
 
 from __future__ import annotations
 
@@ -21,9 +17,6 @@ from tests.unit.reconcile.fingerprint._fixtures import (
     make_fetch_ctx,
 )
 
-# Real HashQueryBuilder against the Redshift / Postgres dialect emits ``FROM %(tbl)s``
-# (sqlglot pyformat), not ``FROM :tbl``. Tests use the pyformat shape by default so a
-# regression in dual-form substitution lands on the test surface.
 _FAKE_HASH_QUERY_PG_FORM = (
     'SELECT LOWER(SHA2(COALESCE(TRIM(CAST("order_amount"::TEXT AS VARCHAR(65535))), '
     "'_null_recon_') || COALESCE(TRIM(CAST(\"order_id\"::TEXT AS VARCHAR(65535))), "
@@ -32,8 +25,6 @@ _FAKE_HASH_QUERY_PG_FORM = (
 _FAKE_HASH_QUERY_NAMED_FORM = _FAKE_HASH_QUERY_PG_FORM.replace("%(tbl)s", ":tbl")
 _FAKE_HASH_QUERY = _FAKE_HASH_QUERY_PG_FORM
 
-# Trailing ``_fp_filtered`` alias is the contract — Redshift requires aliases on
-# derived tables and the placeholder substitution pastes this in unchanged.
 _FAKE_SOURCE_FILTER_SUBQUERY = (
     '(SELECT * FROM "public"."orders" WHERE STRTOL(SUBSTRING(MD5(<concat>), 1, 8), 16) IN (1, 2, 3)) _fp_filtered'
 )
@@ -48,7 +39,6 @@ def _make_redshift_query_builder():
 
 
 def _make_legacy_query_builder():
-    """Non-Redshift FingerprintQueryBuilder stand-in. Stage-2 source-fetch is dialect-agnostic."""
     builder = MagicMock()
     builder.build_source_filter_subquery.return_value = _FAKE_SOURCE_FILTER_SUBQUERY
     return builder
@@ -66,14 +56,12 @@ def _make_fetch_ctx(source, query_builder):
 
 
 def _patched_fetch_source_rows(*args, **kwargs):
-    """Run ``fetch_source_rows`` with HashQueryBuilder stubbed to a fixed string."""
     fake_hash_builder = make_fake_hash_builder(_FAKE_HASH_QUERY)
     with patch.object(orch, "HashQueryBuilder", return_value=fake_hash_builder):
         return orch.fetch_source_rows(*args, **kwargs)
 
 
 def test_redshift_dialect_emits_single_statement_sandwich(source_mock):
-    """Single-SELECT shape: filter subquery substituted into the placeholder, no CTE/DDL."""
     ctx = _make_fetch_ctx(source_mock, _make_redshift_query_builder())
 
     df, fetch_path = _patched_fetch_source_rows(
@@ -95,10 +83,8 @@ def test_redshift_dialect_emits_single_statement_sandwich(source_mock):
     assert _FAKE_SOURCE_FILTER_SUBQUERY in query, query
     assert "SHA2" in query.upper()
     assert "hash_value_recon" in query
-    # Both placeholder forms must be substituted before the query reaches the connector.
     assert ":tbl" not in query
     assert "%(tbl)s" not in query
-    # Sanity: the reverted CTE-with-OFFSET-0 machinery should not leak back in.
     assert "OFFSET 0" not in query.upper()
     assert "_fp_md5_" not in query
     assert " AS MATERIALIZED " not in query.upper()
@@ -107,7 +93,6 @@ def test_redshift_dialect_emits_single_statement_sandwich(source_mock):
 
 
 def test_non_redshift_dialect_uses_same_sandwich_shape(source_mock):
-    """Stage-2 source-fetch is dialect-agnostic; non-Redshift builders take the same path."""
     ctx = _make_fetch_ctx(source_mock, _make_legacy_query_builder())
 
     df, fetch_path = _patched_fetch_source_rows(
@@ -130,7 +115,6 @@ def test_non_redshift_dialect_uses_same_sandwich_shape(source_mock):
 
 
 def test_fetch_uses_standard_read_data_signature(source_mock):
-    """No prepare_query, no extra knobs — fetch goes through the standard read_data."""
     ctx = _make_fetch_ctx(source_mock, _make_redshift_query_builder())
 
     _patched_fetch_source_rows(
@@ -150,7 +134,6 @@ def test_fetch_uses_standard_read_data_signature(source_mock):
 
 
 def test_fetch_passes_jdbc_reader_options_through(source_mock):
-    """``jdbc_reader_options`` from Table must be forwarded by name."""
     ctx = _make_fetch_ctx(source_mock, _make_redshift_query_builder())
 
     _patched_fetch_source_rows(
@@ -166,11 +149,6 @@ def test_fetch_passes_jdbc_reader_options_through(source_mock):
 
 
 def test_fetch_invokes_filter_subquery_builder_with_tier_and_solver_outputs(source_mock):
-    """Stage-2 must reuse Stage-1's adaptive sub_bucket_count and pass solver output verbatim.
-
-    A refactor swapping in the static ``constants.SUB_BUCKET_COUNT`` would silently
-    misalign Stage-1 / Stage-2 sub-bucket IDs.
-    """
     builder = _make_redshift_query_builder()
     ctx = _make_fetch_ctx(source_mock, builder)
 
@@ -196,11 +174,6 @@ def test_fetch_invokes_filter_subquery_builder_with_tier_and_solver_outputs(sour
     ids=["spark-named-:tbl", "redshift-pyformat-%(tbl)s"],
 )
 def test_fetch_resolves_both_placeholder_forms_for_dialect_parity(source_mock, hash_query_template):
-    """Both ``:tbl`` (Spark) and ``%(tbl)s`` (Postgres pyformat) must be substituted.
-
-    Guards against a sqlglot rendering change leaving one form unresolved and silently
-    falling through to a full-table connector substitution.
-    """
     fake_hash_builder = make_fake_hash_builder(hash_query_template)
 
     ctx = _make_fetch_ctx(source_mock, _make_redshift_query_builder())
@@ -220,21 +193,11 @@ def test_fetch_resolves_both_placeholder_forms_for_dialect_parity(source_mock, h
 
 
 def test_real_redshift_hash_query_builder_emits_pyformat_placeholder():
-    """Sentinel for the rendering contract: HashQueryBuilder against Postgres emits ``%(tbl)s``."""
     sample = "SELECT ... FROM %(tbl)s WHERE ..."
     assert "%(tbl)s" in sample
 
 
 def test_fetch_source_rows_passes_project_all_columns_true(source_mock):
-    """Stage-2 source-fetch must opt into the all-columns projection.
-
-    Without ``project_all_columns=True`` the projection contains only join keys, so
-    ``capture_mismatch_data_and_columns`` ends up with ``mismatch_columns=[]`` for
-    every fingerprint MISMATCH (the principal-engineer-flagged column-level diff
-    gap). Pinning the kwarg here so a future refactor can't silently drop it and
-    regress fingerprint MISMATCH outputs back to opaque "row didn't match"
-    verdicts with no column attribution.
-    """
     fake_hash_builder = make_fake_hash_builder(_FAKE_HASH_QUERY)
 
     ctx = _make_fetch_ctx(source_mock, _make_redshift_query_builder())

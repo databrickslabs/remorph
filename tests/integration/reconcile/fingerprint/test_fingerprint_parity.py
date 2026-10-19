@@ -1,22 +1,4 @@
-"""Integration parity tests for the fingerprint pre-check.
-
-Contract under test: with ``reconcile_optimizer=True`` the reconcile result
-must be **identical** to the legacy (``reconcile_optimizer=False``) path on
-real data — same mismatch / missing-in-source / missing-in-target counts — and
-the pre-check must have actually engaged (not silently fallen back to the
-legacy pipeline).
-
-Workspace-gated: like ``test_recon_redshift_job_succeeds`` this needs a live
-Databricks workspace (``spark`` via databricks-connect + ``ws``), the
-``sandbox_labs_tool_redshift`` UC connection, and the sandbox
-``labs.lakebridge.diamonds`` Redshift table. It runs in the project integration
-CI, not the ``make test`` unit gate (there is no local Spark in unit CI).
-
-The assertions deliberately avoid hard-coding the sandbox row contents: parity
-("ON agrees with OFF") holds whether the diamonds source and target happen to
-match or differ, so the test stays robust to sandbox data drift while still
-proving the pre-check produces the legacy answer.
-"""
+"""Integration parity tests for the fingerprint pre-check."""
 
 import dataclasses
 import logging
@@ -35,13 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 def _run_recon_one(ws, spark, recon_config: ReconcileConfig, table_conf: Table, *, fingerprint: bool):
-    """Run one table reconcile in-process and return ``(DataReconcileOutput, FingerprintRunMetadata)``.
-
-    Uses ``do_recon_one`` rather than ``recon_one`` because it returns the
-    reconcile output **without** writing the audit tables and, crucially,
-    surfaces the fingerprint metadata so the test can prove the pre-check
-    engaged on the ON run.
-    """
     cfg = dataclasses.replace(recon_config, reconcile_optimizer=fingerprint)
     reconciler, _capture = TriggerReconService.create_recon_dependencies(ws, spark, cfg)
     normalized = NormalizeReconConfigService(reconciler.source, reconciler.target).normalize_recon_table_config(
@@ -72,8 +47,6 @@ def test_fingerprint_parity_matches_legacy_redshift(
     redshift_recon_config: ReconcileConfig,
     redshift_recon_table_config: TableRecon,
 ) -> None:
-    """Baseline: ON ≡ OFF on the unmutated diamonds source/target, and the
-    pre-check engaged (verdict set, no fallback) on the ON run."""
     table_conf = redshift_recon_table_config.tables[0]
 
     off_out, off_meta = _run_recon_one(ws, spark, redshift_recon_config, table_conf, fingerprint=False)
@@ -81,12 +54,10 @@ def test_fingerprint_parity_matches_legacy_redshift(
 
     _assert_counts_equal(on_out, off_out)
 
-    # The pre-check actually decided this run (did not fall back to legacy).
     assert on_meta.eligible is True
     assert on_meta.verdict in {"MATCH", "MISMATCH"}, f"unexpected verdict {on_meta.verdict!r}"
     assert on_meta.fallback_to_full_pipeline is False, "fingerprint fell back to the legacy pipeline"
 
-    # The OFF run must not have run the pre-check at all.
     assert off_meta.eligible is False
     assert off_meta.ineligibility_reason == INELIGIBLE_FLAG_DISABLED
 
@@ -99,15 +70,9 @@ def test_fingerprint_parity_detects_same_mismatch_after_target_mutation(
     redshift_recon_config: ReconcileConfig,
     redshift_recon_table_config: TableRecon,
 ) -> None:
-    """Force a value difference on exactly one target row, then assert both
-    modes report the *same* counts and the pre-check resolves to MISMATCH
-    without falling back. Mutating the Databricks target (which the test owns)
-    keeps the shared Redshift sandbox untouched."""
     table_conf = redshift_recon_table_config.tables[0]
     target_fqn = f"{recon_schema.catalog_name}.{recon_schema.name}.{table_conf.target_name}"
 
-    # (color='E', clarity='SI2') is a single row in the diamonds fixture; bump a
-    # non-key column so the row mismatches on value, not on existence.
     spark.sql(f"UPDATE {target_fqn} SET carat = carat + 1.0 WHERE color = 'E' AND clarity = 'SI2'")
 
     off_out, _off_meta = _run_recon_one(ws, spark, redshift_recon_config, table_conf, fingerprint=False)

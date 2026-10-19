@@ -1,13 +1,4 @@
-"""Regression tests: ``fetch_source_and_target_rows`` (serial Stage-2 dispatch).
-
-Stage-2 source-fetch (JDBC) and target-fetch (Spark) both return LAZY DataFrames, so there is
-no driver-side round trip to overlap; the helper runs them serially. These tests pin the
-observable contract that a refactor must preserve:
-
-1. The result tuple is ``(src_df, fetch_path, tgt_df)``.
-2. An exception in either fetch re-raises on the caller's stack.
-3. Both fetches receive the caller's arguments unmodified.
-"""
+"""Regression tests: ``fetch_source_and_target_rows`` (serial Stage-2 dispatch)."""
 
 from __future__ import annotations
 
@@ -21,17 +12,10 @@ from databricks.labs.lakebridge.reconcile.fingerprint.metadata import FETCH_PATH
 
 @pytest.fixture(name="fetch_ctx")
 def fixture_fetch_ctx():
-    """Bare ``FetchContext`` mock — the helper never inspects it."""
     return MagicMock(name="fetch_ctx")
 
 
 def test_fetch_returns_serial_equivalent_tuple(fetch_ctx):
-    """Result tuple shape must remain ``(src_df, fetch_path, tgt_df)``.
-
-    The helper centralises the two fetches and returns a flat 3-tuple. Pinning so a future
-    refactor can't silently transpose the order or wrap the result in a struct that the caller
-    would .get('source') from.
-    """
     fake_src_df = MagicMock(name="src_df")
     fake_tgt_df = MagicMock(name="tgt_df")
 
@@ -50,11 +34,6 @@ def test_fetch_returns_serial_equivalent_tuple(fetch_ctx):
 
 
 def test_fetch_reraises_source_failure(fetch_ctx):
-    """Source-side failure must abort the precheck on the caller's stack.
-
-    A JDBC failure in ``fetch_source_rows`` re-raises directly (serial dispatch). Pinning so a
-    future refactor can't reintroduce a mechanism that swallows the error.
-    """
     boom = RuntimeError("simulated JDBC connection drop")
 
     with (
@@ -66,7 +45,6 @@ def test_fetch_reraises_source_failure(fetch_ctx):
 
 
 def test_fetch_reraises_target_failure(fetch_ctx):
-    """Target-side failure must also re-raise on the caller's stack."""
     boom = RuntimeError("simulated Delta read failure")
 
     with (
@@ -78,12 +56,6 @@ def test_fetch_reraises_target_failure(fetch_ctx):
 
 
 def test_fetch_passes_arguments_through_unmodified(fetch_ctx):
-    """Both fetches must receive the same ``ctx`` / ``solved_hashes`` /
-    ``unsolved_sb_ids`` / ``report_type`` the caller passed.
-
-    Pinning so a future refactor that, e.g., copies ``solved_hashes`` for one
-    side but not the other can't silently produce inconsistent Stage-2 filters.
-    """
     solved = {5: [101, 102], 9: [203]}
     unsolved = [7, 13]
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from databricks.labs.lakebridge.reconcile.fingerprint.columns import DetectionColumn
 from databricks.labs.lakebridge.reconcile.fingerprint.constants import NULL_SENTINEL
 from databricks.labs.lakebridge.reconcile.fingerprint.query_builders.redshift import (
     RedshiftFingerprintQueryBuilder,
@@ -11,13 +12,9 @@ from databricks.labs.lakebridge.reconcile.fingerprint.query_builders.redshift im
 )
 from databricks.labs.lakebridge.reconcile.query_builder.column_transformer import serialize_column_for_hash
 from databricks.labs.lakebridge.reconcile.recon_config import Schema
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
-
-_REDSHIFT = get_dialect("redshift")
 
 
 def test_concat_uses_source_names_not_target_mapping():
-    """Detection concat uses source physical names; target mapping applies on Spark only."""
     builder = RedshiftFingerprintQueryBuilder()
     cols = [
         Schema("`src_a`", "varchar", '"src_a"'),
@@ -32,31 +29,19 @@ def test_concat_uses_source_names_not_target_mapping():
 
 
 def test_double_column_normalised_to_fixed_scale_decimal_matching_target():
-    """Redshift ``double precision`` and Databricks ``DOUBLE`` serialise to different
-    strings under the universal TRIM default (full-precision vs shortest round-trip),
-    which false-mismatches every double row. Both sides pin to a fixed-scale
-    ``DECIMAL(38,10)`` string so the source concat matches the Spark target byte stream.
-    """
     builder = RedshiftFingerprintQueryBuilder()
-    cols = [Schema("`carat`", "double precision", '"carat"')]
+    cols = [DetectionColumn("`carat`", "double precision", '"carat"', "double")]
 
     sql = builder.build_concat_expression(cols)
 
-    # In-range values pin to DECIMAL(38,10); NaN/±Inf/>=1e28 route to the native VARCHAR cast.
-    # NaN is detected via the VARCHAR cast (a Redshift *column* ``NaN IN (CAST('NaN' AS DOUBLE
-    # PRECISION), ...)`` returns FALSE), so with a correct guard NaN never reaches the ELSE and
-    # it feeds the raw column straight to the DECIMAL pin -- no sanitize (see the DOUBLE handler
-    # in column_transformer and CF-2 in E2E_FINDINGS).
     assert 'CAST(CAST("carat" AS DECIMAL(38,10)) AS VARCHAR)' in sql, sql
     assert 'CAST("carat" AS VARCHAR) IN (' in sql, sql
     assert "THEN 0 ELSE" not in sql, sql
     assert "TRIM" not in sql, sql
-    # The source concat delegates to the same shared transform map the row-hash path uses.
-    assert serialize_column_for_hash('"carat"', "double precision", _REDSHIFT) in sql
+    assert serialize_column_for_hash('"carat"', "double precision", "double", "source") in sql
 
 
 def test_source_filter_subquery_uses_detection_columns():
-    """Filter subquery WHERE uses MD5 over the same detection columns."""
     builder = RedshiftFingerprintQueryBuilder()
     detection_cols = [
         Schema("`a`", "int", '"a"'),
@@ -79,9 +64,6 @@ def test_source_filter_subquery_uses_detection_columns():
 
 
 def test_detection_sql_uses_decimal_precision_for_hash_aggregates():
-    """Cast rh*rh operands to DECIMAL(19,0) so the product is DECIMAL(38,0); SUM lifts
-    linear rh aggregates to DECIMAL(38,0). BIGINT in the multiply would overflow.
-    """
     builder = RedshiftFingerprintQueryBuilder()
     cols = [Schema("`a`", "int", '"a"')]
 
@@ -100,18 +82,12 @@ def test_detection_sql_uses_decimal_precision_for_hash_aggregates():
 
 
 def test_quote_redshift_identifier_doubles_embedded_double_quote():
-    """Defense-in-depth: a column name containing a literal ``"`` must not break the SQL."""
     assert quote_redshift_identifier("plain") == '"plain"'
     assert quote_redshift_identifier('we"ird') == '"we""ird"'
     assert quote_redshift_identifier('""') == '""""""'
 
 
 def test_serialize_column_strips_ansi_delimiters_and_handles_reserved_word():
-    """ANSI-delimited names round-trip into Redshift's double-quoted form.
-
-    Naively wrapping the inbound delimited form in source quotes produces a literal
-    column name Redshift rejects. Strip first, re-quote once.
-    """
     builder = RedshiftFingerprintQueryBuilder()
     serialized = builder.serialize_column("`table`", "integer")
     assert '"table"' in serialized
@@ -120,39 +96,33 @@ def test_serialize_column_strips_ansi_delimiters_and_handles_reserved_word():
 
 
 @pytest.mark.parametrize(
-    "col_type, expected",
+    "col_type, counterpart_type, expected",
     [
-        ("integer", 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
-        ("numeric(18,2)", 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
-        ("varchar(64)", 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
-        ("timestamp", 'COALESCE(TO_CHAR("amount", \'YYYY-MM-DD HH24:MI:SS.US\'), \'_null_recon_\')'),
+        ("integer", None, 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
+        ("numeric(18,2)", None, 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
+        ("varchar(64)", None, 'COALESCE(TRIM("amount"), \'_null_recon_\')'),
+        ("timestamp", "timestamp", 'COALESCE(TO_CHAR("amount", \'YYYY-MM-DD HH24:MI:SS.US\'), \'_null_recon_\')'),
         (
             "timestamptz",
+            "timestamp",
             'COALESCE(TO_CHAR("amount" AT TIME ZONE \'UTC\', \'YYYY-MM-DD HH24:MI:SS.US\'), \'_null_recon_\')',
         ),
-        ("date", 'COALESCE(TO_CHAR("amount", \'YYYY-MM-DD\'), \'_null_recon_\')'),
+        ("date", None, 'COALESCE(TO_CHAR("amount", \'YYYY-MM-DD\'), \'_null_recon_\')'),
     ],
 )
-def test_serialize_column_matches_shared_transform_map(col_type: str, expected: str) -> None:
-    """The fingerprint source serializer delegates to the shared row-hash transform map,
-    so its output is byte-identical to the row-hash compare path for every type."""
+def test_serialize_column_matches_shared_transform_map(
+    col_type: str, counterpart_type: str | None, expected: str
+) -> None:
     builder = RedshiftFingerprintQueryBuilder()
-    serialized = builder.serialize_column("`amount`", col_type)
+    serialized = builder.serialize_column("`amount`", col_type, counterpart_type)
     assert serialized == expected
-    assert serialized == serialize_column_for_hash('"amount"', col_type, _REDSHIFT)
+    assert serialized == serialize_column_for_hash('"amount"', col_type, counterpart_type, "source")
 
 
 def test_serialize_column_timestamptz_pins_utc():
-    """TIMESTAMPTZ must pin ``AT TIME ZONE 'UTC'`` so the source render is
-    independent of the Redshift session ``TIMEZONE``. Without the pin a non-UTC
-    Redshift session and a UTC Spark session would make every TIMESTAMPTZ row
-    false-mismatch. The shared transform map keeps this identical to the row-hash
-    compare path, and the Databricks side pins the same instant via
-    ``CONVERT_TIMEZONE('UTC', ...)``.
-    """
     builder = RedshiftFingerprintQueryBuilder()
     for col_type in ("timestamptz", "TIMESTAMPTZ", "timestamp with time zone"):
-        serialized = builder.serialize_column("`created_at_tz`", col_type)
+        serialized = builder.serialize_column("`created_at_tz`", col_type, "timestamp")
         assert "AT TIME ZONE 'UTC'" in serialized, f"{col_type}: {serialized!r}"
         assert (
             "TO_CHAR(\"created_at_tz\" AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')" in serialized
@@ -160,10 +130,6 @@ def test_serialize_column_timestamptz_pins_utc():
 
 
 def test_serialize_column_boolean_uses_case_when_not_cast_as_varchar():
-    """Redshift rejects every BOOLEAN -> string cast form (CAST AS VARCHAR/TEXT, ::TEXT).
-    The shared transform map's Redshift BOOLEAN handler uses CASE WHEN producing lowercase
-    ``'true'/'false'`` so the MD5 stays bit-identical with Spark's ``cast(bool AS string)``.
-    """
     builder = RedshiftFingerprintQueryBuilder()
     serialized = builder.serialize_column("`is_priority`", "boolean")
 
@@ -179,8 +145,6 @@ def test_serialize_column_boolean_uses_case_when_not_cast_as_varchar():
 
 
 def test_serialize_column_source_and_target_share_null_sentinel():
-    """Source (Redshift) and target (Databricks) serializers both terminate in the same
-    COALESCE sentinel so a NULL on either side hashes to the same byte stream."""
     builder = RedshiftFingerprintQueryBuilder()
     for col_type in ("integer", "varchar(32)", "timestamp", "boolean", "timestamptz", "date"):
         serialized = builder.serialize_column("`x`", col_type)
@@ -188,16 +152,6 @@ def test_serialize_column_source_and_target_share_null_sentinel():
 
 
 def test_null_sentinel_parity_with_row_hash_path():
-    """The fingerprint NULL stand-in must match the row-hash literal in
-    ``expression_generator``. Drift here aliases real data ``'_null_recon_'``
-    with NULL on only the fingerprint side, so any row that carries that literal
-    is silently misclassified during Stage-1 sub-bucket aggregation.
-
-    This guard is intentionally a string-literal grep against the source file
-    rather than an import: if a refactor moves the row-hash sentinel to a named
-    constant, the grep failure points to *both* call sites in one CI run instead
-    of letting the import succeed against a renamed but mismatched value.
-    """
     expr_gen = (
         Path(__file__).resolve().parents[3]
         / "src"
@@ -209,7 +163,6 @@ def test_null_sentinel_parity_with_row_hash_path():
         / "column_transformer.py"
     )
     if not expr_gen.exists():
-        # Repo layout fallback for installed-package tests.
         expr_gen = (
             Path(__file__).resolve().parents[4]
             / "src"

@@ -1,12 +1,4 @@
-"""Reconcile orchestration.
-
-Row-level compare path: schema compare, then — when ``reconcile_optimizer`` is
-enabled and ``source.dialect`` has a registered ``FingerprintQueryBuilder``
-(today: Redshift) — try fingerprint (MD5 buckets) first. MATCH returns a
-synthetic match without hash + JOIN; MISMATCH builds the output from the
-already-fetched filtered rows; failure or unsupported sources fall through to
-``HashQueryBuilder`` + ``reconciler.reconcile_data``.
-"""
+"""Reconcile orchestration."""
 
 import contextlib
 import logging
@@ -72,16 +64,9 @@ def _try_unpersist(df) -> None:
     exit. The DataFrames may have been ``persist()``-ed by
     ``compute_target_fingerprint`` / source-side fetch and we don't want them
     to linger in executor storage for the rest of the recon.
-
-    Swallows any exception because unpersist is purely a release path — failing
-    here on a frame that was never cached, or whose plan is in a partial state,
-    must not mask the original error that triggered the fallback.
     """
     if df is None:
         return
-    # Intentional catch-all: ``unpersist`` on a non-cached frame (or one whose plan
-    # is in a partial state) raises in some Spark versions, and we explicitly do not
-    # want to surface that on the fallback path where the real error already lives.
     with contextlib.suppress(Exception):
         df.unpersist(blocking=False)
 
@@ -228,9 +213,6 @@ class TriggerReconService:
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
 
-        # Compute ineligibility once so metadata is populated correctly
-        # regardless of which code path exits first. The data-path block
-        # below overwrites the eligible default with the actual verdict.
         ineligibility_reason = classify_ineligibility(
             flag_enabled=reconcile_config.reconcile_optimizer,
             data_source=reconcile_config.source.dialect,
@@ -336,26 +318,7 @@ class TriggerReconService:
         tgt_schema: list[Schema],
         recon_id: str | None,
     ) -> tuple[FingerprintResult | None, str | None, bool]:
-        """Run ``run_fingerprint_precheck`` and classify the outcome for the caller.
-
-        Returns ``(fp_result, runtime_ineligibility, precheck_failed)`` where:
-
-        * ``fp_result`` is the ``FingerprintResult`` (or ``None`` if the precheck
-          declined / raised),
-        * ``runtime_ineligibility`` is an ``IneligibilityReason`` value when the
-          precheck was rejected for a *config-time* reason discovered at runtime
-          (today: ``UnmappedTargetColumnMappingError``). The caller routes this
-          through ``FingerprintRunMetadata.ineligible(...)`` so adoption queries
-          on ``recon_metrics.fingerprint_metrics.ineligibility_reason`` see the
-          typed value instead of a silent ``None``.
-        * ``precheck_failed`` is ``True`` when the precheck raised a runtime
-          fault (``FingerprintError`` / ``DataSourceRuntimeException`` /
-          ``PySparkException``). The caller maps that to ``verdict="FAILED"`` so
-          dashboards can quantify precheck reliability.
-
-        Extracting this keeps the parent method's branching surface small
-        enough for the project's McCabe budget while preserving every catch.
-        """
+        """Run ``run_fingerprint_precheck`` and classify the outcome for the caller."""
         try:
             fp_result = run_fingerprint_precheck(
                 source=reconciler.source,
@@ -371,45 +334,14 @@ class TriggerReconService:
                 recon_id=recon_id,
             )
         except UnmappedTargetColumnMappingError as e:
-            # Caught BEFORE the generic ``FingerprintError`` branch because this
-            # is a config-time ineligibility (a column_mapping target that
-            # doesn't exist on the target), not a runtime failure of the
-            # precheck. Surfacing it as a typed ``ineligibility_reason`` keeps
-            # adoption queries honest.
             logger.warning(f"Fingerprint precheck ineligible — {e}; falling back to full pipeline.")
             return None, INELIGIBLE_UNMAPPED_TARGET_COLUMN_MAPPING, False
         except (FingerprintError, DataSourceRuntimeException, PySparkException) as e:
-            # Three failure modes meet here:
-            #   * ``FingerprintError`` — logical errors raised by the precheck.
-            #   * ``DataSourceRuntimeException`` — wrapped JDBC failures from
-            #     the connector layer during detection or fetch.
-            #   * ``PySparkException`` — bare Spark errors that the connector
-            #     wrap doesn't see, e.g. ``AnalysisException`` raised at action
-            #     time when ``compute_target_fingerprint`` materialises a plan
-            #     that references a missing target column. Without this catch
-            #     the recon would crash mid-pipeline instead of falling back;
-            #     the precheck must be opt-in safe.
-            # All three collapse to "fallback to full pipeline with verdict=FAILED"
-            # so dashboards can quantify precheck reliability without distinguishing
-            # the cause — the underlying error is logged here and re-discoverable
-            # from cluster logs if needed.
             logger.warning(f"Fingerprint precheck failed ({e}); falling back to full pipeline.")
             return None, None, True
         except (KeyboardInterrupt, SystemExit, GeneratorExit):
             raise
         except BaseException as e:
-            # Fail-open catch-all. The three enumerated types above are the
-            # *expected* precheck faults; this boundary guarantees the feature's
-            # core promise — an optimization pre-check must NEVER be able to abort
-            # the recon. Any unanticipated exception (a solver arithmetic edge, a
-            # KeyError in query construction, a new exception type from a
-            # dependency, etc.) would otherwise propagate out of ``recon_one`` and
-            # kill the *entire multi-table* job. Instead we log it and fall back to
-            # the full pipeline with verdict=FAILED, exactly like the enumerated
-            # faults, so one table's precheck surprise degrades to "run the normal
-            # path" rather than a job-wide crash. The full traceback is preserved
-            # in the logs for diagnosis. Control-flow signals (Ctrl-C, interpreter
-            # shutdown) are re-raised above rather than swallowed here.
             logger.warning(
                 f"Fingerprint precheck raised an unexpected {type(e).__name__} ({e}); "
                 "falling back to full pipeline.",
@@ -430,16 +362,6 @@ class TriggerReconService:
     ) -> tuple[DataReconcileOutput, FingerprintRunMetadata]:
         """Try the fingerprint precheck; on any non-MATCH outcome, fall back to the
         full hash-and-join reconcile path.
-
-        Returns ``(data_reconcile_output, fingerprint_metadata)``. The metadata
-        records the verdict regardless of which path produced the output, so
-        the persisted ``recon_metrics.fingerprint_metrics`` struct always
-        reflects what actually happened.
-
-        ``ineligibility_reason`` may be supplied by the caller (``do_recon_one``
-        pre-computes it once so the schema-failure path can pre-populate the
-        metadata) but is computed lazily here when omitted, so this helper is
-        usable as a standalone unit-test boundary.
         """
         if ineligibility_reason is None:
             ineligibility_reason = classify_ineligibility(
@@ -477,12 +399,6 @@ class TriggerReconService:
             return data_reconcile_output, FingerprintRunMetadata.ineligible(runtime_ineligibility)
 
         if fp_result is None:
-            # ``None`` covers two cases:
-            #   - the precheck raised (precheck_failed=True) → verdict="FAILED"
-            #   - the precheck declined (column-resolution skip, systemic
-            #     mismatch, no solved buckets) → verdict left unset
-            # In both cases the full pipeline produces the answer and the
-            # metadata records a fallback.
             data_reconcile_output = TriggerReconService._run_reconcile_data(
                 reconciler=reconciler,
                 table_conf=table_conf,
@@ -496,13 +412,6 @@ class TriggerReconService:
         if fp_result.verdict == "MATCH":
             return fingerprint_match_output(), FingerprintRunMetadata.from_result(fp_result, verdict="MATCH")
 
-        # MISMATCH: the precheck has fetched the differing rows. If the rows
-        # are missing (e.g. an upstream codepath returned ``MISMATCH`` without
-        # populating both row sets), we cannot build the output here and must
-        # fall back to the full pipeline — preserving solver counters so the
-        # dashboard still shows what the precheck observed. Release any cached
-        # frames the precheck may have left behind so the executor's storage
-        # layer doesn't carry the dead plan through the rest of the recon.
         if fp_result.source_rows is None or fp_result.target_rows is None:
             _try_unpersist(fp_result.source_rows)
             _try_unpersist(fp_result.target_rows)
@@ -528,21 +437,6 @@ class TriggerReconService:
         except (KeyboardInterrupt, SystemExit, GeneratorExit):
             raise
         except BaseException as e:
-            # Fail-open catch-all, matching the ``BaseException`` boundary in
-            # ``_invoke_precheck``. Building the mismatch output is precheck work: it
-            # runs Spark actions on the prefetched src/tgt frames AND pure-Python
-            # compare logic — ``capture_mismatch_data_and_columns`` can raise
-            # ``ColumnMismatchException`` (a plain ``Exception``) on a column-order
-            # desync, and other Python-level faults (a ``KeyError`` in column handling,
-            # etc.) are possible too. Catching only Spark errors here would let any of
-            # those escape ``recon_one`` and abort the ENTIRE multi-table job, breaking
-            # the feature's core promise that an opt-in pre-check never aborts the
-            # recon. Instead: release the cached frames first (so a partial
-            # materialisation does not linger in executor storage for the full recon
-            # lifetime), log the full traceback, and fall through to the standard full
-            # pipeline so the table still gets a real recon answer — recording on the
-            # metadata that the precheck-built output was rejected. Control-flow signals
-            # (Ctrl-C, interpreter shutdown) are re-raised above rather than swallowed.
             _try_unpersist(fp_result.source_rows)
             _try_unpersist(fp_result.target_rows)
             logger.warning(

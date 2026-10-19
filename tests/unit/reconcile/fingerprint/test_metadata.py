@@ -1,9 +1,4 @@
-"""Unit tests for the fingerprint metadata dataclass and ineligibility classifier.
-
-Locks the persisted Delta schema contract for ``recon_metrics.fingerprint_metrics`` —
-field names, default values, factory shapes, ineligibility-reason enum values. Renaming
-any of these is a breaking change for downstream dashboards.
-"""
+"""Unit tests for the fingerprint metadata dataclass and ineligibility classifier."""
 
 import pytest
 
@@ -29,7 +24,6 @@ from databricks.labs.lakebridge.reconcile.recon_config import (
 
 
 def test_metadata_default_state_is_ineligible_zeros():
-    """Defaults are safe to write — no eligibility, no verdict, all counters zero."""
     metadata = FingerprintRunMetadata()
     assert metadata.eligible is False
     assert metadata.ineligibility_reason is None
@@ -42,9 +36,6 @@ def test_metadata_default_state_is_ineligible_zeros():
 
 
 def test_disabled_factory_records_flag_disabled_reason():
-    """``disabled()`` carries ``ineligibility_reason="flag_disabled"`` so adoption queries
-    on non-fingerprint reconciles get a non-NULL reason to filter on.
-    """
     metadata = FingerprintRunMetadata.disabled()
     assert metadata.eligible is False
     assert metadata.ineligibility_reason == INELIGIBLE_FLAG_DISABLED
@@ -57,7 +48,6 @@ def test_ineligible_factory_records_supplied_reason():
 
 
 def _eligible_table() -> Table:
-    """Smallest valid Table for a fingerprint-eligible reconcile."""
     return Table(source_name="t", target_name="t", join_columns=["id"])
 
 
@@ -74,9 +64,6 @@ def test_classify_ineligibility_eligible_path_returns_none():
 
 
 def test_classify_flag_disabled_takes_precedence_over_per_table_config():
-    """Flag-off reason wins over per-table ineligibility; otherwise the actual feature
-    state is hidden in dashboards behind a misleading per-table reason.
-    """
     table = Table(
         source_name="t",
         target_name="t",

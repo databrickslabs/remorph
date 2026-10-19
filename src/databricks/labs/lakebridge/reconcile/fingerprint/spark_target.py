@@ -1,11 +1,4 @@
-"""Spark-side detection (Stage-1) and Stage-2 filter helpers for the target Delta table.
-
-Both stages serialise each column through ``serialize_column_for_hash`` (the shared
-row-hash transform map). Stage-1 (DataFrame path) wraps the rendered Databricks SQL in
-``F.expr(...)`` and Stage-2 (SQL filter path) uses it directly, so the two stages cannot
-drift, and the target byte stream is identical to the Redshift source serializer and the
-row-hash compare path by construction.
-"""
+"""Spark-side detection (Stage-1) and Stage-2 filter helpers for the target Delta table."""
 
 import logging
 
@@ -14,6 +7,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import DecimalType, LongType
 
 from databricks.labs.lakebridge.reconcile.connectors.dialect_utils import DialectUtils
+from databricks.labs.lakebridge.reconcile.fingerprint.columns import counterpart_type_of
 from databricks.labs.lakebridge.reconcile.fingerprint.constants import (
     SEPARATOR_PYTHON,
     SEPARATOR_SPARK_SQL,
@@ -22,11 +16,7 @@ from databricks.labs.lakebridge.reconcile.fingerprint.constants import (
 )
 from databricks.labs.lakebridge.reconcile.query_builder.column_transformer import serialize_column_for_hash
 from databricks.labs.lakebridge.reconcile.recon_config import Schema
-from databricks.labs.lakebridge.transpiler.sqlglot.dialect_utils import get_dialect
 
-# rh1/rh2 are 32-bit unsigned values; rh*rh reaches ~2^64 and silently wraps under
-# LongType. DecimalType(19, 0) holds 2^32 and Spark's precision rule produces
-# DecimalType(38, 0) on the multiply, matching the source-side aggregate type.
 RH_OPERAND_TYPE = DecimalType(19, 0)
 AGG_TYPE = DecimalType(38, 0)
 
@@ -42,11 +32,7 @@ def compute_target_fingerprint(
     column_mapping: dict[str, str] | None,
     sub_bucket_count: int,
 ) -> DataFrame:
-    """Compute Stage-1 sub-bucket aggregates on the target Delta table.
-
-    Mirrors the source-side detection query: MD5 over concatenated columns, dual-slice
-    rh1/rh2 extraction, GROUP BY into sub-buckets with (cnt, p1, p2, p1_rh2, p2_rh2).
-    """
+    """Compute Stage-1 sub-bucket aggregates on the target Delta table."""
     df = spark.table(_table_fqn(catalog, schema, table))
 
     concat_col = _build_concat_column(columns, column_mapping)
@@ -74,19 +60,8 @@ def build_target_filter_subquery(
     *,
     sub_bucket_count: int,
 ) -> str:
-    """Build the Spark-SQL subquery that filters target rows for Stage-2 surgical fetch.
-
-    Uses the same column serialisation as ``compute_target_fingerprint`` so the rh1
-    values match Stage-1's hashing exactly; ``sub_bucket_count`` must equal Stage-1's.
-    """
+    """Build the Spark-SQL subquery that filters target rows for Stage-2 surgical fetch."""
     concat_expr = _build_target_concat_sql(columns, column_mapping)
-    # NOTE (perf, non-blocking): Stage-1 (``_hex_substr_to_long``) deliberately avoids
-    # ``CONV`` because it forces a Photon -> JVM ColumnarToRow fallback. Stage-2 uses
-    # ``CONV`` here for brevity in the filter subquery. It is a correctness match for
-    # Stage-1 (same hex->long value), and the perf cost is bounded because Stage-2 only
-    # scans the already-filtered surgical subset, not the full table. Tracked as a perf
-    # follow-up; swapping in a SQL-string port of the ASCII-arithmetic path would remove
-    # the last CONV without changing the hashed value.
     rh1_expr = f"CAST(CONV(SUBSTR(MD5({concat_expr}), 1, 8), 16, 10) AS BIGINT)"
     sb_expr = f"ABS(MOD({rh1_expr}, {sub_bucket_count}))"
     where_clause = build_fingerprint_where_clause(sb_expr, rh1_expr, solved_hashes, unsolved_sb_ids)
@@ -98,7 +73,10 @@ def _build_concat_column(
     column_mapping: dict[str, str] | None,
 ) -> F.Column:
     """Concatenate serialised target columns into a single Column for MD5 hashing."""
-    parts = [F.expr(serialize_target_column_sql(_target_col_name(c, column_mapping), c.data_type)) for c in columns]
+    parts = [
+        F.expr(serialize_target_column_sql(_target_col_name(c, column_mapping), c.data_type, counterpart_type_of(c)))
+        for c in columns
+    ]
     if len(parts) == 1:
         return parts[0]
     result = parts[0]
@@ -112,7 +90,10 @@ def _build_target_concat_sql(
     column_mapping: dict[str, str] | None,
 ) -> str:
     """SQL-string sibling of ``_build_concat_column`` for the Stage-2 filter subquery."""
-    col_exprs = [serialize_target_column_sql(_target_col_name(c, column_mapping), c.data_type) for c in columns]
+    col_exprs = [
+        serialize_target_column_sql(_target_col_name(c, column_mapping), c.data_type, counterpart_type_of(c))
+        for c in columns
+    ]
     if len(col_exprs) == 1:
         return col_exprs[0]
     sep_parts: list[str] = []
@@ -132,28 +113,14 @@ def quote_spark_identifier(bare: str) -> str:
     return quote_identifier(bare, _SPARK_IDENTIFIER_QUOTE)
 
 
-def serialize_target_column_sql(col_name: str, col_type: str) -> str:
-    """Per-column target serializer (Databricks SQL string).
-
-    Routes through the shared row-hash transform map so the target byte stream is
-    identical to both the Redshift source serializer and the row-hash compare path by
-    construction. Stage-1 (DataFrame) wraps the same string in ``F.expr(...)`` and
-    Stage-2 (filter subquery) uses it directly, so the two stages cannot drift.
-
-    The reference is backtick-quoted because ``date_format`` / ``F.expr`` resolve a
-    Delta column literally named ``"a.b"`` as a struct path otherwise.
-    """
+def serialize_target_column_sql(col_name: str, col_type: str, counterpart_type: str | None = None) -> str:
+    """Per-column target serializer (Databricks SQL string)."""
     quoted = quote_spark_identifier(col_name)
-    return serialize_column_for_hash(quoted, col_type, get_dialect("databricks"))
+    return serialize_column_for_hash(quoted, col_type, counterpart_type, "target")
 
 
 def _target_col_name(schema_col: Schema, column_mapping: dict[str, str] | None) -> str:
-    """Resolve target physical column name; ``Schema.ansi_normalized_column_name`` arrives ANSI-delimited.
-
-    ``column_mapping`` is keyed by the bare, lower-cased source name (see
-    ``orchestrator.align_columns``), so the lookup is case-insensitive -- a config whose
-    ``source_name`` case differs from the source schema still resolves to its mapped target.
-    """
+    """Resolve target physical column name; ``Schema.ansi_normalized_column_name`` arrives ANSI-delimited."""
     bare = DialectUtils.unnormalize_identifier(schema_col.ansi_normalized_column_name)
     if column_mapping:
         return column_mapping.get(bare.lower(), bare)
@@ -188,11 +155,7 @@ def _hash_agg_exprs() -> list[F.Column]:
 
 
 def _hex_substr_to_long(md5_col: F.Column, start: int, length: int) -> F.Column:
-    """Convert an MD5 hex substring to a long via Photon-safe ASCII arithmetic.
-
-    F.conv() forces ColumnarToRow JVM fallback on Photon; substring/ascii/when-otherwise/
-    multiply/add are all Photon-native. md5() returns lowercase hex so no upper() needed.
-    """
+    """Convert an MD5 hex substring to a long via Photon-safe ASCII arithmetic."""
     hex_slice = F.substring(md5_col, start, length)
     ascii_0 = F.ascii(F.lit("0"))
     ascii_a = F.ascii(F.lit("a"))

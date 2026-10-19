@@ -13,16 +13,8 @@ DetectionVerdict = Literal["MATCH", "MISMATCH"]
 logger = logging.getLogger(__name__)
 
 SYSTEMIC_GUARD_THRESHOLD = 0.15
-# The ratio guard alone is meaningless on small tables: a handful of populated
-# sub-buckets makes a single genuine mismatch look "systemic" from sampling noise
-# alone (e.g. 1 mismatch / 6 populated sub-buckets = 16.7% > 15%). Requiring this
-# many mismatched sub-buckets before the ratio guard can fire keeps it meaningful
-# at scale (where a true systemic issue produces far more than this) while letting
-# small tables with a few genuine mismatches resolve normally through the solver.
 SYSTEMIC_GUARD_MIN_MISMATCH_COUNT = 50
-# Driver-OOM guard: collecting millions of mismatched sub-buckets is unsafe.
 MAX_MISMATCHED_SUBBUCKETS_TO_SOLVE = 50_000
-# MD5 8-hex extraction yields 32-bit unsigned values in [0, 0xFFFFFFFF].
 MAX_RH_VALUE = 0xFFFFFFFF
 
 
@@ -44,12 +36,7 @@ class DetectionResult:
 
 @contextmanager
 def _cached_frame(df: DataFrame) -> Iterator[DataFrame]:
-    """Yield a cached ``df`` and guarantee ``unpersist`` on exit.
-
-    Wrapping the detect+solve body in ``with`` keeps the release on a single
-    ``__exit__`` — every return path (MATCH, systemic fallback, solved MISMATCH)
-    and any bubbling exception all release the Stage-1 cache exactly once.
-    """
+    """Yield a cached ``df`` and guarantee ``unpersist`` on exit."""
     try:
         yield df
     finally:
@@ -60,19 +47,7 @@ def detect_and_solve(
     source_agg_df: DataFrame,
     target_agg_df: DataFrame,
 ) -> DetectionResult:
-    """Compare source and target sub-bucket aggregates and solve for culprit hashes.
-
-    Returns a DetectionResult with verdict, solved hashes, and unsolved sub-bucket IDs
-    for brute-force fetch.
-
-    Stage-1 materialization: the joined aggregate is cached before any action so
-    the agg + the subsequent ``mismatched.collect()`` reuse the same physical
-    rows instead of re-pulling from Redshift / Delta. The cache is released on
-    every return path. Without this cache the function would fire three separate
-    Spark jobs (joined.count, mismatched.count, mismatched.collect), each
-    re-evaluating the Stage-1 read; with it, two jobs run (one agg + one
-    collect) and both read the cached frame.
-    """
+    """Compare source and target sub-bucket aggregates and solve for culprit hashes."""
     joined = (
         source_agg_df.alias("src")
         .join(
@@ -96,8 +71,6 @@ def detect_and_solve(
     ).cache()
 
     with _cached_frame(joined):
-        # All five signals (cnt + p1/p2/p1_rh2/p2_rh2) must agree before we declare MATCH.
-        # Dropping rh2 from the OR-chain turns MD5 collisions into silent false MATCHes.
         mismatch_condition = (
             (F.col("src_cnt") != F.col("tgt_cnt"))
             | (F.col("src_p1") != F.col("tgt_p1"))
@@ -107,12 +80,6 @@ def detect_and_solve(
         )
         mismatched = joined.filter(mismatch_condition)
 
-        # Single-agg pattern: one Spark job computes both ``total_sbs``
-        # (denominator for the systemic-ratio guard) and ``mismatch_count``
-        # (verdict + systemic-count guard). Calling joined.count() and
-        # mismatched.count() separately would each trigger a full Stage-1
-        # re-evaluation; folding into one agg halves Stage-1 wall-clock on every
-        # run regardless of verdict.
         counts_row = joined.agg(
             F.count("*").alias("total_sbs"),
             F.sum(F.when(mismatch_condition, F.lit(1)).otherwise(F.lit(0)).cast("long")).alias("mismatch_count"),
@@ -145,21 +112,12 @@ def detect_and_solve(
                 systemic_mismatch=True,
             )
 
-        # ``mismatched.collect()`` reads from the cached ``joined`` — no re-pull from
-        # Redshift / Delta. Bounded by ``MAX_MISMATCHED_SUBBUCKETS_TO_SOLVE`` so the
-        # driver-side list never exceeds 50K rows.
         mismatched_rows = mismatched.collect()
 
         solved_results: list[SolveResult] = []
         unsolved_sb_ids: list[int] = []
 
         for row in mismatched_rows:
-            # Spark aggregates p1/p2/p1_rh2/p2_rh2 are DecimalType(38, 0) (see
-            # spark_target._hash_agg_exprs — Decimal is required to avoid 64-bit
-            # overflow when summing rh*rh). They surface here as decimal.Decimal,
-            # which math.isqrt() in _solve_d2_extras rejects with
-            # ``TypeError: 'decimal.Decimal' object cannot be interpreted as an integer``.
-            # Cast to int up front so every downstream solver works on native ints.
             sb_id = int(row["sub_bucket_id"])
             d_cnt = int(row["src_cnt"]) - int(row["tgt_cnt"])
             d_p1 = int(row["src_p1"]) - int(row["tgt_p1"])
@@ -206,24 +164,18 @@ def solve_sub_bucket(
 
 
 def solve_d1(sb_id: int, d_cnt: int, d_p1: int, d_p2: int, d_p1_rh2: int, d_p2_rh2: int) -> SolveResult | None:
-    """Solve d=1: one extra row on one side.
-
-    culprit_rh = abs(d_p1); verified by d_p2 == rh^2 * sign(d_cnt) on both rh1 and
-    rh2 channels. Range check rejects values outside the 32-bit MD5-extraction band.
-    """
+    """Solve d=1: one extra row on one side."""
     rh1 = abs(d_p1)
 
-    # Without the p2 verification, two rows that cancel in p1 (e.g. 3+7 == 1+9) would
-    # be falsely "solved" with a wrong hash.
     if d_p2 != rh1 * rh1 * d_cnt:
         return None
-    if rh1 > MAX_RH_VALUE:  # rh1 = abs(...) is always >= 0; only the upper 32-bit band bound matters
+    if rh1 > MAX_RH_VALUE:
         return None
 
     rh2 = abs(d_p1_rh2)
     if d_p2_rh2 != rh2 * rh2 * d_cnt:
         return None
-    if rh2 > MAX_RH_VALUE:  # rh2 = abs(...) is always >= 0; only the upper 32-bit band bound matters
+    if rh2 > MAX_RH_VALUE:
         return None
 
     if d_cnt > 0:
@@ -238,19 +190,13 @@ def solve_d2_swap(
     d_p1_rh2: int,
     d_p2_rh2: int,
 ) -> SolveResult | None:
-    """Solve d=2 swap: same row count, one row's content changed.
-
-    Source has h_old, target has h_new. d_p1 = h_old - h_new, and
-    d_p2 = h_old^2 - h_new^2 = (h_old - h_new)(h_old + h_new). Solve for both
-    and dual-slice-verify on rh2.
-    """
+    """Solve d=2 swap: same row count, one row's content changed."""
     if d_p1 == 0:
         return None
     if d_p2 % d_p1 != 0:
         return None
 
     h_sum = d_p2 // d_p1
-    # Parity guard: floor-division loses a bit otherwise and produces a wrong root.
     if (d_p1 + h_sum) % 2 != 0:
         return None
     h_old = (d_p1 + h_sum) // 2
@@ -274,11 +220,7 @@ def _solve_d2_extras(
     d_p1_rh2: int,
     d_p2_rh2: int,
 ) -> SolveResult | None:
-    """Solve d=2 extras: two extra rows on one side.
-
-    Sign-adjusts the deltas (target-extras case has negative d_p1/d_p2), then solves
-    the quadratic ``x^2 - sum_h*x + product = 0``.
-    """
+    """Solve d=2 extras: two extra rows on one side."""
     sign = 1 if d_cnt > 0 else -1
     sum_h = d_p1 * sign
     sum_sq = d_p2 * sign
@@ -311,8 +253,6 @@ def _solve_d2_extras(
     if not _cross_verify_d2_extras(d_cnt, d_p1_rh2, d_p2_rh2):
         return None
 
-    # Repeated root means a single culprit hash appearing twice — emit it once so the
-    # row-fetch phase doesn't issue the same predicate twice.
     hashes = [hash_a] if hash_a == hash_b else sorted([hash_a, hash_b])
     if d_cnt > 0:
         return SolveResult(sub_bucket_id=sb_id, source_hashes=hashes, target_hashes=[])
