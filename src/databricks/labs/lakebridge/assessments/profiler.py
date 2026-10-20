@@ -1,6 +1,7 @@
 import json
 import logging
 import platform
+from collections.abc import Collection
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,7 +21,7 @@ from databricks.labs.lakebridge.assessments.pipeline import (
     StepExecutionStatus,
     make_profiler_db_filename,
 )
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, StepLabel
 from databricks.labs.lakebridge.assessments.run_metadata import (
     PROFILER_RUN_METADATA_SCHEMA,
     ProfilerRunMetadata,
@@ -154,6 +155,7 @@ class Profiler:
         pipeline_config: PipelineConfig | None = None,
         output_folder: Path | None = None,
         cred_file_path: Path | None = None,
+        exclude_labels: Collection[StepLabel] = (),
     ) -> None:
 
         if not pipeline_config:
@@ -162,7 +164,13 @@ class Profiler:
             pipeline_config = self._pipeline_config
         resolved_output_folder = output_folder or default_output_folder(self._source_system)
         resolved_creds_path = cred_file_path or cred_file()
-        self._execute(self._source_system, pipeline_config, resolved_output_folder, resolved_creds_path)
+        self._execute(
+            self._source_system,
+            pipeline_config,
+            resolved_output_folder,
+            resolved_creds_path,
+            exclude_labels=exclude_labels,
+        )
 
     def _execute(
         self,
@@ -170,6 +178,7 @@ class Profiler:
         pipeline_config: PipelineConfig,
         output_folder: Path,
         cred_file_path: Path,
+        exclude_labels: Collection[StepLabel] = (),
     ) -> None:
         try:
             # A source connector is needed for any step that isn't a self-managing python step.
@@ -181,6 +190,7 @@ class Profiler:
                 extractor,
                 db_path,
                 cred_file_path,
+                exclude_labels=exclude_labels,
             ).execute()
         except FileNotFoundError as e:
             logger.error(f"Configuration file not found for source {source_system}: {e}")

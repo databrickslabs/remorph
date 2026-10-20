@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step
+from databricks.labs.lakebridge.assessments.profiler_config import PipelineConfig, Step, StepLabel
 
 
 @pytest.mark.parametrize(
@@ -149,6 +149,25 @@ def test_invalid_optional(invalid_optional: object) -> None:
             extract_source="test.sql",
             optional=invalid_optional,  # type: ignore[arg-type]
         )
+
+
+def test_valid_label() -> None:
+    """Test that known labels are accepted."""
+    step = Step(name="test_table", type="sql", extract_source="test.sql", label="unredacted")
+    assert step.label == StepLabel.UNREDACTED
+
+
+def test_label_defaults_none() -> None:
+    """Test that label defaults to None so existing steps can't be skipped."""
+    step = Step(name="test_table", type="sql", extract_source="test.sql")
+    assert step.label is None
+
+
+@pytest.mark.parametrize("invalid_label", ["unknown", ""])
+def test_invalid_label(invalid_label: str) -> None:
+    """Test that unknown labels are rejected."""
+    with pytest.raises(ValueError, match="Invalid label"):
+        Step(name="test_table", type="sql", extract_source="test.sql", label=invalid_label)
 
 
 def test_step_copy_preserves_validation() -> None:
