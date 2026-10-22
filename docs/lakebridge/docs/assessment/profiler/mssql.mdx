@@ -45,14 +45,19 @@ Permissions differ depending on whether you are running against an **on-premises
 
 #### On-Premises SQL Server
 
-On a self-hosted SQL Server instance, a server-level grant is sufficient:
+On a self-hosted SQL Server instance, grant two server-level permissions to the login, then map it to a
+user in each database you profile:
 
 ```sql
--- Grant access to Dynamic Management Views (DMVs)
-GRANT VIEW SERVER STATE TO [<user_name>];
+-- Server level: access to Dynamic Management Views (DMVs)
+GRANT VIEW SERVER STATE TO [<login_name>];
 
--- Grant access to object definitions (routines, views)
-GRANT VIEW DEFINITION TO [<user_name>];
+-- Server level: access to object metadata (routines, views) in every database
+GRANT VIEW ANY DEFINITION TO [<login_name>];
+
+-- In each database you profile
+USE [<target_database>];
+CREATE USER [<user_name>] FROM LOGIN [<login_name>];
 
 -- Grant read access to INFORMATION_SCHEMA views
 GRANT SELECT ON SCHEMA::INFORMATION_SCHEMA TO [<user_name>];
@@ -60,7 +65,9 @@ GRANT SELECT ON SCHEMA::INFORMATION_SCHEMA TO [<user_name>];
 
 :::tip
 `VIEW SERVER STATE` is a server-level permission required to query `sys.dm_*` Dynamic Management Views.
-`VIEW DEFINITION` allows the user to see the definitions of stored procedures and views.
+`VIEW ANY DEFINITION` allows the login to see stored procedures and views in every database it can access.
+Without it, or without a user in a database, that database's routines are missing from the extract and its
+stored procedure names in `proc_stats` are empty.
 These grants should be executed by a `sysadmin` or a login with `CONTROL SERVER` permission.
 :::
 

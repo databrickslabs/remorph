@@ -4,6 +4,7 @@
  * database, tagging each row with its source `database_name`. ROUTINE_DEFINITION is redacted, matching
  * the single-database extract. The WHERE 1 = 0 anchor guarantees a single, correctly-typed result set.
  * Requires three-part naming (on-prem SQL Server / Azure SQL Managed Instance only).
+ * System objects (is_ms_shipped) and the sys and cdc (change data capture) schemas are excluded.
  */
 SET NOCOUNT ON;
 
@@ -30,6 +31,9 @@ DECLARE @sql NVARCHAR(MAX) =
 SELECT @sql = @sql + ISNULL((
         SELECT ' UNION ALL SELECT N' + QUOTENAME([name], '''') + ' AS DATABASE_NAME, ' + @cols
                + ' FROM ' + QUOTENAME([name]) + '.INFORMATION_SCHEMA.ROUTINES'
+               + ' WHERE ROUTINE_SCHEMA NOT IN (N''sys'', N''cdc'') AND NOT EXISTS (SELECT 1 FROM ' + QUOTENAME([name]) + '.sys.all_objects AS o'
+               + ' JOIN ' + QUOTENAME([name]) + '.sys.schemas AS s ON s.schema_id = o.schema_id'
+               + ' WHERE o.is_ms_shipped = 1 AND s.[name] = ROUTINE_SCHEMA AND o.[name] = ROUTINE_NAME)'
         FROM   sys.databases
         WHERE  state_desc = 'ONLINE'
                AND HAS_DBACCESS([name]) = 1
