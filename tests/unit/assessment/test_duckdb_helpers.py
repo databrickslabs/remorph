@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import duckdb
@@ -225,6 +226,48 @@ def test_overwrite_infers_varchar_for_boolean_then_string_past_default_sample(tm
     out = _read_table(db_path, "workspace_notebooks")
     assert pool_id in out[column].tolist()
     assert len(out) == 2002
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pytest.param([True, 1, "https://dev.azuresynapse.net"], id="bool-int-str"),
+        pytest.param([1, "https://dev.azuresynapse.net"], id="int-str"),
+        pytest.param([True, 1], id="bool-int-no-string"),
+        pytest.param([False, 2.5], id="bool-float-no-string"),
+    ],
+)
+def test_overwrite_loads_mixed_type_object_column_as_varchar(tmp_path: Path, values: list) -> None:
+    db_path = str(tmp_path / "t.duckdb")
+    df = pd.DataFrame({"id": range(len(values) + 1), "mixed": pd.Series([None, *values], dtype=object)})
+
+    save_to_duckdb(df, "t1", db_path)
+
+    assert _column_types(db_path, "t1")["mixed"] == "VARCHAR"
+    out = _read_table(db_path, "t1").sort_values("id").reset_index(drop=True)
+    assert pd.isna(out["mixed"].iloc[0])
+    assert out["mixed"].iloc[1:].tolist() == [str(v) for v in values]
+
+
+def test_overwrite_mixed_type_normalisation_does_not_mutate_input_or_retype_single_type_columns(tmp_path: Path) -> None:
+    db_path = str(tmp_path / "t.duckdb")
+    df = pd.DataFrame(
+        {
+            "mixed": pd.Series([True, "x"], dtype=object),
+            "ints_and_floats": pd.Series([1, 2.5], dtype=object),
+            "decimals": pd.Series([Decimal("1.50"), Decimal("2.25")], dtype=object),
+            "dates": pd.Series([date(2024, 1, 1), date(2024, 1, 2)], dtype=object),
+        }
+    )
+
+    save_to_duckdb(df, "t1", db_path)
+
+    types = _column_types(db_path, "t1")
+    assert types["mixed"] == "VARCHAR"
+    assert types["ints_and_floats"] == "DOUBLE"
+    assert types["decimals"].startswith("DECIMAL")
+    assert types["dates"] == "DATE"
+    assert df["mixed"].tolist() == [True, "x"]
 
 
 def test_arrow_batches_on_shared_connection_preserve_types_across_null_first_chunk(tmp_path: Path) -> None:
