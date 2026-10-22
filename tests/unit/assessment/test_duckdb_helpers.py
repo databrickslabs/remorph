@@ -207,6 +207,26 @@ def test_save_to_duckdb_writes_storage_compatibility_version(tmp_path: Path) -> 
     assert _storage_version(db_path) == _EXPECTED_STORAGE_VERSION
 
 
+def test_overwrite_infers_varchar_for_boolean_then_string_past_default_sample(tmp_path: Path) -> None:
+    """A sparse nested field can be a boolean early and a string later, beyond DuckDB's default 1000-row sample."""
+    db_path = str(tmp_path / "t.duckdb")
+    pool_id = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Synapse/workspaces/w/bigDataPools/p"
+    absent: dict = {"name": "n", "properties": {"metadata": {}}}
+
+    def with_compute(value: bool | str) -> dict:
+        return {"name": "n", "properties": {"metadata": {"a365ComputeOptions": {"id": value}}}}
+
+    df = pd.json_normalize([absent] * 2000 + [with_compute(False), with_compute(pool_id)])
+
+    save_to_duckdb(df, "workspace_notebooks", db_path)
+
+    column = "properties.metadata.a365ComputeOptions.id"
+    assert _column_types(db_path, "workspace_notebooks")[column] == "VARCHAR"
+    out = _read_table(db_path, "workspace_notebooks")
+    assert pool_id in out[column].tolist()
+    assert len(out) == 2002
+
+
 def test_arrow_batches_on_shared_connection_preserve_types_across_null_first_chunk(tmp_path: Path) -> None:
     """Arrow declares types even when a batch is all-null, so overwrite→append needs no DuckDB schema=."""
     db_path = str(tmp_path / "t.duckdb")

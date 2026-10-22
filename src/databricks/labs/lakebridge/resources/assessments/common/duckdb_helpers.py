@@ -25,6 +25,10 @@ _PROFILER_DUCKDB_CONFIG: dict[str, bool | float | int | list[str] | str] = {
     "storage_compatibility_version": "v1.4.0",
     "force_compression": "auto",
     "zstd_min_string_length": 8,
+    # DuckDB infers the type of a pandas ``object`` column from a sample of rows (default 1000). Sparse columns from
+    # ``pd.json_normalize`` can hold e.g. a boolean in that sample and a string later, which fails the CTAS with
+    # "Could not convert string ... to BOOL". Inspect every row instead.
+    "pandas_analyze_sample": 2**31 - 1,
 }
 
 
