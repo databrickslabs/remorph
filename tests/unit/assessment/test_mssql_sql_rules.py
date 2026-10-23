@@ -100,3 +100,29 @@ def test_sys_info_defaults_version_dependent_columns(column: str) -> None:
     # Without a NULL default, the whole sys_info query fails to compile on versions that lack the column.
     sql = (_MSSQL / "sys_info.sql").read_text(encoding="utf-8")
     assert re.search(rf"CAST\(NULL AS [\w() ]+\)\s+AS\s+{column}\b", sql)
+
+
+@pytest.mark.parametrize("query", [_MSSQL / "table_sizes.sql", _MSSQL / "multi_db/table_sizes.sql"], ids=_name)
+def test_table_sizes_count_rows_from_heap_or_clustered_index(query: Path) -> None:
+    # Every nonclustered index repeats the table's rows, so summing all indexes multiplies the row count.
+    sql = _without_comments(query.read_text(encoding="utf-8"))
+    assert re.search(r"WHEN ps\.index_id < 2 THEN ps\.row_count", sql, re.IGNORECASE)
+    assert not re.search(r"SUM\(\s*ps\.row_count\s*\)", sql, re.IGNORECASE)
+
+
+_INVENTORY = [
+    _MSSQL / folder / f"{name}.sql"
+    for folder in ("", "multi_db")
+    for name in ("tables", "views", "columns", "routines", "table_sizes")
+]
+
+
+@pytest.mark.parametrize("query", _INVENTORY, ids=_name)
+def test_inventory_excludes_system_objects(query: Path) -> None:
+    # Change data capture and change tracking add system tables and routines to user databases.
+    assert "is_ms_shipped" in _without_comments(query.read_text(encoding="utf-8"))
+
+
+def test_proc_stats_excludes_resource_database() -> None:
+    # Procedures in the hidden Resource database are SQL Server's own, and their names never resolve.
+    assert "database_id <> 32767" in _without_comments((_MSSQL / "proc_stats.sql").read_text(encoding="utf-8"))
